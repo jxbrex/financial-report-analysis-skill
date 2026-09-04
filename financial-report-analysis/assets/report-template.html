@@ -1,0 +1,464 @@
+<!doctype html>
+<html lang="zh-Hans">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>{{公司名}} {{报告期}}{{报告类型}}分析 — financial-report-analysis</title>
+<style>
+/* ═══════════════════════════════════════════════════════════════
+   财报分析报告模板 · financial-report-analysis
+   视觉基底：lieflat PORCELAIN 色系（青瓷蓝）+ 浅色卡片
+   使用方式：复制本文件为最终报告文件名，替换 {{占位}} 与
+   「◆ SLOT」注释标记的内容；JS 区只填数据数组，不改绘图逻辑。
+   硬规则：不引入外部字体/CDN/JS；不用暗色背景、渐变、投影。
+   ═══════════════════════════════════════════════════════════════ */
+:root{
+  --bg:rgb(247,242,235); --ink:rgb(8,31,92); --muted:rgba(8,31,92,.60);
+  --faint:rgba(8,31,92,.32); --grid:rgba(8,31,92,.16); --card:#fff;
+  --data:rgb(51,78,172); --data2:rgb(112,150,209); --faintdata:rgb(186,214,235);
+  --good:#0F7B4F; --warn:#B8860B; --bad:#C0392B;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);
+  font-family:"Helvetica Neue",Arial,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+  -webkit-font-smoothing:antialiased;font-variant-numeric:tabular-nums lining-nums;
+  display:flex;justify-content:center;padding:40px 20px}
+.sheet{width:1040px;max-width:1040px}
+
+/* ── 页眉 ── */
+.masthead{border-bottom:3px double var(--ink);padding-bottom:18px;margin-bottom:8px}
+.masthead .kicker{font-size:11px;font-weight:700;letter-spacing:.22em;color:var(--muted)}
+.masthead h1{font-size:34px;font-weight:900;letter-spacing:.02em;margin:6px 0 4px}
+.masthead .sub{font-size:13px;color:var(--muted)}
+.masthead .sub b{color:var(--ink)}
+
+/* ── 评分条 ── */
+.scorebar{display:flex;gap:14px;align-items:stretch;margin:22px 0 6px;flex-wrap:wrap}
+.scorecard{background:var(--card);border:1px solid var(--grid);border-radius:10px;
+  padding:16px 22px;display:flex;align-items:center;gap:16px}
+.scorecard .big{font-size:42px;font-weight:800;line-height:1}
+.scorecard .meta .l{font-size:11px;font-weight:700;letter-spacing:.14em;color:var(--muted)}
+.scorecard .meta .g{font-size:12px;font-weight:700;margin-top:3px}
+.dimcard{flex:1;min-width:120px;background:var(--card);border:1px solid var(--grid);
+  border-radius:10px;padding:12px 16px}
+.dimcard .l{font-size:10.5px;font-weight:700;letter-spacing:.12em;color:var(--muted)}
+.dimcard .v{font-size:22px;font-weight:800;margin-top:2px}
+.dimcard .note{font-size:10.5px;color:var(--muted);margin-top:2px}
+
+/* ── 徽章 ── */
+.badge{display:inline-block;padding:2px 10px;border-radius:999px;font-size:11px;font-weight:800}
+.badge.g{background:rgba(15,123,79,.12);color:var(--good)}
+.badge.y{background:rgba(184,134,11,.14);color:var(--warn)}
+.badge.r{background:rgba(192,57,43,.12);color:var(--bad)}
+.dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px;vertical-align:1px}
+.dot.g{background:var(--good)}.dot.y{background:var(--warn)}.dot.r{background:var(--bad)}
+
+/* ── 章节 ── */
+.sect{margin-top:46px}
+.secthead{display:flex;align-items:baseline;gap:14px;margin-bottom:6px}
+.secthead .no{font-size:13px;font-weight:800;color:var(--data)}
+.secthead .t{font-size:19px;font-weight:800;letter-spacing:.06em}
+.secthead .line{flex:1;border-top:1px solid var(--ink)}
+.secthead .tag{font-size:10px;font-weight:700;letter-spacing:.1em;color:var(--faint)}
+.lede{font-size:13.5px;line-height:1.85;margin:10px 0 16px;max-width:980px}
+.lede b{font-weight:800}
+
+/* ── 卡片与表格 ── */
+.card{background:var(--card);border:1px solid var(--grid);border-radius:10px;
+  padding:18px 22px;margin:14px 0}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+@media(max-width:860px){.grid2,.grid3{grid-template-columns:1fr}}
+table.data{width:100%;border-collapse:collapse;font-size:12.5px;margin:6px 0}
+table.data th{font-size:11px;font-weight:700;letter-spacing:.08em;color:var(--muted);
+  text-align:left;padding:8px 10px;border-bottom:1.5px solid var(--ink)}
+table.data td{padding:7px 10px;border-bottom:1px dotted var(--faint);line-height:1.5}
+table.data td:not(:first-child):not(.txt),table.data th:not(:first-child):not(.txt){text-align:right}
+table.data tr:last-child td{border-bottom:0}
+table.data tr.total td{font-weight:800;border-top:1.5px solid var(--ink);border-bottom:0}
+.up{color:var(--good);font-weight:700}.dn{color:var(--bad);font-weight:700}
+.srcline{font-size:9.5px;font-weight:600;letter-spacing:.1em;color:var(--faint);margin-top:8px}
+
+/* ── 亮点/风险清单 ── */
+.flaglist{list-style:none}
+.flaglist li{display:flex;gap:10px;padding:10px 2px;border-bottom:1px dotted var(--faint);
+  font-size:13px;line-height:1.7}
+.flaglist li:last-child{border-bottom:0}
+.flaglist .body{flex:1}
+.flaglist .src{display:block;font-size:10.5px;color:var(--muted);margin-top:3px}
+
+/* ── KPI 行 ── */
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin:14px 0}
+@media(max-width:860px){.kpis{grid-template-columns:repeat(2,1fr)}}
+.kpi{background:var(--card);border:1px solid var(--grid);border-radius:10px;padding:14px 16px}
+.kpi .v{font-size:26px;font-weight:800;line-height:1.1}
+.kpi .r{font-size:11px;font-weight:700;margin-top:3px}
+.kpi .l{font-size:10px;font-weight:600;letter-spacing:.12em;color:var(--faint);margin-top:3px}
+
+/* ── 图 ── */
+.fig{background:var(--card);border:1px solid var(--grid);border-radius:10px;padding:16px}
+.fig svg{width:100%;height:auto;display:block}
+.figtitle{font-size:12.5px;font-weight:800;margin-bottom:4px}
+
+/* ── 桥式表强调 ── */
+.bridge td:first-child{font-weight:700}
+
+/* ── 页脚 ── */
+.foot{margin-top:52px;border-top:3px double var(--ink);padding-top:14px;
+  font-size:10px;font-weight:600;letter-spacing:.1em;color:var(--muted);
+  display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap;line-height:1.8}
+
+/* ── 动效 ── */
+.fade{animation:fade .7s ease both}
+@keyframes fade{from{opacity:0;transform:translateY(6px)}}
+@media (prefers-reduced-motion:reduce){.fade{animation:none}}
+@media(max-width:640px){body{padding:20px 8px}.masthead h1{font-size:24px}}
+</style>
+</head>
+<body>
+<div class="sheet">
+
+  <!-- ══ 页眉 ◆ SLOT: 公司名/代码/报告类型/报告期 ══ -->
+  <div class="masthead fade">
+    <div class="kicker">FINANCIAL REPORT ANALYSIS · {{上市地}}</div>
+    <h1>{{公司名}}（{{代码}}）</h1>
+    <div class="sub"><b>{{报告期}}{{报告类型}}</b> 分析报告 · 报告发布于 {{披露日期}} · 分析生成于 {{生成日期}}</div>
+  </div>
+
+  <!-- ══ 评分条 ◆ SLOT: 综合评分与分项分（评分依据见 references/frameworks.md 第七节）══ -->
+  <div class="scorebar fade">
+    <div class="scorecard">
+      <div class="big">{{综合评分}}</div>
+      <div class="meta">
+        <div class="l">综合评分 / 10</div>
+        <div class="g"><span class="badge {{g|y|r}}">{{分档：优秀/良好/一般/警示}}</span></div>
+      </div>
+    </div>
+    <div class="dimcard"><div class="l">盈利质量 25%</div><div class="v">{{分}}</div><div class="note">{{一句依据}}</div></div>
+    <div class="dimcard"><div class="l">成长质量 20%</div><div class="v">{{分}}</div><div class="note">{{一句依据}}</div></div>
+    <div class="dimcard"><div class="l">资产质量 20%</div><div class="v">{{分}}</div><div class="note">{{一句依据}}</div></div>
+    <div class="dimcard"><div class="l">偿债流动 15%</div><div class="v">{{分}}</div><div class="note">{{一句依据}}</div></div>
+    <div class="dimcard"><div class="l">治理风险 20%</div><div class="v">{{分}}</div><div class="note">{{一句依据}}</div></div>
+  </div>
+
+  <!-- ══ 核心结论 ◆ SLOT: 三大亮点/三大风险 ══ -->
+  <div class="sect">
+    <div class="secthead"><span class="no">00</span><span class="t">核心结论</span><span class="line"></span><span class="tag">EXECUTIVE SUMMARY</span></div>
+    <div class="grid2">
+      <div class="card">
+        <div class="figtitle" style="color:var(--good)">亮点 TOP 3</div>
+        <ul class="flaglist">
+          <li><span><span class="dot g"></span></span><div class="body">{{亮点一句话}}<span class="src">出处：{{章节/附注}}</span></div></li>
+          <li><span><span class="dot g"></span></span><div class="body">{{…}}<span class="src">出处：{{…}}</span></div></li>
+          <li><span><span class="dot g"></span></span><div class="body">{{…}}<span class="src">出处：{{…}}</span></div></li>
+        </ul>
+      </div>
+      <div class="card">
+        <div class="figtitle" style="color:var(--bad)">风险 TOP 3</div>
+        <ul class="flaglist">
+          <li><span><span class="dot r"></span></span><div class="body">{{风险一句话}}<span class="src">出处：{{章节/附注}}</span></div></li>
+          <li><span><span class="dot y"></span></span><div class="body">{{…}}<span class="src">出处：{{…}}</span></div></li>
+          <li><span><span class="dot y"></span></span><div class="body">{{…}}<span class="src">出处：{{…}}</span></div></li>
+        </ul>
+      </div>
+    </div>
+    <p class="lede">{{一段话说清这家公司本期发生了什么：业绩主线 + 利润第一驱动 + 最大隐忧}}</p>
+  </div>
+
+  <!-- ══ S1 财务总览 ◆ SLOT ══ -->
+  <div class="sect">
+    <div class="secthead"><span class="no">01</span><span class="t">财务总览</span><span class="line"></span><span class="tag">四维比率 · 杜邦 · F-SCORE</span></div>
+    <div class="kpis">
+      <div class="kpi"><div class="v">{{营业收入}}</div><div class="r {{up|dn}}">{{同比}}</div><div class="l">营业收入（亿元）</div></div>
+      <div class="kpi"><div class="v">{{归母净利}}</div><div class="r {{up|dn}}">{{同比}}</div><div class="l">归母净利润（亿元）</div></div>
+      <div class="kpi"><div class="v">{{经营现金流}}</div><div class="r">净现比 {{x}}</div><div class="l">经营现金流净额（亿元）</div></div>
+      <div class="kpi"><div class="v">{{ROE}}</div><div class="r">F-Score {{n}}/9</div><div class="l">ROE（加权）</div></div>
+    </div>
+    <div class="grid2">
+      <div class="card">
+        <div class="figtitle">四维比率</div>
+        <table class="data">
+          <tr><th>指标</th><th>本期</th><th>上期</th><th class="txt">评价</th></tr>
+          <tr><td>毛利率</td><td>{{}}</td><td>{{}}</td><td class="txt">{{}}</td></tr>
+          <tr><td>净利率</td><td>{{}}</td><td>{{}}</td><td class="txt">{{}}</td></tr>
+          <tr><td>资产负债率</td><td>{{}}</td><td>{{}}</td><td class="txt">{{}}</td></tr>
+          <tr><td>存货周转天数</td><td>{{}}</td><td>{{}}</td><td class="txt">{{}}</td></tr>
+          <tr><td>应收周转天数</td><td>{{}}</td><td>{{}}</td><td class="txt">{{}}</td></tr>
+          <tr><td>收现比</td><td>{{}}</td><td>{{}}</td><td class="txt">{{}}</td></tr>
+        </table>
+        <div class="srcline">数据来源：公司{{报告期}}{{报告类型}}、Tushare；比率口径见 frameworks.md</div>
+      </div>
+      <div class="card">
+        <div class="figtitle">杜邦三分解：ROE 由什么驱动</div>
+        <table class="data">
+          <tr><th>因子</th><th>本期</th><th>上期</th><th class="txt">方向</th></tr>
+          <tr><td>净利率</td><td>{{}}</td><td>{{}}</td><td class="txt">{{↑|↓|→}}</td></tr>
+          <tr><td>总资产周转率</td><td>{{}}</td><td>{{}}</td><td class="txt">{{}}</td></tr>
+          <tr><td>权益乘数</td><td>{{}}</td><td>{{}}</td><td class="txt">{{}}</td></tr>
+          <tr class="total"><td>ROE</td><td>{{}}</td><td>{{}}</td><td class="txt">{{主驱动一句话}}</td></tr>
+        </table>
+        <div class="srcline">质量排序：净利率驱动 &gt; 周转率驱动 &gt; 杠杆驱动</div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="figtitle">Piotroski F-Score：{{n}}/9（判定规则见 frameworks.md 第三节）</div>
+      <table class="data">
+        <tr><th>维度</th><th class="txt">检验项</th><th class="txt">结果</th><th>得分</th></tr>
+        <tr><td rowspan="4">盈利</td><td class="txt">ROA &gt; 0</td><td class="txt">{{是/否 + 读数}}</td><td>{{1/0}}</td></tr>
+        <tr><td class="txt">经营现金流 &gt; 0</td><td class="txt">{{}}</td><td>{{}}</td></tr>
+        <tr><td class="txt">ROA 同比上升</td><td class="txt">{{}}</td><td>{{}}</td></tr>
+        <tr><td class="txt">经营现金流 &gt; 净利润</td><td class="txt">{{}}</td><td>{{}}</td></tr>
+        <tr><td rowspan="3">杠杆/流动性</td><td class="txt">长期有息负债率下降</td><td class="txt">{{}}</td><td>{{}}</td></tr>
+        <tr><td class="txt">流动比率上升</td><td class="txt">{{}}</td><td>{{}}</td></tr>
+        <tr><td class="txt">本期未增发新股</td><td class="txt">{{}}</td><td>{{}}</td></tr>
+        <tr><td rowspan="2">效率</td><td class="txt">毛利率同比上升</td><td class="txt">{{}}</td><td>{{}}</td></tr>
+        <tr><td class="txt">总资产周转率上升</td><td class="txt">{{}}</td><td>{{}}</td></tr>
+      </table>
+      <div class="srcline">读数：8~9 强 / 5~7 中 / ≤4 弱</div>
+    </div>
+    <div class="fig">
+      <div class="figtitle">{{图题：近三年收入与归母净利趋势（亿元，柱）+ 毛利率（线，%）}}</div>
+      <svg id="trend" viewBox="0 0 960 300" preserveAspectRatio="xMidYMid meet"></svg>
+      <div class="srcline">数据来源：{{…}} · 柱=收入/归母净利 · 线=毛利率</div>
+    </div>
+  </div>
+
+  <!-- ══ S2 排雷扫描 ◆ SLOT：全量信号表 ══ -->
+  <div class="sect">
+    <div class="secthead"><span class="no">02</span><span class="t">排雷扫描</span><span class="line"></span><span class="tag">RED FLAGS · 信号库逐条对照</span></div>
+    <div class="card">
+      <table class="data">
+        <tr><th>信号</th><th class="txt">判定</th><th>关键数据</th><th class="txt">证据出处</th></tr>
+        <tr><td>存贷双高</td><td class="txt"><span class="badge g">未触发</span></td><td>{{货币资金/总资产 vs 有息负债/总资产}}</td><td class="txt">{{资产负债表/附注}}</td></tr>
+        <tr><td>净现比</td><td class="txt"><span class="badge {{}}">{{}}</span></td><td>{{}}</td><td class="txt">{{}}</td></tr>
+        <!-- ◆ 按 redflags.md 清单逐条一行；未触发用 g 徽章，观察用 y，命中用 r -->
+      </table>
+      <div class="srcline">判定规则：references/redflags.md；🟢 未触发 / 🟡 观察 / 🔴 命中</div>
+    </div>
+  </div>
+
+  <!-- ══ S3 因素分析 ◆ SLOT：三座桥 ══ -->
+  <div class="sect">
+    <div class="secthead"><span class="no">03</span><span class="t">因素分析</span><span class="line"></span><span class="tag">收入 · 成本 · 净利润桥</span></div>
+    <p class="lede">{{一句话：本期利润变化的第一驱动是……}}</p>
+    <div class="grid2">
+      <div class="card">
+        <div class="figtitle">收入桥（{{量价值得拆则拆，否则分产品}}）</div>
+        <table class="data bridge">
+          <tr><th>因素</th><th>贡献额（亿元）</th><th>占比</th></tr>
+          <tr><td>基期收入</td><td>{{}}</td><td>—</td></tr>
+          <tr><td>{{量贡献 / 分产品A}}</td><td class="up">{{+}}</td><td>{{}}</td></tr>
+          <tr><td>{{价贡献 / 分产品B}}</td><td class="dn">{{−}}</td><td>{{}}</td></tr>
+          <tr class="total"><td>本期收入</td><td>{{}}</td><td>—</td></tr>
+        </table>
+        <div class="srcline">数据来源：{{报告 MD&A 产销表 / 收入附注}}；方法：factor-analysis.md</div>
+      </div>
+      <div class="fig">
+        <div class="figtitle">净利润桥：各因素贡献额（亿元）</div>
+        <svg id="bridge" viewBox="0 0 460 300" preserveAspectRatio="xMidYMid meet"></svg>
+        <div class="srcline">正贡献向右 / 负贡献向左 · 数据来源：合并利润表</div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="figtitle">净利润桥（明细表）</div>
+      <table class="data bridge">
+        <tr><th>环节</th><th>本期</th><th>上期</th><th>贡献额</th><th class="txt">备注</th></tr>
+        <tr><td>毛利</td><td>{{}}</td><td>{{}}</td><td class="up">{{}}</td><td class="txt">{{毛利率变化解释}}</td></tr>
+        <tr><td>税金及附加</td><td>{{}}</td><td>{{}}</td><td>{{}}</td><td class="txt">{{消费税/城建附加变化}}</td></tr>
+        <tr><td>期间费用合计</td><td>{{}}</td><td>{{}}</td><td class="dn">{{}}</td><td class="txt">{{销售/管理/研发/财务逐项}}</td></tr>
+        <tr><td>减值损失</td><td>{{}}</td><td>{{}}</td><td>{{}}</td><td class="txt">{{}}</td></tr>
+        <tr><td>非经常性损益</td><td>{{}}</td><td>{{}}</td><td>{{}}</td><td class="txt">{{政府补助/卖资产}}</td></tr>
+        <tr><td>所得税</td><td>{{}}</td><td>{{}}</td><td>{{}}</td><td class="txt">{{税率/优惠资质}}</td></tr>
+        <tr><td>少数股东损益</td><td>{{}}</td><td>{{}}</td><td>{{}}</td><td class="txt">{{}}</td></tr>
+        <tr class="total"><td>归母净利润</td><td>{{}}</td><td>{{}}</td><td>{{}}</td><td class="txt">第一驱动：{{}}</td></tr>
+      </table>
+      <div class="srcline">数据来源：公司{{报告期}}{{报告类型}}合并利润表、Tushare 交叉核对</div>
+    </div>
+  </div>
+
+  <!-- ══ S4 文字部分分析 ◆ SLOT ══ -->
+  <div class="sect">
+    <div class="secthead"><span class="no">04</span><span class="t">管理层在说什么</span><span class="line"></span><span class="tag">MD&A · 措辞 · 赛道重合度</span></div>
+    <div class="grid2">
+      <div class="card">
+        <div class="figtitle">叙事主线与发力方向</div>
+        <ul class="flaglist">
+          <li><span><span class="dot g"></span></span><div class="body">{{管理层强调的方向1 + 钱是否跟上}}<span class="src">出处：{{MD&A 章节}}</span></div></li>
+          <li><span><span class="dot g"></span></span><div class="body">{{…}}<span class="src">出处：{{…}}</span></div></li>
+        </ul>
+      </div>
+      <div class="card">
+        <div class="figtitle">措辞变化与隐晦信号（对比上期）</div>
+        <ul class="flaglist">
+          <li><span><span class="dot y"></span></span><div class="body">{{新增/删除/弱化的关键词 + 解读}}<span class="src">出处：{{两期同章节对比}}</span></div></li>
+          <li><span><span class="dot r"></span></span><div class="body">{{风险提示新增条目}}<span class="src">出处：{{…}}</span></div></li>
+        </ul>
+      </div>
+    </div>
+    <div class="card">
+      <div class="figtitle">热门赛道重合度：真布局还是蹭热点</div>
+      <table class="data">
+        <tr><th>宣称方向</th><th class="txt">对应热门概念</th><th class="txt">资本开支</th><th class="txt">产能/订单</th><th class="txt">研发</th><th class="txt">收入贡献</th><th class="txt">判定</th></tr>
+        <tr><td>{{方向}}</td><td class="txt">{{概念板块}}</td><td class="txt">{{有/无+金额}}</td><td class="txt">{{}}</td><td class="txt">{{}}</td><td class="txt">{{}}</td><td class="txt"><span class="badge {{}}">{{真布局/观察/蹭热点}}</span></td></tr>
+      </table>
+      <div class="srcline">热门概念：Tushare dc_index/ths_hot；判定规则：text-mining.md 四问</div>
+    </div>
+  </div>
+
+  <!-- ══ S5 产能与在建工程 ◆ SLOT ══ -->
+  <div class="sect">
+    <div class="secthead"><span class="no">05</span><span class="t">产能与在建工程</span><span class="line"></span><span class="tag">钱押在哪条线</span></div>
+    <div class="card">
+      <table class="data">
+        <tr><th>项目</th><th>预算（亿元）</th><th>累计投入</th><th>进度</th><th class="txt">对应产品线 / 判定</th></tr>
+        <tr><td>{{项目名}}</td><td>{{}}</td><td>{{}}</td><td>{{%}}</td><td class="txt">{{}}</td></tr>
+      </table>
+      <div class="srcline">数据来源：在建工程附注 / 募投项目章节；长期挂账未转固的项目必须单列追问</div>
+    </div>
+    <p class="lede">{{结论：在建/募投主要押注 X 产品线，达产后新增产能约…；产能利用率现状…}}</p>
+  </div>
+
+  <!-- ══ S6 股东结构 ◆ SLOT ══ -->
+  <div class="sect">
+    <div class="secthead"><span class="no">06</span><span class="t">股东结构</span><span class="line"></span><span class="tag">户数 · 前十大 · 增减持</span></div>
+    <div class="grid2">
+      <div class="fig">
+        <div class="figtitle">股东户数趋势（万户）+ 区间涨跌幅（线，%）</div>
+        <svg id="holders" viewBox="0 0 460 280" preserveAspectRatio="xMidYMid meet"></svg>
+        <div class="srcline">数据来源：Tushare stk_holdernumber · 户数骤降+价升 = 筹码集中</div>
+      </div>
+      <div class="card">
+        <div class="figtitle">前十大股东变化（本期 vs 上期）</div>
+        <table class="data">
+          <tr><th>股东</th><th>持股比例</th><th class="txt">变动</th></tr>
+          <tr><td>{{}}</td><td>{{%}}</td><td class="txt"><span class="{{up|dn}}">{{新进/增持/减持/退出}}</span></td></tr>
+        </table>
+        <div class="srcline">数据来源：Tushare top10_holders / stk_holdertrade；控股股东质押率 {{%}}</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ S7 外部校验 ◆ SLOT ══ -->
+  <div class="sect">
+    <div class="secthead"><span class="no">07</span><span class="t">外部校验</span><span class="line"></span><span class="tag">预期 · 同业 · 宏观 · 债务</span></div>
+    <div class="grid2">
+      <div class="card">
+        <div class="figtitle">实际 vs 机构一致预期</div>
+        <table class="data">
+          <tr><th>指标</th><th>实际</th><th>一致预期</th><th>偏离度</th></tr>
+          <tr><td>营业收入（亿元）</td><td>{{}}</td><td>{{}}</td><td class="{{up|dn}}">{{%}}</td></tr>
+          <tr><td>归母净利（亿元）</td><td>{{}}</td><td>{{}}</td><td class="{{up|dn}}">{{%}}</td></tr>
+        </table>
+        <div class="srcline">数据来源：Tushare report_rc（{{n}} 家券商，最新 {{日期}}）；近期评级动向：{{上修/下修/维持}}</div>
+      </div>
+      <div class="card">
+        <div class="figtitle">同业对比（{{所属申万行业}}）</div>
+        <table class="data">
+          <tr><th>公司</th><th>毛利率</th><th>研发费率</th><th>资产负债率</th></tr>
+          <tr><td><b>{{本公司}}</b></td><td>{{}}</td><td>{{}}</td><td>{{}}</td></tr>
+          <tr><td>{{同业A}}</td><td>{{}}</td><td>{{}}</td><td>{{}}</td></tr>
+          <tr><td>{{同业B}}</td><td>{{}}</td><td>{{}}</td><td>{{}}</td></tr>
+        </table>
+        <div class="srcline">数据来源：mx 东方财富 / Tushare，同一报告期</div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="figtitle">增收不增利判定 · 宏观敏感性 · 债务偿付</div>
+      <table class="data">
+        <tr><th>检验项</th><th>读数</th><th class="txt">结论</th></tr>
+        <tr><td>收入增速 vs 净利增速</td><td>{{x%}} vs {{y%}}</td><td class="txt">{{是否存在剪刀差 + 原因}}</td></tr>
+        <tr><td>研发费用（费率 / 资本化率）</td><td>{{亿元}}（{{%}} / {{%}}）</td><td class="txt">{{同业位置 + 合理性}}</td></tr>
+        <tr><td>短债覆盖倍数</td><td>{{x}} 倍</td><td class="txt">{{(货币资金+OCF)÷(短借+一年内到期)}}</td></tr>
+        <tr><td>大宗/税率/汇率敏感性</td><td class="txt" colspan="2">{{原材料占成本比 + 对应品种价格趋势 + 所得税率变化；数据来源：mx_macro_data}}</td></tr>
+      </table>
+    </div>
+  </div>
+
+  <!-- ══ 页脚 ◆ SLOT ══ -->
+  <div class="foot">
+    <span>{{公司名}}（{{代码}}）{{报告期}}{{报告类型}}分析 · 生成于 {{日期}}</span>
+    <span>数据：公司报告原文（双源核对：Tushare / 东方财富）· 本报告仅为信息分析，不构成投资建议</span>
+  </div>
+</div>
+
+<script>
+/* ── 内联绘图助手：模型只改 DATA 区数组，不改绘图逻辑 ── */
+const NS='http://www.w3.org/2000/svg';
+const INK='rgb(8,31,92)',MUT='rgba(8,31,92,.60)',GRID='rgba(8,31,92,.16)',FAINT='rgba(8,31,92,.32)';
+const C1='rgb(51,78,172)',C2='rgb(186,214,235)',GOOD='#0F7B4F',BAD='#C0392B';
+const el=(p,t,a)=>{const n=document.createElementNS(NS,t);for(const k in a)n.setAttribute(k,a[k]);p.appendChild(n);return n};
+const txt=(p,a,s)=>{const n=el(p,'text',a);n.textContent=s;return n};
+const tip=(n,s)=>{const t=document.createElementNS(NS,'title');t.textContent=s;n.appendChild(t)};
+
+/* ════ DATA ◆ SLOT：只填这里 ════ */
+/* trend：近三年（或多期）标签 + 收入柱 + 净利柱 + 毛利率线(%) */
+const TREND={labels:['2022','2023','2024'],rev:[0,0,0],np:[0,0,0],gm:[0,0,0]};
+/* bridge：净利桥各因素贡献额（亿元，正负号即方向）*/
+const BRIDGE=[['毛利',0],['期间费用',0],['减值',0],['非经',0],['所得税',0],['其他',0]];
+/* holders：股东户数（万户，柱）+ 区间涨跌幅(%,线，可留空) */
+const HOLDERS={labels:[],num:[],px:[]};
+
+/* 柱线组合图：柱（C1，可再加 C2）+ 可选线（INK，独立缩放）。barB/line 传空数组即跳过 */
+function combo(id,labels,barA,barB,line,lineName,aName,bName){
+  const s=document.getElementById(id);if(!s||!labels.length)return;
+  barB=barB||[];line=line||[];
+  const W=+s.viewBox.baseVal.width,H=+s.viewBox.baseVal.height,L=54,R=54,B=44,T=30;
+  const max=Math.max(...barA,...barB)*1.15||1;
+  const lmax=line.length?Math.max(...line)*1.3:1,lmin=line.length?Math.min(0,...line):0;
+  const bw=(W-L-R)/labels.length;
+  labels.forEach((lb,i)=>{
+    const x=L+i*bw+bw*.18,w=bw*.24;
+    const ha=(H-B-T)*barA[i]/max;
+    const r1=el(s,'rect',{x:x,y:H-B-ha,width:w,height:ha,fill:C1,class:'fade'});
+    tip(r1,`${lb} ${aName}：${barA[i]}`);
+    if(barB.length){
+      const hb=(H-B-T)*barB[i]/max;
+      const r2=el(s,'rect',{x:x+w+3,y:H-B-hb,width:w,height:hb,fill:C2,class:'fade'});
+      tip(r2,`${lb} ${bName}：${barB[i]}`);
+    }
+    txt(s,{x:x+w,y:H-B-ha-6,'font-size':10,'font-weight':700,fill:INK,'text-anchor':'middle'},barA[i]);
+    txt(s,{x:L+i*bw+bw/2,y:H-B+18,'font-size':10,'font-weight':600,fill:MUT,'text-anchor':'middle'},lb);
+  });
+  el(s,'line',{x1:L,y1:H-B,x2:W-R,y2:H-B,stroke:GRID,'stroke-width':1});
+  if(line.length){
+    const pts=line.map((v,i)=>{
+      const x=L+i*bw+bw/2,y=T+(H-B-T)*(1-(v-lmin)/(lmax-lmin||1));
+      return [x,y];
+    });
+    el(s,'path',{d:'M'+pts.map(p=>p.join(' ')).join(' L '),fill:'none',stroke:INK,'stroke-width':2});
+    pts.forEach((p,i)=>{
+      const c=el(s,'circle',{cx:p[0],cy:p[1],r:3,fill:INK});tip(c,`${labels[i]} ${lineName}：${line[i]}%`);
+      txt(s,{x:p[0],y:p[1]-9,'font-size':9,'font-weight':700,fill:MUT,'text-anchor':'middle'},line[i]+'%');
+    });
+  }
+  const lg=[[aName,C1],barB.length?[bName,C2]:null,line.length?[lineName,INK]:null].filter(Boolean);
+  lg.forEach(([n,c],i)=>{
+    el(s,'rect',{x:L+i*130,y:8,width:10,height:10,fill:c,rx:2});
+    txt(s,{x:L+i*130+15,y:17,'font-size':10,'font-weight':600,fill:MUT},n);
+  });
+}
+
+/* 水平正负条形（净利桥贡献） */
+function hbars(id,items){
+  const s=document.getElementById(id);if(!s||!items.length)return;
+  const W=+s.viewBox.baseVal.width,H=+s.viewBox.baseVal.height,L=96,R=60,T=16;
+  const max=Math.max(...items.map(d=>Math.abs(d[1])))||1;
+  const cx=W/2,bh=(H-T-10)/items.length;
+  el(s,'line',{x1:cx,y1:T,x2:cx,y2:H-10,stroke:GRID,'stroke-width':1});
+  items.forEach(([n,v],i)=>{
+    const y=T+i*bh+bh*.2,h=bh*.55,w=(cx-L-10)*Math.abs(v)/max;
+    const c=v>=0?GOOD:BAD;
+    const r=el(s,'rect',{x:v>=0?cx:cx-w,y:y,width:w,height:h,fill:c,rx:2,class:'fade'});
+    tip(r,`${n}：${v>0?'+':''}${v} 亿元`);
+    txt(s,{x:L-8,y:y+h/2+4,'font-size':10.5,'font-weight':600,fill:INK,'text-anchor':'end'},n);
+    txt(s,{x:v>=0?cx+w+6:cx-w-6,y:y+h/2+4,'font-size':10.5,'font-weight':800,fill:c,
+      'text-anchor':v>=0?'start':'end'},(v>0?'+':'')+v);
+  });
+}
+
+combo('trend',TREND.labels,TREND.rev,TREND.np,TREND.gm,'毛利率','营业收入','归母净利');
+hbars('bridge',BRIDGE);
+combo('holders',HOLDERS.labels,HOLDERS.num,[],HOLDERS.px,'区间涨跌幅','股东户数(万户)','');
+</script>
+</body>
+</html>
