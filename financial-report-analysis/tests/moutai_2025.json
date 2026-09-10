@@ -1,0 +1,269 @@
+{
+  "meta": {
+    "company": "贵州茅台",
+    "code": "600519.SH",
+    "market": "A股",
+    "period": "20251231",
+    "report_type": "年报",
+    "disclose_date": "2026-04-16",
+    "unit": "亿元",
+    "source_md": "reports/贵州茅台2025年年度报告.md",
+    "analyst_date": "2026-09-10",
+    "schema_version": "1.0"
+  },
+  "statements": {
+    "income": {
+      "revenue": {
+        "cur": 1688.381,
+        "prev": 1708.9915,
+        "hist": [
+          1476.936,
+          1708.9915,
+          1688.381
+        ],
+        "src": "L2881 合并利润表 营业收入"
+      },
+      "cost": {
+        "cur": 148.9228,
+        "prev": 137.8948,
+        "src": "L2887 营业成本"
+      },
+      "tax_surcharge": {
+        "cur": 273.5423,
+        "prev": 269.2616,
+        "src": "税金及附加"
+      },
+      "sell_exp": {
+        "cur": 72.535,
+        "prev": 56.393,
+        "src": "销售费用"
+      },
+      "admin_exp": {
+        "cur": 83.2006,
+        "prev": 93.1565,
+        "src": "管理费用"
+      },
+      "rd_exp": {
+        "cur": 1.9011,
+        "prev": 2.1838,
+        "src": "研发费用",
+        "note": "利润表费用化口径"
+      },
+      "fin_exp": {
+        "cur": -8.1524,
+        "prev": -14.7022,
+        "src": "财务费用",
+        "note": "含财务公司利息收入"
+      },
+      "np_total": {
+        "cur": 853.1032,
+        "prev": 893.3473,
+        "src": "净利润"
+      },
+      "np_at": {
+        "cur": 823.2007,
+        "prev": 862.2815,
+        "hist": [
+          747.3407,
+          862.2815,
+          823.2007
+        ],
+        "src": "归母净利润"
+      },
+      "np_dt": {
+        "cur": 822.9311,
+        "prev": 862.4091,
+        "src": "扣非归母净利"
+      },
+      "minority_np": {
+        "cur": 29.9026,
+        "prev": 31.0658,
+        "src": "少数股东损益"
+      },
+      "income_tax": {
+        "cur": 294.4494,
+        "prev": 303.0385,
+        "src": "所得税费用"
+      }
+    },
+    "balance": {
+      "cash": {
+        "cur": 516.9061,
+        "prev": 592.9582,
+        "src": "货币资金(合并)"
+      },
+      "ar": {
+        "cur": 0.0261,
+        "prev": 0.1897,
+        "src": "应收账款"
+      },
+      "inventory": {
+        "cur": 614.2742,
+        "prev": 543.4329,
+        "src": "存货"
+      },
+      "contract_liab": {
+        "cur": 80.0674,
+        "prev": 95.9245,
+        "src": "合同负债"
+      },
+      "cip": {
+        "cur": 24.7189,
+        "prev": 21.4962,
+        "src": "在建工程"
+      },
+      "st_debt": {
+        "cur": 0.0,
+        "prev": 0.0,
+        "src": "短期借款(无)"
+      },
+      "noncur_due_1y": {
+        "cur": 0.4421,
+        "prev": 1.1195,
+        "src": "一年内到期非流动负债"
+      },
+      "lt_debt": {
+        "cur": 0.0,
+        "prev": 0.0,
+        "src": "长期借款+应付债券(无)"
+      },
+      "total_assets": {
+        "cur": 3038.3484,
+        "prev": 2989.4458,
+        "src": "资产总计"
+      },
+      "total_liab": {
+        "cur": 498.7559,
+        "prev": 569.3326,
+        "src": "负债合计"
+      },
+      "equity_at": {
+        "cur": 2446.3781,
+        "prev": 2331.0598,
+        "src": "归母所有者权益"
+      },
+      "minority_eq": {
+        "cur": 93.2144,
+        "prev": 89.0533,
+        "src": "少数股东权益"
+      },
+      "retained_cur": {
+        "cur": 1919.0515,
+        "prev": 1827.8742,
+        "src": "未分配利润"
+      },
+      "surplus_reserve": {
+        "cur": 505.4318,
+        "prev": 466.3579,
+        "src": "盈余公积"
+      },
+      "dividend_paid": {
+        "cur": 692.9495,
+        "src": "倒挤：A2 滚动闭合所需分红额",
+        "note": "由 A2 等式倒挤（期初+归母净利-提取盈余公积-期末），用于验证滚动闭合；真实分析应取权益变动表"
+      }
+    },
+    "cashflow": {
+      "ocf": {
+        "cur": 615.222,
+        "prev": 924.6369,
+        "hist": [
+          665.9325,
+          924.6369,
+          615.222
+        ],
+        "src": "经营活动现金流量净额"
+      },
+      "sales_cash": {
+        "cur": null,
+        "prev": null,
+        "src": null,
+        "note": "测试样本未提取（现金流量表含财务公司金融业务行，需单列）"
+      },
+      "capex": {
+        "cur": null,
+        "prev": null,
+        "src": null,
+        "note": "测试样本未提取"
+      },
+      "dep_amort": {
+        "cur": 22.5939,
+        "prev": null,
+        "src": "补充资料折旧+各项摊销"
+      }
+    }
+  },
+  "notes": {},
+  "derived": {
+    "ratios": {
+      "roe": {
+        "cur": 0.3365
+      },
+      "gross_margin": {
+        "cur": 0.9118
+      },
+      "net_margin": {
+        "cur": 0.4876
+      },
+      "net_cash_ratio": {
+        "cur": 0.7474
+      },
+      "debt_to_assets": {
+        "cur": 0.1642
+      },
+      "asset_turnover": {
+        "cur": 0.5557
+      },
+      "equity_multiplier": {
+        "cur": 1.242
+      }
+    },
+    "ocf_bridge": [
+      {
+        "item": "净利润",
+        "delta": 853.1032
+      },
+      {
+        "item": "信用减值损失",
+        "delta": -0.1723
+      },
+      {
+        "item": "折旧摊销",
+        "delta": 22.5939
+      },
+      {
+        "item": "处置/报废/公允/投资/财务费用",
+        "delta": -0.456
+      },
+      {
+        "item": "递延所得税",
+        "delta": -11.1022
+      },
+      {
+        "item": "Δ存货",
+        "delta": -70.8414
+      },
+      {
+        "item": "Δ应收",
+        "delta": -109.8388
+      },
+      {
+        "item": "Δ应付",
+        "delta": -68.0643
+      }
+    ],
+    "rev_factors": {},
+    "np_bridge": []
+  },
+  "recon": {},
+  "signals": [
+    {
+      "id": "G1",
+      "level": "g",
+      "title": "零有息负债+短债覆盖极高",
+      "data": "短债仅0.44亿，货币资金516.9亿",
+      "evidence": "资产负债表",
+      "source": "合并资产负债表"
+    }
+  ]
+}
