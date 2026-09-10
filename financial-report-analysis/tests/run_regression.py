@@ -147,6 +147,15 @@ def check_kangdexin(case, proc, data):
                 f"recon 命中（verdict != 闭合）>= 3（实际 {len(hits)}）" +
                 (f"：{', '.join(f'{k}={v}' for k, v in hits)}" if hits else ""))
 
+    # 新增检查项（P1-12/P1-15/P1-17 + recon 覆盖率）必须真的被执行到，防止将来静默失效
+    case.expect(summary["WARN"] >= 1,
+                f"新检查生效：recon 覆盖率提示存在（WARN >= 1，实际 {summary['WARN']}）")
+    asserts = data.get("assertions") or []
+    case.expect(len(asserts) >= 1, f"断言表已落库（assertions >= 1，实际 {len(asserts)}）")
+    bad = [a for a in asserts if isinstance(a, dict) and a.get("verdict") == "不成立"]
+    case.expect(all(a.get("evidence") for a in bad),
+                f"判「不成立」的断言均带反证（{len(bad)} 条）")
+
 
 def report_case(case, proc, verbose):
     print(f"\n【{case.title}】{case.fixture.relative_to(SKILL)}")
@@ -201,6 +210,20 @@ def main():
         for ok, _ in case.results:
             total += 1
             passed += ok
+
+    # 报告机检冒烟测试（P2 遗留项）：只确认 check_html.py 可运行，不校验内容，
+    # 防止脚本语法错误/路径写死在无人察觉的情况下失效
+    smoke = subprocess.run(
+        [sys.executable, str(SKILL / "scripts" / "check_html.py"),
+         str(SKILL / "assets" / "report-template.html")],
+        capture_output=True, text=True, encoding="utf-8", errors="replace",
+    )
+    smoke_ok = smoke.returncode in (0, 1) and "汇总" in (smoke.stdout or "")
+    print(f"\n【报告机检冒烟】check_html.py 跑模板："
+          f"{'✅ 可运行' if smoke_ok else '❌ 未产出预期输出'}（exit {smoke.returncode}）")
+    if not smoke_ok:
+        print("❌ 回归未通过：check_html.py 无法正常运行。")
+        return 1
 
     failed = total - passed
     print(f"\n--- 汇总：通过 {passed} · 失败 {failed} ---")

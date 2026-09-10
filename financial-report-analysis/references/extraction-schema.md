@@ -164,7 +164,8 @@
                     { "item": "减值", "delta": null }, { "item": "递延税", "delta": null },
                     { "item": "Δ应收", "delta": null }, { "item": "Δ存货", "delta": null },
                     { "item": "Δ应付", "delta": null }, { "item": "其他营运资本", "delta": null } ],
-    "wc_devour": { "amount": null, "share_of_np": null, "note": "营运资本吞噬额（正数=被吞掉的金额）；share_of_np 分母用净利润（含少数股东，与调节桥起点自洽）；跨到 redflags #3 净现比时该条用归母口径，差异如实标注" }
+    "wc_devour": { "amount": null, "share_of_np": null, "note": "营运资本吞噬额（正数=被吞掉的金额）；share_of_np 分母用净利润（含少数股东，与调节桥起点自洽）；跨到 redflags #3 净现比时该条用归母口径，差异如实标注" },
+    "interest_arrears": { "cur": null, "note": "应付未付利息 = 利息费用 − 现金流量表实际付息（A7 副算，P1-15）；连续 2 年为正且上升 = 资金链先行信号" }
   },
 
   "recon": {
@@ -182,6 +183,13 @@
     "B4_goodwill_roll":{ "lhs": null, "rhs": null, "verdict": "", "explanation": "", "src": "" }
   },
 
+  "assertions": [
+    { "id": "A1", "text": "管理层断言原文（如：收入下降主要系系列酒结构调整）",
+      "account": "涉及科目", "verdict": "通过",
+      "evidence": "数字检验结论（判「不成立」时必填反证）", "missing": "判「无法验证」时必填缺什么数据",
+      "source": "MD&A 章节/行号" }
+  ],
+
   "signals": [
     { "id": "R1", "level": "r", "type": "signal", "title": "存贷双高", "data": "货币资金/总资产=x% 且 有息负债/总资产=y%",
       "evidence": "原文引用", "source": "资产负债表+货币资金附注" }
@@ -193,6 +201,11 @@
 （`signal` = 财务信号；`assertion` = MD&A 断言不实，见 text-mining.md 第七节）。
 ⚠️ redflags.md 使用纪律第 2 条「红色信号 ≥2 条即提示财务真实性风险聚集」**只统计
 `type=signal`** 的红色条目——归因不实与财务真实性是两类问题，不可混计。`type` 缺省视为 `signal`。
+
+**`assertions[]` 字段说明**（P1-12 断言验证表落库）：
+`verdict ∈ 通过/不成立/无法验证`；判「不成立」**必须**填 `evidence`（反证数字）；
+判「无法验证」**必须**填 `missing`（缺什么数据）。calc.py 会机械校验这三条规则。
+判「不成立」的断言应同时在 `signals` 落一条 `type=assertion` 的条目。
 
 ## 四、recon 块的填写规则（配合 articulation.md）
 

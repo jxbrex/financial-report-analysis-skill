@@ -502,6 +502,124 @@ def check_signals(data, rep):
         rep.add(OK, "signals", f"{len(sigs)} 条信号结构合法")
 
 
+# ─────────────────────────── 7. 分部 / 断言 / 覆盖率 / 应付未付利息 ───────────────────────────
+
+def check_segments(data, rep):
+    """by_segment 自洽性：分部毛利率合理 + 收入占比合计≈1 + 加权毛利率≈整体（P1-17 机检）。"""
+    segs = ((data.get("statements") or {}).get("income") or {}).get("by_segment") or []
+    if not isinstance(segs, list) or not segs:
+        rep.add(SKIP, "segments", "by_segment 未填（单产品公司可跳过）")
+        return
+    revs = []
+    for i, s in enumerate(segs):
+        if not isinstance(s, dict):
+            continue
+        rev, cost = num(s.get("rev_cur")), num(s.get("cost_cur"))
+        if rev is None:
+            continue
+        if rev <= 0:
+            rep.add(FAIL, "segments", f"by_segment[{i}]（{s.get('name','?')}）.rev_cur = {rev} 非正")
+            continue
+        if cost is not None:
+            gm = (rev - cost) / rev
+            if not (-0.5 <= gm <= 1.0):
+                rep.add(FAIL, "segments", f"by_segment[{i}]（{s.get('name','?')}）毛利率 {gm:.2%} 超出合理区间"
+                                          f"（rev={rev}, cost={cost}）")
+        revs.append(rev)
+
+    total_rev = val(data, "statements", "income", "revenue")
+    if revs and total_rev:
+        share = sum(revs) / total_rev
+        if abs(share - 1.0) <= 0.03:
+            rep.add(OK, "segments", f"{len(revs)} 个分部，收入占比合计 {share:.2%}（与整体一致）")
+        else:
+            rep.add(WARN, "segments", f"分部收入合计 {sum(revs):.2f} ÷ 整体收入 {total_rev:.2f} = {share:.2%}，"
+                                      f"偏差 >3%（可能未含其他业务或口径不一致，须在报告中注明）")
+
+    wsum = wrev = 0.0
+    for s in segs:
+        if not isinstance(s, dict):
+            continue
+        rev, cost = num(s.get("rev_cur")), num(s.get("cost_cur"))
+        if rev and cost is not None:
+            wsum += rev * ((rev - cost) / rev)
+            wrev += rev
+    if wrev:
+        wgm = wsum / wrev
+        overall = build_ratio_calcs(data).get("gross_margin")
+        if overall is None:
+            rep.add(SKIP, "segments", "分部加权毛利率可算，但缺整体毛利率可比")
+        elif abs(wgm - overall) <= 0.02:
+            rep.add(OK, "segments", f"分部加权毛利率 {wgm:.2%} ≈ 整体 {overall:.2%}（P1-17 四象限数据自洽）")
+        else:
+            rep.add(WARN, "segments", f"分部加权毛利率 {wgm:.2%} 与整体 {overall:.2%} 差 {abs(wgm-overall):.2%} >2%"
+                                      f"——检查分部成本口径、内部交易抵销或成本分摊变更")
+
+
+ASSERT_VERDICTS = {"通过", "不成立", "无法验证"}
+
+
+def check_assertions(data, rep):
+    """MD&A 断言验证表（text-mining.md 第七节）：结构校验，P1-12 落库机检。"""
+    arr = data.get("assertions")
+    if not isinstance(arr, list) or not arr:
+        rep.add(SKIP, "assertions", "assertions 未填（未做断言验证或无可验证的因果表述）")
+        return
+    bad = 0
+    for i, a in enumerate(arr):
+        if not isinstance(a, dict):
+            bad += 1
+            rep.add(FAIL, "assertions", f"assertions[{i}] 不是对象")
+            continue
+        missing_keys = [k for k in ("id", "text", "verdict", "source") if not a.get(k)]
+        if missing_keys:
+            bad += 1
+            rep.add(FAIL, "assertions", f"assertions[{i}] 缺 {'/'.join(missing_keys)}")
+            continue
+        if a["verdict"] not in ASSERT_VERDICTS:
+            bad += 1
+            rep.add(FAIL, "assertions", f"assertions[{i}].verdict 必须是 通过/不成立/无法验证，"
+                                        f"当前「{a['verdict']}」")
+        elif a["verdict"] == "不成立" and not (isinstance(a.get("evidence"), str) and a["evidence"].strip()):
+            bad += 1
+            rep.add(FAIL, "assertions", f"assertions[{i}] 判「不成立」但 evidence 为空——反证必须有据")
+        elif a["verdict"] == "无法验证" and not (isinstance(a.get("missing"), str) and a["missing"].strip()):
+            rep.add(WARN, "assertions", f"assertions[{i}] 判「无法验证」但未写 missing（缺什么数据）")
+    if bad == 0:
+        n_bad = sum(1 for a in arr if isinstance(a, dict) and a.get("verdict") == "不成立")
+        rep.add(OK, "assertions", f"{len(arr)} 条断言结构合法（其中判「不成立」{n_bad} 条，应已进 signals）")
+
+
+def check_recon_coverage(data, rep):
+    """recon 覆盖率：非空时统计已执行的等式，提醒未做项（缺数合法，漏做不可）。"""
+    recon = data.get("recon") or {}
+    if not recon:
+        rep.add(SKIP, "recon-coverage", "recon 为空，覆盖率不适用")
+        return
+    total = len(RECON_RULES)
+    filled = [k for k in RECON_RULES if isinstance(recon.get(k), dict) and recon[k].get("verdict")]
+    missing = [k for k in RECON_RULES if k not in filled]
+    if not missing:
+        rep.add(OK, "recon-coverage", f"{total} 条等式全部给出判定（{len(filled)}/{total}）")
+    else:
+        rep.add(WARN, "recon-coverage", f"recon 覆盖 {len(filled)}/{total}，未给判定：{', '.join(missing)}"
+                                        f"——确认是附注未披露（合法）还是漏做（回 Phase 2.5 补）")
+
+
+def check_interest_arrears(data, rep):
+    """应付未付利息（A7 副算，P1-15）：为正说明计提利息未实际支付。"""
+    node = (data.get("derived") or {}).get("interest_arrears")
+    amt = num(node.get("cur")) if isinstance(node, dict) else num(node)
+    if amt is None:
+        rep.add(SKIP, "interest_arrears", "未填（缺 interest_paid 时可跳过）")
+        return
+    if amt > 0:
+        rep.add(WARN, "interest_arrears", f"应付未付利息 +{amt:.2f} 亿（已计提未付）——单期可能是付息日错期，"
+                                          f"连续 2 年为正且余额上升才构成资金链先行信号")
+    else:
+        rep.add(OK, "interest_arrears", f"应付未付利息 {amt:+.2f} 亿（无欠付）")
+
+
 # ─────────────────────────── 主流程 ───────────────────────────
 
 ICON = {FAIL: "🔴", WARN: "🟡", OK: "✅", SKIP: "⚪"}
@@ -531,6 +649,10 @@ def main():
     check_bridges(data, rep)
     check_ratios(data, rep)
     check_recon(data, rep)
+    check_recon_coverage(data, rep)
+    check_segments(data, rep)
+    check_assertions(data, rep)
+    check_interest_arrears(data, rep)
     check_signals(data, rep)
 
     meta = data.get("meta") or {}

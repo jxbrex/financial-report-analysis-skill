@@ -6,9 +6,10 @@
 ## 结构
 
 - `financial-report-analysis/` — 技能源（SKILL.md + references/×9 + assets/ + scripts/ + tests/ + examples/），**只改这里**
-  - `scripts/calc.py` — Phase 7.5 计算自检门禁（桥闭合/比率复算/勾稽三态），exit 0 才允许写报告
+  - `scripts/calc.py` — Phase 7.5 计算自检门禁（桥闭合/比率复算/勾稽三态/分部自洽/断言结构），exit 0 才允许写报告
+  - `scripts/check_html.py` — Phase 8 报告机检（占位符/裸数字启发式/数据来源/模板硬规则/必备要素/锚点），exit 0 才允许交付
   - `tests/` — 金标准 fixtures + 回归入口：`moutai_2025.json`（干净样本，应零误报）、
-    `kangdexin_2018.json`（造假样本，应命中）；`run_regression.py` 是唯一回归入口
+    `kangdexin_2018.json`（造假样本，应命中）；`run_regression.py` 是唯一回归入口（含 check_html 冒烟）
   - `examples/` — 标杆样本报告（few-shot 参考；早期版本，结构以当前模板为准）
 - `reports/` — 测试产物。PDF/md 不入库；`贵州茅台-600519-年报-2025FY-20260904.html`
   是黄金样本，改流程/模板后用它做回归对比
