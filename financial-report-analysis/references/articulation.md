@@ -137,8 +137,7 @@
   `statements.cashflow.capex`、`statements.balance.cip` / `payable_construction`、`recon.A6_capex`
 - **lhs / rhs**：`lhs = capex.cur`；
   `rhs = Δ固定资产净值 + Δcip + Δpayable_construction + dep_amort.cur`
-  （**schema 缺 `balance.fixed_assets`**：固定资产净值需临时从附注取数，
-  数值直接参与 rhs 计算并把出处写进 `recon.A6_capex.src`）
+  （`balance.fixed_assets` 已入 schema，取数后直接参与 rhs 计算并把出处写进 `recon.A6_capex.src`）
 - **阈值**：偏差率 > **10%** 立案（calc.py `A6_capex` closure 0.10）
 - **异常含义**：`payable_construction` 持续膨胀 = **变相占用上游资金搞建设**，
   扩张的真实资金压力被低估（表观 capex 低但已签未付的资本承诺大，
@@ -294,11 +293,8 @@
   - `DSO = avg(ar) × 365 ÷ revenue.cur`（含 `ar_notes` 更保守；calc.py 现只用 `ar`，
     改合并口径须在 `derived.ratios.dso` 的 note 里说明差异）
   - `DIO = avg(inventory) × 365 ÷ cost.cur`（分母用营业成本，不是收入）
-  - `DPO = avg(应付账款 + 应付票据) × 365 ÷ cost.cur`
-    （**schema 缺 `balance.payable`，calc.py 现令 `dpo = None` → `ccc = None`**：必须从资产负债表
-    取应付账款/应付票据两期值手工算并回填 `derived.ratios.dpo` / `ccc`。回填后 calc.py 会因
-    「可复算为 None 但 derived 填了值」给 WARN `ratio`——**这是缺科目导致的预期 WARN，
-    Phase 7.5 确认为口径差异即可，不是数据错误**）
+  - `DPO = avg(payable) × 365 ÷ cost.cur`（`payable` = 应付账款+应付票据，schema 字段
+    `balance.payable`；calc.py 已用它自动复算 dpo/ccc，无需手工回填）
 - **阈值 / 判读规则**：**CCC 持续拉长 + 收入高增 = 以营运资本换增长**（配合 A3 的
   `wc_devour.share_of_np` > 50% 互证，🟡，扣成长质量维度分）；**CCC 收窄 = 造血改善**（🟢）；
   **CCC 拉长但收入停滞 = 单纯运营恶化**（🔴）

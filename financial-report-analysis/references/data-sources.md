@@ -63,6 +63,38 @@
 | `mx_stocks_screener` | 按条件找同行 | 「XX行业 市值最接近XX公司的5家」 |
 | `mx_macro_data` | 大宗商品/汇率/利率/行业量价 | 「2024年以来 碳酸锂/铜/螺纹钢 价格走势」 |
 
+## 三·五、港股 / 美股路径（非 A 股标的，P1-9）
+
+**实测结论（2026-09 验证，勿再照抄计划里的 `westock`——该 CLI 在本环境不存在）：**
+
+| 环节 | 港股（如 00700.HK） | 美股（如 AAPL） |
+|---|---|---|
+| 报告原文 | HKEX 披露易 `www1.hkexnews.hk` / 公司 IR 页 → markitdown 转 md | SEC EDGAR `sec.gov/edgar`（10-K/10-Q）→ markitdown |
+| 财务数据主源 | **妙想 `mx_hk_finance_data`** ✅ 实测返回三表 + 附注明细（在建工程/递延收入/借款/存货）+ 会计准则 + 审计意见 + 核数师 | **妙想 `mx_us_finance_data`** |
+| 行情 | tushare `hk_daily` / `hk_daily_adj` ✅ 有权限 | tushare `us_daily` / `us_daily_adj` |
+| 公告/研报 | 妙想 `mx_finance_search_notice` / `_news`（支持港美股） | 同左 |
+| 股东结构 | 妙想三表附注 + 港交所权益披露；tushare `hk_hold`（沪深港通持股，非全部股东） | 妙想 + SEC 13F/Form 4 |
+
+⚠️ **tushare 港股财报接口本环境无权限**（`hk_income`/`hk_balancesheet`/`hk_cashflow` 返回 40203），
+只能取行情。因此港股财务的**双源核对降级为**：妙想（主）+ 年报原文（锚）——
+两源一致即通过；仍冲突时以报告原文为准并标注。
+
+⚠️ **币种陷阱（港股特有）**：妙想港股接口的汇总表可能按**港元**展示，而三表明细按报表原币种
+（腾讯报表为人民币，`显示币种：人民币`）。提取任何数字前先看返回里的「显示币种/原始币种」字段，
+禁止港元与人民币混用。data.json 的 `meta.unit` 旁边加 `currency` 注明。
+
+⚠️ **会计准则差异**：港股/美股为 IFRS/US GAAP，科目名称与口径与 CAS 不同（详见 report-types.md
+「IFRS 与 CAS 差异提示」节）。勾稽等式（articulation.md）的科目映射要做对应，不能硬套 A 股科目名。
+
+**A 股专属模块（港股/美股无数据，须在报告中置灰标注「仅 A 股」）：**
+股东户数 `stk_holdernumber`、质押 `pledge_stat`、互动易问答 `irm_qa_*`、概念热榜
+`dc_index`/`ths_hot`、业绩预告 `forecast`、券商一致预期 `report_rc`。
+港股替代方案：前十大股东变动用妙想三表附注 + 权益披露；卖方观点用 `mx_finance_search_news`；
+赛道重合度用市场公开热点（mx 检索）替代板块热榜。
+
+**单源降级纪律**：非 A 股拿不到第二源时，报告与 data.json 中该标的的所有数字加 `[单源]` 标记，
+并在报告页脚说明「未完成双源核对」。宁可显式标注，不可默认可信。
+
 ## 四、取数顺序纪律
 
 1. Phase 1 先用 tushare 拉结构化三表（便宜、规整），再回原文核对异常值

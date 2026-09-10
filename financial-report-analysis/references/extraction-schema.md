@@ -38,7 +38,11 @@
     "company": "贵州茅台", "code": "600519.SH", "market": "A股",
     "period": "20251231", "report_type": "年报", "disclose_date": "2026-04-16",
     "unit": "亿元", "source_md": "reports/xxx.md", "analyst_date": "2026-09-10",
-    "schema_version": "1.0"
+    "schema_version": "1.0",
+    "currency": "CNY",
+    "accounting_standard": "CAS",
+    "industry_profile": "通用",
+    "cycle_stage": null
   },
 
   "statements": {
@@ -62,9 +66,9 @@
       "minority_np":  { "cur": null, "prev": null, "src": "" },
       "income_tax":   { "cur": null, "prev": null, "src": "" },
       "by_segment": [
-        { "name": "茅台酒", "rev_cur": null, "rev_prev": null, "cost_cur": null, "cost_prev": null,
+        { "name": "茅台酒", "basis": "product", "rev_cur": null, "rev_prev": null, "cost_cur": null, "cost_prev": null,
           "vol_cur": null, "vol_prev": null, "vol_unit": "吨", "price_cur": null, "price_prev": null,
-          "price_unit": "万元/吨", "src": "" }
+          "price_unit": "万元/吨", "intercompany_eliminated": null, "src": "" }
       ]
     },
     "balance": {
@@ -178,11 +182,16 @@
   },
 
   "signals": [
-    { "id": "R1", "level": "r", "title": "存贷双高", "data": "货币资金/总资产=x% 且 有息负债/总资产=y%",
+    { "id": "R1", "level": "r", "type": "signal", "title": "存贷双高", "data": "货币资金/总资产=x% 且 有息负债/总资产=y%",
       "evidence": "原文引用", "source": "资产负债表+货币资金附注" }
   ]
 }
 ```
+
+**`signals[]` 字段说明**：`level ∈ g/y/r`（严重度）；`type ∈ signal/assertion`
+（`signal` = 财务信号；`assertion` = MD&A 断言不实，见 text-mining.md 第七节）。
+⚠️ redflags.md 使用纪律第 2 条「红色信号 ≥2 条即提示财务真实性风险聚集」**只统计
+`type=signal`** 的红色条目——归因不实与财务真实性是两类问题，不可混计。`type` 缺省视为 `signal`。
 
 ## 四、recon 块的填写规则（配合 articulation.md）
 

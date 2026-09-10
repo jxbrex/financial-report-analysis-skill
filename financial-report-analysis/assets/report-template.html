@@ -336,6 +336,26 @@ table.data tr.total td{font-weight:800;border-top:1.5px solid var(--ink);border-
       </table>
       <div class="srcline">热门概念：Tushare dc_index/ths_hot；判定规则：text-mining.md 四问</div>
     </div>
+    <!-- ◆ SLOT：断言验证表（P1-12，text-mining.md 第七节） -->
+    <div class="card">
+      <div class="figtitle">MD&A 断言验证：管理层说的每句话用数字验真</div>
+      <table class="data">
+        <tr><th>管理层断言</th><th class="txt">数据检验</th><th class="txt">三态</th><th class="txt">出处</th></tr>
+        <tr><td>{{如：收入下降主要系系列酒结构调整}}</td><td class="txt">{{量/价/结构三效应检验：价-38.6亿为主因，与断言一致/矛盾}}</td><td class="txt"><span class="badge {{g|y|r}}">{{✅通过/❌不成立/❓无法验证}}</span></td><td class="txt">{{MD&A 章节}}</td></tr>
+        <!-- ◆ ❌ 不成立的断言自动进风险清单；❓ 必须写明缺什么数据 -->
+      </table>
+      <div class="srcline">判定规则：text-mining.md 第七节 · 「❌ 不成立」= 管理层解释与数据矛盾，重大信号</div>
+    </div>
+    <!-- ◆ SLOT：解释缺口清单（变动>30% 但 MD&A 未解释的科目）与指引兑现率 -->
+    <div class="card">
+      <div class="figtitle">解释缺口与指引兑现率</div>
+      <table class="data">
+        <tr><th>变动 &gt;30% 的科目</th><th>变动幅度</th><th class="txt">MD&A 是否解释</th></tr>
+        <tr><td>{{科目}}</td><td>{{%}}</td><td class="txt">{{未提及/提了无归因/归因与数据不符}}</td></tr>
+        <tr class="total"><td>上期量化指引 vs 本期实际</td><td colspan="2" class="txt">{{指引内容 / 实际 / 兑现（✅❌）}}</td></tr>
+      </table>
+      <div class="srcline">数字大动而文字不解释，本身就是信号（「该写而没写」的数字侧镜像）</div>
+    </div>
   </div>
 
   <!-- ══ S5 产能与在建工程 ◆ SLOT ══ -->
@@ -403,7 +423,21 @@ table.data tr.total td{font-weight:800;border-top:1.5px solid var(--ink);border-
         <tr><td>研发费用（费率 / 资本化率）</td><td>{{亿元}}（{{%}} / {{%}}）</td><td class="txt">{{同业位置 + 合理性}}</td></tr>
         <tr><td>短债覆盖倍数</td><td>{{x}} 倍</td><td class="txt">{{(货币资金+OCF)÷(短借+一年内到期)}}</td></tr>
         <tr><td>大宗/税率/汇率敏感性</td><td class="txt" colspan="2">{{原材料占成本比 + 对应品种价格趋势 + 所得税率变化；数据来源：mx_macro_data}}</td></tr>
+        <tr><td>增量费用效率（Δ毛利÷Δ期间费用）</td><td>{{x}}</td><td class="txt">{{&gt;1 费用换来更多毛利 / &lt;0.5 且费用率上升=效率恶化}}</td></tr>
+        <tr><td>销售费用获客效率（Δ收入÷Δ销售费用）</td><td>{{x}}</td><td class="txt">{{趋势下降=增长越来越贵，增收不增利前兆}}</td></tr>
+        <tr><td>费用率上升归因</td><td class="txt" colspan="2">{{扩张驱动（中性）/ 效率下降（扣分）/ 结构变化（需 MD&A 佐证）——只惩罚第二种}}</td></tr>
       </table>
+      <div class="srcline">费用 ROI 规则：frameworks.md 第九节 · 诊断经营效率，不进排雷清单</div>
+    </div>
+    <!-- ◆ SLOT：期后事项（P1-11，核验期末余额真实性） -->
+    <div class="card">
+      <div class="figtitle">期后事项（报告披露日 → 分析日）</div>
+      <table class="data">
+        <tr><th>日期</th><th class="txt">事件</th><th class="txt">验证了什么</th></tr>
+        <tr><td>{{YYYY-MM-DD}}</td><td class="txt">{{期后大额收款/退货/质押/减持/诉讼/违约}}</td><td class="txt">{{验证期末应收真实性 / 收入确认激进 / 偿债能力}}</td></tr>
+        <!-- ◆ 无期后事项时写「已检查，无重大期后事项」——不悄悄缺席 -->
+      </table>
+      <div class="srcline">数据来源：mx_finance_search_notice 期后公告时间线 · 与 B1 应收 roll-forward 联动</div>
     </div>
   </div>
 
