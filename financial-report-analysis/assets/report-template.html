@@ -185,6 +185,7 @@ table.data tr.total td{font-weight:800;border-top:1.5px solid var(--ink);border-
           <tr><td>存货周转天数</td><td>{{}}</td><td>{{}}</td><td class="txt">{{}}</td></tr>
           <tr><td>应收周转天数</td><td>{{}}</td><td>{{}}</td><td class="txt">{{}}</td></tr>
           <tr><td>收现比</td><td>{{}}</td><td>{{}}</td><td class="txt">{{}}</td></tr>
+          <tr><td>CCC（DSO+DIO−DPO，天）</td><td>{{}}</td><td>{{}}</td><td class="txt">{{拉长换增长/收窄造血改善}}</td></tr>
         </table>
         <div class="srcline">数据来源：公司{{报告期}}{{报告类型}}、Tushare；比率口径见 frameworks.md</div>
       </div>
@@ -235,6 +236,17 @@ table.data tr.total td{font-weight:800;border-top:1.5px solid var(--ink);border-
       </table>
       <div class="srcline">判定规则：references/redflags.md；🟢 未触发 / 🟡 观察 / 🔴 命中</div>
     </div>
+    <!-- ◆ SLOT：勾稽异常分区（Phase 2.5 的 recon 三态结果；无异常也要显式写「14 条等式全部闭合」） -->
+    <div class="card">
+      <div class="figtitle">勾稽验算异常清单（过程层：数字验数字）</div>
+      <table class="data">
+        <tr><th>等式</th><th class="txt">三态</th><th>偏差额 / 偏差率</th><th class="txt">解释或追问</th></tr>
+        <tr><td>{{A1 现金余额勾稽}}</td><td class="txt"><span class="badge {{}}">{{闭合/可解释/无法解释}}</span></td><td>{{}}</td><td class="txt">{{}}</td></tr>
+        <tr><td>{{A3 间接法调节}}</td><td class="txt"><span class="badge {{}}">{{}}</span></td><td>{{}}</td><td class="txt">{{}}</td></tr>
+        <!-- ◆ 按 articulation.md 的 A1~A8 / B1~B4 逐条列；仅列 ⚠️🔴 与关键 ✅，C1/C2 归入 S1 -->
+      </table>
+      <div class="srcline">数据来源：references/articulation.md 等式清单 · 阈值与三态规则见该手册；偏差 ≠ 造假，先排除合理解释</div>
+    </div>
   </div>
 
   <!-- ══ S3 因素分析 ◆ SLOT：三座桥 ══ -->
@@ -243,15 +255,16 @@ table.data tr.total td{font-weight:800;border-top:1.5px solid var(--ink);border-
     <p class="lede">{{一句话：本期利润变化的第一驱动是……}}</p>
     <div class="grid2">
       <div class="card">
-        <div class="figtitle">收入桥（{{量价值得拆则拆，否则分产品}}）</div>
+        <div class="figtitle">收入桥（多产品公司必拆量/价/结构三因素；无量价数据时降级为分部桥并标注）</div>
         <table class="data bridge">
           <tr><th>因素</th><th>贡献额（亿元）</th><th>占比</th></tr>
           <tr><td>基期收入</td><td>{{}}</td><td>—</td></tr>
-          <tr><td>{{量贡献 / 分产品A}}</td><td class="up">{{+}}</td><td>{{}}</td></tr>
-          <tr><td>{{价贡献 / 分产品B}}</td><td class="dn">{{−}}</td><td>{{}}</td></tr>
+          <tr><td>量效应（ΣΔ量ᵢ×基期加权均价）</td><td class="{{up|dn}}">{{±}}</td><td>{{}}</td></tr>
+          <tr><td>价效应（Σ本期量ᵢ×Δ价ᵢ）</td><td class="{{up|dn}}">{{±}}</td><td>{{}}</td></tr>
+          <tr><td>结构效应（ΣΔ量ᵢ×(基期价ᵢ−基期均价)）</td><td class="{{up|dn}}">{{±}}</td><td>{{结构升级=亮点/结构恶化=增收不增利根源}}</td></tr>
           <tr class="total"><td>本期收入</td><td>{{}}</td><td>—</td></tr>
         </table>
-        <div class="srcline">数据来源：{{报告 MD&A 产销表 / 收入附注}}；方法：factor-analysis.md</div>
+        <div class="srcline">数据来源：{{报告 MD&A 产销量表 / 分产品收入}}；三效应之和 = Δ收入（calc.py bridge.rev 已校验）；方法：factor-analysis.md 第一节</div>
       </div>
       <div class="fig">
         <div class="figtitle">净利润桥：各因素贡献额（亿元）</div>
@@ -273,6 +286,26 @@ table.data tr.total td{font-weight:800;border-top:1.5px solid var(--ink);border-
         <tr class="total"><td>归母净利润</td><td>{{}}</td><td>{{}}</td><td>{{}}</td><td class="txt">第一驱动：{{}}</td></tr>
       </table>
       <div class="srcline">数据来源：公司{{报告期}}{{报告类型}}合并利润表、Tushare 交叉核对</div>
+    </div>
+    <!-- ◆ SLOT：第二座桥（净利→经营现金流，间接法）+ Q4 单季透视 -->
+    <div class="grid2">
+      <div class="fig">
+        <div class="figtitle">净利 → 经营现金流调节桥（亿元）：利润为什么没变成现金</div>
+        <svg id="ocfbridge" viewBox="0 0 460 300" preserveAspectRatio="xMidYMid meet"></svg>
+        <div class="srcline">营运资本吞噬额 {{X}} 亿（占净利润 {{Y}}%）· 主吞噬项：{{应收/存货/应付}} · 数据来源：现金流量表补充资料 · calc.py bridge.ocf 已校验</div>
+      </div>
+      <div class="card">
+        <div class="figtitle">Q4 单季透视（年报必做，五项异常检测）</div>
+        <table class="data">
+          <tr><th>检测项</th><th>读数</th><th class="txt">阈值</th><th class="txt">判定</th></tr>
+          <tr><td>Q4 收入占全年</td><td>{{%}}</td><td class="txt">&gt;40%</td><td class="txt"><span class="badge {{}}">{{}}</span></td></tr>
+          <tr><td>Q4 毛利率 vs 前三季</td><td>{{%}} vs {{%}}</td><td class="txt">偏离&gt;5pct</td><td class="txt"><span class="badge {{}}">{{}}</span></td></tr>
+          <tr><td>Q4 减值占全年</td><td>{{%}}</td><td class="txt">&gt;60%</td><td class="txt"><span class="badge {{}}">{{}}</span></td></tr>
+          <tr><td>Q4 费用率 vs 前三季</td><td>{{%}} vs {{%}}</td><td class="txt">骤降&gt;3pct</td><td class="txt"><span class="badge {{}}">{{}}</span></td></tr>
+          <tr><td>Q4 集中转固</td><td>{{金额}}</td><td class="txt">集中且大</td><td class="txt"><span class="badge {{}}">{{}}</span></td></tr>
+        </table>
+        <div class="srcline">数据来源：年报「分季度主要会计数据」/ 年报−三季报 · 阈值见 report-types.md 年报节</div>
+      </div>
     </div>
   </div>
 
@@ -393,8 +426,12 @@ const tip=(n,s)=>{const t=document.createElementNS(NS,'title');t.textContent=s;n
 /* ════ DATA ◆ SLOT：只填这里 ════ */
 /* trend：近三年（或多期）标签 + 收入柱 + 净利柱 + 毛利率线(%) */
 const TREND={labels:['2022','2023','2024'],rev:[0,0,0],np:[0,0,0],gm:[0,0,0]};
-/* bridge：净利桥各因素贡献额（亿元，正负号即方向）*/
-const BRIDGE=[['毛利',0],['期间费用',0],['减值',0],['非经',0],['所得税',0],['其他',0]];
+/* bridge：净利桥各因素贡献额（亿元，正负号即方向）——对齐 factor-analysis.md 第四节 */
+const BRIDGE=[['毛利',0],['税金及附加',0],['期间费用',0],['减值',0],['投资/公允',0],['非经',0],['所得税',0],['少数股东',0]];
+/* ocfbridge：净利→经营现金流调节桥（间接法，亿元）——首项「净利润」为水平值，其余为调节项，Σ=OCF；
+   OCF_END = 经营活动现金流量净额（水平值，来自 data.json statements.cashflow.ocf.cur） */
+const OCF_BRIDGE=[['净利润',0],['折旧摊销',0],['减值',0],['递延税',0],['Δ应收',0],['Δ存货',0],['Δ应付',0],['其他',0]];
+const OCF_END=0;
 /* holders：股东户数（万户，柱）+ 区间涨跌幅(%,线，可留空) */
 const HOLDERS={labels:[],num:[],px:[]};
 
@@ -456,8 +493,40 @@ function hbars(id,items){
   });
 }
 
+/* 瀑布图：起点水平值 → 调节项（正负浮动条，涨绿跌红）→ 终点水平值（蓝）。
+   用于「净利 → OCF」这类 水平值+增量 混合的桥；纯增量桥（净利桥）仍用 hbars */
+function waterfall(id,startLabel,startVal,steps,endLabel,endVal){
+  const s=document.getElementById(id);if(!s||!steps.length)return;
+  const W=+s.viewBox.baseVal.width,H=+s.viewBox.baseVal.height,L=16,R=16,T=26,B=42;
+  const n=steps.length+2,bw=(W-L-R)/n;
+  let cum=startVal;const segs=[[startLabel,0,startVal,'level']];
+  steps.forEach(([nm,d])=>{segs.push([nm,cum,cum+d,'delta']);cum+=d});
+  segs.push([endLabel,0,endVal,'level']);
+  let lo=0,hi=startVal;
+  segs.forEach(([,a,b])=>{lo=Math.min(lo,a,b);hi=Math.max(hi,a,b)});
+  const pad=(hi-lo)*.08||1;hi+=pad;lo-=pad*.5;
+  const y=v=>T+(H-T-B)*(1-(v-lo)/(hi-lo));
+  el(s,'line',{x1:L,y1:y(0),x2:W-R,y2:y(0),stroke:GRID,'stroke-width':1});
+  segs.forEach(([nm,a,b,k],i)=>{
+    const x=L+i*bw+bw*.15,w=bw*.7;
+    const top=Math.max(a,b),bot=Math.min(a,b);
+    const c=k==='level'?C1:(b>=a?GOOD:BAD);
+    const r=el(s,'rect',{x:x,y:y(top),width:w,height:Math.max(y(bot)-y(top),1),fill:c,class:'fade'});
+    tip(r,k==='level'?`${nm}：${b}`:`${nm}：${(b-a)>0?'+':''}${(b-a).toFixed(2)}（累计 ${b.toFixed(2)}）`);
+    if(i<segs.length-1){
+      const nx=L+(i+1)*bw+bw*.15;
+      el(s,'line',{x1:x+w,y1:y(b),x2:nx,y2:y(b),stroke:FAINT,'stroke-width':1,'stroke-dasharray':'2 2'});
+    }
+    const lbl=k==='level'?b:(b-a);
+    txt(s,{x:x+w/2,y:y(top)-7,'font-size':9.5,'font-weight':800,fill:k==='level'?INK:c,'text-anchor':'middle'},
+      (k==='delta'&&lbl>0?'+':'')+lbl.toFixed(1));
+    txt(s,{x:x+w/2,y:H-B+18,'font-size':9,'font-weight':600,fill:MUT,'text-anchor':'middle'},nm);
+  });
+}
+
 combo('trend',TREND.labels,TREND.rev,TREND.np,TREND.gm,'毛利率','营业收入','归母净利');
 hbars('bridge',BRIDGE);
+waterfall('ocfbridge',OCF_BRIDGE[0][0],OCF_BRIDGE[0][1],OCF_BRIDGE.slice(1),'经营现金流净额',OCF_END);
 combo('holders',HOLDERS.labels,HOLDERS.num,[],HOLDERS.px,'区间涨跌幅','股东户数(万户)','');
 </script>
 </body>

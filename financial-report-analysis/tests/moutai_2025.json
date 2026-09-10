@@ -84,7 +84,37 @@
         "cur": 294.4494,
         "prev": 303.0385,
         "src": "所得税费用"
-      }
+      },
+      "by_segment": [
+        {
+          "name": "茅台酒",
+          "rev_cur": 1465.0,
+          "rev_prev": 1459.31,
+          "cost_cur": 94.85,
+          "cost_prev": 86.62,
+          "vol_cur": 46750.66,
+          "vol_prev": 46411.85,
+          "vol_unit": "吨",
+          "price_cur": 313.36,
+          "price_prev": 314.43,
+          "price_unit": "万元/吨",
+          "src": "L726-728 产品情况表 + L366 分产品收入"
+        },
+        {
+          "name": "其他系列酒",
+          "rev_cur": 222.75,
+          "rev_prev": 246.84,
+          "cost_cur": 53.21,
+          "cost_prev": 49.68,
+          "vol_cur": 38353.48,
+          "vol_prev": 36920.95,
+          "vol_unit": "吨",
+          "price_cur": 58.08,
+          "price_prev": 66.86,
+          "price_unit": "万元/吨",
+          "src": "L728 产品情况表 + L370 分产品收入"
+        }
+      ]
     },
     "balance": {
       "cash": {
@@ -161,6 +191,11 @@
         "cur": 692.9495,
         "src": "倒挤：A2 滚动闭合所需分红额",
         "note": "由 A2 等式倒挤（期初+归母净利-提取盈余公积-期末），用于验证滚动闭合；真实分析应取权益变动表"
+      },
+      "payable": {
+        "cur": 40.0731,
+        "prev": 35.1497,
+        "src": "L2678 合并资产负债表 应付账款"
       }
     },
     "cashflow": {
@@ -212,10 +247,42 @@
         "cur": 0.1642
       },
       "asset_turnover": {
-        "cur": 0.5557
+        "cur": 0.5602
       },
       "equity_multiplier": {
         "cur": 1.242
+      },
+      "dso": {
+        "cur": 0.0233,
+        "note": "calc.py 同口径复算"
+      },
+      "dio": {
+        "cur": 1418.732,
+        "note": "calc.py 同口径复算"
+      },
+      "dpo": {
+        "cur": 92.1831,
+        "note": "calc.py 同口径复算"
+      },
+      "ccc": {
+        "cur": 1326.5723,
+        "note": "calc.py 同口径复算"
+      },
+      "short_debt_cover": {
+        "cur": 2560.7964,
+        "note": "calc.py 同口径复算"
+      },
+      "incr_expense_eff": {
+        "cur": -2.5406,
+        "note": "calc.py 同口径复算"
+      },
+      "incr_sales_eff": {
+        "cur": -1.2768,
+        "note": "calc.py 同口径复算"
+      },
+      "nonrecurring_share": {
+        "cur": 0.0003,
+        "note": "calc.py 同口径复算"
       }
     },
     "ocf_bridge": [
@@ -252,8 +319,19 @@
         "delta": -68.0643
       }
     ],
-    "rev_factors": {},
-    "np_bridge": []
+    "rev_factors": {
+      "volume": 36.2662,
+      "price": -38.6304,
+      "mix": -16.0359,
+      "src": "实算：分产品量价（L726-728）",
+      "note": "按主营收入口径（茅台酒+系列酒），三效应之和=Δ主营收入-18.40亿；与营业收入差-20.61亿之差为其他业务"
+    },
+    "np_bridge": [],
+    "wc_devour": {
+      "amount": 248.74,
+      "share_of_np": 0.2916,
+      "note": "吞噬额=−(Δ应收+Δ存货−Δ应付−Δ其他)=248.74亿；分母用净利润(含少数股东)853.10亿，占29.2%，<50%不警示"
+    }
   },
   "recon": {},
   "signals": [

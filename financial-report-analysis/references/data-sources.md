@@ -42,6 +42,17 @@
 | `dividend` | 分红历史 |
 | `irm_qa_sh` / `irm_qa_sz` | 互动易/e 互动问答（投资者在追问什么） |
 
+## 二·五、Q4 单季数据（年报分析的必做拆解，见 report-types.md）
+
+- **取数两条路**：
+  1. 原文相减：年报「报告期分季度的主要会计数据」表（多数年报直接披露四个单季的
+     收入/归母净利/扣非/经营现金流，Grep 锚点「分季度」）——首选
+  2. tushare 补充：`fina_indicator` 的 `q_sales_yoy`/`q_profit_yoy`/`q_gsprofit_margin`
+     （单季同比与单季毛利率，period=20251231 即 Q4 单季口径）；或用
+     `income`/`daily` 拉三季报（period=20250930）与年报相减
+- **注意**：年报若披露「季度数据与已披露定期报告数据差异说明」，以年报口径为准
+- 五项异常检测阈值见 report-types.md 年报节；结果写入 data.json `derived.q4`
+
 ## 三、mx-ds MCP（检索与宏观补充）
 
 | 工具 | 用途 | 典型问法 |

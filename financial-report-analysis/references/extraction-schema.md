@@ -52,7 +52,7 @@
       "rd_exp":       { "cur": null, "prev": null, "src": "" },
       "fin_exp":      { "cur": null, "prev": null, "src": "", "note": "可为负" },
       "interest_exp": { "cur": null, "prev": null, "src": "", "note": "财务费用附注中的利息支出" },
-      "interest_inc": { "cur": null, "prev": null, "src": "", "note": "A2 利息收入勾稽用" },
+      "interest_inc": { "cur": null, "prev": null, "src": "", "note": "财务费用附注中的利息收入（redflags #2 利息收入与货币资金匹配用；A7 隐含利率取利息支出）" },
       "impair_loss":  { "cur": null, "prev": null, "src": "", "note": "资产+信用减值合计" },
       "invest_income":{ "cur": null, "prev": null, "src": "" },
       "non_op_net":   { "cur": null, "prev": null, "src": "" },
@@ -75,6 +75,8 @@
       "other_ar":         { "cur": null, "prev": null, "src": "", "note": "其他应收款" },
       "inventory":        { "cur": null, "prev": null, "src": "" },
       "contract_liab":    { "cur": null, "prev": null, "src": "" },
+      "payable":          { "cur": null, "prev": null, "src": "", "note": "应付账款+应付票据（DPO/CCC 计算必需；先款后货型公司可为 0）" },
+      "fixed_assets":     { "cur": null, "prev": null, "src": "", "note": "固定资产净值（A6 Capex 勾稽用）" },
       "cip":              { "cur": null, "prev": null, "src": "", "note": "在建工程" },
       "goodwill":         { "cur": null, "prev": null, "src": "" },
       "st_debt":          { "cur": null, "prev": null, "src": "", "note": "短期借款" },
@@ -87,7 +89,7 @@
       "retained_cur":     { "cur": null, "prev": null, "src": "", "note": "未分配利润（A2 滚动勾稽）" },
       "surplus_reserve":  { "cur": null, "prev": null, "src": "", "note": "盈余公积（A2 用其本期提取额）" },
       "dividend_paid":    { "cur": null, "prev": null, "src": "", "note": "本年实际分配现金股利" },
-      "prepayment":       { "cur": null, "prev": null, "src": "", "note": "预付款项（A4 收现闭环用）" },
+      "prepayment":       { "cur": null, "prev": null, "src": "", "note": "预付款项（采购侧资产；A4 收入-收现闭环不用此项，相关的是预收/合同负债）" },
       "fin_assets":       { "cur": null, "prev": null, "src": "", "note": "交易性金融资产+长期股权投资+其他非流动金融资产（A8 用）" },
       "payable_construction": { "cur": null, "prev": null, "src": "", "note": "应付工程设备款（A6 用，常未单列，可 null）" }
     },
@@ -106,7 +108,8 @@
       { "bucket": "1年以内", "cur": null, "prev": null, "prov_rate_cur": null, "prov_rate_prev": null, "src": "" }
     ],
     "ar_writeoff":   { "cur": null, "src": "", "note": "本年实际核销额" },
-    "ar_provision":  { "cur": null, "prev": null, "src": "", "note": "坏账准备余额" },
+    "ar_provision":  { "cur": null, "prev": null, "charged": null, "reversed": null, "src": "",
+                       "note": "cur/prev=坏账准备余额；charged=本期计提额、reversed=本期转回额（B1 核销率判定「核销>当年计提」必需；倒挤：charged = Δ余额 + 核销 + 转回）" },
     "ar_factoring":  { "cur": null, "src": "", "note": "保理/证券化出表金额" },
     "inventory_mix": [
       { "name": "原材料", "cur": null, "prev": null, "src": "" },
@@ -156,7 +159,7 @@
                     { "item": "减值", "delta": null }, { "item": "递延税", "delta": null },
                     { "item": "Δ应收", "delta": null }, { "item": "Δ存货", "delta": null },
                     { "item": "Δ应付", "delta": null }, { "item": "其他营运资本", "delta": null } ],
-    "wc_devour": { "amount": null, "share_of_np": null, "note": "营运资本吞噬额及其占净利润比" }
+    "wc_devour": { "amount": null, "share_of_np": null, "note": "营运资本吞噬额（正数=被吞掉的金额）；share_of_np 分母用净利润（含少数股东，与调节桥起点自洽）；跨到 redflags #3 净现比时该条用归母口径，差异如实标注" }
   },
 
   "recon": {

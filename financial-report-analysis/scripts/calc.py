@@ -294,6 +294,19 @@ def check_bridges(data, rep):
         else:
             rep.add(FAIL, "bridge.ocf", f"调节桥不闭合：Σ{total:.2f} vs OCF {ocf:.2f}，差 {total - ocf:+.2f} 亿")
 
+    # 营运资本吞噬额自洽：share_of_np 必须 = amount ÷ 净利润（含少数股东）
+    wc = derived.get("wc_devour") or {}
+    amt, share = num(wc.get("amount")), num(wc.get("share_of_np"))
+    np_total = val(data, "statements", "income", "np_total")
+    if amt is not None and share is not None and np_total:
+        expect = amt / np_total
+        if abs(share - expect) <= max(0.02 * abs(expect), 0.005):
+            rep.add(OK, "wc_devour", f"吞噬额占净利润比一致（{share:.4f} vs {expect:.4f}）")
+        else:
+            rep.add(FAIL, "wc_devour", f"share_of_np={share:.4f} 与 amount÷净利润={expect:.4f} 不符")
+    elif amt is not None and share is None:
+        rep.add(WARN, "wc_devour", "填了吞噬额但未填占净利润比")
+
     # 收入三效应
     rf = derived.get("rev_factors") or {}
     parts = [num(rf.get(k)) for k in ("volume", "price", "mix")]
@@ -353,8 +366,9 @@ def build_ratio_calcs(data):
 
     dso = safe_div(avg(ar, ar_p) * 365, rev) if rev else None
     dio = safe_div(avg(inv, inv_p) * 365, cost) if cost else None
-    ap = S("balance", "contract_liab")  # 应付账款未单列时不猜，DPO 留空
-    dpo = None
+    # DPO 需要应付账款（+应付票据）；未提取则留空，CCC 随之不可算（见 schema balance.payable）
+    ap, ap_p = S("balance", "payable"), S("balance", "payable", key="prev")
+    dpo = safe_div(avg(ap, ap_p) * 365, cost) if (cost and ap is not None) else None
     ccc = None if any(x is None for x in (dso, dio, dpo)) else dso + dio - dpo
 
     short_debt = None if (st is None and noncur is None) else (st or 0) + (noncur or 0)
@@ -433,6 +447,9 @@ def check_recon(data, rep):
             else:
                 rep.add(SKIP, key, "未填，跳过")
             continue
+        src = node.get("src")
+        if not (isinstance(src, str) and src.strip()):
+            rep.add(FAIL, key, f"{key} 有 lhs/rhs 但 src 为空——勾稽中间量同样禁止无出处")
         if verdict not in VERDICTS:
             rep.add(FAIL, key, f"verdict 非法：「{verdict}」，必须是 闭合/可解释/无法解释 之一")
             continue
