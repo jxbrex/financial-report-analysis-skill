@@ -8,7 +8,7 @@ description: >
 metadata:
   clawdbot:
     emoji: "📑"
-    version: "2.0.0"
+    version: "0.0.2"
     requires:
       anyBins: ["python"]
     os: ["win32", "darwin", "linux"]
