@@ -1,0 +1,216 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+run_regression.py — financial-report-analysis 的金标准回归测试
+
+【它在测什么】
+两个冻结样本（fixture）经 Phase 7.5 门禁 scripts/calc.py 后，必须同时满足门禁结论
+与样本语义，用来抓「改坏门禁」这一类回归：
+  · tests/moutai_2025.json     贵州茅台 2025 年报 —— 干净样本，抓**误报**（假阳性）
+  · tests/kangdexin_2018.json  康得新 2018 年报   —— 造假样本，抓**漏报**（假阴性）
+
+断言清单
+  [共同] calc.py exit code == 0（FAIL 清零），汇总 FAIL == 0
+  [茅台] WARN == 0；recon 中 verdict 为「无法解释/可解释」的条目 == 0
+  [康得新] signals >= 11 条；其中 level=='r' 的红色信号 >= 6 条；
+           recon 命中（verdict != 闭合）>= 3 条
+门禁改钝（干净样本冒出 WARN、造假样本不再报警）都会让本脚本 exit 1。
+
+【怎么跑】
+    python tests/run_regression.py              # 简洁清单
+    python tests/run_regression.py --verbose    # 附带 calc.py 的完整原始输出
+    退出码：0 = 全部通过；1 = 有断言失败（清单里 ❌ 的行即原因）
+
+【改动纪律】
+只要动了 scripts/calc.py 或 references/extraction-schema.md，提交前必须跑本脚本，
+且必须双例全绿；改错比率、删 src、破坏桥闭合等反例应能把它打红。
+
+【实现约定】
+  · 门禁结论走 subprocess 调 calc.py，只断言 exit code；
+  · calc.py 打印的 `--- 汇总：FAIL x · WARN y · OK z · SKIP w ---` 是它唯一的机器可读
+    摘要行，只解析这一行，不对彩色明细行做正则（脆）；
+  · 业务断言全部直接读 fixture JSON，不经过 calc.py 的输出。
+"""
+
+import argparse
+import json
+import os
+import re
+import subprocess
+import sys
+from pathlib import Path
+
+# Windows 控制台默认 GBK，中文/emoji 会触发 UnicodeEncodeError；强制 UTF-8 输出。
+for _s in (sys.stdout, sys.stderr):
+    try:
+        _s.reconfigure(encoding="utf-8")
+    except (AttributeError, ValueError):
+        pass
+
+HERE = Path(__file__).resolve().parent          # …/financial-report-analysis/tests
+SKILL = HERE.parent                             # …/financial-report-analysis
+CALC = SKILL / "scripts" / "calc.py"
+
+MOUTAI = HERE / "moutai_2025.json"
+KANGDEXIN = HERE / "kangdexin_2018.json"
+
+# calc.py 的汇总行（唯一机器可读摘要）
+SUMMARY_RE = re.compile(
+    r"---\s*汇总：FAIL\s*(\d+)\s*·\s*WARN\s*(\d+)\s*·\s*OK\s*(\d+)\s*·\s*SKIP\s*(\d+)\s*---"
+)
+
+
+class Case:
+    """一个 fixture 的断言收集器：逐条记录通过/失败，最后统一汇报。"""
+
+    def __init__(self, title, fixture):
+        self.title = title
+        self.fixture = fixture
+        self.results = []       # (ok, desc)
+
+    def expect(self, ok, desc):
+        self.results.append((bool(ok), desc))
+        return bool(ok)
+
+    @property
+    def failed(self):
+        return [d for ok, d in self.results if not ok]
+
+
+def run_calc(fixture):
+    """在技能根目录下用当前解释器跑 calc.py，返回 CompletedProcess。"""
+    env = dict(os.environ, PYTHONIOENCODING="utf-8")
+    python = sys.executable or "python"
+    return subprocess.run(
+        [python, str(CALC), str(fixture)],
+        cwd=str(SKILL),
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+        env=env,
+    )
+
+
+def parse_summary(stdout):
+    """只取汇总行；取不到返回 None（视为门禁输出格式被改坏）。"""
+    m = SUMMARY_RE.search(stdout or "")
+    if not m:
+        return None
+    return dict(zip(("FAIL", "WARN", "OK", "SKIP"), (int(x) for x in m.groups())))
+
+
+def load_json(path):
+    with open(path, encoding="utf-8") as f:
+        return json.load(f)
+
+
+def recon_hits(data):
+    """verdict != 闭合 的 recon 条目（即门禁认定的勾稽异常）。"""
+    return [(k, v.get("verdict")) for k, v in (data.get("recon") or {}).items()
+            if isinstance(v, dict) and v.get("verdict") and v.get("verdict") != "闭合"]
+
+
+def check_moutai(case, proc, data):
+    """干净样本：抓误报。"""
+    case.expect(proc.returncode == 0,
+                f"calc.py exit 0（实际 {proc.returncode}）")
+    summary = parse_summary(proc.stdout)
+    if not case.expect(summary is not None, "汇总行可解析（calc.py 输出格式未变）"):
+        return
+    case.expect(summary["FAIL"] == 0, f"FAIL == 0（实际 {summary['FAIL']}）")
+    case.expect(summary["WARN"] == 0,
+                f"WARN == 0 —— 干净样本零误报（实际 {summary['WARN']}）")
+
+    loose = [(k, v) for k, v in recon_hits(data) if v in ("无法解释", "可解释")]
+    case.expect(not loose,
+                f"recon 未闭合条目 == 0（实际 {len(loose)}）" +
+                (f"：{', '.join(f'{k}={v}' for k, v in loose)}" if loose else ""))
+
+
+def check_kangdexin(case, proc, data):
+    """造假样本：抓漏报。"""
+    case.expect(proc.returncode == 0,
+                f"calc.py exit 0（实际 {proc.returncode}）")
+    summary = parse_summary(proc.stdout)
+    if not case.expect(summary is not None, "汇总行可解析（calc.py 输出格式未变）"):
+        return
+    case.expect(summary["FAIL"] == 0, f"FAIL == 0（实际 {summary['FAIL']}）")
+
+    sigs = data.get("signals") or []
+    case.expect(len(sigs) >= 11, f"signals 条数 >= 11（实际 {len(sigs)}）")
+    reds = [s for s in sigs if isinstance(s, dict) and s.get("level") == "r"]
+    case.expect(len(reds) >= 6, f"红色信号（level=='r'）>= 6（实际 {len(reds)}）")
+
+    hits = recon_hits(data)
+    case.expect(len(hits) >= 3,
+                f"recon 命中（verdict != 闭合）>= 3（实际 {len(hits)}）" +
+                (f"：{', '.join(f'{k}={v}' for k, v in hits)}" if hits else ""))
+
+
+def report_case(case, proc, verbose):
+    print(f"\n【{case.title}】{case.fixture.relative_to(SKILL)}")
+    for ok, desc in case.results:
+        print(f"  {'✅' if ok else '❌'} {desc}")
+    if verbose:
+        print("  ── calc.py 原始输出 ──")
+        for line in (proc.stdout or "").rstrip().splitlines():
+            print(f"  │ {line}")
+        if proc.stderr and proc.stderr.strip():
+            print("  ── stderr ──")
+            for line in proc.stderr.rstrip().splitlines():
+                print(f"  │ {line}")
+
+
+def main():
+    ap = argparse.ArgumentParser(description="financial-report-analysis 金标准回归测试")
+    ap.add_argument("--verbose", action="store_true", help="附带 calc.py 的完整原始输出")
+    args = ap.parse_args()
+
+    print("=== financial-report-analysis 金标准回归 · calc.py 双例 ===")
+    print(f"技能根：{SKILL}")
+    print(f"门禁：  {CALC}")
+
+    missing = [p for p in (CALC, MOUTAI, KANGDEXIN) if not p.exists()]
+    if missing:
+        for p in missing:
+            print(f"❌ 缺少文件：{p}")
+        print("\n--- 汇总：通过 0 · 失败 1 ---")
+        return 1
+
+    total = passed = 0
+    cases = []
+    for title, fixture, checker in (
+        ("贵州茅台 2025 年报 · 干净样本（抓误报）", MOUTAI, check_moutai),
+        ("康得新 2018 年报 · 造假样本（抓漏报）", KANGDEXIN, check_kangdexin),
+    ):
+        proc = run_calc(fixture)
+        case = Case(title, fixture)
+        try:
+            data = load_json(fixture)
+        except (OSError, json.JSONDecodeError) as e:
+            case.expect(False, f"fixture 可解析为 JSON（{e}）")
+            report_case(case, proc, args.verbose)
+            cases.append(case)
+            continue
+        checker(case, proc, data)
+        report_case(case, proc, args.verbose)
+        cases.append(case)
+
+    for case in cases:
+        for ok, _ in case.results:
+            total += 1
+            passed += ok
+
+    failed = total - passed
+    print(f"\n--- 汇总：通过 {passed} · 失败 {failed} ---")
+    if failed:
+        print("❌ 回归未通过：逐条核对上方 ❌；先确认是 calc.py 改坏了还是样本期望值需调整，"
+              "禁止为了让测试变绿而改 fixture 数值。")
+        return 1
+    print("✅ 双例全绿：门禁既未误报干净样本，也未漏报造假样本。")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

@@ -11,6 +11,13 @@
    使用方式：复制本文件为最终报告文件名，替换 {{占位}} 与
    「◆ SLOT」注释标记的内容；JS 区只填数据数组，不改绘图逻辑。
    硬规则：不引入外部字体/CDN/JS；不用暗色背景、渐变、投影。
+   硬规则：关键数字必须带证据等级徽章，报告中不允许出现「裸数字」——
+           .badge.disc 披露（主表/附注直接披露，最硬）/ .badge.der 推算
+           （两数运算得来，如毛利率、净现比、周转天数）/ .badge.est 估算
+           （含假设，如情景测算）。KPI 卡、比率表、结论句里的关键数字都要挂。
+   锚点约定：每个章节的 .secthead 带固定 id（s0~s9；可选回溯块为 review），
+           不受章节增删影响；跨章引用一律写页内锚点 <a href="#s2">排雷扫描</a>，
+           不写「见第 2 章」。
    ═══════════════════════════════════════════════════════════════ */
 :root{
   --bg:rgb(247,242,235); --ink:rgb(8,31,92); --muted:rgba(8,31,92,.60);
@@ -52,10 +59,21 @@ body{background:var(--bg);color:var(--ink);
 .badge.r{background:rgba(192,57,43,.12);color:var(--bad)}
 .dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px;vertical-align:1px}
 .dot.g{background:var(--good)}.dot.y{background:var(--warn)}.dot.r{background:var(--bad)}
+/* 证据等级徽章（P2-19）：披露 / 推算 / 估算，语义色低饱和，与 g/y/r 风险徽章可区分 */
+.badge.disc{background:rgba(8,31,92,.09);color:rgba(8,31,92,.82)}
+.badge.der{background:rgba(94,84,158,.13);color:rgb(84,74,150)}
+.badge.est{background:rgba(8,31,92,.04);color:var(--muted);border:1px dashed rgba(8,31,92,.28)}
+
+/* ── 下钻链接（P2-25）── */
+a{color:var(--data);text-decoration:none}
+a:hover{text-decoration:underline}
+.drill{font-size:10.5px;font-weight:700;white-space:nowrap}
 
 /* ── 章节 ── */
 .sect{margin-top:46px}
-.secthead{display:flex;align-items:baseline;gap:14px;margin-bottom:6px}
+.secthead{display:flex;align-items:baseline;gap:14px;margin-bottom:6px;
+  border-radius:6px;scroll-margin-top:24px}
+.secthead:target{background:rgba(51,78,172,.07)}
 .secthead .no{font-size:13px;font-weight:800;color:var(--data)}
 .secthead .t{font-size:19px;font-weight:800;letter-spacing:.06em}
 .secthead .line{flex:1;border-top:1px solid var(--ink)}
@@ -141,9 +159,26 @@ table.data tr.total td{font-weight:800;border-top:1.5px solid var(--ink);border-
     <div class="dimcard"><div class="l">治理风险 20%</div><div class="v">{{分}}</div><div class="note">{{一句依据}}</div></div>
   </div>
 
+  <!-- ══ 上期跟踪回顾 · 回看模式（P2-18）◆ SLOT ══
+       ◆ 仅当 reports/ 下存在同公司旧报告时才填；无旧报告则整块删除（含本注释）。
+       ◆ 逐条对照旧报告末章「下期跟踪清单：先行指标仪表盘」，不新增条目、不美化复盘。 -->
+  <div class="sect">
+    <div class="secthead" id="review"><span class="no">回溯</span><span class="t">上期跟踪回顾</span><span class="line"></span><span class="tag">LOOK-BACK · 上期清单兑现率</span></div>
+    <div class="card">
+      <table class="data">
+        <tr><th>上期跟踪项（先行指标 / 关键假设）</th><th class="txt">兑现情况</th><th class="txt">一句话复盘</th></tr>
+        <tr><td>{{上期清单第 1 条}}</td><td class="txt"><span class="badge g">✅ 兑现</span></td><td class="txt">{{读数现在是多少，与上期预期的差}}</td></tr>
+        <tr><td>{{上期清单第 2 条}}</td><td class="txt"><span class="badge r">❌ 未兑现</span></td><td class="txt">{{错在哪：假设错 / 时点错 / 口径错}}</td></tr>
+        <tr><td>{{上期清单第 3 条}}</td><td class="txt"><span class="badge y">⏳ 待观察</span></td><td class="txt">{{还差哪条数据才能判定}}</td></tr>
+        <!-- ◆ 按上期清单条数增删行；兑现率 {{m}}/{{n}} 建议写进 00 章 lede -->
+      </table>
+      <div class="srcline">数据来源：reports/ 下同公司上一期分析报告末章清单 · 兑现率是自我校准的唯一硬证据</div>
+    </div>
+  </div>
+
   <!-- ══ 核心结论 ◆ SLOT: 三大亮点/三大风险 ══ -->
   <div class="sect">
-    <div class="secthead"><span class="no">00</span><span class="t">核心结论</span><span class="line"></span><span class="tag">EXECUTIVE SUMMARY</span></div>
+    <div class="secthead" id="s0"><span class="no">00</span><span class="t">核心结论</span><span class="line"></span><span class="tag">EXECUTIVE SUMMARY</span></div>
     <div class="grid2">
       <div class="card">
         <div class="figtitle" style="color:var(--good)">亮点 TOP 3</div>
@@ -163,23 +198,41 @@ table.data tr.total td{font-weight:800;border-top:1.5px solid var(--ink);border-
       </div>
     </div>
     <p class="lede">{{一段话说清这家公司本期发生了什么：业绩主线 + 利润第一驱动 + 最大隐忧}}</p>
+    <!-- ◆ 异常下钻地图（P2-25）：从「哪里异常」一步跳到「哪一章解释」；按本期实际异常增删行 -->
+    <div class="card">
+      <div class="figtitle">异常下钻地图：异常指标 → 结构定位 → 驱动因素</div>
+      <table class="data">
+        <tr><th>异常指标</th><th class="txt">结构定位</th><th class="txt">驱动因素</th></tr>
+        <tr><td>{{净现比 &lt; 1}}</td><td class="txt"><a href="#s3">因素分析 · 净利→经营现金流桥</a></td><td class="txt">{{应收/存货吞噬营运资本}}</td></tr>
+        <tr><td>{{货币资金高 + 有息负债高}}</td><td class="txt"><a href="#s2">排雷扫描 · 存贷双高</a></td><td class="txt">{{资金受限 / 大股东占款}}</td></tr>
+        <tr><td>{{Q4 收入或减值单季异常}}</td><td class="txt"><a href="#s3">因素分析 · Q4 单季透视</a></td><td class="txt">{{跨期确认 / 年末冲量}}</td></tr>
+        <tr><td>{{收入与收现背离}}</td><td class="txt"><a href="#s7">外部校验 · 期后事项</a></td><td class="txt">{{收入确认激进}}</td></tr>
+        <tr><td>{{管理层解释与数字矛盾}}</td><td class="txt"><a href="#s4">管理层在说什么 · 断言验证</a></td><td class="txt">{{叙事与数据不一致}}</td></tr>
+        <tr><td>{{在建工程长期挂账未转固}}</td><td class="txt"><a href="#s5">产能与在建工程</a></td><td class="txt">{{推迟转固 / 虚增资产}}</td></tr>
+        <tr><td>{{股东户数骤降 + 股价上行}}</td><td class="txt"><a href="#s6">股东结构</a></td><td class="txt">{{筹码集中}}</td></tr>
+        <!-- ◆ 每行「结构定位」必须是指向章节 secthead id 的页内锚点；本期无异常的章节不要凑行 -->
+      </table>
+      <div class="srcline">下钻路径：异常指标 → 结构定位（哪张表 / 哪条等式）→ 驱动因素（谁造成的）· 锚点 id 见各章 secthead</div>
+    </div>
   </div>
 
   <!-- ══ S1 财务总览 ◆ SLOT ══ -->
   <div class="sect">
-    <div class="secthead"><span class="no">01</span><span class="t">财务总览</span><span class="line"></span><span class="tag">四维比率 · 杜邦 · F-SCORE</span></div>
+    <div class="secthead" id="s1"><span class="no">01</span><span class="t">财务总览</span><span class="line"></span><span class="tag">四维比率 · 杜邦 · F-SCORE</span></div>
+    <!-- ◆ 证据等级徽章示范（P2-19）：主表直接读数=disc，两数运算=der，含假设测算=est；
+         其余槽位同样必须挂徽章，不留裸数字 -->
     <div class="kpis">
-      <div class="kpi"><div class="v">{{营业收入}}</div><div class="r {{up|dn}}">{{同比}}</div><div class="l">营业收入（亿元）</div></div>
-      <div class="kpi"><div class="v">{{归母净利}}</div><div class="r {{up|dn}}">{{同比}}</div><div class="l">归母净利润（亿元）</div></div>
-      <div class="kpi"><div class="v">{{经营现金流}}</div><div class="r">净现比 {{x}}</div><div class="l">经营现金流净额（亿元）</div></div>
-      <div class="kpi"><div class="v">{{ROE}}</div><div class="r">F-Score {{n}}/9</div><div class="l">ROE（加权）</div></div>
+      <div class="kpi"><div class="v">{{营业收入}}</div><div class="r {{up|dn}}">{{同比}} <span class="badge disc">披露</span></div><div class="l">营业收入（亿元）</div></div>
+      <div class="kpi"><div class="v">{{归母净利}}</div><div class="r {{up|dn}}">{{同比}} <span class="badge disc">披露</span></div><div class="l">归母净利润（亿元）</div></div>
+      <div class="kpi"><div class="v">{{经营现金流}}</div><div class="r">净现比 {{x}} <span class="badge der">推算</span></div><div class="l">经营现金流净额（亿元）</div></div>
+      <div class="kpi"><div class="v">{{ROE}}</div><div class="r">F-Score {{n}}/9 <span class="badge der">推算</span></div><div class="l">ROE（加权）</div></div>
     </div>
     <div class="grid2">
       <div class="card">
         <div class="figtitle">四维比率</div>
         <table class="data">
           <tr><th>指标</th><th>本期</th><th>上期</th><th class="txt">评价</th></tr>
-          <tr><td>毛利率</td><td>{{}}</td><td>{{}}</td><td class="txt">{{}}</td></tr>
+          <tr><td>毛利率 <span class="badge der">推算</span></td><td>{{}}</td><td>{{}}</td><td class="txt">{{}}</td></tr>
           <tr><td>净利率</td><td>{{}}</td><td>{{}}</td><td class="txt">{{}}</td></tr>
           <tr><td>资产负债率</td><td>{{}}</td><td>{{}}</td><td class="txt">{{}}</td></tr>
           <tr><td>存货周转天数</td><td>{{}}</td><td>{{}}</td><td class="txt">{{}}</td></tr>
@@ -188,6 +241,7 @@ table.data tr.total td{font-weight:800;border-top:1.5px solid var(--ink);border-
           <tr><td>CCC（DSO+DIO−DPO，天）</td><td>{{}}</td><td>{{}}</td><td class="txt">{{拉长换增长/收窄造血改善}}</td></tr>
         </table>
         <div class="srcline">数据来源：公司{{报告期}}{{报告类型}}、Tushare；比率口径见 frameworks.md</div>
+        <div class="srcline">证据等级：<span class="badge disc">披露</span> 主表/附注直接披露 · <span class="badge der">推算</span> 两数运算（毛利率/净现比/周转天数）· <span class="badge est">估算</span> 含假设（情景测算）</div>
       </div>
       <div class="card">
         <div class="figtitle">杜邦三分解：ROE 由什么驱动</div>
@@ -226,13 +280,15 @@ table.data tr.total td{font-weight:800;border-top:1.5px solid var(--ink);border-
 
   <!-- ══ S2 排雷扫描 ◆ SLOT：全量信号表 ══ -->
   <div class="sect">
-    <div class="secthead"><span class="no">02</span><span class="t">排雷扫描</span><span class="line"></span><span class="tag">RED FLAGS · 信号库逐条对照</span></div>
+    <div class="secthead" id="s2"><span class="no">02</span><span class="t">排雷扫描</span><span class="line"></span><span class="tag">RED FLAGS · 信号库逐条对照</span></div>
     <div class="card">
       <table class="data">
-        <tr><th>信号</th><th class="txt">判定</th><th>关键数据</th><th class="txt">证据出处</th></tr>
-        <tr><td>存贷双高</td><td class="txt"><span class="badge g">未触发</span></td><td>{{货币资金/总资产 vs 有息负债/总资产}}</td><td class="txt">{{资产负债表/附注}}</td></tr>
-        <tr><td>净现比</td><td class="txt"><span class="badge {{}}">{{}}</span></td><td>{{}}</td><td class="txt">{{}}</td></tr>
+        <tr><th>信号</th><th class="txt">判定</th><th>关键数据</th><th class="txt">证据出处</th><th class="txt">下钻</th></tr>
+        <tr><td>存贷双高</td><td class="txt"><span class="badge g">未触发</span></td><td>{{货币资金/总资产 vs 有息负债/总资产}}</td><td class="txt">{{资产负债表/附注}}</td><td class="txt"><a class="drill" href="#s1">财务总览</a></td></tr>
+        <tr><td>净现比</td><td class="txt"><span class="badge {{}}">{{}}</span></td><td>{{}}</td><td class="txt">{{}}</td><td class="txt"><a class="drill" href="#s3">因素分析</a></td></tr>
         <!-- ◆ 按 redflags.md 清单逐条一行；未触发用 g 徽章，观察用 y，命中用 r -->
+        <!-- ◆ 末列「下钻」必填：指向解释该信号的证据链章节锚点
+             （s1 财务总览 / s3 因素分析 / s4 管理层在说什么 / s5 产能与在建工程 / s6 股东结构 / s7 外部校验）-->
       </table>
       <div class="srcline">判定规则：references/redflags.md；🟢 未触发 / 🟡 观察 / 🔴 命中</div>
     </div>
@@ -240,10 +296,11 @@ table.data tr.total td{font-weight:800;border-top:1.5px solid var(--ink);border-
     <div class="card">
       <div class="figtitle">勾稽验算异常清单（过程层：数字验数字）</div>
       <table class="data">
-        <tr><th>等式</th><th class="txt">三态</th><th>偏差额 / 偏差率</th><th class="txt">解释或追问</th></tr>
-        <tr><td>{{A1 现金余额勾稽}}</td><td class="txt"><span class="badge {{}}">{{闭合/可解释/无法解释}}</span></td><td>{{}}</td><td class="txt">{{}}</td></tr>
-        <tr><td>{{A3 间接法调节}}</td><td class="txt"><span class="badge {{}}">{{}}</span></td><td>{{}}</td><td class="txt">{{}}</td></tr>
+        <tr><th>等式</th><th class="txt">三态</th><th>偏差额 / 偏差率</th><th class="txt">解释或追问</th><th class="txt">下钻</th></tr>
+        <tr><td>{{A1 现金余额勾稽}}</td><td class="txt"><span class="badge {{}}">{{闭合/可解释/无法解释}}</span></td><td>{{}}</td><td class="txt">{{}}</td><td class="txt"><a class="drill" href="#s1">财务总览</a></td></tr>
+        <tr><td>{{A3 间接法调节}}</td><td class="txt"><span class="badge {{}}">{{}}</span></td><td>{{}}</td><td class="txt">{{}}</td><td class="txt"><a class="drill" href="#s3">因素分析</a></td></tr>
         <!-- ◆ 按 articulation.md 的 A1~A8 / B1~B4 逐条列；仅列 ⚠️🔴 与关键 ✅，C1/C2 归入 S1 -->
+        <!-- ◆ 末列「下钻」必填：B1 应收/存货类指向 #s1，#s3 桥式偏差指向 #s3，与 MD&A 矛盾指向 #s4 -->
       </table>
       <div class="srcline">数据来源：references/articulation.md 等式清单 · 阈值与三态规则见该手册；偏差 ≠ 造假，先排除合理解释</div>
     </div>
@@ -251,7 +308,7 @@ table.data tr.total td{font-weight:800;border-top:1.5px solid var(--ink);border-
 
   <!-- ══ S3 因素分析 ◆ SLOT：三座桥 ══ -->
   <div class="sect">
-    <div class="secthead"><span class="no">03</span><span class="t">因素分析</span><span class="line"></span><span class="tag">收入 · 成本 · 净利润桥</span></div>
+    <div class="secthead" id="s3"><span class="no">03</span><span class="t">因素分析</span><span class="line"></span><span class="tag">收入 · 成本 · 净利润桥</span></div>
     <p class="lede">{{一句话：本期利润变化的第一驱动是……}}</p>
     <div class="grid2">
       <div class="card">
@@ -311,7 +368,7 @@ table.data tr.total td{font-weight:800;border-top:1.5px solid var(--ink);border-
 
   <!-- ══ S4 文字部分分析 ◆ SLOT ══ -->
   <div class="sect">
-    <div class="secthead"><span class="no">04</span><span class="t">管理层在说什么</span><span class="line"></span><span class="tag">MD&A · 措辞 · 赛道重合度</span></div>
+    <div class="secthead" id="s4"><span class="no">04</span><span class="t">管理层在说什么</span><span class="line"></span><span class="tag">MD&A · 措辞 · 赛道重合度</span></div>
     <div class="grid2">
       <div class="card">
         <div class="figtitle">叙事主线与发力方向</div>
@@ -360,7 +417,7 @@ table.data tr.total td{font-weight:800;border-top:1.5px solid var(--ink);border-
 
   <!-- ══ S5 产能与在建工程 ◆ SLOT ══ -->
   <div class="sect">
-    <div class="secthead"><span class="no">05</span><span class="t">产能与在建工程</span><span class="line"></span><span class="tag">钱押在哪条线</span></div>
+    <div class="secthead" id="s5"><span class="no">05</span><span class="t">产能与在建工程</span><span class="line"></span><span class="tag">钱押在哪条线</span></div>
     <div class="card">
       <table class="data">
         <tr><th>项目</th><th>预算（亿元）</th><th>累计投入</th><th>进度</th><th class="txt">对应产品线 / 判定</th></tr>
@@ -373,7 +430,7 @@ table.data tr.total td{font-weight:800;border-top:1.5px solid var(--ink);border-
 
   <!-- ══ S6 股东结构 ◆ SLOT ══ -->
   <div class="sect">
-    <div class="secthead"><span class="no">06</span><span class="t">股东结构</span><span class="line"></span><span class="tag">户数 · 前十大 · 增减持</span></div>
+    <div class="secthead" id="s6"><span class="no">06</span><span class="t">股东结构</span><span class="line"></span><span class="tag">户数 · 前十大 · 增减持</span></div>
     <div class="grid2">
       <div class="fig">
         <div class="figtitle">股东户数趋势（万户）+ 区间涨跌幅（线，%）</div>
@@ -393,7 +450,7 @@ table.data tr.total td{font-weight:800;border-top:1.5px solid var(--ink);border-
 
   <!-- ══ S7 外部校验 ◆ SLOT ══ -->
   <div class="sect">
-    <div class="secthead"><span class="no">07</span><span class="t">外部校验</span><span class="line"></span><span class="tag">预期 · 同业 · 宏观 · 债务</span></div>
+    <div class="secthead" id="s7"><span class="no">07</span><span class="t">外部校验</span><span class="line"></span><span class="tag">预期 · 同业 · 宏观 · 债务</span></div>
     <div class="grid2">
       <div class="card">
         <div class="figtitle">实际 vs 机构一致预期</div>
@@ -438,6 +495,50 @@ table.data tr.total td{font-weight:800;border-top:1.5px solid var(--ink);border-
         <!-- ◆ 无期后事项时写「已检查，无重大期后事项」——不悄悄缺席 -->
       </table>
       <div class="srcline">数据来源：mx_finance_search_notice 期后公告时间线 · 与 B1 应收 roll-forward 联动</div>
+    </div>
+  </div>
+
+  <!-- ══ S8 最强反方（P2-20）◆ SLOT：多头 3 条 vs 空头 3 条，每条必须带出处 ══ -->
+  <div class="sect">
+    <div class="secthead" id="s8"><span class="no">08</span><span class="t">最强反方</span><span class="line"></span><span class="tag">BULL vs BEAR · 双方都说到最强</span></div>
+    <p class="lede">{{一句话：多头看的是 X，空头看的是 Y，分歧点其实是同一个数字 Z}}</p>
+    <div class="grid2">
+      <div class="card">
+        <div class="figtitle" style="color:var(--good)">多头论点 TOP 3</div>
+        <ul class="flaglist">
+          <li><span><span class="dot g"></span></span><div class="body">{{最强多头论点 1，写成一句可被证伪的话}}<span class="src">出处：{{章节/附注/数据表}}</span></div></li>
+          <li><span><span class="dot g"></span></span><div class="body">{{…}}<span class="src">出处：{{…}}</span></div></li>
+          <li><span><span class="dot g"></span></span><div class="body">{{…}}<span class="src">出处：{{…}}</span></div></li>
+        </ul>
+      </div>
+      <div class="card">
+        <div class="figtitle" style="color:var(--bad)">空头论点 TOP 3</div>
+        <ul class="flaglist">
+          <li><span><span class="dot r"></span></span><div class="body">{{最强空头论点 1，写成一句可被证伪的话}}<span class="src">出处：{{章节/附注/数据表}}</span></div></li>
+          <li><span><span class="dot r"></span></span><div class="body">{{…}}<span class="src">出处：{{…}}</span></div></li>
+          <li><span><span class="dot r"></span></span><div class="body">{{…}}<span class="src">出处：{{…}}</span></div></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ S9 下期跟踪清单（P2-18）◆ SLOT ══
+       ◆ 固定 5 项，不增不减；入选标准：报表出来前就能观察到的公开信息。
+       ◆ 读数凡含假设的一律挂 .badge.est 并写明假设；报表内指标归 01 章，不在这里重复。 -->
+  <div class="sect">
+    <div class="secthead" id="s9"><span class="no">09</span><span class="t">下期跟踪清单</span><span class="line"></span><span class="tag">先行指标仪表盘 · 下份报告之前可观察</span></div>
+    <p class="lede">{{一句话：下一期最先看哪个数，它最早暴露方向}}</p>
+    <div class="card">
+      <table class="data">
+        <tr><th>先行指标</th><th class="txt">当前读数</th><th class="txt">观察方向</th><th class="txt">数据来源</th></tr>
+        <tr><td>合同负债增速 vs 收入增速（剪刀差）</td><td class="txt">{{合同负债增速%}} vs {{收入增速%}} <span class="badge der">推算</span></td><td class="txt">{{合同负债增速掉到收入增速之下 = 需求端走弱先兆；连续两期同向才算信号}}</td><td class="txt">定期报告资产负债表「合同负债」；经销商打款/预收政策公告</td></tr>
+        <tr><td>存货原材料 / 在产品占比变化（备产信号）</td><td class="txt">{{原材料占比%}} / {{在产品占比%}} <span class="badge der">推算</span></td><td class="txt">{{原材料占比抬升 = 备产（前置看多）；在产品积压且产成品同步升 = 产销脱节}}</td><td class="txt">存货按形态拆分附注；上游供应商月度订单/经营快报</td></tr>
+        <tr><td>产能利用率 / 开工率</td><td class="txt">{{产能利用率%}} <span class="badge est">估算</span></td><td class="txt">{{利用率上行而在建未转固 = 供给偏紧；利用率下行仍在扩产 = 过剩风险}}</td><td class="txt">行业月度开工率、环评/能耗公示、募投项目投产公告</td></tr>
+        <tr><td>资本开支节奏</td><td class="txt">{{购建固定资产等支付的现金（亿元）}}，同比 {{%}} <span class="badge disc">披露</span></td><td class="txt">{{连续两期收缩 = 转保守；逆势扩张要追问钱从哪来、产能谁来消化}}</td><td class="txt">募投项目进展/环评批复/招标中标公告（早于报表）</td></tr>
+        <tr><td>大宗价格与 DIO 传导状态</td><td class="txt">{{主原料价格}} / DIO {{天}} <span class="badge der">推算</span></td><td class="txt">{{原料价涨而 DIO 未拉长 = 成本尚未进表，毛利压力在后头；价跌 + DIO 高企 = 减值风险}}</td><td class="txt">公开现货/期货价格（mx_macro_data）；DIO 由 01 章报表数推算</td></tr>
+        <!-- ◆ 5 项固定；每行「当前读数」必挂证据等级徽章，观察方向必须是可判定的一句话 -->
+      </table>
+      <div class="srcline">下期报告出来后，逐条回到本表核对，并整表搬进下期报告的「上期跟踪回顾」</div>
     </div>
   </div>
 
