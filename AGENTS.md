@@ -3,6 +3,8 @@
 本仓库是「financial-report-analysis」技能的**唯一真源**，用户级目录
 `C:/Users/rexji/.agents/skills/financial-report-analysis/` 只是部署副本。
 
+> **接手第一步请读 `HANDOFF.md`** —— 含本轮工作、已知局限与未验证项、下一步工作计划。
+
 ## 结构
 
 - `financial-report-analysis/` — 技能源（SKILL.md + references/×9 + assets/ + scripts/ + tests/ + examples/），**只改这里**
