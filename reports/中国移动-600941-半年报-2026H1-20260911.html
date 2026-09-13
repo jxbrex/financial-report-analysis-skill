@@ -1,0 +1,580 @@
+<!doctype html>
+<html lang="zh-Hans">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>中国移动 2026H1半年报分析 — financial-report-analysis</title>
+<style>
+/* ═══════════════════════════════════════════════════════════════
+   财报分析报告模板 · financial-report-analysis
+   视觉基底：lieflat PORCELAIN 色系（青瓷蓝）+ 浅色卡片
+   硬规则：不引入外部字体/CDN/JS；不用暗色背景、渐变、投影。
+   ═══════════════════════════════════════════════════════════════ */
+:root{
+  --bg:rgb(247,242,235); --ink:rgb(8,31,92); --muted:rgba(8,31,92,.60);
+  --faint:rgba(8,31,92,.32); --grid:rgba(8,31,92,.16); --card:#fff;
+  --data:rgb(51,78,172); --data2:rgb(112,150,209); --faintdata:rgb(186,214,235);
+  --good:#0F7B4F; --warn:#B8860B; --bad:#C0392B;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:#000;
+  font-family:"Zhuque Fangsong","朱雀仿宋","FangSong","仿宋","STFangsong",serif;
+  -webkit-font-smoothing:antialiased;font-variant-numeric:tabular-nums lining-nums;
+  display:flex;justify-content:center;padding:40px 20px}
+.sheet{width:1040px;max-width:1040px}
+
+/* ── 页眉 ── */
+.masthead{border-bottom:3px double var(--ink);padding-bottom:18px;margin-bottom:8px}
+.masthead .kicker{font-size:11px;font-weight:700;letter-spacing:.22em;color:var(--muted)}
+.masthead h1{font-size:34px;font-weight:900;letter-spacing:.02em;margin:6px 0 4px}
+.masthead .sub{font-size:14px;color:var(--muted)}
+.masthead .sub b{color:var(--ink)}
+
+/* ── 徽章 ── */
+.badge{display:inline-block;padding:2px 10px;border-radius:999px;font-size:11px;font-weight:800}
+.badge.g{background:rgba(15,123,79,.12);color:var(--good)}
+.badge.y{background:rgba(184,134,11,.14);color:var(--warn)}
+.badge.r{background:rgba(192,57,43,.12);color:var(--bad)}
+.dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px;vertical-align:1px}
+.dot.g{background:var(--good)}.dot.y{background:var(--warn)}.dot.r{background:var(--bad)}
+.badge.disc{background:rgba(8,31,92,.09);color:rgba(8,31,92,.82)}
+.badge.der{background:rgba(94,84,158,.13);color:rgb(84,74,150)}
+.badge.est{background:rgba(8,31,92,.04);color:var(--muted);border:1px dashed rgba(8,31,92,.28)}
+.badge.rev{background:rgba(51,78,172,.12);color:var(--data)}
+
+/* ── 下钻链接 ── */
+a{color:var(--data);text-decoration:none}
+a:hover{text-decoration:underline}
+.drill{font-size:11.5px;font-weight:700;white-space:nowrap}
+
+/* ── 章节 ── */
+.sect{margin-top:46px}
+.secthead{display:flex;align-items:baseline;gap:14px;margin-bottom:6px;
+  border-radius:6px;scroll-margin-top:24px}
+.secthead:target{background:rgba(51,78,172,.07)}
+.secthead .no{font-size:13px;font-weight:800;color:var(--data)}
+.secthead .t{font-size:19px;font-weight:800;letter-spacing:.06em}
+.secthead .line{flex:1;border-top:1px solid var(--ink)}
+.secthead .tag{font-size:11px;font-weight:700;letter-spacing:.1em;color:var(--faint)}
+.lede{font-size:14.5px;line-height:1.85;margin:10px 0 16px;max-width:980px}
+.lede b{font-weight:800}
+
+/* ── 卡片与表格 ── */
+.card{background:var(--card);border:1px solid var(--grid);border-radius:10px;
+  padding:18px 22px;margin:14px 0}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+@media(max-width:860px){.grid2,.grid3{grid-template-columns:1fr}}
+table.data{width:100%;border-collapse:collapse;font-size:13.5px;margin:6px 0}
+table.data th{font-size:12px;font-weight:700;letter-spacing:.08em;color:var(--muted);
+  text-align:left;padding:8px 10px;border-bottom:1.5px solid var(--ink)}
+table.data td{padding:7px 10px;border-bottom:1px dotted var(--faint);line-height:1.5}
+table.data td:not(:first-child):not(.txt),table.data th:not(:first-child):not(.txt){text-align:right}
+table.data tr:last-child td{border-bottom:0}
+table.data tr.total td{font-weight:800;border-top:1.5px solid var(--ink);border-bottom:0}
+.up{color:var(--good);font-weight:700}.dn{color:var(--bad);font-weight:700}
+.srcline{font-size:10.5px;font-weight:600;letter-spacing:.1em;color:var(--faint);margin-top:8px}
+
+/* ── 亮点/风险清单 ── */
+.flaglist{list-style:none}
+.flaglist li{display:flex;gap:10px;padding:10px 2px;border-bottom:1px dotted var(--faint);
+  font-size:14px;line-height:1.7}
+.flaglist li:last-child{border-bottom:0}
+.flaglist .body{flex:1}
+.flaglist .src{display:block;font-size:11.5px;color:var(--muted);margin-top:3px}
+
+/* ── KPI 行 ── */
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin:14px 0}
+@media(max-width:860px){.kpis{grid-template-columns:repeat(2,1fr)}}
+.kpi{background:var(--card);border:1px solid var(--grid);border-radius:10px;padding:14px 16px}
+.kpi .v{font-size:26px;font-weight:800;line-height:1.1}
+.kpi .r{font-size:12px;font-weight:700;margin-top:3px}
+.kpi .l{font-size:11px;font-weight:600;letter-spacing:.12em;color:var(--faint);margin-top:3px}
+
+/* ── 图 ── */
+.fig{background:var(--card);border:1px solid var(--grid);border-radius:10px;padding:16px}
+.fig svg{width:100%;height:auto;display:block}
+.figtitle{font-size:13.5px;font-weight:800;margin-bottom:4px}
+
+/* ── 桥式表强调 ── */
+.bridge td:first-child{font-weight:700}
+
+/* ── 页脚 ── */
+.foot{margin-top:52px;border-top:3px double var(--ink);padding-top:14px;
+  font-size:11px;font-weight:600;letter-spacing:.1em;color:var(--muted);
+  display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap;line-height:1.8}
+
+/* ── 动效 ── */
+.fade{animation:fade .7s ease both}
+@keyframes fade{from{opacity:0;transform:translateY(6px)}}
+@media (prefers-reduced-motion:reduce){.fade{animation:none}}
+@media(max-width:640px){body{padding:20px 8px}.masthead h1{font-size:24px}}
+</style>
+</head>
+<body>
+<div class="sheet">
+
+  <!-- ══ 页眉 ══ -->
+  <div class="masthead fade">
+    <div class="kicker">FINANCIAL REPORT ANALYSIS · A股（红筹，香港注册；港股 941.HK）</div>
+    <h1>中国移动有限公司（600941.SH）</h1>
+    <div class="sub"><b>2026H1半年报</b> 分析报告 · 报告发布于 2026-08-13 · 分析生成于 2026-09-11 · <b>未经审计</b> · CAS 准则 · 币种：人民币</div>
+  </div>
+
+  <!-- ══ 核心结论 ══ -->
+  <div class="sect">
+    <div class="secthead" id="s0"><span class="no">00</span><span class="t">核心结论</span><span class="line"></span><span class="tag">EXECUTIVE SUMMARY</span></div>
+    <div class="grid2">
+      <div class="card">
+        <div class="figtitle" style="color:var(--good)">亮点 TOP 3</div>
+        <ul class="flaglist">
+          <li><span><span class="dot g"></span></span><div class="body">现金流堡垒：经营现金流 1,148.54 亿元（+37.0%），净现比 1.45，自由现金流 538.69 亿元（+111.6%）——下行期利润负增长下的造血能力不降反升<span class="src">出处：合并现金流量表 L1327/L1370（披露）；净现比为推算</span></div></li>
+          <li><span><span class="dot g"></span></span><div class="body">分红能力兑现：中期息每股 2.51 元、合计 544.26 亿元，占 H1 归母净利 68.9%，居 A 股中期分红榜首；货币资金+交易性金融资产 3,217.40 亿元，覆盖有息负债 3.3 倍<span class="src">出处：期后公告 2026-018（2026-08-13）；资产负债表 L1092/L1095（披露）</span></div></li>
+          <li><span><span class="dot g"></span></span><div class="body">算力第二曲线接棒迹象：算力服务收入 529 亿元（+14.0%），其中智算服务 53 亿元（+130.1%）、AIDC 收入 +486.1%；算力网 capex 156 亿元（+71%）<span class="src">出处：董事长报告书 L154-171；业绩说明会（2026-08-13）</span></div></li>
+        </ul>
+      </div>
+      <div class="card">
+        <div class="figtitle" style="color:var(--bad)">风险 TOP 3</div>
+        <ul class="flaglist">
+          <li><span><span class="dot y"></span></span><div class="body">应收账款剪刀差 + 账龄迁移双恶化：应收余额 +23.9%（四年翻倍）vs 收入 -1.1%；3 年以上账龄余额 +34.0%、占比升至 9.33%——政企/AIDC 大客户账期扩张可以解释方向，迁移持续则由症状转病灶<span class="src">出处：账龄附注 L2537-2592；tushare 应收序列（观察 🟡 R1）</span></div></li>
+          <li><span><span class="dot y"></span></span><div class="body">预收蓄水池收缩：合同负债 -20.3%（579.21→474.19 亿含预收），与收入 -1.1% 形成剪刀差，用户预存话费池消耗快于补充，需求端走弱与 ARPU 承压（45.1 元）互证<span class="src">出处：资产负债表 L1154-1157（观察 🟡 R2）</span></div></li>
+          <li><span><span class="dot y"></span></span><div class="body">主业下行期确认：通信服务收入 -5.7%，无线上网量 +16% 而额 -10.8%（单价坍塌）、语音 -9.5%——利润 -6.3% 的第一原因是毛利率 -2.11pct，第二曲线的体量尚不足以对冲<span class="src">出处：董事长报告书 L148-151；收入分部附注 L3677-3680（观察 🟡 R6）</span></div></li>
+        </ul>
+      </div>
+    </div>
+    <p class="lede"><b>本期主线</b>：收入表面 -1.1%，实为增值税税目调整（部分业务 6%→9%）压低不含税口径（还原约 +0.3%）叠加传统主业量价齐弱；归母净利 -6.3% 的第一驱动是毛利 -131.33 亿元（毛利率 -2.11pct），其次研发费用 +15.7%。最大隐忧不在利润表而在资产负债表两端：应收端（余额 +23.9%、长账龄迁移加速）与预收端（合同负债 -20.3%）同时松动，唯独现金流量表依旧厚实——但 OCF +37% 的归因是营运资本流出减速而非回款改善。全库 19 项排雷信号：<b>0 命中、6 观察、3 反向、10 未触发</b>，无 🔴 级风险。</p>
+    <p class="lede"><b>本期分歧锚</b>：经营现金流 +37.0%（1,148.54 亿元）—— 解读A：折旧盾（半年 953.70 亿）+ 预收模式 + 低杠杆的组合使现金流堡垒加固，自由现金流 +111.6% 足以覆盖 544.26 亿中期分红；解读B：增量 +310.22 亿中 +327.27 亿来自「应付流出收窄」（上年 -408.60 亿→本年 -81.33 亿）这一一次性节奏项，而销售收现 -12.38 亿（-0.24%）并未改善——现金流的「量」真实，「质」（回款端）没有数字看起来那么好。</p>
+    <div class="card">
+      <div class="figtitle">异常下钻地图：异常指标 → 结构定位 → 驱动因素</div>
+      <table class="data">
+        <tr><th>异常指标</th><th class="txt">结构定位</th><th class="txt">驱动因素</th></tr>
+        <tr><td>应收余额 +23.9% vs 收入 -1.1%，3 年以上账龄 +34.0%</td><td class="txt"><a href="#s3">因素分析 · OCF 调节桥</a></td><td class="txt">政企/算力（AIDC）大客户账期扩张 + 账龄迁移加速</td></tr>
+        <tr><td>合同负债 -20.3%（预收池收缩）</td><td class="txt"><a href="#s2">排雷扫描 · R2</a></td><td class="txt">预存话费消耗快于补充，需求端走弱</td></tr>
+        <tr><td>投资收益+公允价值 182.25 亿，占利润总额 18.4%</td><td class="txt"><a href="#s3">因素分析 · 净利桥</a></td><td class="txt">联营权益法收益 78.73 亿 + 金融资产公允/处置 98.39 亿</td></tr>
+        <tr><td>股东户数一年 2.7 倍（7.43 万→20.21 万户）</td><td class="txt"><a href="#s6">股东结构</a></td><td class="txt">红利股行情下散户大量涌入，筹码散户化</td></tr>
+        <tr><td>在建工程 +44.4%（618.45→893.68 亿）</td><td class="txt"><a href="#s5">产能与在建工程</a></td><td class="txt">算力网/局房土建（AIDC）加码，转固正常无挂账</td></tr>
+        <tr><td>OCF +37% 但收现比 97.6% 未改善</td><td class="txt"><a href="#s4">管理层在说什么 · 断言验证</a></td><td class="txt">增长归因是应付流出收窄（+327.27 亿）而非回款改善</td></tr>
+      </table>
+      <div class="srcline">下钻路径：异常指标 → 结构定位（哪张表 / 哪条等式）→ 驱动因素（谁造成的）· 锚点 id 见各章 secthead</div>
+    </div>
+  </div>
+
+  <!-- ══ S1 财务总览 ══ -->
+  <div class="sect">
+    <div class="secthead" id="s1"><span class="no">01</span><span class="t">财务总览</span><span class="line"></span><span class="tag">四维比率 · 杜邦 · 周期定位</span></div>
+    <p class="lede">商业模式识别：电信运营商，按折旧占收入 17.7%、资本开支密集、预收/现销为主特征近似归入「重资产制造」profile 并做运营商化改造（客户价值与压货类判读不适用）。<b>周期定位：主业下行期与算力上行期并行</b>——传统通信信号按下行框架解读，算力信号按成长框架解读。本报告重点勾稽项：应收 roll-forward、收入-收现闭环、OCF 调节桥；已降级的通用信号：经销商压货三条件（To C 预存模式不适用）。半年报未经审计，所有读数为管理层编制口径。</p>
+    <div class="kpis">
+      <div class="kpi"><div class="v">5,380.35</div><div class="r dn">-1.1% <span class="badge disc">披露</span></div><div class="l">营业收入（亿元）</div></div>
+      <div class="kpi"><div class="v">789.34</div><div class="r dn">-6.3% <span class="badge disc">披露</span></div><div class="l">归母净利润（亿元）</div></div>
+      <div class="kpi"><div class="v">1,148.54</div><div class="r">净现比 1.45 <span class="badge der">推算</span></div><div class="l">经营现金流净额（亿元，+37.0%）</div></div>
+      <div class="kpi"><div class="v">5.5%</div><div class="r dn">同比 -0.5pct <span class="badge der">推算</span></div><div class="l">ROE（半年摊薄）</div></div>
+    </div>
+    <div class="grid2">
+      <div class="card">
+        <div class="figtitle">四维比率</div>
+        <table class="data">
+          <tr><th>指标</th><th>本期</th><th>上年同期</th><th class="txt">评价</th></tr>
+          <tr><td>毛利率 <span class="badge der">推算</span></td><td>29.5%</td><td>31.6%</td><td class="txt">-2.11pct：增值税税调压低不含税收入 + 低毛利其他业务占比上升 + 网络成本刚性</td></tr>
+          <tr><td>净利率（归母口径）</td><td>14.7%</td><td>15.5%</td><td class="txt">-0.82pct，与毛利率同向</td></tr>
+          <tr><td>资产负债率</td><td>32.8%</td><td>33.2%</td><td class="txt">显著低于电信 45.8%、联通 43.6%（mx 同业），去杠杆方向</td></tr>
+          <tr><td>存货周转天数</td><td>15.5 天</td><td>n/a¹</td><td class="txt">终端去库存方向，无异常</td></tr>
+          <tr><td>应收周转天数</td><td>75.3 天</td><td>n/a¹</td><td class="txt">期末口径；四年翻倍趋势（630.69→1,222.39 亿）值得盯住</td></tr>
+          <tr><td>收现比</td><td>97.6%</td><td>96.8%</td><td class="txt">增值税锚点升至 1.09 后不升反平——结合应收大增，回款端无改善</td></tr>
+          <tr><td>CCC（DSO+DIO−DPO，天）</td><td>-242.8 天</td><td>n/a¹</td><td class="txt">负 CCC：用户预存+供应商账期构成天然资金池；本期 DPO 缩短、DSO 拉长，方向性收窄</td></tr>
+        </table>
+        <div class="srcline">数据来源：公司 2026 年半年报、Tushare（双源核对一致）；比率口径见 frameworks.md</div>
+        <div class="srcline">¹ 半年报未披露上年同期（2025-06-30）资产负债表，周转类比率同比缺失，以期末单期口径+趋势序列替代</div>
+        <div class="srcline">证据等级：<span class="badge disc">披露</span> 主表/附注直接披露 · <span class="badge der">推算</span> 两数运算（毛利率/净现比/周转天数）· <span class="badge est">估算</span> 含假设（情景测算）</div>
+      </div>
+      <div class="card">
+        <div class="figtitle">杜邦三分解：ROE 由什么驱动</div>
+        <table class="data">
+          <tr><th>因子</th><th>本期</th><th>上年同期</th><th class="txt">方向</th></tr>
+          <tr><td>净利率</td><td>14.7%</td><td>15.5%</td><td class="txt dn">↓ 主驱动</td></tr>
+          <tr><td>总资产周转率</td><td>0.255</td><td>n/a¹</td><td class="txt">→ 基本平稳（半年口径）</td></tr>
+          <tr><td>权益乘数</td><td>1.492</td><td>1.502</td><td class="txt">→ 微降，杠杆无贡献</td></tr>
+          <tr class="total"><td>ROE（半年摊薄）</td><td>5.5%</td><td>6.0%</td><td class="txt dn">下滑全部来自净利率</td></tr>
+        </table>
+        <div class="srcline">质量排序：净利率驱动 &gt; 周转率驱动 &gt; 杠杆驱动——本期为最典型的「净利率下滑型」ROE 回落；披露扣非加权 ROE 4.9%（上年 5.6%，-0.7pct）同向互证</div>
+        <div class="srcline">¹ 上年同期周转率缺 2024-12-31 总资产，半年报未披露，留空不编造</div>
+      </div>
+    </div>
+    <div class="fig">
+      <div class="figtitle">近五年上半年收入与归母净利趋势（亿元，柱）+ 毛利率（线，%）</div>
+      <svg id="trend" viewBox="0 0 960 300" preserveAspectRatio="xMidYMid meet"></svg>
+      <div class="srcline">数据来源：公司历年年报/半年报、Tushare（双源核对一致）· 柱=收入/归母净利 · 线=毛利率（推算）· 2025H1 起收入见顶回落，毛利率 2026H1 回吐前两年涨幅</div>
+    </div>
+  </div>
+
+  <!-- ══ S2 排雷扫描 ══ -->
+  <div class="sect">
+    <div class="secthead" id="s2"><span class="no">02</span><span class="t">排雷扫描</span><span class="line"></span><span class="tag">RED FLAGS · 信号库逐条对照</span></div>
+    <div class="card">
+      <table class="data">
+        <tr><th>信号</th><th class="txt">判定</th><th>关键数据</th><th class="txt">证据出处</th><th class="txt">下钻</th></tr>
+        <tr><td>R1 应收账款剪刀差 + 账龄迁移</td><td class="txt"><span class="badge y">🟡 观察</span></td><td>余额 +23.9% vs 收入 -1.1%；3 年以上 +34.0%（占比 8.62%→9.33%）；计提率 29.38%→30.18%（上调）</td><td class="txt">账龄附注 L2537-2592；资产负债表 L1097；tushare 应收序列</td><td class="txt"><a class="drill" href="#s3">因素分析</a></td></tr>
+        <tr><td>R2 预收蓄水池收缩（合同负债）</td><td class="txt"><span class="badge y">🟡 观察</span></td><td>合同负债 -20.3%（496.15→395.54 亿）；含预收合计 -18.1% vs 收入 -1.1% 剪刀差</td><td class="txt">资产负债表 L1154-1157</td><td class="txt"><a class="drill" href="#s1">财务总览</a></td></tr>
+        <tr><td>R3 利润金融资产化倾向</td><td class="txt"><span class="badge y">🟡 观察</span></td><td>投资收益+公允 182.25 亿 = 利润总额 18.4%（上年 12.4%）；非经占归母 11.7%（上年 7.0%）</td><td class="txt">利润表 L1225/L1229；非经明细 L5387-5409</td><td class="txt"><a class="drill" href="#s3">因素分析</a></td></tr>
+        <tr><td>R4 股东户数 2.7 倍，筹码散户化</td><td class="txt"><span class="badge y">🟡 观察</span></td><td>74,271→162,272→202,106 户（2024 末→2025 末→2026H1）</td><td class="txt">tushare stk_holdernumber；半年报 L708-710</td><td class="txt"><a class="drill" href="#s6">股东结构</a></td></tr>
+        <tr><td>R5 营运资本吞噬净利润 60.1%</td><td class="txt"><span class="badge y">🟡 观察</span></td><td>吞噬 474.53 亿 = 净利润 60.1%（&gt;50% 阈值）；被 953.70 亿折旧摊销覆盖，OCF 仍 +37%</td><td class="txt">现金流量表补充资料 L4234-4235</td><td class="txt"><a class="drill" href="#s3">因素分析</a></td></tr>
+        <tr><td>R6 传统主业下行期确认</td><td class="txt"><span class="badge y">🟡 观察</span></td><td>通信服务收入 3,504 亿 -5.7%；无线上网量 +16% 额 -10.8%；语音 -9.5%；ARPU 45.1 元</td><td class="txt">董事长报告书 L148-151/L199；收入附注 L3677-3680</td><td class="txt"><a class="drill" href="#s3">因素分析</a></td></tr>
+        <tr><td>G1 净现比（反向：现金含量极高）</td><td class="txt"><span class="badge rev">↩ 反向未触发</span></td><td>OCF = 归母净利 1.45 倍（上年 1.00 倍）；自由现金流 538.69 亿 +111.6%</td><td class="txt">现金流量表 L1327/L400</td><td class="txt"><a class="drill" href="#s3">因素分析</a></td></tr>
+        <tr><td>G2 非经撑利润（反向：扣非降幅更深）</td><td class="txt"><span class="badge rev">↩ 反向未触发</span></td><td>非经 +92.01 亿未破线；扣非 -11.0% 降幅大于归母 -6.3%——剔除金融资产收益后主业下滑更深</td><td class="txt">非经常性损益明细 L5387-5409</td><td class="txt"><a class="drill" href="#s3">因素分析</a></td></tr>
+        <tr><td>G3 合同负债/分红能力（反向项）</td><td class="txt"><span class="badge rev">↩ 反向未触发</span></td><td>中期分红 544.26 亿居 A 股第一（占归母 68.9%）；资金储备 3,217.40 亿覆盖有息负债 3.3 倍</td><td class="txt">公告 2026-018；资产负债表 L1092/L1095</td><td class="txt"><a class="drill" href="#s7">外部校验</a></td></tr>
+        <tr class="total"><td colspan="5" class="txt">未触发汇总：已检 19 项——命中 0、观察 6、反向 3、未触发 10（存贷双高、利息收入匹配、存货异常、其他应收款、毛利率同行偏离、商誉占比、在建挂账、研发资本化、质押/审计非标/问询、短债覆盖与人效背离）· 逐条读数与出处见 data.json <code>signals</code> 块</td></tr>
+      </table>
+      <div class="srcline">判定规则：references/redflags.md 四态标准；🔴 命中 / 🟡 观察 / ↩ 反向未触发（信号反向成立且含信息量）/ 未触发（数字有波动但结论正常，不逐条进正文）</div>
+    </div>
+    <div class="card">
+      <div class="figtitle">勾稽验算异常清单（过程层：数字验数字）</div>
+      <table class="data">
+        <tr><th>等式</th><th class="txt">三态</th><th>偏差额 / 偏差率</th><th class="txt">解释或追问</th><th class="txt">下钻</th></tr>
+        <tr><td>A1 现金余额桥（期末现金 vs 现金等价物）</td><td class="txt"><span class="badge y">⚠️ 可解释偏差</span></td><td>854.19 亿 / 80.7%</td><td class="txt">大额定期存款及存期 3 个月以上存款不属于现金等价物口径——货币资金 1,878.57 亿中仅 1,024.38 亿为现金等价物，属口径差异非漏洞</td><td class="txt"><a class="drill" href="#s1">财务总览</a></td></tr>
+        <tr><td>A6 Capex 闭环（购建付现 vs 固定资产/在建增量）</td><td class="txt"><span class="badge y">⚠️ 可解释偏差</span></td><td>131.01 亿 / 17.4%</td><td class="txt">购建付现 662.90 亿含无形资产与长期待摊投入（在建附注「其他减少」36.45 亿转无形/长待摊），宽口径 vs 窄口径差异</td><td class="txt"><a class="drill" href="#s5">产能与在建</a></td></tr>
+        <tr><td>B1 应收 roll-forward</td><td class="txt"><span class="badge y">⚠️ 可解释偏差</span></td><td>290.93 亿 / 23.7%</td><td class="txt">集团口径应收增量含金融工具重分类及财务公司贷款变动，大于报表应收账款净增 224.77 亿；方向与 R1 一致，追问点见 R1</td><td class="txt"><a class="drill" href="#s3">因素分析</a></td></tr>
+        <tr><td>B4 商誉 roll-forward</td><td class="txt"><span class="badge y">⚠️ 可解释偏差</span></td><td>1.57 亿 / 4.0%</td><td class="txt">香港宽频并表商誉的外币折算差额，非减值迹象</td><td class="txt"><a class="drill" href="#s1">财务总览</a></td></tr>
+      </table>
+      <div class="srcline">等式清单见 references/articulation.md；共核对 10 条：⚠️ 可解释 4 条、其余 6 条（A2/A3/A4/A7/A8/B3）全部闭合——闭合项明细见 data.json <code>recon</code> 块 · A5/B2 因附注口径未披露留空 SKIP · 偏差 ≠ 造假，先排除合理解释</div>
+    </div>
+  </div>
+
+  <!-- ══ S3 因素分析 ══ -->
+  <div class="sect">
+    <div class="secthead" id="s3"><span class="no">03</span><span class="t">因素分析</span><span class="line"></span><span class="tag">收入 · 成本 · 净利润桥 · OCF 桥</span></div>
+    <p class="lede"><b>本期利润变化的第一驱动是毛利：-131.33 亿元（毛利率 -2.11pct）</b>——增值税税目调整压低不含税收入、低毛利的其他业务（毛利率 1.5%）占比上升、网络运营与折旧成本刚性三者叠加。第二大负项是研发费用 +16.27 亿（+15.7%）。对冲项：投资收益+公允价值 +48.01 亿、减值少提 +15.85 亿、所得税 -27.26 亿（有效税率 20.3% vs 21.3%），合力把毛利缺口的大半补回，归母净利最终 -53.01 亿（-6.3%）。</p>
+    <div class="grid2">
+      <div class="card">
+        <div class="figtitle">收入桥（降级为分部收入桥：半年报未披露分产品量价数据）</div>
+        <table class="data bridge">
+          <tr><th>分部</th><th>贡献额（亿元）</th><th>占基期收入</th></tr>
+          <tr><td>基期收入（2025H1）</td><td>5,437.69</td><td>—</td></tr>
+          <tr><td>其他业务（终端销售等）</td><td class="up">+85.92</td><td>1.6%</td></tr>
+          <tr><td>应用及信息服务</td><td class="up">+89.76</td><td>1.7%</td></tr>
+          <tr><td>有线宽带</td><td class="up">+35.01</td><td>0.6%</td></tr>
+          <tr><td>无线上网（量 +16%、额 -10.8%）</td><td class="dn">-211.47</td><td>-3.9%</td></tr>
+          <tr><td>语音</td><td class="dn">-32.58</td><td>-0.6%</td></tr>
+          <tr><td>短彩信</td><td class="dn">-19.83</td><td>-0.4%</td></tr>
+          <tr><td>其他主营</td><td class="dn">-4.15</td><td>-0.1%</td></tr>
+          <tr class="total"><td>本期收入（2026H1）</td><td>5,380.35</td><td>Δ=-57.34（-1.1%）</td></tr>
+        </table>
+        <div class="srcline">数据来源：收入分部附注 L3669-3691；无量价拆分数据，三效应降级为分部桥（calc.py bridge.rev SKIP 已确认）；无线上网是第一大负项——量增 16% 而额降 10.8%，单价效应主导，叠加税调口径影响；分部加权毛利率 1.45% 与整体 29.5% 的差异系分部成本未完整分摊（其他业务毛利率仅 1.5%），属口径现象</div>
+      </div>
+      <div class="card">
+        <div class="figtitle">净利润桥：各因素贡献额（亿元）</div>
+        <table class="data bridge">
+          <tr><th>环节</th><th>本期</th><th>上年同期</th><th>贡献额</th><th class="txt">备注</th></tr>
+          <tr><td>毛利</td><td>1,587.85</td><td>1,719.18</td><td class="dn">-131.33</td><td class="txt">毛利率 29.5% vs 31.6%：税调 + 结构 + 成本刚性</td></tr>
+          <tr><td>税金及附加</td><td>24.99</td><td>19.44</td><td class="dn">-5.55</td><td class="txt">随增值税税调同向变动（城建/附加以实缴增值税为基）</td></tr>
+          <tr><td>期间费用合计</td><td>659.37</td><td>647.65</td><td class="dn">-11.72</td><td class="txt">销售 -4.48 / 管理 -5.93 / 研发 -16.27（+15.7%）/ 财务收益 -5.86（利率下行，净利息收益收窄）</td></tr>
+          <tr><td>减值损失</td><td>116.07</td><td>131.92</td><td class="up">+15.85</td><td class="txt">信用减值少提（112.59 vs 129.95），部分对冲毛利下滑——少提本身值得追问（见 R1 账龄迁移）</td></tr>
+          <tr><td>投资收益+公允价值</td><td>182.25</td><td>134.24</td><td class="up">+48.01</td><td class="txt">联营权益法 78.73 亿 + 金融资产公允/处置 98.39 亿——第一对冲项，也是 R3 的来源</td></tr>
+          <tr><td>其他收益及营业外净额</td><td>21.17</td><td>16.32</td><td class="up">+4.85</td><td class="txt">倒挤口径（推算）</td></tr>
+          <tr><td>所得税</td><td>200.74</td><td>228.00</td><td class="up">+27.26</td><td class="txt">有效税率 20.3% vs 21.3%（西部大开发等优惠税率结构）</td></tr>
+          <tr><td>少数股东损益</td><td>0.76</td><td>0.38</td><td class="dn">-0.38</td><td class="txt">占比极小</td></tr>
+          <tr class="total"><td>归母净利润</td><td>789.34</td><td>842.35</td><td class="dn">-53.01</td><td class="txt">第一驱动：毛利 -131.33 亿（推算校验 Σ=-53.01 闭合）</td></tr>
+        </table>
+        <div class="srcline">正贡献记 + / 负贡献记 − · 数据来源：公司 2026 年半年报合并利润表、Tushare 交叉核对一致；金额单位亿元</div>
+      </div>
+    </div>
+    <div class="grid2">
+      <div class="fig">
+        <div class="figtitle">净利 → 经营现金流调节桥（亿元）：利润为什么没变成现金</div>
+        <svg id="ocfbridge" viewBox="0 0 460 300" preserveAspectRatio="xMidYMid meet"></svg>
+        <div class="srcline">营运资本吞噬额 474.53 亿（占净利润 60.1%）· 主吞噬项：经营性应收 -401.81 亿（含财务公司放贷等宽口径）· 数据来源：现金流量表补充资料 · calc.py bridge.ocf 已校验闭合</div>
+      </div>
+      <div class="card">
+        <div class="figtitle">Q2 单季透视（半年报以同比为主，替代年报 Q4 检测）</div>
+        <table class="data">
+          <tr><th>检测项</th><th>读数</th><th class="txt">判定</th></tr>
+          <tr><td>Q2 收入（H1 − Q1）</td><td>2,715.57 亿（占 H1 50.5%） <span class="badge der">推算</span></td><td class="txt"><span class="badge g">正常</span> 季节性对称，无双季畸型</td></tr>
+          <tr><td>Q2 归母净利 vs Q1</td><td>495.92 亿 vs 293.42 亿（环比 +69.0%） <span class="badge der">推算</span></td><td class="txt"><span class="badge g">正常</span> 半年报季节性形态（Q2&gt;Q1 为运营商常态）</td></tr>
+          <tr><td>Q2 减值/费用单季拆分</td><td>半年报未披露单季拆分</td><td class="txt"><span class="badge y">待年报</span> 减值集中确认风险留待年报 Q4 检测</td></tr>
+        </table>
+        <div class="srcline">数据来源：H1 半年报 + 2026 年一季报（Q1 收入 2,664.78 亿、归母 293.42 亿，Tushare）；Q2 数值为两者之差（推算）</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ S4 文字部分分析 ══ -->
+  <div class="sect">
+    <div class="secthead" id="s4"><span class="no">04</span><span class="t">管理层在说什么</span><span class="line"></span><span class="tag">MD&A · 措辞 · 赛道重合度</span></div>
+    <div class="grid2">
+      <div class="card">
+        <div class="figtitle">叙事主线与发力方向</div>
+        <ul class="flaglist">
+          <li><span><span class="dot g"></span></span><div class="body">锚定「世界一流科技服务企业」，从「通信运营商」升格为「通信、算力、智能」三服务运营商——钱跟上了：算力网 capex 156 亿 +71%、智能网 37 亿 +85%（业绩说明会口径）<span class="src">出处：董事长报告书 L74-76/L154-190；业绩说明会 2026-08-13</span></div></li>
+          <li><span><span class="dot g"></span></span><div class="body">算力服务体系：智算总规模 112,700 PFLOPS、「4+N+31+X」布局落地，算网大脑全面落地各级平台；智算服务收入 53 亿 +130.1% 被点名「贡献算力服务收入增量的主体」<span class="src">出处：董事长报告书 L154-171/L188-190</span></div></li>
+        </ul>
+      </div>
+      <div class="card">
+        <div class="figtitle">措辞变化与隐晦信号（对比上期）</div>
+        <ul class="flaglist">
+          <li><span><span class="dot y"></span></span><div class="body">新增组织信号：组建「Token 办公室」统筹 Token 全栈创新、设立「算力办公室」统一规划算力资源——组织先行于业绩，属于真金白银前的制度押注<span class="src">出处：经营讨论 L228-229</span></div></li>
+          <li><span><span class="dot y"></span></span><div class="body">新增「具身智能」「MoMA 专属算力池」「智能运营商」表述；战略关键词从「5G+」全面切换为「AI+」叙事——热门概念密度显著上升，需以资本开支与收入证据区分真布局（见下表）<span class="src">出处：董事长报告书 L70-76/L217-229</span></div></li>
+        </ul>
+      </div>
+    </div>
+    <div class="card">
+      <div class="figtitle">热门赛道重合度：真布局还是蹭热点</div>
+      <table class="data">
+        <tr><th>宣称方向</th><th class="txt">对应热门概念</th><th class="txt">资本开支</th><th class="txt">产能/订单</th><th class="txt">研发</th><th class="txt">收入贡献</th><th class="txt">判定</th></tr>
+        <tr><td>算力服务（移动云/智算/AIDC）</td><td class="txt">算力租赁、IDC、东数西算</td><td class="txt">有：算力网 156 亿 +71% <span class="badge disc">披露</span></td><td class="txt">智算规模 11.27 万 PFLOPS；利用率 &gt;90% <span class="badge est">估算</span></td><td class="txt">研发投入 120.09 亿 +15.7% <span class="badge disc">披露</span></td><td class="txt">算力服务 529 亿 +14.0%（占主营 15.1%）<span class="badge disc">披露</span></td><td class="txt"><span class="badge g">真布局</span></td></tr>
+        <tr><td>智能服务（九天大模型/MoMA）</td><td class="txt">AI 大模型、智能体</td><td class="txt">智能网 37 亿 +85% <span class="badge disc">披露</span></td><td class="txt">MoMA 专属算力池（无规模披露）</td><td class="txt">含于上述研发投入</td><td class="txt">未单列收入口径（注 4 定义但无金额）</td><td class="txt"><span class="badge y">观察</span></td></tr>
+        <tr><td>卫星移动通信（期后动作）</td><td class="txt">卫星互联网</td><td class="txt">无专项披露</td><td class="txt">牌照申请中（2026-09-08）</td><td class="txt">—</td><td class="txt">无</td><td class="txt"><span class="badge y">观察</span></td></tr>
+      </table>
+      <div class="srcline">热门概念：Tushare dc_index/ths_hot；判定规则：text-mining.md 四问（钱/产能/研发/收入至少两项有证据才算真布局）</div>
+    </div>
+    <div class="card">
+      <div class="figtitle">行业坐标：智算总规模 11.27 万 PFLOPS 处于什么水平（真布局的横向验证）</div>
+      <table class="data">
+        <tr><th>主体</th><th>智算规模（EFLOPS）</th><th class="txt">口径与时点</th><th class="txt">与中国移动对比</th></tr>
+        <tr><td>中国移动</td><td>112.7 <span class="badge disc">披露</span></td><td class="txt">自建+租赁，FP16，2026H1 末</td><td class="txt">—</td></tr>
+        <tr><td>中国电信</td><td>91 <span class="badge disc">披露</span></td><td class="txt">自有 46 + 接入，2025 年末（2026H1 未单列）</td><td class="txt">移动约为电信的 1.2 倍 <span class="badge der">推算</span></td></tr>
+        <tr><td>中国联通</td><td>45 <span class="badge disc">披露</span></td><td class="txt">2025 年末，2026H1 表述「超 45」</td><td class="txt">移动约为联通的 2.5 倍 <span class="badge der">推算</span></td></tr>
+        <tr><td>全国在用智算</td><td>1,882 <span class="badge disc">披露</span></td><td class="txt">工信部口径，FP16，2026-03 末</td><td class="txt">移动约占 6.0% <span class="badge der">推算</span></td></tr>
+      </table>
+      <ul class="flaglist">
+        <li><span><span class="dot g"></span></span><div class="body">真布局横向确认：运营商内第一且拉开身位，规模轨迹 2023 末 10.1 → 2024 末 29.2 → 2025 末 92.5 → 2026H1 112.7 EFLOPS，两年半扩约 11 倍；且与资本开支（算力网 156 亿 +71%）、在建工程（局房土建投入 +59.6%）、收入（智算服务 53 亿 +130.1%）三条证据链同步——四问中的「钱、产能、收入」均有硬证据<span class="src">出处：三大运营商定期报告；工信部；第一财经 2026-03-26/虎嗅 2026-08-14 交叉</span></div></li>
+        <li><span><span class="dot y"></span></span><div class="body">「领先」要限定口径：移动约占全国在用智算 6.0%，供给大头在互联网大厂自建与第三方 IDC——移动是运营商里的第一名，不是行业主导者；管理层叙事省略了这一限定<span class="src">出处：工信部 2026-03 全国 1,882 EFLOPS；占比为推算</span></div></li>
+        <li><span><span class="dot y"></span></span><div class="body">口径分歧未解：管理层称在网资源使用率 &gt;90%，与第三方「运营商算力大量闲置、国产芯片 Infra 优化弱于互联网大厂」的质疑相悖，利用率是「在网」还是「已售」口径未披露；且收入兑现集中在基础设施层（AIDC +486.1%），AI 应用层收入 +0.9% 尚未接棒——「智能运营商」叙事仍待证明<span class="src">出处：业绩说明会 2026-08-13 vs 第三方行业评论 2026-05；利用率跟踪见 s8 清单第 3 条</span></div></li>
+      </ul>
+      <div class="srcline">数据来源：中国移动/中国电信/中国联通 2025 年报与 2026 半年报、工信部算力口径（截至 2026-03）、第一财经/虎嗅/中国证券报交叉；倍数与占比为换算推算（电信/联通为 2025 年末口径，与移动 2026H1 时点存在半年差）</div>
+    </div>
+    <div class="card">
+      <div class="figtitle">MD&A 断言验证：管理层说的每句话用数字验真</div>
+      <table class="data">
+        <tr><th>管理层断言</th><th class="txt">数据检验</th><th class="txt">三态</th><th class="txt">出处</th></tr>
+        <tr><td>A1 收入下降 1.1% 主要受增值税税目政策调整影响，同口径实现正增长</td><td class="txt">量级推导（估算）：适用 6%→9% 的业务约 2,605 亿，不含税收入被动压低约 72 亿，还原后约 +0.3%，方向与断言一致；精确同口径重述未披露</td><td class="txt"><span class="badge g">✅ 通过（量级）</span></td><td class="txt">附注 L3701-3705；报告书 L148-151</td></tr>
+        <tr><td>A2 算力服务收入 529 亿 +14.0%；AIDC +486.1%、智算 53 亿 +130.1%</td><td class="txt">管理口径，附注四(39) 收入分部无对应行列；最接近的「应用及信息服务」1,456.50 亿 +6.6% 含 ICT 集成，量级与增速均不能勾稽 529 亿 +14%</td><td class="txt"><span class="badge y">❓ 无法验证</span></td><td class="txt">报告书 L154-171 vs 附注 L3683</td></tr>
+        <tr><td>A3 经营现金流 +37.0%、自由现金流 +111.6%，现金流健康丰沛</td><td class="txt">数字真实；归因需精确：增量 +310.22 亿中应付流出收窄贡献 +327.27、应收少吞 +91.11，而销售收现 -12.38 亿（-0.24%）——「丰沛」成立，「回款质量提升」不成立</td><td class="txt"><span class="badge g">✅ 通过（含归因修正）</span></td><td class="txt">L393-400；补充资料 L4202-4236</td></tr>
+        <tr><td>A4 2026 年派息率将稳中有升</td><td class="txt">中期派息率 68.9% 已处高位；全年兑现取决于全年利润与末期息安排，现无法判定</td><td class="txt"><span class="badge y">❓ 无法验证</span></td><td class="txt">公告 2026-018</td></tr>
+      </table>
+      <div class="srcline">判定规则：text-mining.md 第七节 · 「❌ 不成立」= 管理层解释与数据矛盾，重大信号；本期 4 条断言 0 条不成立</div>
+    </div>
+    <div class="card">
+      <div class="figtitle">解释缺口与指引兑现率</div>
+      <table class="data">
+        <tr><th>变动 &gt;30% 的科目</th><th>变动幅度</th><th class="txt">MD&A 是否解释</th></tr>
+        <tr><td>3 年以上应收账款账龄余额</td><td class="dn">+34.0%</td><td class="txt">未提及账龄结构变化——信用减值少提 15.85 亿与长账龄迁移并存，是本报告最想要的解释而没有写的数字侧镜像</td></tr>
+        <tr><td>在建工程（含工程物资）</td><td class="up">+44.4%</td><td class="txt">已解释：算力网建设与局房土建（AIDC）加码，与 capex 投向一致</td></tr>
+        <tr><td>利息收入</td><td class="dn">-26.4%</td><td class="txt">已解释：存款利率下行（财务费用附注 L3810-3811）</td></tr>
+        <tr class="total"><td>上期量化指引 vs 本期实际</td><td colspan="2" class="txt">上期年报无可机检的量化收入/利润指引；承诺类指引「派息率稳中有升」已兑现一半（中期 544.26 亿已宣派），全年待 2026 年报验证</td></tr>
+      </table>
+      <div class="srcline">数字大动而文字不解释，本身就是信号（「该写而没写」的数字侧镜像）</div>
+    </div>
+  </div>
+
+  <!-- ══ S5 产能与在建工程 ══ -->
+  <div class="sect">
+    <div class="secthead" id="s5"><span class="no">05</span><span class="t">产能与在建工程</span><span class="line"></span><span class="tag">钱押在哪条线</span></div>
+    <div class="card">
+      <table class="data">
+        <tr><th>项目（亿元）</th><th>期初余额</th><th>本期投入</th><th>本期转固</th><th>其他减少</th><th>期末余额</th><th class="txt">对应产品线 / 判定</th></tr>
+        <tr><td>移动通信网</td><td>181.71</td><td>215.73</td><td>109.70</td><td>2.42</td><td>285.32</td><td class="txt">5G/承载网主体，投入第一大项</td></tr>
+        <tr><td>传输网</td><td>160.43</td><td>137.24</td><td>84.53</td><td>1.16</td><td>211.98</td><td class="txt">干线/城域传输，算力承载底座</td></tr>
+        <tr><td>业务支撑网</td><td>95.50</td><td>131.10</td><td>47.90</td><td>29.56</td><td>149.14</td><td class="txt">IT 支撑/云网融合（其他减少多为转无形）</td></tr>
+        <tr><td>局房土建</td><td>63.48</td><td>101.49</td><td>22.72</td><td>0.85</td><td>141.40</td><td class="txt">数据中心机房（AIDC）——投入 +59.6%，第二增长极的物理形态</td></tr>
+        <tr><td>其他</td><td>10.65</td><td>10.70</td><td>5.88</td><td>2.46</td><td>13.01</td><td class="txt">零星项目</td></tr>
+        <tr class="total"><td>合计（在建工程）</td><td>511.77</td><td>596.26</td><td>270.73</td><td>36.45</td><td>800.85</td><td class="txt">另有工程物资 92.83；报表口径合计 893.68（期初 618.45）</td></tr>
+      </table>
+      <div class="srcline">数据来源：在建工程附注 L2988-3029；资金来源均为自有资金；无借款费用资本化、本期未计提减值；长期挂账追问：无——五大类全部正常转固，本期转固率 45.4%</div>
+    </div>
+    <p class="lede"><b>结论</b>：在建工程余额 +44.4%（618.45→893.68 亿），投向与叙事一致——移动通信网+传输网合计本期投入 353 亿元（占 59%），是通信网与算力承载网的主体；局房土建投入 +59.6% 对应 AIDC 数据中心建设，是「算力第二曲线」的物理证据。转固节奏正常（270.73 亿）、无资本化利息、无减值，未见推迟转固信号。700MHz 与中国广电合作的无线资产另有账面 587.97 亿在固定资产科目，处置受限（需双方同意），属合作框架内安排。</p>
+  </div>
+
+  <!-- ══ S6 股东结构 ══ -->
+  <div class="sect">
+    <div class="secthead" id="s6"><span class="no">06</span><span class="t">股东结构</span><span class="line"></span><span class="tag">户数 · 前十大 · 增减持</span></div>
+    <div class="grid2">
+      <div class="fig">
+        <div class="figtitle">股东户数趋势（万户）：一年 2.7 倍</div>
+        <svg id="holders" viewBox="0 0 460 280" preserveAspectRatio="xMidYMid meet"></svg>
+        <div class="srcline">数据来源：Tushare stk_holdernumber · A 股户数 74,271→162,272→202,106 户（2026-06-30，半年报 L708-710：A 股 194,473 户+港股 7,633 户）；区间涨跌幅线缺可靠公开序列未绘制</div>
+      </div>
+      <div class="card">
+        <div class="figtitle">前十大股东变化（2026H1 vs 2025 年报）</div>
+        <table class="data">
+          <tr><th>股东</th><th>持股比例</th><th class="txt">变动</th></tr>
+          <tr><td>中国移动香港（BVI）有限公司（控股股东）</td><td>68.67%</td><td class="txt">→ 微降（-0.12pct，H 股回购/转换所致）</td></tr>
+          <tr><td>香港中央结算（代理人）有限公司（H 股代持）</td><td>26.00%</td><td class="txt">→ 微升（+0.05pct）</td></tr>
+          <tr><td>中国石油天然气集团有限公司</td><td>0.19%</td><td class="txt"><span class="up">新进</span>（战略配售属性）</td></tr>
+          <tr><td>中国人寿-传统-普通保险产品</td><td>0.13%</td><td class="txt"><span class="up">增持</span>（0.12%→0.13%）</td></tr>
+          <tr><td>太平人寿-传统-普通保险产品</td><td>0.13%</td><td class="txt"><span class="up">增持</span>（0.12%→0.13%）</td></tr>
+          <tr><td>一汽股权投资（天津）有限公司</td><td>0.06%</td><td class="txt"><span class="up">新进</span></td></tr>
+          <tr><td>国新投资 / 华泰柏瑞沪深 300ETF</td><td>—</td><td class="txt"><span class="dn">退出前十</span>（持股仍在，排名降至十名外）</td></tr>
+        </table>
+        <div class="srcline">数据来源：Tushare top10_holders（2026-08-14 公告 vs 2026-03-27 年报）；控股股东（BVI）质押率 0%（pledge_stat 无记录，央企集团无质押动机）；期内无高管/大股东增减持公告（期后公告检索确认）</div>
+      </div>
+    </div>
+    <p class="lede">股东结构解读：控股股东 BVI 持股 68.67% 绝对控盘，前十大其余均为 H 股代持与央企/险资战略配售，筹码基本盘极稳。<b>唯一异动是户数</b>：A 股户数一年 2.7 倍（7.43 万→20.21 万户，2026Q1 一度 20.78 万户见顶回落）——与基本面无直接冲突，属于红利股行情下散户与指数资金大量涌入；险资（国寿、太平）逆势增持与散户涌入并存，筹码结构的「机构稳、散户化」两面都要记入。</p>
+  </div>
+
+  <!-- ══ S7 外部校验 ══ -->
+  <div class="sect">
+    <div class="secthead" id="s7"><span class="no">07</span><span class="t">外部校验</span><span class="line"></span><span class="tag">预期 · 同业 · 宏观 · 债务 · 期后</span></div>
+    <div class="grid2">
+      <div class="card">
+        <div class="figtitle">实际 vs 机构一致预期</div>
+        <table class="data">
+          <tr><th>指标</th><th>实际（H1）</th><th>全年一致预期</th><th>偏离度</th></tr>
+          <tr><td>归母净利（亿元）</td><td>789.34 <span class="badge disc">披露</span></td><td>1,275~1,378 <span class="badge est">估算区间</span></td><td class="up">H1 完成度 57%~62%</td></tr>
+          <tr><td>收入（亿元）</td><td>5,380.35 <span class="badge disc">披露</span></td><td>半年度无一致预期</td><td class="txt">—</td></tr>
+        </table>
+        <div class="srcline">数据来源：Tushare report_rc（7 家券商：国泰海通 1,276.84 / 中金 1,275.28 / 国海 1,278.43 / 招商 1,286.70 / 华泰 1,302.32 / 申万 1,358.45 / 长城 1,377.60）；2025H1 占全年实际 61.4% 为参照锚——本期完成度落在正常带内，中金点评「利润好于我们预期」；近期评级均为买入/增持/强烈推荐/跑赢行业，目标价 114~124.59 元</div>
+      </div>
+      <div class="card">
+        <div class="figtitle">同业对比（电信运营商，2026H1）</div>
+        <table class="data">
+          <tr><th>公司</th><th>毛利率</th><th>研发费率</th><th>资产负债率</th></tr>
+          <tr><td><b>中国移动</b></td><td>29.5% <span class="badge der">推算</span></td><td>2.2%</td><td>32.8%</td></tr>
+          <tr><td>中国电信</td><td>29.8%</td><td>2.0%</td><td>45.8%</td></tr>
+          <tr><td>中国联通</td><td>23.8%</td><td>1.8%</td><td>43.6%</td></tr>
+        </table>
+        <div class="srcline">数据来源：mx 东方财富 / Tushare，同一报告期；归母净利增速：移动 -6.3% vs 电信 -14.9% vs 联通 -34.8%——三家同向下行，移动的下行斜率最缓，毛利率与负债结构仍是行业最优</div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="figtitle">增收不增利判定 · 宏观敏感性 · 债务偿付</div>
+      <table class="data">
+        <tr><th>检验项</th><th>读数</th><th class="txt">结论</th></tr>
+        <tr><td>收入增速 vs 净利增速</td><td>-1.1% vs -6.3% <span class="badge disc">披露</span></td><td class="txt">剪刀差 5.2pct 存在，但方向是双降——用净利桥归因：毛利率 -2.11pct（约 -131 亿）+ 研发 +15.7%，非费用失控型</td></tr>
+        <tr><td>研发费用（费率 / 资本化率）</td><td>120.09 亿（2.2% / 0%） <span class="badge disc">披露</span></td><td class="txt">全费用化、费率三家最高（电信 2.0%、联通 1.8%）——研发强度与叙事匹配</td></tr>
+        <tr><td>短债覆盖倍数</td><td>6.55 倍 <span class="badge der">推算</span></td><td class="txt">（货币资金 1,878.57+OCF 1,148.54）÷（短借 0+一年内到期 461.86）——无短期借款，覆盖极厚，康美式爆雷信号反向成立</td></tr>
+        <tr><td>大宗/税率/汇率敏感性</td><td class="txt" colspan="2">最大宏观变量是增值税税目调整（部分业务 6%→9%），压低不含税收入口径约 72 亿（估算）；有效税率 20.3% vs 21.3%，西部大开发等优惠资质稳定；收入基本全人民币，汇率敞口可忽略</td></tr>
+        <tr><td>增量费用效率（Δ毛利÷Δ期间费用）</td><td>-11.2 <span class="badge der">推算</span></td><td class="txt">&lt;0：毛利收缩而费用仍增，效率指标恶化——但主因毛利端（税调+结构），费用端研发属扩张性投入，只记录不惩罚</td></tr>
+        <tr><td>销售费用获客效率（Δ收入÷Δ销售费用）</td><td>12.8 <span class="badge der">推算</span></td><td class="txt">双负相除参考意义弱：销售费用 -4.48 亿而收入 -57.34 亿，未见「增长越来越贵」的失控信号</td></tr>
+        <tr><td>费用率上升归因</td><td class="txt" colspan="2">研发费用率 1.9%→2.2% 为<b>扩张驱动（中性偏正面）</b>：与算力/智能布局的资本开支和叙事一致，非效率下降；管理费用微增与折旧摊销、薪酬刚性相关</td></tr>
+      </table>
+      <div class="srcline">费用 ROI 规则：frameworks.md 第七节 · 诊断经营效率，不进排雷清单</div>
+    </div>
+    <div class="card">
+      <div class="figtitle">期后事项（报告披露日 2026-08-13 → 分析日 2026-09-11）</div>
+      <table class="data">
+        <tr><th>日期</th><th class="txt">事件</th><th class="txt">验证了什么</th></tr>
+        <tr><td>2026-08-13</td><td class="txt">中期利润分配：每股 2.51 元（+0.3%），合计 544.26 亿元，A 股中期分红榜首；承诺 2026 派息率稳中有升</td><td class="txt">分红能力与资金链（正面）；中期分红与 R2 预收收缩无冲突——分红来源是存量现金+当期现金流</td></tr>
+        <tr><td>2026-08-13</td><td class="txt">业绩说明会：H1 capex 完成 610 亿 +4.5%，其中算力网 156 亿 +71%、智能网 37 亿 +85%；公司口径 capex（610 亿）与报表购建付现（662.90 亿）差异为口径差（含/不含部分无形投入）</td><td class="txt">capex 投向验证（算力加码）；解释 A6 勾稽偏差的量级来源</td></tr>
+        <tr><td>2026-09-08</td><td class="txt">申请卫星移动通信业务牌照（继联通获批后跟进）</td><td class="txt">新业务扩张方向（战略动作，非风险事项）；收入贡献为期后变量</td></tr>
+        <tr><td>—</td><td class="txt">已检查期后公告与资讯：无大额期后收款/退货/合同解除、无质押/减持/诉讼/债务违约类重大事项</td><td class="txt">期末应收真实性、收入确认激进、资金链三类核验均无触发</td></tr>
+      </table>
+      <div class="srcline">数据来源：mx_finance_search_notice 期后公告时间线 · 与 B1 应收 roll-forward 联动</div>
+    </div>
+  </div>
+
+  <!-- ══ S8 下期跟踪清单 ══ -->
+  <div class="sect">
+    <div class="secthead" id="s8"><span class="no">08</span><span class="t">下期跟踪清单</span><span class="line"></span><span class="tag">先行指标仪表盘 · 下份报告之前可观察</span></div>
+    <p class="lede">下一期最先看的数是<b>合同负债与应收账龄</b>——它们是本期唯二同时恶化且「该解释而没解释」的资产负债表科目，最早暴露主业需求与政企回款的真实方向；算力第二曲线的真假则由「capex 节奏 vs 算力收入增速」这对组合判定。</p>
+    <div class="card">
+      <table class="data">
+        <tr><th>先行指标</th><th class="txt">当前读数</th><th class="txt">观察方向</th><th class="txt">数据来源</th></tr>
+        <tr><td>合同负债增速 vs 收入增速（剪刀差）</td><td class="txt">合同负债 -20.3%（含预收 -18.1%）vs 收入 -1.1% <span class="badge der">推算</span></td><td class="txt">若 2026 年报合同负债/预收双位数下滑延续，则通信主业需求走弱确立，ARPU 无修复证伪</td><td class="txt">定期报告资产负债表「合同负债/预收款项」；渠道预存政策公告</td></tr>
+        <tr><td>应收账款账龄结构（3 年以上占比）与减值率</td><td class="txt">3 年以上占比 9.33%（上期 8.62%）；计提率 30.18%（上期 29.38%） <span class="badge der">推算</span></td><td class="txt">若 3 年以上占比继续上行而计提率升幅不足 2.5pct（本期 +0.8pct），则回款症状转病灶，坏账模型宽松化</td><td class="txt">应收账款附注（账龄+减值）；中报/年报减值明细</td></tr>
+        <tr><td>资本开支节奏 vs 算力收入</td><td class="txt">公司口径 H1 capex 610 亿 +4.5%（算力网 156 亿 +71%）；报表购建付现 662.90 亿 -12.3% <span class="badge disc">披露</span></td><td class="txt">若全年 capex 同比转负 &gt;10%（指引完成度掉队）或算力服务增速滑向个位数，则「投资稳份额」策略动摇 / 第二曲线证伪；两者同向恶化时重估折旧拐点</td><td class="txt">业绩说明会 capex 口径 / 现金流量表购建付现；算力网投资进度公告</td></tr>
+        <tr><td>利润金融资产化程度</td><td class="txt">投资收益+公允价值 182.25 亿 = 利润总额 18.4%（扣非/归母 88.3%） <span class="badge der">推算</span></td><td class="txt">若 2026H2 占比 &gt;20% 且扣非/归母 &lt;80%，则利润质量降级，分红可持续性需重估（当前未到线，方向在上行）</td><td class="txt">利润表+非经常性损益明细；联营企业（浦发/邮储相关）公告</td></tr>
+        <tr><td>智算利用率与算力价格</td><td class="txt">管理层口径利用率 &gt;90%（估算）；智算规模 112,700 PFLOPS；算力服务 529 亿 +14%（AIDC 附注口径无法复核） <span class="badge est">估算</span></td><td class="txt">若利用率公开口径跌破 80% 或算力服务增速 &lt;10%，则过剩/价格战信号出现，AIDC 资本开支回收期拉长</td><td class="txt">业绩说明会/投资者日口径；附注「应用及信息服务」结构验证</td></tr>
+      </table>
+      <div class="srcline">watchlist 已写入 data.json（同目录同名 .json）——下期回看直接读该 JSON 块，不再解析本表 · 触发线均为 if-then 可证伪形态</div>
+    </div>
+  </div>
+
+  <!-- ══ 页脚 ══ -->
+  <div class="foot">
+    <span>中国移动有限公司（600941.SH）2026H1半年报分析 · 生成于 2026-09-11</span>
+    <span>数据：公司报告原文（双源核对：Tushare / 东方财富）· 半年报未经审计 · 本报告仅为信息分析，不构成投资建议</span>
+  </div>
+</div>
+
+<script>
+/* ── 内联绘图助手：只改 DATA 区数组，不改绘图逻辑 ── */
+const NS='http://www.w3.org/2000/svg';
+const INK='rgb(8,31,92)',MUT='rgba(8,31,92,.60)',GRID='rgba(8,31,92,.16)',FAINT='rgba(8,31,92,.32)';
+const C1='rgb(51,78,172)',C2='rgb(186,214,235)',GOOD='#0F7B4F',BAD='#C0392B';
+const el=(p,t,a)=>{const n=document.createElementNS(NS,t);for(const k in a)n.setAttribute(k,a[k]);p.appendChild(n);return n};
+const txt=(p,a,s)=>{const n=el(p,'text',a);n.textContent=s;return n};
+const tip=(n,s)=>{const t=document.createElementNS(NS,'title');t.textContent=s;n.appendChild(t)};
+
+/* ════ DATA ════ */
+/* trend：近五年上半年标签 + 收入柱 + 净利柱 + 毛利率线(%) */
+const TREND={labels:['2022H1','2023H1','2024H1','2025H1','2026H1'],rev:[4969,5307,5467,5438,5380],np:[703,762,802,842,789],gm:[28.6,28.8,30.8,31.6,29.5]};
+/* ocfbridge：净利→经营现金流调节桥（间接法，亿元）——首项「净利润」为水平值，其余为调节项，Σ=OCF */
+const OCF_BRIDGE=[['净利润',790.10],['折旧摊销',953.70],['减值',116.07],['递延税',-45.28],['Δ应收',-401.81],['Δ存货',8.61],['Δ应付',-81.33],['其他',-191.52]];
+const OCF_END=1148.54;
+/* holders：股东户数（万户，柱）+ 区间涨跌幅(%,线，可留空) */
+const HOLDERS={labels:['2024末','2025末','2026H1'],num:[7.43,16.23,20.21],px:[]};
+
+/* 柱线组合图：柱（C1，可再加 C2）+ 可选线（INK，独立缩放）。barB/line 传空数组即跳过 */
+function combo(id,labels,barA,barB,line,lineName,aName,bName){
+  const s=document.getElementById(id);if(!s||!labels.length)return;
+  barB=barB||[];line=line||[];
+  const W=+s.viewBox.baseVal.width,H=+s.viewBox.baseVal.height,L=54,R=54,B=44,T=30;
+  const max=Math.max(...barA,...barB)*1.15||1;
+  const lmax=line.length?Math.max(...line)*1.3:1,lmin=line.length?Math.min(0,...line):0;
+  const bw=(W-L-R)/labels.length;
+  labels.forEach((lb,i)=>{
+    const x=L+i*bw+bw*.18,w=bw*.24;
+    const ha=(H-B-T)*barA[i]/max;
+    const r1=el(s,'rect',{x:x,y:H-B-ha,width:w,height:ha,fill:C1,class:'fade'});
+    tip(r1,`${lb} ${aName}：${barA[i]}`);
+    if(barB.length){
+      const hb=(H-B-T)*barB[i]/max;
+      const r2=el(s,'rect',{x:x+w+3,y:H-B-hb,width:w,height:hb,fill:C2,class:'fade'});
+      tip(r2,`${lb} ${bName}：${barB[i]}`);
+    }
+    txt(s,{x:x+w,y:H-B-ha-6,'font-size':10,'font-weight':700,fill:INK,'text-anchor':'middle'},barA[i]);
+    txt(s,{x:L+i*bw+bw/2,y:H-B+18,'font-size':10,'font-weight':600,fill:MUT,'text-anchor':'middle'},lb);
+  });
+  el(s,'line',{x1:L,y1:H-B,x2:W-R,y2:H-B,stroke:GRID,'stroke-width':1});
+  if(line.length){
+    const pts=line.map((v,i)=>{
+      const x=L+i*bw+bw/2,y=T+(H-B-T)*(1-(v-lmin)/(lmax-lmin||1));
+      return [x,y];
+    });
+    el(s,'path',{d:'M'+pts.map(p=>p.join(' ')).join(' L'),fill:'none',stroke:INK,'stroke-width':2});
+    pts.forEach((p,i)=>{
+      const c=el(s,'circle',{cx:p[0],cy:p[1],r:3,fill:INK});tip(c,`${labels[i]} ${lineName}：${line[i]}%`);
+      txt(s,{x:p[0],y:p[1]-9,'font-size':9,'font-weight':700,fill:MUT,'text-anchor':'middle'},line[i]+'%');
+    });
+  }
+  const lg=[[aName,C1],barB.length?[bName,C2]:null,line.length?[lineName,INK]:null].filter(Boolean);
+  lg.forEach(([n,c],i)=>{
+    el(s,'rect',{x:L+i*130,y:8,width:10,height:10,fill:c,rx:2});
+    txt(s,{x:L+i*130+15,y:17,'font-size':10,'font-weight':600,fill:MUT},n);
+  });
+}
+
+/* 瀑布图：起点水平值 → 调节项（正负浮动条，涨绿跌红）→ 终点水平值（蓝） */
+function waterfall(id,startLabel,startVal,steps,endLabel,endVal){
+  const s=document.getElementById(id);if(!s||!steps.length)return;
+  const W=+s.viewBox.baseVal.width,H=+s.viewBox.baseVal.height,L=16,R=16,T=26,B=42;
+  const n=steps.length+2,bw=(W-L-R)/n;
+  let cum=startVal;const segs=[[startLabel,0,startVal,'level']];
+  steps.forEach(([nm,d])=>{segs.push([nm,cum,cum+d,'delta']);cum+=d});
+  segs.push([endLabel,0,endVal,'level']);
+  let lo=0,hi=startVal;
+  segs.forEach(([,a,b])=>{lo=Math.min(lo,a,b);hi=Math.max(hi,a,b)});
+  const pad=(hi-lo)*.08||1;hi+=pad;lo-=pad*.5;
+  const y=v=>T+(H-T-B)*(1-(v-lo)/(hi-lo));
+  el(s,'line',{x1:L,y1:y(0),x2:W-R,y2:y(0),stroke:GRID,'stroke-width':1});
+  segs.forEach(([nm,a,b,k],i)=>{
+    const x=L+i*bw+bw*.15,w=bw*.7;
+    const top=Math.max(a,b),bot=Math.min(a,b);
+    const c=k==='level'?C1:(b>=a?GOOD:BAD);
+    const r=el(s,'rect',{x:x,y:y(top),width:w,height:Math.max(y(bot)-y(top),1),fill:c,class:'fade'});
+    tip(r,k==='level'?`${nm}：${b}`:`${nm}：${(b-a)>0?'+':''}${(b-a).toFixed(2)}（累计 ${b.toFixed(2)}）`);
+    if(i<segs.length-1){
+      const nx=L+(i+1)*bw+bw*.15;
+      el(s,'line',{x1:x+w,y1:y(b),x2:nx,y2:y(b),stroke:FAINT,'stroke-width':1,'stroke-dasharray':'2 2'});
+    }
+    const lbl=k==='level'?b:(b-a);
+    txt(s,{x:x+w/2,y:y(top)-7,'font-size':9.5,'font-weight':800,fill:k==='level'?INK:c,'text-anchor':'middle'},
+      (k==='delta'&&lbl>0?'+':'')+lbl.toFixed(1));
+    txt(s,{x:x+w/2,y:H-B+18,'font-size':9,'font-weight':600,fill:MUT,'text-anchor':'middle'},nm);
+  });
+}
+
+combo('trend',TREND.labels,TREND.rev,TREND.np,TREND.gm,'毛利率','营业收入','归母净利');
+waterfall('ocfbridge',OCF_BRIDGE[0][0],OCF_BRIDGE[0][1],OCF_BRIDGE.slice(1),'经营现金流净额',OCF_END);
+combo('holders',HOLDERS.labels,HOLDERS.num,[],HOLDERS.px,'区间涨跌幅','股东户数(万户)','');
+</script>
+</body>
+</html>

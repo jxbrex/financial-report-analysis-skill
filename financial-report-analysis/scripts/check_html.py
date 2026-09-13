@@ -26,10 +26,10 @@ calc.py 只校验数据层（data.json）；报告 HTML 层此前没有任何机
   4. hardrule     [FAIL] 外部资源（<link href="http… / <script src="http… /
                   @import / @font-face）、渐变、暗色背景、投影。样式类判据只扫
                   <style> 块与 inline style，避免误伤正文里出现的同名词。
-  5. required     [FAIL] 页脚免责声明「不构成投资建议」、最强反方章节、下期跟踪清单。
+  5. required     [FAIL] 页脚免责声明「不构成投资建议」、下期跟踪清单。
   6. sectnum      [WARN] 章节编号（.secthead .no）连续性——跳号/重号/倒退。
   7. anchor       [WARN] 悬空页内锚点（href="#x" 找不到 id="x"）；以及章节
-                  secthead 完全没有 id（模板约定 s0~s9，缺了锚点体系就失效）。
+                  secthead 完全没有 id（模板约定 s0~s8，缺了锚点体系就失效）。
 
 启发式检查的边界（诚实声明，改判据前先读这段）：
   · bare-number 的判据是：在 <td> / KPI 卡 .v / .figtitle 里出现「3 位以上数字
@@ -332,7 +332,6 @@ def check_hardrules(raw, css_ranges, rep):
 
 REQUIRED = [
     ("免责声明", ("不构成投资建议",), "页脚缺免责声明关键词「不构成投资建议」"),
-    ("最强反方", ("最强反方", "多头", "空头"), "缺「最强反方」章节（多头/空头对立论点）"),
     ("下期跟踪清单", ("下期跟踪清单", "先行指标"), "缺「下期跟踪清单」章节（先行指标仪表盘）"),
 ]
 
@@ -343,7 +342,7 @@ def check_required(visible, rep):
         if not any(k in visible for k in kws):
             missing.append((name, msg))
     if not missing:
-        rep.add(OK, "required", "免责声明 / 最强反方 / 下期跟踪清单 三项齐备")
+        rep.add(OK, "required", "免责声明 / 下期跟踪清单 两项齐备")
         return
     for name, msg in missing:
         rep.add(FAIL, "required", msg)
@@ -382,11 +381,11 @@ def check_structure(text, rep, secs):
     else:
         rep.add(OK, "anchor", f"页内锚点全部有效（{len(hrefs)} 个引用 / {len(ids)} 个 id）")
 
-    # 章节头缺 id：模板约定每个 .secthead 带固定 id（s0~s9 / review）
+    # 章节头缺 id：模板约定每个 .secthead 带固定 id（s0~s8 / review）
     head_html = re.findall(r'<div class="secthead"[^>]*>', text)
     with_id = sum(1 for h in head_html if re.search(r'\bid="', h))
     if head_html and with_id == 0:
-        rep.add(WARN, "anchor", f"{len(head_html)} 个章节头都没有 id——模板约定 s0~s9，跨章下钻链接会失效")
+        rep.add(WARN, "anchor", f"{len(head_html)} 个章节头都没有 id——模板约定 s0~s8，跨章下钻链接会失效")
 
 
 # ─────────────────────────── 主流程 ───────────────────────────

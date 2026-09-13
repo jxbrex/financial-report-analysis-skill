@@ -1,6 +1,6 @@
 # HANDOFF · 交接文档
 
-> 版本 **0.0.2** · 截至 2026-09-10 · 本文档面向「下一个接手这个项目的人/AI 会话」
+> 版本 **0.0.4** · 截至 2026-09-13 · 本文档面向「下一个接手这个项目的人/AI 会话」
 > 仓库：https://github.com/jxbrex/financial-report-analysis-skill（**私密**）
 > 部署：`C:/Users/rexji/.agents/skills/financial-report-analysis/`（由 `deploy.cmd` 镜像）
 
@@ -47,15 +47,15 @@ financial-report-analysis/
 ├── SKILL.md                    # 11 个 Phase（0→8，含 2.5 勾稽验算、7.5 QC 门禁）
 ├── references/                 # 9 份方法库
 │   ├── articulation.md         #   勾稽核对手册：A组8条恒等式+B组4条roll-forward+C组2条周期+D组5条母公司
-│   ├── redflags.md             #   排雷信号库：红/黄/亮点 + 审计交叉命中 + 人效三维
-│   ├── frameworks.md           #   公式与评分卡 + CCC + 周期定位 + 费用ROI + 四线考核
+│   ├── redflags.md             #   排雷信号库：四态判定分类 + 红/黄/亮点 + 审计交叉命中 + 人效三维
+│   ├── frameworks.md           #   公式（无评分卡）+ CCC + 周期定位 + 费用ROI + 四线考核
 │   ├── factor-analysis.md      #   三因素分解 + 净利润桥 + OCF 调节桥 + 四象限
 │   ├── text-mining.md          #   MD&A 三层读法 + 断言验证矩阵（F1/F2/F3）
 │   ├── industry-profiles.md    #   七类商业模式调焦 + 客户价值五维 + 经销商压货三条件
 │   ├── extraction-schema.md    #   data.json 数据契约
 │   ├── data-sources.md         #   markitdown / tushare / 妙想 接口速查 + 港股路径 + OCR 降级
 │   └── report-types.md         #   年报/半年报/季报/招股书/港美股 差异
-├── assets/report-template.html # 11 章单文件报告模板（4 个绘图函数、11 个锚点、置信度徽章）
+├── assets/report-template.html # 10 章单文件报告模板（4 个绘图函数、锚点 s0~s8 + review、置信度徽章）
 ├── scripts/
 │   ├── calc.py                 #   数据层门禁（Phase 7.5）
 │   └── check_html.py           #   报告层门禁（Phase 8）
@@ -74,8 +74,41 @@ financial-report-analysis/
    断言结构、勾稽覆盖率、应付未付利息、信号结构。exit 0 才允许进入 Phase 8。
 2. **`scripts/check_html.py`（报告层，Phase 8，交付前）**
    校验：占位符漏填、裸数字（启发式）、数据来源标注、模板硬规则、必备要素
-   （反方章/下期清单/免责声明）、章节编号、锚点完整性。
+   （下期清单/免责声明）、章节编号、锚点完整性。
 3. **`python tests/run_regression.py`** —— 任何改动后必跑，14 条断言全绿才算没改坏。
+
+---
+
+## 二·五、本轮修订（v0.0.3，2026-09-11）
+
+起因：首份产出报告（特变电工 2026H1）暴露三处设计问题。按《修订计划-v0.1.0-20260911.md》
+的定案执行（计划里的目标版本号写的是 0.1.0，**实际按用户指定落为 0.0.3**）。
+
+| # | 变更 | 落点 |
+|---|---|---|
+| 1 | **删除跨维度加权评分体系**（五维加权分 + 九项财务打分卡）。财报分析的产出是「排除与揭示」，不是「质量排序」——锚点周期盲、加权掩盖维度矛盾 | 模板（评分条 CSS/HTML、F-Score 卡与 KPI 徽章）、frameworks.md 删两节并重排编号、SKILL.md、extraction-schema 删 `fscore`、report-types/factor-analysis 清残留 |
+| 2 | **报告字体改朱雀仿宋**（字体栈，不内嵌：`Zhuque Fangsong → FangSong → 仿宋 → STFangsong`），正文与数据表字号整体 +1px 补偿仿宋细笔画 | 模板 CSS（`@font-face` 仍被 check_html 硬规则禁止） |
+| 3 | **排雷章四态分层呈现**：命中🔴/观察🟡/反向未触发↩ 逐条展开，未触发压成一行汇总；勾稽三态表只留 ⚠️/🔴，闭合项落 data.json | 模板 s2、redflags.md 新增第〇节四态标准、extraction-schema 加 `signals[].verdict`、SKILL.md Phase 2.5/3 |
+| 4 | **删除「最强反方」独立章**（多头/空头 ≈ s0 的亮点 TOP3/风险 TOP3，高度冗余）；承载结构回归 s0，新增「分歧锚」句式（同一事实的两种解读，不做倾向）。章节锚点收缩为 **s0~s8** | 模板、SKILL.md Phase 8 / 质量门禁 8 / 「何时不用」补方向性边界、check_html REQUIRED 去掉反方章 |
+| 5 | **下期跟踪清单定制化 + watchlist JSON 化**：废除「固定 5 项」，改按 `meta.industry_profile` 取该模式「先行指标建议集」（3~5 项），每条必须是 if-then 条件化触发线，落 data.json `watchlist` 块；回看直接读 JSON | industry-profiles.md 七类模式各加建议集 + 通用缺省集、SKILL.md Phase 8.3 与 Phase 0 回看、extraction-schema 新增 `watchlist` 块、模板 s8 |
+
+**验证**：`run_regression.py` 14/14 绿；模板与产出报告 `check_html.py` 均 exit 0（新报告 FAIL 0 · WARN 0）；
+端到端用特变电工既有 md + 升级后的 data.json 重跑出
+`reports/特变电工-600089-半年报-2026H1-20260911-v0.0.3.html`（旧报告保留为基线）。
+
+## 二·六、用户反馈修订（v0.0.4，2026-09-13）
+
+起因：用户通读中国移动 2026H1 报告后提三条反馈，全部落地：
+
+| # | 反馈 | 变更 |
+|---|---|---|
+| 1 | 净利桥图与明细表内容重复 | 模板删 hbars 图（SVG + BRIDGE 数据槽位 + 绘图函数整体移除），桥式明细表并入 grid2 右列、承接「净利润桥：各因素贡献额（亿元）」标题——明细表是信息超集（多本期/上期/备注），图只重复贡献额一维 |
+| 2 | 管理层宣称的智算规模缺行业坐标，真布局还是蹭热点要多研究 | text-mining.md 第三节新增第 4 条「重点宣称数字给行业坐标」（同行对比/行业占比/口径说明三坐标，凑不齐直说缺乏可比基准），SKILL.md Phase 5 同步；中国移动报告 s4 新增「行业坐标」卡片：移动 112.7 EFLOPS 为运营商第一（电信 91、联通 45），但仅占全国在用智算约 6.0%（工信部 2026-03 口径 1,882 EFLOPS），「领先」须限定运营商口径；利用率 >90% 与第三方「算力闲置」质疑的分歧列入 s8 跟踪 |
+| 3 | 正文字体颜色累眼 | `body{color:#000}` 纯黑；--ink 墨蓝保留作标题/边框/页眉点缀，--muted/--faint 辅助色不动 |
+
+**同步产物**：`reports/中国移动-600941-半年报-2026H1-20260911.html` 按新模板回改（删图/字体变黑/加行业坐标卡），check_html FAIL 0 · WARN 1（裸数字启发式待确认清单，已知局限 7）。
+
+**验证**：`run_regression.py` 14/14 绿；模板与移动报告 check_html 均 exit 0；已 deploy。
 
 ---
 
@@ -116,7 +149,7 @@ financial-report-analysis/
 | 3 | **industry-profiles.md 七类模式零实测** | 工程建造的合同资产勾稽、农业的生物资产盘点、经销商压货三条件都没在真实样本上跑过 |
 | 4 | **P1-12 断言验证 / P1-13 周期定位 / P1-16 费用ROI / P1-17 四象限未端到端跑过** | 只在 fixture 上算过数（四象限在茅台上验证过分类正确），未产出过真实报告 |
 | 5 | **回看模式（P2-18）从未实测** | 需要同公司两份报告才能触发 |
-| 6 | **check_html.py 的「全绿路径」未验证** | 目前只有两个用例：模板（缺占位符 FAIL）、茅台旧报告（缺反方章 FAIL）。**没有一份按新模板产出的完整合规报告让它 exit 0** |
+| 6 | check_html.py 的「全绿路径」已由特变电工 v0.0.3 报告验证（FAIL 0 · WARN 0） | 但该报告是**半年报**，且未经人工通读；年报/季报/招股书仍未验证 |
 | 7 | check_html.py 的**裸数字检查是启发式** | 已排除 `.txt` 单元格、豁免期次标签，仍会误报/漏报，输出的是「待人工确认清单」 |
 | 8 | **calc.py 的 recon 覆盖率只是 WARN，不是硬门禁** | 康得新只填 9/12 条等式也照样 exit 0（缺数合法，但「漏做」拦不住） |
 | 9 | 康得新 **A5/B2/B3 三条等式因附注未披露而无法执行** | 换个披露更全的造假样本可验证这三条 |
@@ -128,12 +161,14 @@ financial-report-analysis/
 
 ### P0（接着做，价值最高）
 
-**任务 1：用当前模板产出第一份完整合规报告，并让 check_html.py 全绿**
+**任务 1：跑通港股/美股全流程（局限 1 的剩余部分）**
+- A 股半年报的「全绿路径」已由特变电工 v0.0.3 报告补齐（局限 6）；仍未验证的是**港股/美股**
+  以及年报/季报/招股书三类报告
 - 建议标的：**腾讯 00700.HK 2024 或 2025 年报** —— 一石三鸟：
   ① 首次跑通港股全流程（补齐局限 1）
-  ② 首次用齐新模板全部槽位（勾稽分区/OCF 桥/Q4 透视/断言表/期后/反方章/仪表盘）
-  ③ 首次验证 check_html.py 的 exit 0 路径（补齐局限 6）
-- 验收：`calc.py` exit 0 + `check_html.py` exit 0 + 报告含 11 章齐全 + 数字抽查 12 项与原文一致
+  ② 首次用齐年报专属槽位（Q4 单季透视/股东户数/机构预期）
+  ③ 首次在港股口径下验证 watchlist 与排雷四态呈现
+- 验收：`calc.py` exit 0 + `check_html.py` exit 0 + 章节齐全（s0~s8）+ 数字抽查 12 项与原文一致
 - 注意：港股须核对币种与会计准则；A 股专属模块（股东户数/质押/热榜）置灰标注「仅 A 股」
 
 **任务 2：补齐报告类型覆盖（半年报 + 季报 + 招股书各一次）**

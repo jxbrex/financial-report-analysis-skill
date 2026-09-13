@@ -1,0 +1,239 @@
+{
+  "meta": {
+    "company": "特变电工", "code": "600089.SH", "market": "A股",
+    "period": "20260630", "report_type": "半年报", "disclose_date": "2026-08-21",
+    "unit": "亿元", "source_md": "reports/特变电工2026年半年报.md", "analyst_date": "2026-09-11",
+    "schema_version": "1.0",
+    "currency": "CNY",
+    "accounting_standard": "CAS",
+    "industry_profile": "重资产制造+资源周期混合（输变电装备制造 × 多晶硅/煤炭/黄金资源，多周期叠加）",
+    "cycle_stage": "输变电景气上行+多晶硅底部回升+煤炭价格下行；公司整体处于资本开支扩张期（capex 半年 121 亿元创新高）",
+    "unaudited": true
+  },
+
+  "statements": {
+    "income": {
+      "revenue":      { "cur": 565.55, "prev": 483.51, "hist": [478.42, 484.01, 565.55], "src": "L129 主要会计数据表; 合并利润表 L2974", "note": "原文：56,554,754,860.25 元；营业总收入 565.85 亿含利息收入 0.30 亿" },
+      "cost":         { "cur": 458.66, "prev": 393.98, "src": "合并利润表 L2980", "note": "原文：45,865,652,757.46 元" },
+      "gross_profit": { "cur": 106.89, "prev": 89.53, "level": "der", "src": "由 revenue-cost 推算" },
+      "tax_surcharge":{ "cur": 10.81, "prev": 7.71, "src": "合并利润表 L2993", "note": "同比 +40.2%，增速远超收入 17%，未披露原因——待追问" },
+      "sell_exp":     { "cur": 15.43, "prev": 14.17, "src": "合并利润表 L2995" },
+      "admin_exp":    { "cur": 18.40, "prev": 17.04, "src": "合并利润表 L2996" },
+      "rd_exp":       { "cur": 8.82, "prev": 7.11, "src": "合并利润表 L2997", "note": "费用化研发；半年报未披露资本化研发投入合计" },
+      "fin_exp":      { "cur": 8.72, "prev": 7.31, "src": "合并利润表 L2998" },
+      "interest_exp": { "cur": 7.31, "prev": 7.74, "src": "合并利润表 L2999" },
+      "interest_inc": { "cur": 1.08, "prev": 1.24, "src": "合并利润表 L3000" },
+      "impair_loss":  { "cur": 8.90, "prev": 2.07, "src": "合并利润表 L3025/L3029", "note": "信用减值 3.15 + 资产减值 5.76（损失为正）；上期信用减值为转回 0.98" },
+      "invest_income":{ "cur": 4.13, "prev": 2.12, "src": "合并利润表 L3003" },
+      "fv_gain":      { "cur": -3.97, "prev": 3.11, "src": "合并利润表 L3021", "note": "公允价值变动由盈转亏，主因华电新能/南网能源持仓及外汇衍生品波动（L184-189 非经说明）" },
+      "non_op_net":   { "cur": -0.57, "prev": 0.39, "level": "der", "src": "营业外收入 0.46 - 营业外支出 1.03（L3038-3039）" },
+      "np_total":     { "cur": 30.02, "prev": 34.05, "src": "合并利润表 L3047", "note": "原文：3,001,673,300.24 元" },
+      "np_at":        { "cur": 25.52, "prev": 31.84, "hist": [30.34, 31.84, 25.52], "src": "L131 主要会计数据; L3064", "note": "原文：2,552,310,324.80 元" },
+      "np_dt":        { "cur": 26.73, "prev": 27.87, "src": "L133 主要会计数据", "note": "扣非归母 267,342.03 万元" },
+      "minority_np":  { "cur": 4.49, "prev": 2.21, "src": "合并利润表 L3068", "note": "同比 +103.5%" },
+      "income_tax":   { "cur": 9.60, "prev": 10.18, "src": "合并利润表 L3044" },
+      "by_segment": [
+        { "name": "电气设备产品", "basis": "product", "rev_cur": 149.68, "rev_prev": 133.67, "cost_cur": 120.42, "cost_prev": null, "vol_cur": null, "vol_prev": null, "price_cur": null, "price_prev": null, "intercompany_eliminated": null, "src": "L868 分产品表", "note": "毛利率 19.55% (+0.43pct)；rev_prev 由披露增速 11.98% 倒推（der）" },
+        { "name": "电线电缆产品", "basis": "product", "rev_cur": 108.41, "rev_prev": 78.44, "cost_cur": 98.87, "cost_prev": null, "vol_cur": null, "vol_prev": null, "price_cur": null, "price_prev": null, "intercompany_eliminated": null, "src": "L869", "note": "毛利率 8.80% (+1.11pct)；增速 38.23%，含新收购电缆企业并表贡献" },
+        { "name": "输变电成套工程", "basis": "product", "rev_cur": 29.69, "rev_prev": 23.30, "cost_cur": 26.75, "cost_prev": null, "vol_cur": null, "vol_prev": null, "price_cur": null, "price_prev": null, "intercompany_eliminated": null, "src": "L871", "note": "毛利率 9.91% (-5.70pct)，披露系部分开工项目毛利率较低" },
+        { "name": "新能源产品及工程", "basis": "product", "rev_cur": 95.45, "rev_prev": 63.15, "cost_cur": 86.16, "cost_prev": null, "vol_cur": null, "vol_prev": null, "price_cur": null, "price_prev": null, "intercompany_eliminated": null, "src": "L872", "note": "毛利率 9.73% (+13.29pct)，多晶硅量价齐升——周期底部反转信号" },
+        { "name": "煤炭产品", "basis": "product", "rev_cur": 79.02, "rev_prev": 88.32, "cost_cur": 58.75, "cost_prev": null, "vol_cur": null, "vol_prev": null, "price_cur": null, "price_prev": null, "intercompany_eliminated": null, "src": "L873", "note": "毛利率 25.65% (-3.73pct)，煤价下行" },
+        { "name": "发电业务", "basis": "product", "rev_cur": 28.61, "rev_prev": 34.63, "cost_cur": 16.74, "cost_prev": null, "vol_cur": null, "vol_prev": null, "price_cur": null, "price_prev": null, "intercompany_eliminated": null, "src": "L874", "note": "毛利率 41.49% (-6.53pct)，火电利用小时下降" },
+        { "name": "铝电子新材料/铝及合金", "basis": "product", "rev_cur": 35.09, "rev_prev": 33.38, "cost_cur": 28.72, "cost_prev": null, "vol_cur": null, "vol_prev": null, "price_cur": null, "price_prev": null, "intercompany_eliminated": null, "src": "L876", "note": "毛利率 18.14% (+8.30pct)" },
+        { "name": "黄金", "basis": "product", "rev_cur": 17.63, "rev_prev": 7.66, "cost_cur": 7.47, "cost_prev": null, "vol_cur": null, "vol_prev": null, "price_cur": null, "price_prev": null, "intercompany_eliminated": null, "src": "L879", "note": "毛利率 57.64%，收入 +130.11%，金精粉量价齐升" },
+        { "name": "物流贸易", "basis": "product", "rev_cur": 1.51, "rev_prev": 2.91, "cost_cur": 1.38, "cost_prev": null, "vol_cur": null, "vol_prev": null, "price_cur": null, "price_prev": null, "intercompany_eliminated": null, "src": "L881", "note": "-47.99%，主动收缩" },
+        { "name": "其他", "basis": "product", "rev_cur": 11.54, "rev_prev": 7.88, "cost_cur": 8.41, "cost_prev": null, "vol_cur": null, "vol_prev": null, "price_cur": null, "price_prev": null, "intercompany_eliminated": null, "src": "L882" }
+      ]
+    },
+    "balance": {
+      "cash":             { "cur": 328.22, "prev": 256.88, "src": "L2679", "note": "原文：32,821,836,340.96 元" },
+      "restricted_cash":  { "cur": 54.19, "prev": 58.71, "src": "L5270-5290 货币资金附注受限明细", "note": "含银行承兑保证金 29.25 亿、保函 7.11 亿、司法冻结 5.57 亿、央行准备金 3.99 亿、环境恢复基金 4.02 亿等" },
+      "ar":               { "cur": 232.61, "prev": 195.15, "src": "L2688", "note": "同比 +19.2%，高于收入增速 17%；账面余额 250.18 亿、坏账准备 17.57 亿" },
+      "ar_notes":         { "cur": 48.47, "prev": 52.92, "level": "der", "src": "应收票据 17.07 + 应收款项融资 31.40（L2686/L2689）" },
+      "other_ar":         { "cur": 14.33, "prev": 11.21, "src": "L2694" },
+      "inventory":        { "cur": 211.71, "prev": 213.88, "src": "L2700" },
+      "contract_liab":    { "cur": 89.33, "prev": 75.24, "src": "L2760", "note": "+18.7%，在手订单蓄水池" },
+      "payable":          { "cur": 585.44, "prev": 509.79, "level": "der", "src": "应付票据 269.78 (L2751) + 应付账款 315.66 (L2758)" },
+      "fixed_assets":     { "cur": 904.50, "prev": 889.50, "src": "L2726" },
+      "cip":              { "cur": 210.37, "prev": 180.96, "src": "L2727", "note": "含工程物资 1.81 亿；+16.2%" },
+      "goodwill":         { "cur": 5.63, "prev": 4.68, "src": "L2736", "note": "占净资产 0.5%，低" },
+      "st_debt":          { "cur": 28.05, "prev": 36.25, "src": "L2744" },
+      "noncur_due_1y":    { "cur": 66.47, "prev": 72.30, "src": "L2775" },
+      "lt_debt":          { "cur": 465.37, "prev": 390.51, "level": "der", "src": "长期借款 457.29 (L2781) + 应付债券 5.20 (L2783) + 租赁负债 2.88 (L2786)" },
+      "total_assets":     { "cur": 2502.90, "prev": 2271.50, "src": "L2742" },
+      "total_liab":       { "cur": 1425.05, "prev": 1262.96, "src": "L2801" },
+      "equity_at":        { "cur": 755.60, "prev": 743.92, "src": "L2817", "note": "含永续债（其他权益工具）47.00 亿，同比增 2 亿" },
+      "minority_eq":      { "cur": 322.26, "prev": 264.62, "src": "L2820", "note": "半年 +57.63 亿（+21.8%）：子公司吸收少数股东投资 48.85 亿（现金流 L3311）+少数股东损益 4.49 亿" },
+      "retained_cur":     { "cur": 477.45, "prev": 470.00, "src": "L2815" },
+      "surplus_reserve":  { "cur": 30.86, "prev": 30.86, "src": "L2813", "note": "本期未提取" },
+      "dividend_paid":    { "cur": 12.93, "prev": 9.39, "src": "L3317 分配股利利润或偿付利息支付的现金", "note": "含偿付利息；本期宣告 2025 年度股利 18.07 亿（der：未分配利润滚动倒挤），期末应付股利 18.60 亿（L2770）" },
+      "prepayment":       { "cur": 57.19, "prev": 37.79, "src": "L2690", "note": "+51.3%，披露系预付大宗原材料/设备/电费" },
+      "fin_assets":       { "cur": 62.33, "prev": 63.44, "level": "der", "src": "交易性 5.94 + 长股投 11.52 + 其他非流动金融 44.87（L2683/L2721/L2724）" },
+      "payable_construction": { "cur": null, "prev": null, "src": "", "note": "未单列" }
+    },
+    "cashflow": {
+      "ocf":         { "cur": 62.20, "prev": 46.37, "hist": [53.22, 46.37, 62.20], "src": "L3273", "note": "+34.1%" },
+      "sales_cash":  { "cur": 646.65, "prev": 560.95, "src": "L3242", "note": "+15.3%" },
+      "capex":       { "cur": 120.98, "prev": 97.41, "hist": [72.80, 97.41, 120.98], "src": "L3290", "note": "+24.2%，OCF 的 1.9 倍——自由现金流深度为负，靠借款与少数股东注资支撑" },
+      "dep_amort":   { "cur": 34.50, "prev": 33.77, "level": "der", "src": "L9074-9081 补充资料", "note": "折旧 29.73 + 使用权摊销 0.17 + 无形 4.04 + 长期待摊 0.56" },
+      "wage_cash":   { "cur": 44.84, "prev": 40.24, "src": "L3269", "note": "+11.4%，低于收入增速 17%——人效未见异常背离" },
+      "interest_paid": { "cur": 9.57, "prev": 6.77, "level": "der", "src": "L3317 12.93 亿 - 其中少数股东股利 3.36 亿（L3318）", "note": "推算口径，含利息及母公司股利支付" }
+    }
+  },
+
+  "notes": {
+    "ar_aging": [
+      { "bucket": "1年以内", "cur": 176.05, "prev": 146.40, "prov_rate_cur": 0.02, "prov_rate_prev": null, "src": "L5427/L5494" },
+      { "bucket": "1至2年", "cur": 31.92, "prev": 26.86, "prov_rate_cur": 0.05, "prov_rate_prev": null, "src": "L5428/L5496" },
+      { "bucket": "2至3年", "cur": 11.60, "prev": 14.10, "prov_rate_cur": 0.20, "prov_rate_prev": null, "src": "L5429/L5497" },
+      { "bucket": "3至4年", "cur": 11.15, "prev": 6.27, "prov_rate_cur": 0.30, "prov_rate_prev": null, "src": "L5430/L5498", "note": "同比 +78%，1-2 年段向 3 年以上迁移" },
+      { "bucket": "4至5年", "cur": 8.23, "prev": 7.66, "prov_rate_cur": 0.50, "prov_rate_prev": null, "src": "L5431/L5499" },
+      { "bucket": "5年以上", "cur": 11.23, "prev": 8.76, "prov_rate_cur": 1.00, "prov_rate_prev": null, "src": "L5432/L5500" }
+    ],
+    "ar_writeoff":   { "cur": null, "src": "", "note": "半年报未披露本期核销额" },
+    "ar_provision":  { "cur": 17.57, "prev": 14.90, "charged": 3.15, "reversed": null, "src": "L5458 合计行 + 利润表信用减值 3.15 亿" },
+    "ar_factoring":  { "cur": null, "src": "", "note": "未终止确认票据 5.35 亿（L5348-5355）" },
+    "inventory_mix": [
+      { "name": "原材料", "cur": null, "prev": null, "src": "" },
+      { "name": "在产品", "cur": null, "prev": null, "src": "" },
+      { "name": "库存商品", "cur": null, "prev": null, "src": "" }
+    ],
+    "inventory_provision": { "cur": null, "prev": null, "cur_reversed": 1.63, "src": "期后公告临2026-047：本期计提减值合计约 8.90 亿，存货跌价转销冲减营业成本 1.63 亿", "note": "期后公告补充披露口径" },
+    "cip_projects": [
+      { "name": "准东20亿立方米/年煤制天然气项目", "budget": 170.31, "invested_cur": 57.26, "progress": 0.35, "transferred": null, "src": "L6780-6782", "note": "累计投入占预算 35.52%，最大在建项目" },
+      { "name": "年产240万吨氧化铝项目", "budget": 67.81, "invested_cur": 9.77, "progress": 0.90, "transferred": 40.88, "src": "L6776-6778", "note": "累计投入 88.16%；期后文本证实一条产线已投产、另一条试生产（L608）" },
+      { "name": "XTNY准东硅基园区2GW风电", "budget": 65.96, "invested_cur": 43.72, "progress": 0.80, "transferred": null, "src": "L6783-6785" },
+      { "name": "几内亚阿玛利亚水电站", "budget": 80.61, "invested_cur": 23.58, "progress": 0.35, "transferred": null, "src": "L6786-6788", "note": "利息资本化率 6.09%" },
+      { "name": "XTNY准东硅基园区1GW光伏", "budget": 39.37, "invested_cur": 4.34, "progress": 0.35, "transferred": null, "src": "L6790-6792" }
+    ],
+    "goodwill_test": { "growth_assumption": "半年报未披露商誉减值测试细节", "discount_rate": "", "src": "" },
+    "audit": { "opinion": "半年报未经审计", "kam": [], "fee_cur": null, "fee_prev": null, "auditor_changed": false, "src": "L13 重要提示三：本半年度报告未经审计", "note": "无半年报关键审计事项；期后 8-22 减值计提公告（临2026-046）补充披露合计计提约 8.90 亿" },
+    "employees": { "headcount_cur": null, "headcount_prev": null, "src": "", "note": "半年报未披露员工总数；支付职工现金 +11.4% 低于收入增速" },
+    "subsequent_events": [
+      { "date": "2026-08-21", "event": "半年度计提减值准备公告（临2026-046）：对应收账款、其他应收款、存货、合同资产等合计计提减值约 8.90 亿元，存货跌价转销冲减营业成本 1.63 亿，合计减少利润总额 7.27 亿", "verifies": "资产负债表日减值计提的真实性与充分性", "src": "期后公告 mx_finance_search_notice" },
+      { "date": "2026-08-24", "event": "临时股东会通过回购股份注销议案：3,254.38 万股注销，总股本 50.53 亿→50.20 亿股", "verifies": "回购资金链与股东回报诚意", "src": "期后公告 临2026-049/050" },
+      { "date": "2026-08-24", "event": "临时股东会通过延长向不特定对象发行可转债决议有效期", "verifies": "后续再融资计划仍在推进（资本开支依赖外部融资）", "src": "期后公告 临2026-049" },
+      { "date": "2026-09-07", "event": "1000kV 高阻抗特高压自耦变压器样机一次性通过全部型式试验；9-08 阿联酋马斯达尔光储项目 400kV 大容量双分裂变压器下线", "verifies": "特高压与海外大项目交付能力（订单-产品闭环）", "src": "证券日报网 2026-09-07 / 索比光伏网 2026-09-09" },
+      { "date": "", "event": "已检查，无大额期后收款/退货/合同解除/质押/减持/债务违约类重大事项", "verifies": "期后三类核验项均无触发", "src": "mx_finance_search_notice 2026-08-20~09-10 全量检索" }
+    ],
+    "shareholders": { "holder_num_cur": 833474, "holder_num_prev": 511867, "top10_changes": [
+        "华夏中证电网设备ETF +6,541万股（增至 8,535万股，第4大）",
+        "全国社保基金503组合 +680万股（3,080万股）",
+        "华泰柏瑞中证光伏ETF -2,216万股、天弘光伏 -1,149万股（光伏ETF撤退）",
+        "控股股东特变集团 11.50% 持平、新疆宏联 6.54% 持平",
+        "香港中央结算（北向）-652万股"
+      ], "pledge_ratio": 0, "src": "L1746-1866 + tushare stk_holdernumber", "note": "股东户数 2025-12-31 51.19 万户 → 2026-06-30 83.35 万户（+62.8%），2025-06-30 仅 31.93 万户（一年翻 2.6 倍）；控股股东及一致行动人零质押" },
+    "capacity": [ { "product": "氧化铝", "capacity": 240, "output": null, "utilization": null, "src": "L609", "note": "240 万吨/年项目一条产线投产、另一条试生产（期后文本）" } ]
+  },
+
+  "derived": {
+    "ratios": {
+      "roe": { "cur": 0.0339, "prev": null, "note": "简单平均口径 25.52/avg(755.60,743.92)；披露加权 ROE 3.5807%（-1.25pct）" },
+      "gross_margin": { "cur": 0.1890, "prev": 0.1852 },
+      "net_margin": { "cur": 0.0451, "prev": 0.0659, "note": "归母口径" },
+      "net_cash_ratio": { "cur": 2.438, "prev": 1.456, "note": "OCF/归母净利；含少数股东口径 2.07" },
+      "cash_to_sales": { "cur": 1.1433, "prev": 1.1601, "note": "含税收现口径，正常区间" },
+      "debt_to_assets": { "cur": 0.5694, "prev": 0.5560 },
+      "asset_turnover": { "cur": 0.2370, "prev": null, "note": "半年年化前口径：收入/平均总资产" },
+      "equity_multiplier": { "cur": 3.3125, "prev": 3.0534, "note": "总资产/归母权益（机检口径）" },
+      "dso": { "cur": 138.0, "prev": null, "note": "365 天口径：avg(应收账款)×365/收入" },
+      "dio": { "cur": 169.3, "prev": null },
+      "dpo": { "cur": 435.8, "prev": null },
+      "ccc": { "cur": -128.5, "prev": null, "note": "负 CCC：产业链占款经营，应付账期极长是资金效率来源也是扩张杠杆" },
+      "short_debt_cover": { "cur": 4.13, "note": "(货币资金 328.22+OCF 62.20)/(短借 28.05+一年内到期 66.47)；若扣受限资金 54.19 亿为 2.56，均 >1" },
+      "incr_expense_eff": { "cur": 3.024, "note": "Δ毛利 17.36 ÷ Δ期间费用 5.74" },
+      "incr_sales_eff":   { "cur": 65.11, "note": "Δ收入 82.04 ÷ Δ销售费用 1.26" },
+      "nonrecurring_share": { "cur": -0.0475, "note": "非经 -1.21 亿 ÷ 归母净利 25.52 亿" }
+    },
+    "dupont": { "driver": "净利率", "src": "归母净利率 4.51%（-2.08pct）为 ROE 下滑主因；总资产周转率 0.237（同比 +7% 微升）；权益乘数 2.32（+3%）——增长质量由费用与减值端侵蚀" },
+    "q4": { "rev": null, "np": null, "rev_share": null, "gm_q4": null, "gm_q1q3": null,
+            "impair_share": null, "exp_ratio_q4": null, "exp_ratio_q1q3": null, "src": "半年报不适用 Q4 拆分" },
+    "rev_factors": { "volume": null, "price": null, "mix": null, "src": "半年报未披露分产品量价数据，降级为分部收入桥（见 by_segment 与报告收入归因章）",
+                     "note": "分部增量（der，由披露增速倒推）：新能源 +32.3 / 电缆 +30.0 / 电气设备 +16.0 / 黄金 +10.0 / 工程 +6.4 / 铝 +1.7 / 其他 +3.7，煤炭 -9.3 / 发电 -6.0 / 物流 -1.4；合计 +83.3 亿 ≈ Δ收入 82.0 亿（尾差为其他业务收入）" },
+    "np_bridge": [
+      { "item": "毛利", "delta": 17.17 },
+      { "item": "税金及附加", "delta": -3.10 },
+      { "item": "期间费用", "delta": -5.74 },
+      { "item": "减值", "delta": -6.83 },
+      { "item": "投资/公允", "delta": -5.16 },
+      { "item": "非经", "delta": -0.96 },
+      { "item": "所得税", "delta": 0.58 },
+      { "item": "少数股东", "delta": -2.28 }
+    ],
+    "ocf_bridge": [
+      { "item": "净利润", "delta": 30.02 },
+      { "item": "折旧摊销", "delta": 34.50 },
+      { "item": "减值", "delta": 8.90 },
+      { "item": "递延税", "delta": -1.22 },
+      { "item": "Δ应收", "delta": -81.50 },
+      { "item": "Δ存货", "delta": -7.56 },
+      { "item": "Δ应付", "delta": 71.71 },
+      { "item": "其他营运资本", "delta": 7.33, "note": "公允价值变动损失 3.97 + 财务费用 7.31 - 投资收益 4.13 + 处置报废等 0.18" }
+    ],
+    "wc_devour": { "amount": 17.35, "share_of_np": 0.578, "note": "Δ应收 81.50 + Δ存货 7.56 - Δ应付 71.71；分母为净利润（含少数股东）30.02" },
+    "interest_arrears": { "cur": -2.26, "note": "利息费用 7.31 - 推算实付 9.57（含上期结转）；未见利息拖欠迹象" }
+  },
+
+  "recon": {
+    "A1_cash":        { "lhs": 274.03, "rhs": 274.02, "verdict": "闭合", "explanation": "货币资金 328.22 - 受限 54.19 = 274.03 ≈ 期末现金及等价物 274.02（0.01 亿尾差）", "src": "L2679/L5290/L3325" },
+    "A2_retained":    { "lhs": 477.45, "rhs": 477.45, "verdict": "闭合", "explanation": "期初 470.00 + 归母净利 25.52 - 提取盈余公积 0 - 宣告股利 18.07 = 477.45；宣告额由滚动倒挤（der），与期末应付股利 18.60 亿（L2770）互证", "src": "L2813/L2815/L3064/L2770" },
+    "A3_indirect":    { "lhs": 62.18, "rhs": 62.20, "verdict": "闭合", "explanation": "间接法 13 项 Σ=62.18 vs OCF 62.20（0.03% 尾差）", "src": "L9062-9123 补充资料" },
+    "A4_rev_cash":    { "lhs": 646.65, "rhs": 639.07, "verdict": "闭合", "explanation": "收现 646.65 ≈ 收入×1.13=639.07，偏差 1.2% 在含税收现正常区间；合同负债增加 14.09 亿与票据背书未终止确认为正向贡献", "src": "L3242/L129/L2760" },
+    "A5_dep_amort":   { "lhs": 34.50, "rhs": 34.50, "verdict": "闭合", "explanation": "补充资料折旧+摊销合计与四项加总一致（同源自洽；与固定资产附注独立核对因转固/处置明细未全披露而降级）", "src": "L9074-9081" },
+    "A6_capex":       { "lhs": 120.98, "rhs": 78.55, "verdict": "可解释", "explanation": "capex 现金 120.98 vs 固定资产+在建+无形+使用权净增 78.55，差额 42.43 亿：capex 含预付设备款（预付 +19.4 亿佐证）、应付工程设备款变动、转固对应折旧与处置，明细未全披露", "src": "L3290/L2726/L2727/L2732/L2730" },
+    "A7_implied_rate":{ "lhs": 2.76, "rhs": 3.65, "verdict": "闭合", "explanation": "年化隐含利率 = 利息费用 7.31×2 ÷ 平均有息负债 529.48 = 2.76%，落于披露利率区间 1.80%-3.65% 内", "src": "L2999/L2744/L2775/L2781/L7854-7862" },
+    "A8_invest_income":{ "lhs": 4.13, "rhs": 0.24, "verdict": "可解释", "explanation": "投资收益 4.13 亿中权益法仅 0.24 亿，其余为金融资产处置/利息收益等；金融资产余额 62.33 亿对应收益率合理，未发现与主业无关的异常投资收益", "src": "L3003/L3006-3009" },
+    "B1_ar_roll":     { "lhs": 232.61, "rhs": 232.61, "verdict": "闭合", "explanation": "账面余额 250.18 - 坏账准备 17.57 = 账面价值 232.61（同源自洽）；实质风险在账龄迁移：3 年以上占比 10.8%→12.2%，3-4 年段 +78%", "src": "L5433/L5458/L2688" },
+    "B2_inv_roll":    { "lhs": -2.17, "rhs": -7.56, "verdict": "可解释", "explanation": "报表存货净减 2.17 亿 vs 补充资料存货减少 7.56 亿，差 5.39 亿：补充资料为剔除跌价准备转销（1.63 亿）及合并范围调整后的经营口径", "src": "L2700/L9105-9106/期后公告临2026-047" },
+    "B3_cip_roll":    { "lhs": 29.41, "rhs": 30.07, "verdict": "闭合", "explanation": "在建工程净增 29.41 ≈ 固定资产+在建+无形+使用权净增隐含口径 30.07（偏差 2.19% 在阈值内）；重要项目表存在 4.61 亿加总尾差（表格行列错位），整体与 capex 方向一致；无长期挂账不转固异常（氧化铝 88% 投入转固 40.88 亿）", "src": "L6673-6799" },
+    "B4_goodwill_roll":{ "lhs": 5.63, "rhs": 5.63, "verdict": "闭合", "explanation": "期初 4.68 + 并购新增（KBE/和田昆冈等，企业合并支付 1.26 亿）= 期末 5.63；商誉占净资产 0.5%，减值风险低", "src": "L2736/L9137-9151" }
+  },
+
+  "assertions": [
+    { "id": "A1", "text": "新能源产品及工程毛利率增加 13.29pct，主要系多晶硅销售均价上涨及成本管控", "account": "新能源分部毛利率/多晶硅", "verdict": "通过",
+      "evidence": "分部毛利率 9.73%（L872）；同业大全能源同期毛利率 -74.42% 仍深亏，公司盈利改善佐证成本曲线优势", "missing": "", "source": "L913-916 + 同业对比 mx_ashare_finance_data" },
+    { "id": "A2", "text": "输变电成套工程毛利率下降 5.70pct 主要系部分开工项目毛利率较低", "account": "工程分部毛利率", "verdict": "无法验证",
+      "evidence": "", "missing": "未披露分项目毛利率或新开工项目明细，无法独立核验", "source": "L909-911" },
+    { "id": "A3", "text": "经营现金流增长 34.14% 体现销售回款质量提升", "account": "OCF/销售收现", "verdict": "通过",
+      "evidence": "销售收现 +15.3%（646.65 亿）、收现比 1.143 健康；但 OCF 增量 15.83 亿中约 11.4 亿来自应付增加+存货下降（营运资本贡献），纯回款贡献约 4.4 亿——增长真实但质量构成需精确表述", "missing": "", "source": "L3273/L3242/L9105-9114" },
+    { "id": "A4", "text": "预付款项增长 51.34% 主要系预付大宗原材料、设备款及预付电费增加", "account": "预付款项", "verdict": "通过",
+      "evidence": "账龄 1 年以内为主（附注 L5761-5791 前 5 名均为经营性预付），与多晶硅扩产备料及氧化铝投产节奏匹配", "missing": "", "source": "L982-983 + 预付款项附注" },
+    { "id": "A5", "text": "国际市场产品签约 16.18 亿美元，同比 +44%", "account": "境外收入/订单", "verdict": "无法验证",
+      "evidence": "", "missing": "签约额为订单口径非收入，境外收入 +35.56%（80.42 亿）方向一致但量级无法勾稽", "source": "L591-592/L891" }
+  ],
+
+  "signals": [
+    { "id": "R1", "level": "r", "verdict": "命中", "type": "signal", "title": "司法冻结资金 5.57 亿且持续存在", "data": "受限货币资金中司法冻结 5.57 亿（期初 5.17 亿），占总受限资金 10.3%", "evidence": "L5282 司法冻结资金 557,170,410.09 元", "source": "货币资金附注——半年报正文未说明冻结缘由，需向公司核实（不排除历史诉讼保证金类事项）" },
+    { "id": "R2", "level": "r", "verdict": "命中", "type": "signal", "title": "股东户数半年激增 62.8%", "data": "51.19 万户（2025-12-31）→ 83.35 万户（2026-06-30）；一年内从 31.93 万户翻 2.6 倍", "evidence": "tushare stk_holdernumber + L1748", "source": "股东户数趋势——散户大量涌入叠加光伏 ETF 撤退、电网 ETF 加仓，筹码结构散户化" },
+    { "id": "R3", "level": "y", "verdict": "观察", "type": "signal", "title": "利息收入与货币资金不匹配", "data": "利息收入 1.08 亿×2 ÷ 平均货币资金 292.6 亿 = 年化 0.74%，低于定存利率", "evidence": "利润表 L3000 / 货币资金附注 L5270", "source": "受限资金 54.2 亿 + 活期为主可部分解释——达到阈值但存在部分合理解释，故列观察" },
+    { "id": "R4", "level": "y", "verdict": "观察", "type": "signal", "title": "少数股东分利快速上升", "data": "少数股东损益 4.49 亿（+103.5%），占净利润 15.0%（上年 6.5%）；少数股东权益半年 +57.6 亿", "evidence": "L3068/L2820；子公司吸收少数股东投资 48.85 亿（L3311）", "source": "利润表 + 权益变动 + 现金流量表——引战扩张的利润切分效应，非造假但持续摊薄归母" },
+    { "id": "R5", "level": "y", "verdict": "观察", "type": "signal", "title": "应收类资产增速与账龄迁移双恶化", "data": "应收账款 +19.2%（232.61 亿）+ 合同资产 +24.9%（82.07 亿）+ 预付 +51.3%，合计增速高于收入；3 年以上账龄占比 10.8%→12.2%，3-4 年段 +78%", "evidence": "L2688/L2703/L2690/L5430；信用减值 -3.15 亿（上年转回 +0.98）", "source": "资产负债表 + 账龄附注 + 利润表" },
+    { "id": "R6", "level": "y", "verdict": "观察", "type": "signal", "title": "减值计提显著扩大", "data": "信用+资产减值合计 8.90 亿（上年 2.07 亿净转回后），期后公告确认计提 8.90 亿减少利润总额 7.27 亿", "evidence": "L3025/L3029 + 期后公告临2026-046", "source": "利润表 + 期后公告" },
+    { "id": "R7", "level": "y", "verdict": "观察", "type": "signal", "title": "债务驱动的重资产扩张", "data": "有息负债 559.89 亿（期初 499.06）；capex 121 亿 = OCF 1.9 倍；资产负债率 55.60%→56.94%；筹资净流入 128.91 亿", "evidence": "L2744/L2775/L2781/L3290/L3321；待发可转债（期后股东会延长决议）", "source": "资产负债表 + 现金流量表" },
+    { "id": "R8", "level": "y", "verdict": "观察", "type": "signal", "title": "营运资本吞噬净利润 58%", "data": "经营性应收增加 81.50 亿 + 存货 7.56 亿 - 应付 71.71 亿 = 吞噬 17.35 亿 = 净利润 57.8%", "evidence": "补充资料 L9105-9114", "source": "现金流量表补充资料" },
+    { "id": "R9", "level": "y", "verdict": "观察", "type": "signal", "title": "公允价值波动成为利润表不稳定源", "data": "公允价值变动 -3.97 亿（上年 +3.11 亿），一负一正摆动 7.08 亿；衍生金融资产 4.63 亿 + 交易性金融资产 5.94 亿", "evidence": "L3021/L184-189 非经说明（华电新能/南网能源/远期外汇/期货）", "source": "利润表 + 非经常性损益" },
+    { "id": "R10", "level": "g", "verdict": "反向未触发", "type": "signal", "title": "净现比（反向：盈利现金含量极高）", "data": "OCF 62.20 亿 / 归母净利 25.52 亿 = 2.44 倍（含少数股东 2.07 倍），远高于阈值 1", "evidence": "经营活动现金流量净额 6,219,687,556.26 元（L3273）", "source": "合并现金流量表——「净现比长期异常」信号反向成立且含信息量" },
+    { "id": "R11", "level": "g", "verdict": "反向未触发", "type": "signal", "title": "非经常性损益撑利润（反向）", "data": "非经 −1.21 亿反而拖累利润；利润下滑源于减值/公允/少数股东，非非经美化", "evidence": "L172-197 非经明细", "source": "非经常性损益明细表" },
+    { "id": "R12", "level": "g", "verdict": "未触发", "type": "signal", "title": "存贷双高", "data": "货币资金 328.2 亿（占总资产 13.1%）vs 有息负债 559.9 亿（22.4%），净有息负债 232 亿——高负债但非存贷双高", "evidence": "L2679/L2744/L2775/L2781", "source": "资产负债表" },
+    { "id": "R13", "level": "g", "verdict": "未触发", "type": "signal", "title": "存货异常", "data": "存货 211.7 亿（−1.0%），平稳；期后公告披露存货跌价转销 1.63 亿", "evidence": "L2700 / 期后公告临2026-047", "source": "资产负债表存货 + 期后公告" },
+    { "id": "R14", "level": "g", "verdict": "未触发", "type": "signal", "title": "其他应收款高企", "data": "14.33 亿（+27.8%），占总资产仅 0.6%——数字有波动但结论正常（v0.0.3 四态标准：由观察降级为未触发）", "evidence": "L2694", "source": "资产负债表其他应收款" },
+    { "id": "R15", "level": "g", "verdict": "未触发", "type": "signal", "title": "毛利率异常高于同行", "data": "18.9% 低于输变电同业（西电 24.5%/平高 29.8%），分部加权 18.5% 与整体自洽（calc.py 已验）", "evidence": "分产品表 / mx 同业对比", "source": "分产品表 + 同业对比" },
+    { "id": "R16", "level": "g", "verdict": "未触发", "type": "signal", "title": "商誉占比", "data": "商誉 5.63 亿，占归母净资产 0.7%", "evidence": "L2736", "source": "资产负债表商誉" },
+    { "id": "R17", "level": "g", "verdict": "未触发", "type": "signal", "title": "在建工程长期挂账", "data": "210.4 亿在建，重点项目进度与投入比例匹配；氧化铝累计投入 88%、本期转固 40.9 亿，无挂账迹象", "evidence": "在建附注 L6673-6799", "source": "在建工程附注" },
+    { "id": "R18", "level": "g", "verdict": "未触发", "type": "signal", "title": "研发资本化激进", "data": "费用化研发 8.82 亿（费率 1.56%，+24%），无高资本化迹象", "evidence": "利润表 L2997", "source": "合并利润表" },
+    { "id": "R19", "level": "g", "verdict": "未触发", "type": "signal", "title": "控股股东高质押", "data": "特变集团 11.50% 零质押；新疆宏联质押 2,080 万股仅占其持股 6.3%", "evidence": "L1763-1769 / tushare pledge_stat 空", "source": "股东情况 + tushare pledge_stat" },
+    { "id": "R20", "level": "g", "verdict": "未触发", "type": "signal", "title": "审计非标 / 问询处罚", "data": "半年报未经审计（无年审意见可查）；期后公告检索 2026-08-20~09-10 无问询函/处罚/诉讼", "evidence": "L13 / mx_finance_search_notice", "source": "半年报首页 + 期后公告检索" },
+    { "id": "R21", "level": "g", "verdict": "未触发", "type": "signal", "title": "短债偿付覆盖不足", "data": "(货币资金 328.2 + OCF 62.2) ÷ (短借 28.1 + 一年内到期 66.5) = 4.13 倍（扣受限资金后 2.56 倍），均 >1", "evidence": "L2744/L2775/L3273", "source": "资产负债表 + 现金流量表" },
+    { "id": "G1", "level": "g", "verdict": "反向未触发", "type": "signal", "title": "订单蓄水池持续加深", "data": "合同负债 89.33 亿 +18.7%；国内输变电签约 372.85 亿 + 国际签约 16.18 亿美元 +44%", "evidence": "L2760/L564/L592", "source": "资产负债表 + MD&A——「合同负债收缩」信号反向成立" },
+    { "id": "G2", "level": "g", "verdict": "反向未触发", "type": "signal", "title": "多晶硅周期底部反转", "data": "新能源分部毛利率 9.73% (+13.29pct)，收入 +51.15%", "evidence": "L872/L913-916；同业大全能源毛利率 -74.42% 仍亏", "source": "分产品表 + 同业对比——「毛利率下行」方向反转且含信息量" },
+    { "id": "G3", "level": "g", "verdict": "反向未触发", "type": "signal", "title": "公司治理干净度较高", "data": "控股股东零质押；无关联方资金占用；回购 3,254 万股注销推进；半年报未经审计但无异常事项披露", "evidence": "L22-23/L1763-1769；期后公告临2026-049", "source": "重要提示 + 股东情况 + 期后公告" }
+  ],
+
+  "watchlist": [
+    { "indicator": "合同负债增速 vs 收入增速（剪刀差）", "current": "+18.7% vs +17.0%", "tripwire": "若合同负债增速连续两期低于收入增速，则需求端走弱成立", "source": "定期报告资产负债表「合同负债」及其上期数", "badge": "der" },
+    { "indicator": "应收账款账龄结构（3 年以上占比）", "current": "12.2%（期初 10.8%）", "tripwire": "若 3 年以上账龄占比连续两期上升，则回款恶化由症状转为病灶成立；同步看信用减值单季计提额", "source": "应收账款附注账龄表", "badge": "der" },
+    { "indicator": "氧化铝 / 煤制气转固节奏", "current": "氧化铝 90% 进度（一条产线已投产）", "tripwire": "若转固落地后两个季度毛利率未扛住折旧冲击（毛利率环比下滑），则转固拖累成立", "source": "在建工程附注转固额 / 投产公告", "badge": "est" },
+    { "indicator": "资本开支节奏", "current": "120.98 亿元（H1），同比 +24.2%", "tripwire": "若 capex 连续两期同比收缩，则公司转保守成立；若继续逆势上行，则须追问可转债发行进度与新增产能消化", "source": "现金流量表购建支付现金 / 募集资金公告", "badge": "disc" },
+    { "indicator": "多晶硅均价与煤价（DIO 传导状态）", "current": "DIO 169.3 天（存货 −1.0% 平稳）", "tripwire": "若硅价续涨而 DIO 未拉长，则涨价尚未进表、毛利弹性在后；若煤价续跌且 DIO 高企，则存货减值风险成立", "source": "公开现货/期货价格（mx_macro_data）；DIO 由报告 01 章报表数推算", "badge": "der" }
+  ]
+}

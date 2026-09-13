@@ -151,7 +151,6 @@
       "nonrecurring_share": { "cur": null, "note": "非经÷归母净利" }
     },
     "dupont": { "driver": "净利率|周转率|杠杆", "src": "" },
-    "fscore": { "items": [true,false,null], "score": null },
     "q4": { "rev": null, "np": null, "rev_share": null, "gm_q4": null, "gm_q1q3": null,
             "impair_share": null, "exp_ratio_q4": null, "exp_ratio_q1q3": null, "src": "" },
     "rev_factors": { "volume": null, "price": null, "mix": null, "src": "",
@@ -191,16 +190,40 @@
   ],
 
   "signals": [
-    { "id": "R1", "level": "r", "type": "signal", "title": "存贷双高", "data": "货币资金/总资产=x% 且 有息负债/总资产=y%",
-      "evidence": "原文引用", "source": "资产负债表+货币资金附注" }
+    { "id": "R1", "level": "r", "verdict": "命中", "type": "signal", "title": "存贷双高",
+      "data": "货币资金/总资产=x% 且 有息负债/总资产=y%",
+      "evidence": "原文引用", "source": "资产负债表+货币资金附注" },
+    { "id": "R2", "level": "g", "verdict": "反向未触发", "type": "signal", "title": "非经常性损益撑利润",
+      "data": "扣非/归母 = 118%，非经为反向拖累", "evidence": "…", "source": "非经常性损益表" }
+  ],
+
+  "watchlist": [
+    { "indicator": "合同负债增速 vs 收入增速（剪刀差）", "current": "合同负债 -12% vs 收入 +8%",
+      "tripwire": "若合同负债增速连续两期低于收入增速，则需求端走弱成立",
+      "source": "资产负债表「合同负债」及其上期数", "badge": "der" }
   ]
 }
 ```
 
-**`signals[]` 字段说明**：`level ∈ g/y/r`（严重度）；`type ∈ signal/assertion`
-（`signal` = 财务信号；`assertion` = MD&A 断言不实，见 text-mining.md 第七节）。
-⚠️ redflags.md 使用纪律第 2 条「红色信号 ≥2 条即提示财务真实性风险聚集」**只统计
-`type=signal`** 的红色条目——归因不实与财务真实性是两类问题，不可混计。`type` 缺省视为 `signal`。
+**`signals[]` 字段说明**：
+- `verdict ∈ 命中/观察/未触发/反向未触发`（**呈现四态**，判定标准见 redflags.md 第一节课后「判定分类」）；
+  `level ∈ g/y/r`（**严重度**，用于计数与排序）。两者对应：命中→`r`、观察→`y`、
+  未触发→`g`、反向未触发→`g`（不是风险，但含信息量）。报告正文按四态分层呈现：
+  命中 / 观察 / 反向未触发逐条展开，未触发不逐条进正文，只做一行汇总
+- `type ∈ signal/assertion`（`signal` = 财务信号；`assertion` = MD&A 断言不实，
+  见 text-mining.md 第七节）
+- ⚠️ redflags.md 使用纪律第 2 条「红色信号 ≥2 条即提示财务真实性风险聚集」**只统计
+  `type=signal`** 的红色条目——归因不实与财务真实性是两类问题，不可混计。`type` 缺省视为 `signal`；
+  `verdict` 缺省按 `level` 反推（r→命中 / y→观察 / g→未触发）。
+
+**`watchlist[]` 字段说明**（P2-18 下期跟踪清单落库）：
+- `indicator`：先行指标名，取自 industry-profiles.md 中该 `meta.industry_profile` 模式的
+  「先行指标建议集」（3~5 项）；无法归类时用通用缺省集并在报告声明理由
+- `current`：当前读数（字符串，含单位与期次）
+- `tripwire`：**条件化触发线，必须是 if-then 形态**（「若 X 连续两期……则 Y 成立」），
+  **禁止无条件预测**——方向性判断的合法形态见 SKILL.md「何时不用」
+- `source`：数据来源；`badge ∈ disc/der/est`：读数证据等级，与报告徽章一致
+- 下期回看（SKILL.md Phase 0 第 5 条）直接消费本块，逐条核对 `tripwire` 是否触发
 
 **`assertions[]` 字段说明**（P1-12 断言验证表落库）：
 `verdict ∈ 通过/不成立/无法验证`；判「不成立」**必须**填 `evidence`（反证数字）；
