@@ -25,3 +25,20 @@
 3. 改 `calc.py` / `extraction-schema.md` / 任一 fixture 后，回归是强制的，不许跳过
 4. 结构性改动（流程/模板/阈值）先拿黄金样本与回归双绿，再提交
 5. 全程中文（代码关键字除外）
+
+## 发布流程（版本定稿时一条链做完，不拆散等提示）
+
+技能源改动验收通过（回归 exit 0 + check_html 全绿 + 版本号与 HANDOFF.md 已同步）后，
+用户说「commit / 发布 / 上线 / 定稿 / 部署」任一词语，默认按序一次做完：
+
+1. **回归**：`python financial-report-analysis/tests/run_regression.py` 须 exit 0
+2. **提交**：相关改动一个 commit——技能源 + HANDOFF.md + reports 产物（html/json）+
+   计划/修订文档；PDF/md 按 .gitignore 不入库。提交信息写清「做了什么 + 为什么 + 怎么验证的」
+3. **打 tag**：annotated tag，版本号与 SKILL.md 的 `version` 一致，附变更摘要
+4. **推送**：`git push origin main --tags`（remote：私密仓库 jxbrex/financial-report-analysis-skill）
+5. **更新 latest release**：`gh release create <tag> --title "<tag>" --notes "<变更摘要>" --latest`；
+   该 tag 已有 release 则改 `gh release edit <tag> --notes "<摘要>" --latest`
+6. **部署**：`cmd //c deploy.cmd` 镜像技能源到用户级 skills 目录（新会话生效）
+7. **回报**：commit 短号 + tag + release URL + deploy 结果
+
+工作区存在未提交改动时先查明归属（哪一轮修订的遗留），在提交信息里分段说明，不许默默混收。
