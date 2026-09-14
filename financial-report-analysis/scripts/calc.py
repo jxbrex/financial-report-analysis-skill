@@ -176,6 +176,23 @@ def check_structure(data, rep):
             elif abs(nums[-1] - float(cur)) > max(0.005 * abs(float(cur)), 0.005):
                 bad_hist += 1
                 rep.add(FAIL, "hist", f"{loc}.hist 末位 {nums[-1]} ≠ cur {cur}（hist 必须旧→新且以本期收尾）")
+
+    # derived.ratios 的趋势比率同样带 hist，末位必须 = cur。比率节点无 src（复算值），
+    # 不能混入 walk_leaves（会误报 src 为空），故单独遍历、只查 hist 一致性
+    for name, node in ((data.get("derived") or {}).get("ratios") or {}).items():
+        if not isinstance(node, dict):
+            continue
+        cur = node.get("cur")
+        hist = node.get("hist")
+        if cur is None or not (isinstance(hist, list) and hist):
+            continue
+        nums = [num(x) for x in hist]
+        if any(n is None for n in nums):
+            rep.add(FAIL, "type", f"derived.ratios.{name}.hist 含非数值元素")
+        elif abs(nums[-1] - float(cur)) > max(0.005 * abs(float(cur)), 0.005):
+            bad_hist += 1
+            rep.add(FAIL, "hist", f"derived.ratios.{name}.hist 末位 {nums[-1]} ≠ cur {cur}"
+                                  f"（hist 必须旧→新且以本期收尾）")
     if not leaves:
         rep.add(FAIL, "structure", "statements/notes 下未找到任何叶子节点，schema 结构可能被破坏")
     else:
@@ -427,6 +444,149 @@ def check_ratios(data, rep):
         rep.add(OK, "ratio", f"比率校验 {compared}/{checked} 项完成比对")
 
 
+# ─────────────────────────── 4b. 趋势比率逐期复算 ───────────────────────────
+
+# 趋势比率复算公式表：(所需科目序列, 是否平均余额口径)
+# 科目序列取 statements 对应叶子的 hist（缺 hist 时退化为 [cur]，只能复算最末一期）；
+# 平均余额口径首期无期初余额，从第 2 期起算（与 build_ratio_calcs 公式完全一致）
+RATIO_HIST_SPECS = {
+    "roe":               ([("income", "np_at"), ("balance", "equity_at")], False),
+    "gross_margin":      ([("income", "revenue"), ("income", "cost")], False),
+    "net_margin":        ([("income", "np_at"), ("income", "revenue")], False),
+    "net_cash_ratio":    ([("cashflow", "ocf"), ("income", "np_at")], False),
+    "debt_to_assets":    ([("balance", "total_liab"), ("balance", "total_assets")], False),
+    "equity_multiplier": ([("balance", "total_assets"), ("balance", "equity_at")], False),
+    "cash_to_sales":     ([("cashflow", "sales_cash"), ("income", "revenue")], False),
+    "asset_turnover":    ([("income", "revenue"), ("balance", "total_assets")], True),
+    "dso":               ([("balance", "ar"), ("income", "revenue")], True),
+    "dio":               ([("balance", "inventory"), ("income", "cost")], True),
+    "dpo":               ([("balance", "payable"), ("income", "cost")], True),
+    "ccc":               ([("balance", "ar"), ("balance", "inventory"), ("balance", "payable"),
+                           ("income", "revenue"), ("income", "cost")], True),
+}
+
+
+def series_of(data, sec, field):
+    """科目多期序列：hist 优先；无 hist 时退化为 [cur]（只能覆盖最末一期）。"""
+    node = leaf(data, "statements", sec, field) or {}
+    vals = [num(x) for x in node.get("hist") or []]
+    if not vals:
+        c = num(node.get("cur"))
+        vals = [c] if c is not None else []
+    return vals
+
+
+def ratio_hist_expect(name, v):
+    """按某期科目取值字典复算比率，公式与 build_ratio_calcs 一致；缺数返回 None。"""
+    g = lambda *p: v.get(p)
+
+    def safe_div(a, b):
+        if a is None or b in (None, 0):
+            return None
+        return a / b
+
+    if name == "roe":
+        return safe_div(g("income", "np_at"), g("balance", "equity_at"))
+    if name == "gross_margin":
+        rev, cost = g("income", "revenue"), g("income", "cost")
+        return None if (rev is None or cost is None) else safe_div(rev - cost, rev)
+    if name == "net_margin":
+        return safe_div(g("income", "np_at"), g("income", "revenue"))
+    if name == "net_cash_ratio":
+        return safe_div(g("cashflow", "ocf"), g("income", "np_at"))
+    if name == "debt_to_assets":
+        return safe_div(g("balance", "total_liab"), g("balance", "total_assets"))
+    if name == "equity_multiplier":
+        return safe_div(g("balance", "total_assets"), g("balance", "equity_at"))
+    if name == "cash_to_sales":
+        return safe_div(g("cashflow", "sales_cash"), g("income", "revenue"))
+
+    # 以下均为平均余额口径（余额取本期与上期均值），CCC 由 dso+dio-dpo 复合；
+    # 各比率只取自己需要的序列，缺的科目不参与计算（avg 双缺返回 None，须先判空再乘）
+    rev, cost = g("income", "revenue"), g("income", "cost")
+    ta, ta_p = g("balance", "total_assets"), v.get("total_assets_prev")
+    ar, ar_p = g("balance", "ar"), v.get("ar_prev")
+    inv, inv_p = g("balance", "inventory"), v.get("inventory_prev")
+    ap, ap_p = g("balance", "payable"), v.get("payable_prev")
+    ar_m = avg(ar, ar_p)
+    inv_m = avg(inv, inv_p)
+    ap_m = avg(ap, ap_p)
+    dso = safe_div(ar_m * 365, rev) if (rev and ar_m is not None) else None
+    dio = safe_div(inv_m * 365, cost) if (cost and inv_m is not None) else None
+    dpo = safe_div(ap_m * 365, cost) if (cost and ap is not None and ap_m is not None) else None
+    if name == "asset_turnover":
+        return safe_div(rev, avg(ta, ta_p))
+    if name == "dso":
+        return dso
+    if name == "dio":
+        return dio
+    if name == "dpo":
+        return dpo
+    if name == "ccc":
+        return None if any(x is None for x in (dso, dio, dpo)) else dso + dio - dpo
+    return None
+
+
+def check_ratio_hist(data, rep):
+    """趋势比率逐期复算：对 derived.ratios 中带 hist 的比率，用 statements 的 hist
+    序列逐期重算（公式与 build_ratio_calcs 完全一致），容差与 check_ratios 相同。"""
+    ratios = ((data.get("derived") or {}).get("ratios")) or {}
+    n_ok = n_fail = n_skip = 0
+    missing_hist = []
+    for name, node in ratios.items():
+        if not isinstance(node, dict):
+            continue
+        rh = [num(x) for x in node.get("hist") or []]
+        if not rh:
+            # 仅趋势比率（见 RATIO_HIST_SPECS）缺 hist 才算「口径断裂降级」；单期专用比率不序列化
+            if name in RATIO_HIST_SPECS:
+                missing_hist.append(name)
+            continue
+        spec = RATIO_HIST_SPECS.get(name)
+        if spec is None:
+            continue  # 单期专用比率不序列化，无 hist 可查
+        fields, avg_based = spec
+        ss = [series_of(data, sec, f) for sec, f in fields]
+        # hist 旧→新且以 cur 收尾，比率与科目序列按尾部对齐逐期比对
+        L = min([len(rh)] + [len(s) for s in ss])
+        for j in range(L):
+            v = {}
+            for (sec, f), s in zip(fields, ss):
+                i = len(s) - L + j
+                v[(sec, f)] = s[i]
+                # 平均余额口径还需上一期余额（期初），一并取入取值字典
+                v[f"{f}_prev"] = s[i - 1] if i > 0 else None
+            if avg_based and any(v[f"{f}_prev"] is None for _, f in fields):
+                rep.add(SKIP, "ratio-hist", f"{name} 首期无期初余额，跳过（平均余额口径从第 2 期起算）")
+                n_skip += 1
+                continue
+            expect = ratio_hist_expect(name, v)
+            got = rh[len(rh) - L + j]
+            if expect is None:
+                rep.add(SKIP, "ratio-hist", f"{name} 该期科目序列不全，无法复算")
+                n_skip += 1
+                continue
+            if abs(got - expect) <= max(0.02 * abs(expect), 0.005):
+                n_ok += 1
+            else:
+                n_fail += 1
+                rep.add(FAIL, "ratio-hist", f"{name}.hist 该期复算不符：填 {got:.4f}，重算 {expect:.4f}"
+                                            f"（差 {got - expect:+.4f}）")
+    if missing_hist and n_ok == 0 and n_fail == 0:
+        rep.add(SKIP, "ratio-hist",
+                f"趋势比率缺 hist（口径断裂等），趋势降级两期：{', '.join(missing_hist)}")
+    else:
+        parts = [f"比率历史复算 {n_ok} 期通过"]
+        if n_fail:
+            parts.append(f"{n_fail} 期不符")
+        if n_skip:
+            parts.append(f"{n_skip} 期跳过（首期无期初余额/科目序列不全）")
+        if missing_hist:
+            parts.append(f"{len(missing_hist)} 个比率缺 hist（口径断裂等），趋势降级两期："
+                         f"{', '.join(missing_hist)}")
+        rep.add(FAIL if n_fail else (OK if n_ok else SKIP), "ratio-hist", "；".join(parts))
+
+
 # ─────────────────────────── 5. recon 三态一致性 ───────────────────────────
 
 def check_recon(data, rep):
@@ -648,6 +808,7 @@ def main():
     check_retained_roll(data, rep)
     check_bridges(data, rep)
     check_ratios(data, rep)
+    check_ratio_hist(data, rep)
     check_recon(data, rep)
     check_recon_coverage(data, rep)
     check_segments(data, rep)

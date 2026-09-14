@@ -127,6 +127,11 @@ def check_moutai(case, proc, data):
                 f"recon 未闭合条目 == 0（实际 {len(loose)}）" +
                 (f"：{', '.join(f'{k}={v}' for k, v in loose)}" if loose else ""))
 
+    # 新检查项（T2 趋势比率逐期复算）必须真的被执行到，防止将来静默失效。
+    # 断言对象是 calc.py 输出中 ratio-hist 行的存在（检查被执行），不是 OK/SKIP 计数
+    case.expect("ratio-hist" in (proc.stdout or ""),
+                "新检查生效：calc.py 输出含 ratio-hist 行（比率历史复算被执行）")
+
 
 def check_kangdexin(case, proc, data):
     """造假样本：抓漏报。"""

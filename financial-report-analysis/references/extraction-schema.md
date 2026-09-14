@@ -26,7 +26,7 @@
 |---|---|---|
 | `cur` | 本期值（亿元） | 必填，未披露填 null |
 | `prev` | 上期值 | 同上；招股书=上一完整年度 |
-| `hist` | 多期数组，**旧→新** | 选填；趋势图与 P1-13 五期分析消费，缺省至少 3 期 |
+| `hist` | 多期数组，**旧→新** | 选填；趋势图与 P1-13 五期分析消费，缺省至少 3 期。趋势科目（见三）hist 深度 5 期，同类型滚动：年报对 FY、半年报对 H1；末位=cur |
 | `level` | **证据等级**：`disc` 披露 / `der` 推算 / `est` 估算 | P2-19：报告中的关键数字必须带对应徽章；`disc`=主表或附注直接披露，`der`=由两个以上披露值运算得到，`est`=含假设的测算。缺省视为 `disc` |
 | `src` | 出处：行号或「章节名+表名」 | **必填**，calc.py 校验非空 |
 | `note` | 原始口径/换算说明/异常备注 | 选填；`est` 必须在此写明假设 |
@@ -49,7 +49,7 @@
   "statements": {
     "income": {
       "revenue":      { "cur": null, "prev": null, "hist": [], "src": "" },
-      "cost":         { "cur": null, "prev": null, "src": "" },
+      "cost":         { "cur": null, "prev": null, "hist": [], "src": "" },
       "gross_profit": { "cur": null, "prev": null, "src": "", "note": "可由 revenue-cost 推算，填 derived" },
       "tax_surcharge":{ "cur": null, "prev": null, "src": "" },
       "sell_exp":     { "cur": null, "prev": null, "src": "" },
@@ -75,21 +75,21 @@
     "balance": {
       "cash":             { "cur": null, "prev": null, "src": "" },
       "restricted_cash":  { "cur": null, "prev": null, "src": "", "note": "货币资金附注受限明细合计" },
-      "ar":               { "cur": null, "prev": null, "src": "", "note": "应收账款" },
+      "ar":               { "cur": null, "prev": null, "hist": [], "src": "", "note": "应收账款" },
       "ar_notes":         { "cur": null, "prev": null, "src": "", "note": "应收票据+应收款项融资" },
       "other_ar":         { "cur": null, "prev": null, "src": "", "note": "其他应收款" },
-      "inventory":        { "cur": null, "prev": null, "src": "" },
+      "inventory":        { "cur": null, "prev": null, "hist": [], "src": "" },
       "contract_liab":    { "cur": null, "prev": null, "src": "" },
-      "payable":          { "cur": null, "prev": null, "src": "", "note": "应付账款+应付票据（DPO/CCC 计算必需；先款后货型公司可为 0）" },
+      "payable":          { "cur": null, "prev": null, "hist": [], "src": "", "note": "应付账款+应付票据（DPO/CCC 计算必需；先款后货型公司可为 0）" },
       "fixed_assets":     { "cur": null, "prev": null, "src": "", "note": "固定资产净值（A6 Capex 勾稽用）" },
       "cip":              { "cur": null, "prev": null, "src": "", "note": "在建工程" },
       "goodwill":         { "cur": null, "prev": null, "src": "" },
       "st_debt":          { "cur": null, "prev": null, "src": "", "note": "短期借款" },
       "noncur_due_1y":    { "cur": null, "prev": null, "src": "", "note": "一年内到期非流动负债" },
       "lt_debt":          { "cur": null, "prev": null, "src": "", "note": "长期借款+应付债券+租赁负债" },
-      "total_assets":     { "cur": null, "prev": null, "src": "" },
-      "total_liab":       { "cur": null, "prev": null, "src": "" },
-      "equity_at":        { "cur": null, "prev": null, "src": "", "note": "归母净资产" },
+      "total_assets":     { "cur": null, "prev": null, "hist": [], "src": "" },
+      "total_liab":       { "cur": null, "prev": null, "hist": [], "src": "" },
+      "equity_at":        { "cur": null, "prev": null, "hist": [], "src": "", "note": "归母净资产" },
       "minority_eq":      { "cur": null, "prev": null, "src": "" },
       "retained_cur":     { "cur": null, "prev": null, "src": "", "note": "未分配利润（A2 滚动勾稽）" },
       "surplus_reserve":  { "cur": null, "prev": null, "src": "", "note": "盈余公积（A2 用其本期提取额）" },
@@ -139,12 +139,12 @@
 
   "derived": {
     "ratios": {
-      "roe": { "cur": null, "prev": null }, "gross_margin": { "cur": null, "prev": null },
-      "net_margin": { "cur": null, "prev": null }, "net_cash_ratio": { "cur": null, "prev": null },
-      "cash_to_sales": { "cur": null, "prev": null }, "debt_to_assets": { "cur": null, "prev": null },
-      "asset_turnover": { "cur": null, "prev": null }, "equity_multiplier": { "cur": null, "prev": null },
-      "dso": { "cur": null, "prev": null }, "dio": { "cur": null, "prev": null },
-      "dpo": { "cur": null, "prev": null }, "ccc": { "cur": null, "prev": null },
+      "roe": { "cur": null, "prev": null, "hist": [] }, "gross_margin": { "cur": null, "prev": null, "hist": [] },
+      "net_margin": { "cur": null, "prev": null, "hist": [] }, "net_cash_ratio": { "cur": null, "prev": null, "hist": [] },
+      "cash_to_sales": { "cur": null, "prev": null, "hist": [] }, "debt_to_assets": { "cur": null, "prev": null, "hist": [] },
+      "asset_turnover": { "cur": null, "prev": null, "hist": [] }, "equity_multiplier": { "cur": null, "prev": null, "hist": [] },
+      "dso": { "cur": null, "prev": null, "hist": [] }, "dio": { "cur": null, "prev": null, "hist": [] },
+      "dpo": { "cur": null, "prev": null, "hist": [] }, "ccc": { "cur": null, "prev": null, "hist": [] },
       "short_debt_cover": { "cur": null },
       "incr_expense_eff": { "cur": null, "note": "Δ毛利÷Δ期间费用" },
       "incr_sales_eff":   { "cur": null, "note": "Δ收入÷Δ销售费用" },
@@ -205,6 +205,15 @@
 }
 ```
 
+**趋势比率 hist 规则**（三、derived.ratios 骨架）：
+- 12 个趋势比率（roe/gross_margin/net_margin/net_cash_ratio/cash_to_sales/debt_to_assets/
+  asset_turnover/equity_multiplier/dso/dio/dpo/ccc）hist 为 **5 期同类型滚动**（年报对 FY、
+  半年报对 H1），旧→新；**末位必须等于 cur**（报告提取值）；prev = 倒数第 2 期
+- avg 类比率（asset_turnover/dso/dio/dpo/ccc）首期无期初余额不可机复算，由 calc.py 跳过
+- 历史重述（如康得新 2019 追溯重述）致口径断裂时允许缺 hist 并在 note 说明，
+  报告趋势降级两期呈现
+- 单期专用比率（short_debt_cover/incr_expense_eff/incr_sales_eff/nonrecurring_share）不序列化
+
 **`signals[]` 字段说明**：
 - `verdict ∈ 命中/观察/未触发/反向未触发`（**呈现四态**，判定标准见 redflags.md 第一节课后「判定分类」）；
   `level ∈ g/y/r`（**严重度**，用于计数与排序）。两者对应：命中→`r`、观察→`y`、
@@ -252,6 +261,11 @@
 | cash | `货币资金` | `balancesheet.money_cap` |
 | restricted_cash | `使用受限`/`受限`（货币资金附注） | 无——只能来自原文 |
 | ar | `应收账款` | `balancesheet.accounts_receiv` |
+| total_assets | `资产总计` | `balancesheet.total_assets` |
+| total_liab | `负债合计` | `balancesheet.total_liab` |
+| equity_at | `归属于上市公司股东的所有者权益` | `balancesheet.total_hldr_eqy_exc_min_int` |
+| payable | `应付账款`（+应付票据） | `balancesheet.acct_payable` |
+| cost | `营业成本` | `income.oper_cost` |
 | inventory | `存货` | `balancesheet.inventories` |
 | cip | `在建工程` | `balancesheet.cip` |
 | contract_liab | `合同负债` | `balancesheet.contract_liab` |
@@ -272,3 +286,6 @@
 4. **财务公司为负的「有息负债」**：吸收存款及同业存放是经营负债，不进 lt_debt/st_debt（茅台案例）
 5. **少数股东**：OCF 调节桥起点是 `np_total`（含少数股东），净利桥终点是 `np_at`——两桥起点不同，别混
 6. **hist 顺序**：旧→新。趋势图直接消费，反了图就反了
+7. **历史重述断口径**：康得新 2019 年追溯重述后，公开库（tushare）2014–2017 为重述值、
+   当年年报对比列为原始值，两者不可混用拼接趋势；遇此情况趋势比率缺 hist 是正当状态，
+   note 写明，不得混口径
