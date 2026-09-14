@@ -29,7 +29,7 @@ metadata:
 `references/frameworks.md` 与 `references/redflags.md`）。
 
 **独立性声明**：本技能与股票分析类 skill（如 stock-deep-analysis）**完全独立**——互不依赖、
-互不承诺接口，`reports/*.json` 只是本技能自己的中间产物而非下游契约，需要联动时另行立项。
+互不承诺接口，`reports/archive/json/*.json` 只是本技能自己的中间产物而非下游契约，需要联动时另行立项。
 **不产出跨维度加权合成分**：财报分析的产出是「排除与揭示」（这份报告哪里可疑、哪里被解释），
 不是「质量排序」。
 
@@ -50,13 +50,13 @@ metadata:
 ## 产出方式与文件命名
 
 - **默认**：单文件自包含 HTML，复制 `assets/report-template.html` 骨架后填充，
-  写在**当前工作目录**的 `reports/` 子目录下。
+  写在**当前工作目录**的 `reports/` 顶层。
   填充前可先看 `examples/标杆样本-*.html`——它示范了行文密度、出处写法与槽位填充质量
   （few-shot 参考；注意它是早期版本产出，**结构以当前模板为准**，缺失的新槽位以模板注释为准）。
 - **文件命名**：`{公司名}-{代码}-{报告类型}-{报告期}-{生成日}.html`（日期一律取报告生成日，
   格式 YYYYMMDD），如 `贵州茅台-600519-年报-2024FY-20260904.html`。
   报告类型 ∈ {年报,半年报,季报,招股书}。
-- **中间产物**：markitdown 转换出的 `.md` 也存 `reports/` 下，便于复核与复用。
+- **中间产物**：markitdown 转换出的 `.md` 也存 `reports/archive/原始报告/` 下，便于复核与复用。
 - 用户明确要求 Markdown 时才输出 `.md`，章节顺序与 HTML 一致。
 - **完成后**：在对话中给出报告路径 + 一页摘要（三大亮点 / 三大风险）。
 
@@ -66,7 +66,7 @@ metadata:
 
 1. 用户在对话中提供报告文件；若未提供，先请其拖入文件，或用 tushare `anns_d` /
    mx `mx_finance_search_notice` 定位公告 PDF 链接后下载（需用户确认）。
-2. 调用 **markitdown 技能**转为 markdown，存入 `reports/`。
+2. 调用 **markitdown 技能**转为 markdown，存入 `reports/archive/原始报告/`。
 3. **长文档分章策略（关键）**：年报常 200~400 页，转换后的 md 可能数十万字符。
    先读目录/章节标题定位，再按需分段读取：
    - 必定位章节：主要会计数据与财务指标、管理层讨论与分析（MD&A）、财务报告
@@ -79,8 +79,8 @@ metadata:
    `mx_us_finance_data`；须核对**币种**（港元/人民币/美元）与**会计准则**（IFRS/US GAAP），
    A 股专属模块置灰标注「仅 A 股」，缺第二源时该标的数字加 `[单源]` 标记。
 
-5. **回看模式（P2-18）**：先检查 `reports/` 下是否已有**同公司**的旧报告
-   （文件名含公司名或代码）。有则读取其 `watchlist` 块（同目录同名 .json 的
+5. **回看模式（P2-18）**：先检查 `reports/` 顶层是否已有**同公司**的旧成品 HTML
+   （文件名含公司名或代码）。有则读取其 `watchlist` 块（`reports/archive/json/` 同名 .json 的
    `watchlist`），按块内 `tripwire` 条件化触发线逐条核对兑现情况，
    **作为新报告的第一章「上期跟踪回顾」**（兑现 ✅/❌ + 一句话复盘）；
    上期无 JSON（旧版产物）时降级解析上期报告「下期跟踪清单」表，并在新报告注明
@@ -98,7 +98,7 @@ metadata:
    港股/美股用妙想 `mx_hk_finance_data` / `mx_us_finance_data`（tushare 港股财报接口
    本环境无权限，实测 40203）。字段速查见 `references/data-sources.md`。
 3. **不一致处理**：以报告原文为准，在报告中显式标注「原文 X / 数据库 Y」。
-4. **结构化中间层（强制）**：所有提取的数字写入 `reports/{公司}-{代码}-{类型}-{期}.json`，
+4. **结构化中间层（强制）**：所有提取的数字写入 `reports/archive/json/{公司}-{代码}-{类型}-{期}.json`，
    结构见 `references/extraction-schema.md`。此后各 Phase 只消费/回填这份 JSON；
    Phase 8 的报告数字**只允许从 data.json 流入 HTML**——原文 → JSON（可机检）→ HTML。
    单位统一「亿元」，每个数值叶子必须带 `src` 出处，JSON 内禁止千位符字符串。
@@ -221,14 +221,14 @@ Roll-forward（应收/存货/在建工程/商誉）+ C 组周期联动（CCC/DPO
 ### Phase 7.5：计算自检（写报告的前置门禁，不通过禁止进入 Phase 8）
 
 1. 确认 data.json 已按 `references/extraction-schema.md` 填齐本期分析涉及的全部块
-2. 运行：`python "<技能目录>/scripts/calc.py" reports/xxx.json`
+2. 运行：`python "<技能目录>/scripts/calc.py" reports/archive/json/xxx.json`
    （技能目录 = 本技能被部署的路径；Windows 控制台已内置 UTF-8 处理）
 3. **退出码 0（全绿）才允许写报告**；任何 FAIL → 回到对应 Phase 修数据后重跑，
    禁止带病写报告。WARN 需逐条确认是「口径差异」还是「漏填」
 4. calc.py 校验六类：结构/出处、核心科目覆盖度、资产=负债+权益、未分配利润滚动、
    三座桥闭合（净利桥/OCF 调节桥/收入三效应）、比率复算、recon 三态一致性、信号结构
 5. 勾稽异常清单（`references/articulation.md` 的三态输出）写入 data.json 的 `recon` 块，
-   与 JSON 一同存档于 `reports/`
+   与 JSON 一同存档于 `reports/archive/json/`
 
 > **定位说明**：calc.py 是算术与一致性守门员，拦「桥不闭合、比率算错、勾稽不平、
 > 无出处数字」；它**不能**验证数字本身是否忠于原文——那仍靠出处链与 Phase 1 双源核对。

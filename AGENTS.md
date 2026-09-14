@@ -13,8 +13,9 @@
   - `tests/` — 金标准 fixtures + 回归入口：`moutai_2025.json`（干净样本，应零误报）、
     `kangdexin_2018.json`（造假样本，应命中）；`run_regression.py` 是唯一回归入口（含 check_html 冒烟）
   - `examples/` — 标杆样本报告（few-shot 参考；早期版本，结构以当前模板为准）
-- `reports/` — 测试产物。PDF/md 不入库；`贵州茅台-600519-年报-2025FY-20260904.html`
-  是黄金样本，改流程/模板后用它做回归对比
+- `reports/` — 产出目录。顶层只放成品 HTML（每公司只留最新版；`贵州茅台-600519-年报-2025FY-20260904.html`
+  是黄金样本，改流程/模板后用它做回归对比）；原始报告（PDF/md）存 `reports/archive/原始报告/`，
+  data.json 底稿存 `reports/archive/json/`
 - `deploy.cmd` — 部署：robocopy 镜像技能源到用户级 skills 目录（examples/ 一并上线，供运行时 few-shot）
 
 ## 纪律
@@ -25,6 +26,8 @@
 3. 改 `calc.py` / `extraction-schema.md` / 任一 fixture 后，回归是强制的，不许跳过
 4. 结构性改动（流程/模板/阈值）先拿黄金样本与回归双绿，再提交
 5. 全程中文（代码关键字除外）
+6. reports/ 目录治理：顶层仅成品 HTML（每公司最新版 + 茅台黄金样本永久保留）；原始报告入
+   `archive/原始报告/`、data.json 入 `archive/json/`；被替换的旧版成品删除（git 历史可查），不另建旧版存档
 
 ## 发布流程（版本定稿时一条链做完，不拆散等提示）
 
