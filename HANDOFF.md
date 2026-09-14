@@ -110,6 +110,29 @@ financial-report-analysis/
 
 **验证**：`run_regression.py` 14/14 绿；模板与移动报告 check_html 均 exit 0；已 deploy。
 
+## 二·七、热核代码审计（2026-09-13，v0.0.4 后追加）
+
+用户触发 thermo-nuclear-code-quality-review 审计四资产：`calc.py`（676 行）/
+`check_html.py`（455 行）/`run_regression.py`（239 行）/`report-template.html`（589 行）。
+**结论：通过**——无结构回归、无 1k 红线、无面条增长；三脚本被评为「直接、无聊、可维护」，
+v0.0.4 删改无残留引用。发现两条真债，均已修复（回归 14/14 绿，已 deploy，**未 commit，留给下轮**）：
+
+| # | 严重度 | 发现 | 处置 |
+|---|---|---|---|
+| 1 | 中 | `run_regression.py` 用「康得新 WARN ≥ 1」断言 recon 覆盖率检查存活——绑定的是样本恰好缺 recon 的偶然状态；任务 5 升级为 `--min-recon` 硬门禁后必假红 | 已修：断言对象改为 calc.py 输出含 `recon-coverage` 行（检查被执行），与 WARN 计数解耦；注释写明理由防回改 |
+| 2 | 低 | `calc.py` 的 `check_coverage`（核心科目）与 `check_recon_coverage`（等式判定）一词两义，main 里相邻两行易混 | 已修：改名 `check_core_fields`，输出 code 改 `core-fields`，与 `recon-coverage` 对仗 |
+
+**审视后有意保留（勿当债清理）**：三脚本的 UTF-8 reconfigure 块与 Report 类重复
+（两版 Report 有实质差异，抽共享模块成本>收益）；`build_ratio_calcs` 在分部检查里
+全量重算取毛利率（单次运行门禁，性能无关）；check_html 用正则而非 HTML 解析器
+（受控模板+零依赖约束下的正确取舍）；RECON_RULES 的 `("level", None)` 第二项是死数据但可读。
+
+**未修的微 nits**（记录在案）：`run_regression.py` 的 `sys.executable or "python"`
+fallback 是安慰剂；`calc.py` `Report.counts()` 里 `c.get(lv, 0)` 冗余。
+
+**给下轮的提示**：① 下轮 commit 时这两个文件的审计修复须一并收录，提交信息注明
+「热核审计修复」；② 任务 5 落地 `--min-recon` 时断言 1 的修复已扫清障碍，直接改即可。
+
 ---
 
 ## 三、本轮最有价值的三个发现（交接重点）

@@ -15,7 +15,7 @@ calc.py — financial-report-analysis 的计算自检门禁（Phase 7.5）
   3. 桥闭合  净利桥 Σ = Δ归母净利；OCF 调节桥 Σ = OCF；收入三效应 Σ = Δ收入
   4. 比率    复算 ROE/毛利率/净现比/收现比/CCC/短债覆盖/增量费用效率，与 derived 比对
   5. recon   三态一致性：偏差≤阈值却报「无法解释」、偏差>阈值却报「闭合」均判 FAIL
-  6. 覆盖度  核心科目提取完整度（季报等轻量场景允许低覆盖，只警告）
+  6. 核心科目覆盖度  核心科目提取完整度（季报等轻量场景允许低覆盖，只警告）
 
 口径约定（与 references/frameworks.md、extraction-schema.md 一致）：
   - 全部金额单位「亿元」，比率为小数
@@ -182,7 +182,7 @@ def check_structure(data, rep):
         rep.add(OK, "structure", f"叶子节点 {len(leaves)} 个；src 缺失 {bad_src}、类型错误 {bad_type}、hist 不一致 {bad_hist}")
 
 
-def check_coverage(data, rep):
+def check_core_fields(data, rep):
     got = 0
     missing = []
     for sec, field in CORE_FIELDS:
@@ -193,11 +193,11 @@ def check_coverage(data, rep):
             missing.append(f"{sec}.{field}")
     ratio = got / len(CORE_FIELDS)
     if ratio >= 0.9:
-        rep.add(OK, "coverage", f"核心科目覆盖 {got}/{len(CORE_FIELDS)}")
+        rep.add(OK, "core-fields", f"核心科目覆盖 {got}/{len(CORE_FIELDS)}")
     elif ratio >= 0.5:
-        rep.add(WARN, "coverage", f"核心科目覆盖 {got}/{len(CORE_FIELDS)}，缺：{', '.join(missing)}")
+        rep.add(WARN, "core-fields", f"核心科目覆盖 {got}/{len(CORE_FIELDS)}，缺：{', '.join(missing)}")
     else:
-        rep.add(WARN, "coverage", f"核心科目覆盖仅 {got}/{len(CORE_FIELDS)}（轻量报告可接受，年报应补齐）：{', '.join(missing)}")
+        rep.add(WARN, "core-fields", f"核心科目覆盖仅 {got}/{len(CORE_FIELDS)}（轻量报告可接受，年报应补齐）：{', '.join(missing)}")
 
 
 # ─────────────────────────── 2. 恒等式 ───────────────────────────
@@ -643,7 +643,7 @@ def main():
 
     rep = Report()
     check_structure(data, rep)
-    check_coverage(data, rep)
+    check_core_fields(data, rep)
     check_balance_identity(data, rep)
     check_retained_roll(data, rep)
     check_bridges(data, rep)

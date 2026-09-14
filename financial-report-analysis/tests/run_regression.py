@@ -147,9 +147,11 @@ def check_kangdexin(case, proc, data):
                 f"recon 命中（verdict != 闭合）>= 3（实际 {len(hits)}）" +
                 (f"：{', '.join(f'{k}={v}' for k, v in hits)}" if hits else ""))
 
-    # 新增检查项（P1-12/P1-15/P1-17 + recon 覆盖率）必须真的被执行到，防止将来静默失效
-    case.expect(summary["WARN"] >= 1,
-                f"新检查生效：recon 覆盖率提示存在（WARN >= 1，实际 {summary['WARN']}）")
+    # 新增检查项（P1-12/P1-15/P1-17 + recon 覆盖率）必须真的被执行到，防止将来静默失效。
+    # 断言对象是 calc.py 输出中 recon-coverage 行的存在（检查被执行），不是 WARN 数量——
+    # recon 覆盖率升级为硬门禁（--min-recon）后 WARN 计数会变化，断言不应随之假红
+    case.expect("recon-coverage" in (proc.stdout or ""),
+                "新检查生效：calc.py 输出含 recon-coverage 行（覆盖率检查被执行）")
     asserts = data.get("assertions") or []
     case.expect(len(asserts) >= 1, f"断言表已落库（assertions >= 1，实际 {len(asserts)}）")
     bad = [a for a in asserts if isinstance(a, dict) and a.get("verdict") == "不成立"]
