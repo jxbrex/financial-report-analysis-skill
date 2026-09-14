@@ -16,7 +16,7 @@ calc.py 只校验数据层（data.json）；报告 HTML 层此前没有任何机
     默认仅 FAIL 影响退出码（与 calc.py 一致）；--strict 让 WARN 也判失败；
     --warn-only 转纯提示模式：任何发现（含 FAIL）都不影响退出码，仅打印清单。
 
-七类检查（★ = 启发式，有误报/漏报，输出「待人工确认」而非断言错误）：
+十类检查（★ = 启发式，有误报/漏报，输出「待人工确认」而非断言错误）：
   1. placeholder  [FAIL] 未替换的 {{占位}}。HTML 注释内的不算——模板的
                   「◆ SLOT」注释里常写示例占位符，那是说明文字不是漏填；
                   <style>/<script> 内的也不算（CSS 里 `…1fr}}` 是合法语法，
@@ -30,6 +30,14 @@ calc.py 只校验数据层（data.json）；报告 HTML 层此前没有任何机
   6. sectnum      [WARN] 章节编号（.secthead .no）连续性——跳号/重号/倒退。
   7. anchor       [WARN] 悬空页内锚点（href="#x" 找不到 id="x"）；以及章节
                   secthead 完全没有 id（模板约定 s0~s8，缺了锚点体系就失效）。
+  8~10. s2-shape  [WARN] 排雷章瘦身形态（secthead id="s2" 起至下一 secthead 止；
+                  排雷章瘦身定案见修订计划 v0.2.0，三条均为 WARN）：
+    8. 反向可见行：「badge rev」出现 >0——反向未触发应并入未触发汇总行，
+       不应保留可见行；
+    9. 未触发逐条行：「badge g」出现 >1——未触发不应逐条展开（汇总 total 行
+       可能含 g，留 1 容忍；宁可少报不误报）；
+    10. 观察行 >6：「badge y」出现 >6——观察应压缩为单行 ≤30 字、上限 6 行，
+       超出并入汇总。
 
 启发式检查的边界（诚实声明，改判据前先读这段）：
   · bare-number 的判据是：在 <td> / KPI 卡 .v / .figtitle 里出现「3 位以上数字
@@ -388,6 +396,41 @@ def check_structure(text, rep, secs):
         rep.add(WARN, "anchor", f"{len(head_html)} 个章节头都没有 id——模板约定 s0~s8，跨章下钻链接会失效")
 
 
+# ─────────────────────────── 8~10. 排雷章瘦身形态（s2） ───────────────────────────
+
+def check_s2_shape(text, rep):
+    """排雷章（secthead id="s2" 起至下一 secthead 止）的瘦身形态检查，三条 WARN。
+    排雷章瘦身定案见修订计划 v0.2.0：正文只保留 🔴命中逐条与 🟡观察（≤6 行），
+    反向未触发与未触发一律并入表末汇总行。"""
+    m = re.search(r'<div class="secthead"[^>]*\bid="s2"', text)
+    if not m:
+        rep.add(WARN, "s2-shape", "未找到排雷扫描章节（secthead id=\"s2\"），无法校验瘦身形态")
+        return
+    nxt = re.search(r'class="secthead"', text[m.end():])
+    seg = text[m.start(): m.end() + nxt.start() if nxt else len(text)]
+
+    def badges(kw):
+        return re.findall(rf'class="[^"]*\bbadge\b[^"]*\b{kw}\b', seg)
+
+    # 反向未触发：并入未触发汇总行，正文不应保留可见行
+    rev = badges("rev")
+    if rev:
+        rep.add(WARN, "s2-shape",
+                f"排雷章出现 {len(rev)} 行「反向未触发」可见行——应并入未触发汇总行，不应保留可见行")
+    # 未触发逐条行：汇总 total 行可能含 g，留 1 容忍；宁可少报不误报
+    g = badges("g")
+    if len(g) > 1:
+        rep.add(WARN, "s2-shape",
+                f"排雷章出现 {len(g)} 个绿色徽章行——未触发不应逐条展开（仅容忍汇总行 1 处），逐条读数见 data.json signals 块")
+    # 观察行上限：观察压缩为单行 ≤30 字，最多 6 行，超出并入汇总
+    y = badges("y")
+    if len(y) > 6:
+        rep.add(WARN, "s2-shape",
+                f"排雷章观察条目 {len(y)} 行，超过 6 行上限——应压缩或并入汇总")
+    if not (rev or len(g) > 1 or len(y) > 6):
+        rep.add(OK, "s2-shape", "排雷章符合瘦身形态：无反向可见行、未触发未逐条展开、观察 ≤6 行")
+
+
 # ─────────────────────────── 主流程 ───────────────────────────
 
 def main():
@@ -429,6 +472,7 @@ def main():
     check_hardrules(raw, css_ranges, rep)
     check_required(body, rep)
     check_structure(body, rep, secs)
+    check_s2_shape(body, rep)
 
     print(f"\n=== check_html.py 报告机检 · {path.name} ===\n")
     order = {FAIL: 0, WARN: 1, OK: 2}

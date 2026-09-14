@@ -7,7 +7,7 @@
 <style>
 /* ═══════════════════════════════════════════════════════════════
    财报分析报告模板 · financial-report-analysis
-   视觉基底：lieflat PORCELAIN 色系（青瓷蓝）+ 浅色卡片
+   视觉基底：暖墨赭石色系（去蓝）+ 浅色卡片
    使用方式：复制本文件为最终报告文件名，替换 {{占位}} 与
    「◆ SLOT」注释标记的内容；JS 区只填数据数组，不改绘图逻辑。
    硬规则：不引入外部字体/CDN/JS；不用暗色背景、渐变、投影。字体栈为朱雀仿宋
@@ -21,9 +21,9 @@
            不写「见第 2 章」。
    ═══════════════════════════════════════════════════════════════ */
 :root{
-  --bg:rgb(247,242,235); --ink:rgb(8,31,92); --muted:rgba(8,31,92,.60);
-  --faint:rgba(8,31,92,.32); --grid:rgba(8,31,92,.16); --card:#fff;
-  --data:rgb(51,78,172); --data2:rgb(112,150,209); --faintdata:rgb(186,214,235);
+  --bg:rgb(247,242,235); --ink:rgb(58,42,28); --muted:rgba(58,42,28,.60);
+  --faint:rgba(58,42,28,.32); --grid:rgba(58,42,28,.16); --card:#fff;
+  --data:rgb(171,94,38); --data2:rgb(203,158,108); --faintdata:rgb(233,213,187);
   --good:#0F7B4F; --warn:#B8860B; --bad:#C0392B;
 }
 *{margin:0;padding:0;box-sizing:border-box}
@@ -48,11 +48,11 @@ body{background:var(--bg);color:#000;
 .dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px;vertical-align:1px}
 .dot.g{background:var(--good)}.dot.y{background:var(--warn)}.dot.r{background:var(--bad)}
 /* 证据等级徽章（P2-19）：披露 / 推算 / 估算，语义色低饱和，与 g/y/r 风险徽章可区分 */
-.badge.disc{background:rgba(8,31,92,.09);color:rgba(8,31,92,.82)}
-.badge.der{background:rgba(94,84,158,.13);color:rgb(84,74,150)}
-.badge.est{background:rgba(8,31,92,.04);color:var(--muted);border:1px dashed rgba(8,31,92,.28)}
-/* 排雷四态之「反向未触发」：信号反向成立且含信息量，用信息蓝与 g/y/r 风险色区分 */
-.badge.rev{background:rgba(51,78,172,.12);color:var(--data)}
+.badge.disc{background:rgba(58,42,28,.09);color:rgba(58,42,28,.82)}
+.badge.der{background:rgba(122,84,52,.13);color:rgb(122,84,52)}
+.badge.est{background:rgba(58,42,28,.04);color:var(--muted);border:1px dashed rgba(58,42,28,.28)}
+/* 排雷四态之「反向未触发」：信号反向成立且含信息量，用主数据色（赭石）与 g/y/r 风险色区分 */
+.badge.rev{background:rgba(171,94,38,.12);color:var(--data)}
 
 /* ── 下钻链接（P2-25）── */
 a{color:var(--data);text-decoration:none}
@@ -63,7 +63,7 @@ a:hover{text-decoration:underline}
 .sect{margin-top:46px}
 .secthead{display:flex;align-items:baseline;gap:14px;margin-bottom:6px;
   border-radius:6px;scroll-margin-top:24px}
-.secthead:target{background:rgba(51,78,172,.07)}
+.secthead:target{background:rgba(171,94,38,.07)}
 .secthead .no{font-size:13px;font-weight:800;color:var(--data)}
 .secthead .t{font-size:19px;font-weight:800;letter-spacing:.06em}
 .secthead .line{flex:1;border-top:1px solid var(--ink)}
@@ -208,34 +208,47 @@ table.data tr.total td{font-weight:800;border-top:1.5px solid var(--ink);border-
       <div class="card">
         <div class="figtitle">四维比率</div>
         <table class="data">
-          <tr><th>指标</th><th>本期</th><th>上期</th><th class="txt">评价</th></tr>
-          <tr><td>毛利率 <span class="badge der">推算</span></td><td>{{}}</td><td>{{}}</td><td class="txt">{{}}</td></tr>
-          <tr><td>净利率</td><td>{{}}</td><td>{{}}</td><td class="txt">{{}}</td></tr>
-          <tr><td>资产负债率</td><td>{{}}</td><td>{{}}</td><td class="txt">{{}}</td></tr>
-          <tr><td>存货周转天数</td><td>{{}}</td><td>{{}}</td><td class="txt">{{}}</td></tr>
-          <tr><td>应收周转天数</td><td>{{}}</td><td>{{}}</td><td class="txt">{{}}</td></tr>
-          <tr><td>收现比</td><td>{{}}</td><td>{{}}</td><td class="txt">{{}}</td></tr>
-          <tr><td>CCC（DSO+DIO−DPO，天）</td><td>{{}}</td><td>{{}}</td><td class="txt">{{拉长换增长/收窄造血改善}}</td></tr>
+          <tr><th>指标</th><th>本期</th><th>上期</th><th class="txt">较上期</th><th class="txt">评价</th></tr>
+          <tr><td>毛利率 <span class="badge der">推算</span></td><td>{{}}</td><td>{{}}</td><td class="txt">{{▲|▼|→ +Δ值；好坏语义色：利好用 <span class="up">、利空用 <span class="dn">、语境中性不染色——语义判据见 references/frameworks.md 方向语义表}}</td><td class="txt">{{≤15字注脚}}</td></tr>
+          <tr><td>净利率</td><td>{{}}</td><td>{{}}</td><td class="txt">{{▲|▼ + Δ值}}</td><td class="txt">{{≤15字注脚}}</td></tr>
+          <tr><td>资产负债率</td><td>{{}}</td><td>{{}}</td><td class="txt">{{▲|▼ + Δ值}}</td><td class="txt">{{≤15字注脚}}</td></tr>
+          <tr><td>存货周转天数</td><td>{{}}</td><td>{{}}</td><td class="txt">{{▲|▼ + Δ值}}</td><td class="txt">{{≤15字注脚}}</td></tr>
+          <tr><td>应收周转天数</td><td>{{}}</td><td>{{}}</td><td class="txt">{{▲|▼ + Δ值}}</td><td class="txt">{{≤15字注脚}}</td></tr>
+          <tr><td>收现比</td><td>{{}}</td><td>{{}}</td><td class="txt">{{▲|▼ + Δ值}}</td><td class="txt">{{≤15字注脚}}</td></tr>
+          <tr><td>CCC（DSO+DIO−DPO，天）</td><td>{{}}</td><td>{{}}</td><td class="txt">{{▲|▼ + Δ值}}</td><td class="txt">{{≤15字注脚}}</td></tr>
         </table>
         <div class="srcline">数据来源：公司{{报告期}}{{报告类型}}、Tushare；比率口径见 frameworks.md</div>
         <div class="srcline">证据等级：<span class="badge disc">披露</span> 主表/附注直接披露 · <span class="badge der">推算</span> 两数运算（毛利率/净现比/周转天数）· <span class="badge est">估算</span> 含假设（情景测算）</div>
       </div>
       <div class="card">
         <div class="figtitle">杜邦三分解：ROE 由什么驱动</div>
+        <!-- ◆ 方向列语义色规则 = 该因子变动对 ROE 的影响方向与质量（修旧示例「权益乘数 ↑ 却包 dn
+             红样式」的 bug）：↑ 且抬升 ROE 用 <span class="up">；↑ 但属被动抬升/风险堆积
+             （如靠加杠杆撑 ROE）用 <span class="dn"> 并在归因里注明；↓ 拖累 ROE 用 <span class="dn"> -->
         <table class="data">
-          <tr><th>因子</th><th>本期</th><th>上期</th><th class="txt">方向</th></tr>
-          <tr><td>净利率</td><td>{{}}</td><td>{{}}</td><td class="txt">{{↑|↓|→}}</td></tr>
-          <tr><td>总资产周转率</td><td>{{}}</td><td>{{}}</td><td class="txt">{{}}</td></tr>
-          <tr><td>权益乘数</td><td>{{}}</td><td>{{}}</td><td class="txt">{{}}</td></tr>
+          <tr><th>因子</th><th>本期</th><th>上期</th><th class="txt">方向 · 贡献归因</th></tr>
+          <tr><td>净利率</td><td>{{}}</td><td>{{}}</td><td class="txt">{{▲|▼ + 当期 ΔROE 三因素归因（净利率效应/周转效应/杠杆效应，pct 量级，量化到小数点后一位）}}</td></tr>
+          <tr><td>总资产周转率</td><td>{{}}</td><td>{{}}</td><td class="txt">{{▲|▼ + 归因（pct，一位小数）}}</td></tr>
+          <tr><td>权益乘数</td><td>{{}}</td><td>{{}}</td><td class="txt">{{▲|▼ + 归因（pct，一位小数）}}</td></tr>
           <tr class="total"><td>ROE</td><td>{{}}</td><td>{{}}</td><td class="txt">{{主驱动一句话}}</td></tr>
         </table>
         <div class="srcline">质量排序：净利率驱动 &gt; 周转率驱动 &gt; 杠杆驱动</div>
+        <div class="figtitle">杜邦三因子 5 期趋势（同类型滚动）</div>
+        <table class="data">
+          <tr><th>年度</th><th>净利率</th><th>总资产周转率</th><th>权益乘数</th><th>ROE</th><th class="txt">当期主驱动</th></tr>
+          <tr><td>{{}}</td><td>{{}}</td><td>{{}}</td><td>{{}}</td><td>{{}}</td><td class="txt">{{}}</td></tr>
+          <tr><td>{{}}</td><td>{{}}</td><td>{{}}</td><td>{{}}</td><td>{{}}</td><td class="txt">{{}}</td></tr>
+          <tr><td>{{}}</td><td>{{}}</td><td>{{}}</td><td>{{}}</td><td>{{}}</td><td class="txt">{{}}</td></tr>
+          <tr><td>{{}}</td><td>{{}}</td><td>{{}}</td><td>{{}}</td><td>{{}}</td><td class="txt">{{}}</td></tr>
+          <tr><td>{{}}</td><td>{{}}</td><td>{{}}</td><td>{{}}</td><td>{{}}</td><td class="txt">{{}}</td></tr>
+        </table>
+        <div class="srcline">数据来源：data.json derived.ratios hist · calc.py ratio-hist 逐期复算</div>
       </div>
     </div>
     <div class="fig">
-      <div class="figtitle">{{图题：近三年趋势（左面板=收入柱+毛利率线 · 右面板=归母净利柱，两面板各自缩放）}}</div>
+      <div class="figtitle">{{图题：近三年趋势（左面板=收入柱+毛利率线 · 右面板=归母净利+扣非净利柱、ROE 线；扣非/ROE 缺数据时右板降级为归母净利单柱、ROE 线跳过）}}</div>
       <svg id="trend" viewBox="0 0 960 300" preserveAspectRatio="xMidYMid meet"></svg>
-      <div class="srcline">数据来源：{{…}} · 柱=收入/归母净利 · 线=毛利率</div>
+      <div class="srcline">数据来源：{{…}} · 柱=收入（左）/归母净利+扣非净利（右）· 线=毛利率（左）/ROE（右）</div>
     </div>
   </div>
 
@@ -245,17 +258,17 @@ table.data tr.total td{font-weight:800;border-top:1.5px solid var(--ink);border-
     <div class="card">
       <table class="data">
         <tr><th>信号</th><th class="txt">判定</th><th>关键数据</th><th class="txt">证据出处</th><th class="txt">下钻</th></tr>
-        <!-- ◆ 分层呈现（P-5：正文承载动作价值，完整性由 data.json 承担）：
-             ① 命中 🔴 与 ② 观察 🟡 逐条展开；③ 反向未触发保留可见行；
-             ④ 未触发不逐条列，压缩为表末一行汇总（逐条读数与出处见 data.json signals 块） -->
+        <!-- ◆ 分层呈现（P-5：正文承载动作价值，完整性由 data.json 承担；瘦身定案见修订计划 v0.2.0）：
+             ① 命中 🔴 逐条展开；② 观察 🟡 压缩为单行 ≤30 字（信号名 + 最关键一个读数），上限 6 行，
+             超出并入汇总；③ 反向未触发不再保留可见行，与未触发一并压入表末汇总行；
+             逐条读数与出处见 data.json signals 块 -->
         <tr><td>{{命中信号}}</td><td class="txt"><span class="badge r">🔴 命中</span></td><td>{{}}</td><td class="txt">{{}}</td><td class="txt"><a class="drill" href="#s3">因素分析</a></td></tr>
-        <tr><td>{{观察信号}}</td><td class="txt"><span class="badge y">🟡 观察</span></td><td>{{达到阈值但存在部分合理解释的读数}}</td><td class="txt">{{}}</td><td class="txt"><a class="drill" href="#s1">财务总览</a></td></tr>
-        <tr><td>{{反向信号}}</td><td class="txt"><span class="badge rev">↩ 反向未触发</span></td><td>{{信号反向成立且含信息量的读数}}</td><td class="txt">{{}}</td><td class="txt"><a class="drill" href="#s3">因素分析</a></td></tr>
-        <tr class="total"><td colspan="5" class="txt">未触发汇总：已检 {{N}} 项——命中 {{x}}、观察 {{y}}、反向 {{z}}、未触发 {{w}}（{{举例：存贷双高、净现比、商誉占比…}}）· 逐条读数与出处见 data.json <code>signals</code> 块</td></tr>
+        <tr><td>{{观察信号}}</td><td class="txt"><span class="badge y">🟡 观察</span></td><td>{{单行 ≤30 字：信号名 + 最关键一个读数}}</td><td class="txt">{{}}</td><td class="txt"><a class="drill" href="#s1">财务总览</a></td></tr>
+        <tr class="total"><td colspan="5" class="txt">未触发汇总：已检 {{N}} 项——命中 {{x}} · 观察 {{y}} · 反向 {{z}} 组 · 未触发 {{w}}，逐条读数与出处见 data.json <code>signals</code> 块</td></tr>
         <!-- ◆ 末列「下钻」必填：指向解释该信号的证据链章节锚点
              （s1 财务总览 / s3 因素分析 / s4 管理层在说什么 / s5 产能与在建工程 / s6 股东结构 / s7 外部校验）-->
       </table>
-      <div class="srcline">判定规则：references/redflags.md 四态标准；🔴 命中 / 🟡 观察 / ↩ 反向未触发（信号反向成立且含信息量）/ 未触发（数字有波动但结论正常，不逐条进正文）</div>
+      <div class="srcline">判定规则：references/redflags.md 四态标准；🔴 命中 / 🟡 观察 / ↩ 反向未触发（信号反向成立且含信息量）/ 未触发（数字有波动但结论正常）——反向与未触发均不保留可见行，统一并入上方汇总行</div>
     </div>
     <!-- ◆ SLOT：勾稽异常分区（Phase 2.5 的 recon 三态结果）——只把 ⚠️/🔴 异常搬进正文，
          ✅ 闭合项压缩为表下一行汇总（全量三态见 data.json recon 块；无异常时该行写「全部闭合」） -->
@@ -494,8 +507,8 @@ table.data tr.total td{font-weight:800;border-top:1.5px solid var(--ink);border-
 <script>
 /* ── 内联绘图助手：模型只改 DATA 区数组，不改绘图逻辑 ── */
 const NS='http://www.w3.org/2000/svg';
-const INK='rgb(8,31,92)',MUT='rgba(8,31,92,.60)',GRID='rgba(8,31,92,.16)',FAINT='rgba(8,31,92,.32)';
-const C1='rgb(51,78,172)',C2='rgb(186,214,235)',GOOD='#0F7B4F',BAD='#C0392B';
+const INK='rgb(58,42,28)',MUT='rgba(58,42,28,.60)',GRID='rgba(58,42,28,.16)',FAINT='rgba(58,42,28,.32)';
+const C1='rgb(171,94,38)',C2='rgb(233,213,187)',GOOD='#0F7B4F',BAD='#C0392B';
 const el=(p,t,a)=>{const n=document.createElementNS(NS,t);for(const k in a)n.setAttribute(k,a[k]);p.appendChild(n);return n};
 const txt=(p,a,s)=>{const n=el(p,'text',a);n.textContent=s;return n};
 const tip=(n,s)=>{const t=document.createElementNS(NS,'title');t.textContent=s;n.appendChild(t)};
@@ -514,8 +527,12 @@ function niceStep(raw){const p=Math.pow(10,Math.floor(Math.log10(raw)));const n=
 
 /* ════ DATA ◆ SLOT：只填这里 ════
    （发丝网格、刻度、胶囊圆角、标签避让均由绘图函数自动生成，填数即可） */
-/* trend：近三年（或多期）标签 + 收入 + 净利 + 毛利率线(%)——渲染为双面板：左收入+毛利率、右净利 */
-const TREND={labels:['2022','2023','2024'],rev:[0,0,0],np:[0,0,0],gm:[0,0,0]};
+/* trend：近三年（或多期）标签 + 收入 + 归母净利 + 扣非净利 + ROE(小数) + 毛利率线(%)——
+   渲染为等宽双面板：左=收入柱+毛利率线，右=归母净利柱（+扣非净利柱）+ROE 线。
+   可缺省约定（schema 未强制 np_dt hist）：np_dt 整列留空或某期为 null 时该期不画扣非柱、
+   图例不列扣非（右板降级为归母净利单柱）；roe 整列留空则 ROE 线整线跳过。
+   roe 存小数（如 0.3365），绘图时 ×100 显示 %；旧报告/旧数据两个数组直接留空即可 */
+const TREND={labels:['2022','2023','2024'],rev:[0,0,0],np:[0,0,0],np_dt:[],roe:[],gm:[0,0,0]};
 /* ocfbridge：净利→经营现金流调节桥（间接法，亿元）——首项「净利润」为水平值，其余为调节项，Σ=OCF；
    OCF_END = 经营活动现金流量净额（水平值，来自 data.json statements.cashflow.ocf.cur） */
 const OCF_BRIDGE=[['净利润',0],['折旧摊销',0],['减值',0],['递延税',0],['Δ应收',0],['Δ存货',0],['Δ应付',0],['其他',0]];
@@ -577,17 +594,25 @@ function combo(id,labels,barA,barB,line,lineName,aName,bName){
   });
 }
 
-/* 趋势双面板（主图+放大镜）：左=收入柱+毛利率线，右=归母净利柱，两面板各自独立缩放。
-   收入与净利量级悬殊时同轴双柱会把矮柱压扁看不出趋势，而断轴违反「柱=长度」契约；
-   双面板让每个面板各自保持柱=长度，量级悬殊不再吞掉副序列的趋势。 */
-function trendDual(id,labels,rev,np,gm){
+/* 趋势双面板（主图+放大镜）：左=收入柱+毛利率线，右=归母净利柱（+扣非净利柱，可缺省）+ROE 线，
+   两面板等宽、各自独立缩放。收入与净利量级悬殊时同轴双柱会把矮柱压扁看不出趋势，
+   而断轴违反「柱=长度」契约；双面板让每个面板各自保持柱=长度，量级悬殊不再吞掉副序列的趋势。
+   右板可缺省设计（schema 未强制 np_dt hist）：np_dt 整列留空或某期为 null 时该期不画扣非柱、
+   图例不列扣非（降级为单柱）；roe 整列留空则整线跳过。roe 存小数，呈现时 ×100 显示 %。 */
+function trendDual(id,labels,rev,np,gm,np_dt,roe){
   const s=document.getElementById(id);if(!s||!labels.length)return;
-  const W=+s.viewBox.baseVal.width,H=+s.viewBox.baseVal.height,B=44,T=40;
+  const W=+s.viewBox.baseVal.width,H=+s.viewBox.baseVal.height,B=44,T=52;
   const L=54,R=16,GAP=52;
-  const wl=(W-L-R-GAP)*.62,wr=(W-L-R-GAP)*.38; /* 左右面板宽 62/38 */
-  const x2=L+wl+GAP,n=labels.length;
-  const drawPanel=(px0,pw,vals,color)=>{
-    const max=Math.max(...vals)*1.15||1,bw=pw/n;
+  const pw=(W-L-R-GAP)/2; /* 左右面板等宽（中缝对称各半），不再 62/38 */
+  const x2=L+pw+GAP,n=labels.length;
+  np_dt=np_dt||[];roe=roe||[];
+  const has_dt=np_dt.some(v=>v!=null);
+  /* drawPanel：单柱或双柱（vals2 传 null 即单柱）；双柱成组仿 combo 几何（w=bw*.24），
+     有副序列时布局按双柱统一（某期缺数只跳画扣非柱，柱位不漂移），柱顶数字只标主序列 */
+  const drawPanel=(px0,vals,color,vals2,color2)=>{
+    const has2=!!vals2&&vals2.some(v=>v!=null);
+    const pool=has2?vals.concat(vals2.filter(v=>v!=null)):vals;
+    const max=Math.max(...pool)*1.15||1,bw=pw/n;
     const step=niceStep(max/5);
     for(let v=step;v<max;v+=step){
       const gy=T+(H-B-T)*(1-v/max);
@@ -596,19 +621,26 @@ function trendDual(id,labels,rev,np,gm){
     }
     el(s,'line',{x1:px0,y1:H-B,x2:px0+pw,y2:H-B,stroke:GRID,'stroke-width':1});
     vals.forEach((v,i)=>{
-      const w=bw*.4,x=px0+i*bw+(bw-w)/2,h=(H-B-T)*v/max;
+      const w=has2?bw*.24:bw*.4;
+      const x=has2?px0+i*bw+bw*.18:px0+i*bw+(bw-w)/2;
+      const h=(H-B-T)*v/max;
       const r=capsule(s,x,H-B-h,w,h,w/2,color);
       tip(r,`${labels[i]}：${v}`);
       txt(s,{x:x+w/2,y:H-B-h-6,'font-size':10,'font-weight':800,fill:INK,'text-anchor':'middle'},v);
+      if(has2&&vals2[i]!=null){
+        const h2=(H-B-T)*vals2[i]/max;
+        const r2=capsule(s,x+w+3,H-B-h2,w,h2,w/2,color2);
+        tip(r2,`${labels[i]} 扣非净利：${vals2[i]}`);
+      }
     });
   };
   /* 左面板：收入（柱）+ 毛利率（线，独立缩放） */
-  drawPanel(L,wl,rev,C1);
+  drawPanel(L,rev,C1);
   const lT=T+14,lB=H-B-16;
   const lspan=Math.max(...gm)-Math.min(...gm)||1;
   const lmax=Math.max(...gm)+lspan*.5,lmin=Math.min(...gm)-lspan*.5;
   const pts=gm.map((v,i)=>{
-    const x=L+i*(wl/n)+wl/n/2,y=lT+(lB-lT)*(1-(v-lmin)/(lmax-lmin||1));
+    const x=L+i*(pw/n)+pw/n/2,y=lT+(lB-lT)*(1-(v-lmin)/(lmax-lmin||1));
     return [x,y];
   });
   el(s,'path',{d:'M'+pts.map(p=>p.join(' ')).join(' L '),fill:'none',stroke:INK,'stroke-width':1.8});
@@ -616,15 +648,46 @@ function trendDual(id,labels,rev,np,gm){
     el(s,'circle',{cx:p[0],cy:p[1],r:3,fill:INK,stroke:'#fff','stroke-width':1.5});
     txt(s,{x:p[0]+14,y:p[1]-8,'font-size':9,'font-weight':700,fill:MUT},gm[i]+'%');
   });
-  /* 右面板：归母净利（独立缩放） */
-  drawPanel(x2,wr,np,C1);
-  /* 面板分隔与标题 */
+  /* 右面板：归母净利柱（+扣非净利柱，可缺省） */
+  drawPanel(x2,np,C1,has_dt?np_dt:null,C2);
+  /* 右面板 ROE 线：小数 ×100 呈现 %，独立缩放，样式与左板毛利率线一致；
+     null 期跳点不画，只连连续非空段（断点不硬连，避免误读为连续趋势） */
+  const rv=roe.map(v=>v==null?null:v*100);
+  if(rv.some(v=>v!=null)){
+    const vals=rv.filter(v=>v!=null);
+    const span=Math.max(...vals)-Math.min(...vals)||1;
+    const lmax=Math.max(...vals)+span*.5,lmin=Math.min(...vals)-span*.5;
+    const cx=i=>has_dt?x2+i*(pw/n)+(pw/n)*.42+1.5:x2+i*(pw/n)+(pw/n)/2; /* 双柱时锚柱组中心 */
+    const ry=v=>lT+(lB-lT)*(1-(v-lmin)/(lmax-lmin||1));
+    let run=[];
+    const flush=()=>{
+      if(run.length>1){
+        el(s,'path',{d:'M'+run.map(i=>[cx(i),ry(rv[i])]).map(p=>p.join(' ')).join(' L '),fill:'none',stroke:INK,'stroke-width':1.8});
+      }
+      run=[];
+    };
+    rv.forEach((v,i)=>{
+      if(v==null){flush();return;}
+      run.push(i);
+      el(s,'circle',{cx:cx(i),cy:ry(v),r:3,fill:INK,stroke:'#fff','stroke-width':1.5});
+      txt(s,{x:cx(i)+14,y:ry(v)-8,'font-size':9,'font-weight':700,fill:MUT},v.toFixed(2)+'%');
+    });
+    flush();
+  }
+  /* 面板分隔、标题与图例（扣非/ROE 无数据时图例相应缺省，右对齐避让面板标题） */
   el(s,'line',{x1:x2-GAP/2,y1:T-8,x2:x2-GAP/2,y2:H-B,stroke:FAINT,'stroke-width':.7,'stroke-dasharray':'2 3'});
   txt(s,{x:L,y:T-22,'font-size':10,'font-weight':700,fill:MUT},'营业收入（亿元）· 线=毛利率(%)');
-  txt(s,{x:x2,y:T-22,'font-size':10,'font-weight':700,fill:MUT},'归母净利（亿元）');
+  txt(s,{x:x2,y:T-22,'font-size':10,'font-weight':700,fill:MUT},'归母净利+扣非净利（亿元）· 线=ROE(%)');
+  const lg=[['归母净利',C1],has_dt?['扣非净利',C2]:null,rv.some(v=>v!=null)?['ROE',INK]:null].filter(Boolean);
+  let lx=W-R-lg.length*110;
+  lg.forEach(([nm,c])=>{
+    el(s,'rect',{x:lx,y:6,width:10,height:10,fill:c,rx:2});
+    txt(s,{x:lx+15,y:15,'font-size':10,'font-weight':600,fill:MUT},nm);
+    lx+=110;
+  });
   labels.forEach((lb,i)=>{
-    txt(s,{x:L+i*(wl/n)+wl/n/2,y:H-B+18,'font-size':9.5,'font-weight':600,fill:MUT,'text-anchor':'middle'},lb);
-    txt(s,{x:x2+i*(wr/n)+wr/n/2,y:H-B+18,'font-size':9.5,'font-weight':600,fill:MUT,'text-anchor':'middle'},lb);
+    txt(s,{x:L+i*(pw/n)+pw/n/2,y:H-B+18,'font-size':9.5,'font-weight':600,fill:MUT,'text-anchor':'middle'},lb);
+    txt(s,{x:x2+i*(pw/n)+pw/n/2,y:H-B+18,'font-size':9.5,'font-weight':600,fill:MUT,'text-anchor':'middle'},lb);
   });
 }
 
@@ -666,7 +729,7 @@ function waterfall(id,startLabel,startVal,steps,endLabel,endVal){
   });
 }
 
-trendDual('trend',TREND.labels,TREND.rev,TREND.np,TREND.gm);
+trendDual('trend',TREND.labels,TREND.rev,TREND.np,TREND.gm,TREND.np_dt,TREND.roe);
 waterfall('ocfbridge',OCF_BRIDGE[0][0],OCF_BRIDGE[0][1],OCF_BRIDGE.slice(1),'经营现金流净额',OCF_END);
 combo('holders',HOLDERS.labels,HOLDERS.num,[],HOLDERS.px,'区间涨跌幅','股东户数(万户)','');
 </script>
