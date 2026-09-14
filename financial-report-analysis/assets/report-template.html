@@ -233,7 +233,7 @@ table.data tr.total td{font-weight:800;border-top:1.5px solid var(--ink);border-
       </div>
     </div>
     <div class="fig">
-      <div class="figtitle">{{图题：近三年收入与归母净利趋势（亿元，柱）+ 毛利率（线，%）}}</div>
+      <div class="figtitle">{{图题：近三年趋势（左面板=收入柱+毛利率线 · 右面板=归母净利柱，两面板各自缩放）}}</div>
       <svg id="trend" viewBox="0 0 960 300" preserveAspectRatio="xMidYMid meet"></svg>
       <div class="srcline">数据来源：{{…}} · 柱=收入/归母净利 · 线=毛利率</div>
     </div>
@@ -500,8 +500,21 @@ const el=(p,t,a)=>{const n=document.createElementNS(NS,t);for(const k in a)n.set
 const txt=(p,a,s)=>{const n=el(p,'text',a);n.textContent=s;return n};
 const tip=(n,s)=>{const t=document.createElementNS(NS,'title');t.textContent=s;n.appendChild(t)};
 
-/* ════ DATA ◆ SLOT：只填这里 ════ */
-/* trend：近三年（或多期）标签 + 收入柱 + 净利柱 + 毛利率线(%) */
+/* 胶囊柱：竖柱圆上端（dir='down' 圆下端），h 不足时圆角自动收缩；零值不画实形 */
+function capsule(p,x,y,w,h,r,fill,dir,cls){
+  if(h<=0)return el(p,'rect',{x:x,y:y,width:w,height:0,fill:'none'});
+  const rr=Math.min(r,w/2,h/2);
+  const d=dir==='down'
+    ?`M${x},${y} V${y+h-rr} Q${x},${y+h} ${x+rr},${y+h} H${x+w-rr} Q${x+w},${y+h} ${x+w},${y+h-rr} V${y} Z`
+    :`M${x},${y+h} V${y+rr} Q${x},${y} ${x+rr},${y} H${x+w-rr} Q${x+w},${y} ${x+w},${y+rr} V${y+h} Z`;
+  return el(p,'path',{d:d,fill:fill,class:cls});
+}
+/* nice step：网格间距取 1/2/5×10ⁿ，刻度值不出现长尾小数 */
+function niceStep(raw){const p=Math.pow(10,Math.floor(Math.log10(raw)));const n=raw/p;return (n<=1?1:n<=2?2:n<=5?5:10)*p;}
+
+/* ════ DATA ◆ SLOT：只填这里 ════
+   （发丝网格、刻度、胶囊圆角、标签避让均由绘图函数自动生成，填数即可） */
+/* trend：近三年（或多期）标签 + 收入 + 净利 + 毛利率线(%)——渲染为双面板：左收入+毛利率、右净利 */
 const TREND={labels:['2022','2023','2024'],rev:[0,0,0],np:[0,0,0],gm:[0,0,0]};
 /* ocfbridge：净利→经营现金流调节桥（间接法，亿元）——首项「净利润」为水平值，其余为调节项，Σ=OCF；
    OCF_END = 经营活动现金流量净额（水平值，来自 data.json statements.cashflow.ocf.cur） */
@@ -510,37 +523,51 @@ const OCF_END=0;
 /* holders：股东户数（万户，柱）+ 区间涨跌幅(%,线，可留空) */
 const HOLDERS={labels:[],num:[],px:[]};
 
-/* 柱线组合图：柱（C1，可再加 C2）+ 可选线（INK，独立缩放）。barB/line 传空数组即跳过 */
+/* 柱线组合图：柱（C1 主数据 / C2 次序列）+ 可选线（INK，独立缩放）。barB/line 传空数组即跳过。
+   视觉语法：胶囊柱端（圆上端）、发丝网格 + 左侧刻度（读数基准）、线标签与柱顶数字防重叠。 */
 function combo(id,labels,barA,barB,line,lineName,aName,bName){
   const s=document.getElementById(id);if(!s||!labels.length)return;
   barB=barB||[];line=line||[];
   const W=+s.viewBox.baseVal.width,H=+s.viewBox.baseVal.height,L=54,R=54,B=44,T=30;
   const max=Math.max(...barA,...barB)*1.15||1;
-  const lmax=line.length?Math.max(...line)*1.3:1,lmin=line.length?Math.min(0,...line):0;
+  const lspan=line.length?Math.max(...line)-Math.min(...line)||1:1;
+  const lmax=line.length?Math.max(...line)+lspan*.5:1,lmin=line.length?Math.min(...line)-lspan*.5:0;
   const bw=(W-L-R)/labels.length;
+  /* 发丝网格 + 刻度：柱顶数字是精确值，网格刻度只管量级 */
+  const step=niceStep(max/4);
+  for(let v=step;v<max;v+=step){
+    const gy=T+(H-B-T)*(1-v/max);
+    el(s,'line',{x1:L,y1:gy,x2:W-R,y2:gy,stroke:FAINT,'stroke-width':.7,'stroke-dasharray':'3 3'});
+    txt(s,{x:L-8,y:gy+3,'font-size':8.5,'font-weight':600,fill:MUT,'text-anchor':'end'},Math.round(v));
+  }
   labels.forEach((lb,i)=>{
-    const x=L+i*bw+bw*.18,w=bw*.24;
+    const w=bw*.24;
+    const x=barB.length?L+i*bw+bw*.18:L+i*bw+(bw-w)/2; /* 双柱成组，单柱居中 */
     const ha=(H-B-T)*barA[i]/max;
-    const r1=el(s,'rect',{x:x,y:H-B-ha,width:w,height:ha,fill:C1,class:'fade'});
+    const r1=capsule(s,x,H-B-ha,w,ha,w/2,C1);
     tip(r1,`${lb} ${aName}：${barA[i]}`);
     if(barB.length){
       const hb=(H-B-T)*barB[i]/max;
-      const r2=el(s,'rect',{x:x+w+3,y:H-B-hb,width:w,height:hb,fill:C2,class:'fade'});
+      const r2=capsule(s,x+w+3,H-B-hb,w,hb,w/2,C2);
       tip(r2,`${lb} ${bName}：${barB[i]}`);
     }
-    txt(s,{x:x+w,y:H-B-ha-6,'font-size':10,'font-weight':700,fill:INK,'text-anchor':'middle'},barA[i]);
+    const tx=barB.length?x+w:x+w/2;
+    txt(s,{x:tx,y:H-B-ha-6,'font-size':10,'font-weight':800,fill:INK,'text-anchor':'middle'},barA[i]);
     txt(s,{x:L+i*bw+bw/2,y:H-B+18,'font-size':10,'font-weight':600,fill:MUT,'text-anchor':'middle'},lb);
   });
   el(s,'line',{x1:L,y1:H-B,x2:W-R,y2:H-B,stroke:GRID,'stroke-width':1});
   if(line.length){
+    const lT=T+18,lB=H-B-16; /* 线域上下留白：避开图例与柱底 */
     const pts=line.map((v,i)=>{
-      const x=L+i*bw+bw/2,y=T+(H-B-T)*(1-(v-lmin)/(lmax-lmin||1));
+      const x=L+i*bw+bw/2,y=lT+(lB-lT)*(1-(v-lmin)/(lmax-lmin||1));
       return [x,y];
     });
-    el(s,'path',{d:'M'+pts.map(p=>p.join(' ')).join(' L '),fill:'none',stroke:INK,'stroke-width':2});
+    el(s,'path',{d:'M'+pts.map(p=>p.join(' ')).join(' L '),fill:'none',stroke:INK,'stroke-width':1.8});
     pts.forEach((p,i)=>{
-      const c=el(s,'circle',{cx:p[0],cy:p[1],r:3,fill:INK});tip(c,`${labels[i]} ${lineName}：${line[i]}%`);
-      txt(s,{x:p[0],y:p[1]-9,'font-size':9,'font-weight':700,fill:MUT,'text-anchor':'middle'},line[i]+'%');
+      const c=el(s,'circle',{cx:p[0],cy:p[1],r:3,fill:INK,stroke:'#fff','stroke-width':1.5});
+      tip(c,`${labels[i]} ${lineName}：${line[i]}%`);
+      /* 线标签放数据点右上：横向天然离开柱顶数字（数字锚在柱中心），无需避让逻辑 */
+      txt(s,{x:p[0]+8,y:p[1]-8,'font-size':9,'font-weight':700,fill:MUT,'text-anchor':'start'},line[i]+'%');
     });
   }
   const lg=[[aName,C1],barB.length?[bName,C2]:null,line.length?[lineName,INK]:null].filter(Boolean);
@@ -550,11 +577,63 @@ function combo(id,labels,barA,barB,line,lineName,aName,bName){
   });
 }
 
+/* 趋势双面板（主图+放大镜）：左=收入柱+毛利率线，右=归母净利柱，两面板各自独立缩放。
+   收入与净利量级悬殊时同轴双柱会把矮柱压扁看不出趋势，而断轴违反「柱=长度」契约；
+   双面板让每个面板各自保持柱=长度，量级悬殊不再吞掉副序列的趋势。 */
+function trendDual(id,labels,rev,np,gm){
+  const s=document.getElementById(id);if(!s||!labels.length)return;
+  const W=+s.viewBox.baseVal.width,H=+s.viewBox.baseVal.height,B=44,T=40;
+  const L=54,R=16,GAP=52;
+  const wl=(W-L-R-GAP)*.62,wr=(W-L-R-GAP)*.38; /* 左右面板宽 62/38 */
+  const x2=L+wl+GAP,n=labels.length;
+  const drawPanel=(px0,pw,vals,color)=>{
+    const max=Math.max(...vals)*1.15||1,bw=pw/n;
+    const step=niceStep(max/5);
+    for(let v=step;v<max;v+=step){
+      const gy=T+(H-B-T)*(1-v/max);
+      el(s,'line',{x1:px0,y1:gy,x2:px0+pw,y2:gy,stroke:FAINT,'stroke-width':.7,'stroke-dasharray':'3 3'});
+      txt(s,{x:px0-8,y:gy+3,'font-size':8.5,'font-weight':600,fill:MUT,'text-anchor':'end'},Math.round(v));
+    }
+    el(s,'line',{x1:px0,y1:H-B,x2:px0+pw,y2:H-B,stroke:GRID,'stroke-width':1});
+    vals.forEach((v,i)=>{
+      const w=bw*.4,x=px0+i*bw+(bw-w)/2,h=(H-B-T)*v/max;
+      const r=capsule(s,x,H-B-h,w,h,w/2,color);
+      tip(r,`${labels[i]}：${v}`);
+      txt(s,{x:x+w/2,y:H-B-h-6,'font-size':10,'font-weight':800,fill:INK,'text-anchor':'middle'},v);
+    });
+  };
+  /* 左面板：收入（柱）+ 毛利率（线，独立缩放） */
+  drawPanel(L,wl,rev,C1);
+  const lT=T+14,lB=H-B-16;
+  const lspan=Math.max(...gm)-Math.min(...gm)||1;
+  const lmax=Math.max(...gm)+lspan*.5,lmin=Math.min(...gm)-lspan*.5;
+  const pts=gm.map((v,i)=>{
+    const x=L+i*(wl/n)+wl/n/2,y=lT+(lB-lT)*(1-(v-lmin)/(lmax-lmin||1));
+    return [x,y];
+  });
+  el(s,'path',{d:'M'+pts.map(p=>p.join(' ')).join(' L '),fill:'none',stroke:INK,'stroke-width':1.8});
+  pts.forEach((p,i)=>{
+    el(s,'circle',{cx:p[0],cy:p[1],r:3,fill:INK,stroke:'#fff','stroke-width':1.5});
+    txt(s,{x:p[0]+14,y:p[1]-8,'font-size':9,'font-weight':700,fill:MUT},gm[i]+'%');
+  });
+  /* 右面板：归母净利（独立缩放） */
+  drawPanel(x2,wr,np,C1);
+  /* 面板分隔与标题 */
+  el(s,'line',{x1:x2-GAP/2,y1:T-8,x2:x2-GAP/2,y2:H-B,stroke:FAINT,'stroke-width':.7,'stroke-dasharray':'2 3'});
+  txt(s,{x:L,y:T-22,'font-size':10,'font-weight':700,fill:MUT},'营业收入（亿元）· 线=毛利率(%)');
+  txt(s,{x:x2,y:T-22,'font-size':10,'font-weight':700,fill:MUT},'归母净利（亿元）');
+  labels.forEach((lb,i)=>{
+    txt(s,{x:L+i*(wl/n)+wl/n/2,y:H-B+18,'font-size':9.5,'font-weight':600,fill:MUT,'text-anchor':'middle'},lb);
+    txt(s,{x:x2+i*(wr/n)+wr/n/2,y:H-B+18,'font-size':9.5,'font-weight':600,fill:MUT,'text-anchor':'middle'},lb);
+  });
+}
+
 /* 瀑布图：起点水平值 → 调节项（正负浮动条，涨绿跌红）→ 终点水平值（蓝）。
-   用于「净利 → OCF」这类 水平值+增量 混合的桥；净利桥贡献由 s3 桥式明细表呈现 */
+   用于「净利 → OCF」这类 水平值+增量 混合的桥；净利桥贡献由 s3 桥式明细表呈现。
+   视觉语法：胶囊端帽（水平柱圆上端、负调节条圆下端）、发丝网格 + 左侧累计刻度。 */
 function waterfall(id,startLabel,startVal,steps,endLabel,endVal){
   const s=document.getElementById(id);if(!s||!steps.length)return;
-  const W=+s.viewBox.baseVal.width,H=+s.viewBox.baseVal.height,L=16,R=16,T=26,B=42;
+  const W=+s.viewBox.baseVal.width,H=+s.viewBox.baseVal.height,L=48,R=16,T=26,B=42;
   const n=steps.length+2,bw=(W-L-R)/n;
   let cum=startVal;const segs=[[startLabel,0,startVal,'level']];
   steps.forEach(([nm,d])=>{segs.push([nm,cum,cum+d,'delta']);cum+=d});
@@ -563,12 +642,18 @@ function waterfall(id,startLabel,startVal,steps,endLabel,endVal){
   segs.forEach(([,a,b])=>{lo=Math.min(lo,a,b);hi=Math.max(hi,a,b)});
   const pad=(hi-lo)*.08||1;hi+=pad;lo-=pad*.5;
   const y=v=>T+(H-T-B)*(1-(v-lo)/(hi-lo));
+  /* 发丝网格 + 左侧刻度：读「累计到哪」的基准 */
+  const step=niceStep((hi-lo)/4);
+  for(let v=Math.ceil(lo/step)*step;v<hi;v+=step){
+    el(s,'line',{x1:L,y1:y(v),x2:W-R,y2:y(v),stroke:FAINT,'stroke-width':.7,'stroke-dasharray':'3 3'});
+    txt(s,{x:L-7,y:y(v)+3,'font-size':8.5,'font-weight':600,fill:MUT,'text-anchor':'end'},String(Math.round(v*10)/10));
+  }
   el(s,'line',{x1:L,y1:y(0),x2:W-R,y2:y(0),stroke:GRID,'stroke-width':1});
   segs.forEach(([nm,a,b,k],i)=>{
     const x=L+i*bw+bw*.15,w=bw*.7;
     const top=Math.max(a,b),bot=Math.min(a,b);
     const c=k==='level'?C1:(b>=a?GOOD:BAD);
-    const r=el(s,'rect',{x:x,y:y(top),width:w,height:Math.max(y(bot)-y(top),1),fill:c,class:'fade'});
+    const r=capsule(s,x,y(top),w,Math.max(y(bot)-y(top),1),Math.min(w/2,7),c,k==='delta'&&b<a?'down':'up');
     tip(r,k==='level'?`${nm}：${b}`:`${nm}：${(b-a)>0?'+':''}${(b-a).toFixed(2)}（累计 ${b.toFixed(2)}）`);
     if(i<segs.length-1){
       const nx=L+(i+1)*bw+bw*.15;
@@ -581,7 +666,7 @@ function waterfall(id,startLabel,startVal,steps,endLabel,endVal){
   });
 }
 
-combo('trend',TREND.labels,TREND.rev,TREND.np,TREND.gm,'毛利率','营业收入','归母净利');
+trendDual('trend',TREND.labels,TREND.rev,TREND.np,TREND.gm);
 waterfall('ocfbridge',OCF_BRIDGE[0][0],OCF_BRIDGE[0][1],OCF_BRIDGE.slice(1),'经营现金流净额',OCF_END);
 combo('holders',HOLDERS.labels,HOLDERS.num,[],HOLDERS.px,'区间涨跌幅','股东户数(万户)','');
 </script>
