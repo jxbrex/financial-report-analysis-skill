@@ -16,7 +16,7 @@ calc.py 只校验数据层（data.json）；报告 HTML 层此前没有任何机
     默认仅 FAIL 影响退出码（与 calc.py 一致）；--strict 让 WARN 也判失败；
     --warn-only 转纯提示模式：任何发现（含 FAIL）都不影响退出码，仅打印清单。
 
-十类检查（★ = 启发式，有误报/漏报，输出「待人工确认」而非断言错误）：
+十一类检查（★ = 启发式，有误报/漏报，输出「待人工确认」而非断言错误）：
   1. placeholder  [FAIL] 未替换的 {{占位}}。HTML 注释内的不算——模板的
                   「◆ SLOT」注释里常写示例占位符，那是说明文字不是漏填；
                   <style>/<script> 内的也不算（CSS 里 `…1fr}}` 是合法语法，
@@ -36,8 +36,11 @@ calc.py 只校验数据层（data.json）；报告 HTML 层此前没有任何机
        不应保留可见行；
     9. 未触发逐条行：「badge g」出现 >1——未触发不应逐条展开（汇总 total 行
        可能含 g，留 1 容忍；宁可少报不误报）；
-    10. 观察行 >6：「badge y」出现 >6——观察应压缩为单行 ≤30 字、上限 6 行，
-       超出并入汇总。
+    10. 观察行 >6：观察徽章「🟡」出现 >6——观察两行形态（担心→本案，v0.0.7）、
+       上限 6 条，超出并入汇总（只数 🟡 开头徽章，勾稽表 ⚠️ 不计入）。
+  11. figtitle-style [WARN] ★ 结论式标题（v0.0.7 读法层）：figtitle 括号内含方法
+                  说明关键词（必做/滚动/降级/检测/方法/口径说明/规则见）→ 疑似
+                  描述式标题，应改写为结论式、方法注记挪 srcline。
 
 启发式检查的边界（诚实声明，改判据前先读这段）：
   · bare-number 的判据是：在 <td> / KPI 卡 .v / .figtitle 里出现「3 位以上数字
@@ -423,7 +426,7 @@ def check_s2_shape(text, rep):
     if len(g) > 1:
         rep.add(WARN, "s2-shape",
                 f"排雷章出现 {len(g)} 个绿色徽章行——未触发不应逐条展开（仅容忍汇总行 1 处），逐条读数见 data.json signals 块")
-    # 观察行上限：观察压缩为单行 ≤30 字，最多 6 行，超出并入汇总。
+    # 观察行上限：观察两行形态（担心→本案，v0.0.7），最多 6 条，超出并入汇总。
     # 只数「🟡」开头的观察徽章——勾稽表的「⚠️ 可解释偏差」同为 badge y 但语义不同，不计入
     y = re.findall(r'class="[^"]*\bbadge\b[^"]*\by\b[^"]*"[^>]*>\s*🟡', seg)
     if len(y) > 6:
@@ -501,6 +504,30 @@ def check_review_shape(text, rep):
         rep.add(WARN, "review-shape", f"回看章 {len(bad)} 行 ❌ 未填误差归因（T6 冻结纪律）", bad[:5])
     else:
         rep.add(OK, "review-shape", "回看章 ❌ 行均带误差归因（T6）")
+
+
+# ─────────────────────────── 11·五. figtitle 结论式（v0.0.7 读法层） ───────────────────────────
+
+# figtitle 括号内的方法说明关键词：这类注记（年报必做/同类型滚动/降级为分部桥……）
+# 应挪 srcline，标题写判断。只扫（全角括号）段——标题正文里的同类词（如「Q4 五项检验总判」）不误伤
+FIGTITLE_METHOD_RE = re.compile(r'（[^）]*(?:必做|滚动|降级|检测|方法|口径说明|规则见)[^）]*）')
+
+
+def check_figtitle_style(text, rep, secs):
+    """figtitle 结论式（v0.0.7 读法层硬规则）：括号内含方法说明关键词 → 疑似描述式标题。
+    启发式 WARN：清单导航类标题（异常下钻地图）天然无结论，命中后人工确认即可。"""
+    hits = []
+    for m in re.finditer(r'<div class="figtitle"[^>]*>(.*?)</div>', text, re.S):
+        plain = re.sub(r"<[^>]+>", "", m.group(1))
+        if FIGTITLE_METHOD_RE.search(plain):
+            hits.append((m.start(), snippet(plain)))
+    if not hits:
+        rep.add(OK, "figtitle-style", "figtitle 均为结论式（括号内未见方法说明注记）")
+        return
+    details = [f"第 {line_of(text, p)} 行 [{secs.label(p)}]：{s}" for p, s in hits]
+    rep.add(WARN, "figtitle-style",
+            f"{len(hits)} 处 figtitle 括号内疑似方法说明——结论式标题应写判断，方法注记挪 srcline",
+            details[:DETAIL_CAP])
 
 
 # ─────────────────────────── 12. 数字回验（T8，--json 时执行） ───────────────────────────
@@ -763,6 +790,7 @@ def main():
     check_s2_shape(body, rep)
     check_s8_shape(body, rep)
     check_review_shape(body, rep)
+    check_figtitle_style(body, rep, secs)
     if data is not None:
         check_numbers_vs_json(body, raw, data, rep)
         check_json_vs_md(data, Path(args.json_path).resolve(), rep)

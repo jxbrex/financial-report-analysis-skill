@@ -4,7 +4,11 @@
 
 ## 一、报告转换：markitdown 技能
 
-- 用户提供的 PDF/DOCX/HTML → 调用 `markitdown` 技能转 md，存 `reports/`
+- 报告来源两条路（v0.0.7）：① 用户提供的 PDF/DOCX/HTML；② **A 股定期报告默认自动
+  获取**——`mx_finance_search_notice` 定位公告 PDF 链接（tushare `anns_d` 本环境无权限
+  40203，不作主路径）→ curl 下载；未指定期次时按披露节奏取最新已披露期次
+  （规则见 SKILL.md Phase 0）
+- 报告文件 → 调用 `markitdown` 技能转 md，存 `reports/archive/原始报告/`
 - 转换后立即检查：表格是否保留结构（财报三表是核心）；若表格乱码/丢失，
   换「按页分段转换」或提示用户提供文字版
 - 长文档用 Grep 定位章节锚点（「主要会计数据」「经营情况讨论与分析」「合并资产负债表」

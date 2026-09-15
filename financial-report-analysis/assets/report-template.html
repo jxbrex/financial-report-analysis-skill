@@ -19,6 +19,11 @@
    锚点约定：每个章节的 .secthead 带固定 id（s0~s8；可选回溯块为 review），
            不受章节增删影响；跨章引用一律写页内锚点 <a href="#s2">排雷扫描</a>，
            不写「见第 2 章」。
+   读法层硬规则（v0.0.7）：figtitle 必须「结论式」——标题即判断
+           （如「Q4 无年末调节痕迹：减值贴线仅占归母 1%」），方法说明/口径注记
+           挪 srcline，不占标题；复杂表（≥4 行或含多方向读数）在 srcline 前加
+           一行 .takeaway 读法行。三层各归其位：标题说结论、表格给证据、
+           srcline 给出处。
    ═══════════════════════════════════════════════════════════════ */
 :root{
   --bg:rgb(247,242,235); --ink:rgb(58,42,28); --muted:rgba(58,42,28,.60);
@@ -87,6 +92,11 @@ table.data tr.total td{font-weight:800;border-top:1.5px solid var(--ink);border-
 .up{color:var(--good);font-weight:700}.dn{color:var(--bad);font-weight:700}
 .srcline{font-size:10.5px;font-weight:600;letter-spacing:.1em;color:var(--faint);margin-top:8px}
 
+/* ── 读法层（v0.0.7）：复杂表/图的一句话读法，位于表格之后、srcline 之前 ── */
+.takeaway{font-size:12.5px;font-weight:700;margin-top:8px}
+/* OCF 调节桥端点行：净利润 →（调节净额）→ 经营现金流净额（水平值不画柱） */
+.brends{font-size:12.5px;font-weight:800;margin:2px 0 8px}
+
 /* ── 亮点/风险清单 ── */
 .flaglist{list-style:none}
 .flaglist li{display:flex;gap:10px;padding:10px 2px;border-bottom:1px dotted var(--faint);
@@ -106,6 +116,7 @@ table.data tr.total td{font-weight:800;border-top:1.5px solid var(--ink);border-
 /* ── 图 ── */
 .fig{background:var(--card);border:1px solid var(--grid);border-radius:10px;padding:16px}
 .fig svg{width:100%;height:auto;display:block}
+.card>svg{width:100%;height:auto;display:block}
 .figtitle{font-size:13.5px;font-weight:800;margin-bottom:4px}
 
 /* ── 桥式表强调 ── */
@@ -209,7 +220,7 @@ table.data tr.total td{font-weight:800;border-top:1.5px solid var(--ink);border-
     </div>
     <div class="grid2">
       <div class="card">
-        <div class="figtitle">四维比率</div>
+        <div class="figtitle">{{结论式：四维比率总判一句话，如「营运三维全面改善，负债率升系预收非恶化」}}</div>
         <table class="data">
           <tr><th>指标</th><th>本期</th><th>上期</th><th class="txt">较上期</th><th class="txt">评价</th></tr>
           <tr><td>毛利率 <span class="badge der">推算</span></td><td>{{}}</td><td>{{}}</td><td class="txt">{{▲|▼|→ +Δ值；好坏语义色：利好用 <span class="up">、利空用 <span class="dn">、语境中性不染色——语义判据见 references/frameworks.md 方向语义表}}</td><td class="txt">{{≤15字注脚}}</td></tr>
@@ -223,11 +234,12 @@ table.data tr.total td{font-weight:800;border-top:1.5px solid var(--ink);border-
           <tr><td>财务杠杆 DFL <span class="badge der">推算</span></td><td>{{}}</td><td>{{}}</td><td class="txt">{{▲|▼ + Δ值；接近 1 = 利息负担轻，语境中性不染色}}</td><td class="txt">{{≤15字注脚}}</td></tr>
           <tr><td>非主营业务收入占比 <span class="badge der">推算</span></td><td>{{}}</td><td>{{}}</td><td class="txt">{{▲|▼ + Δ值；升 = 需拆解构成（投资/公允/营业外）再定性，语境中性不染色}}</td><td class="txt">{{≤15字注脚}}</td></tr>
         </table>
+        <div class="takeaway">读法：{{一句话总判——哪几项在改善、哪几项承压、最大的一项怎么定性}}</div>
         <div class="srcline">数据来源：公司{{报告期}}{{报告类型}}、Tushare；比率口径见 frameworks.md</div>
         <div class="srcline">证据等级：<span class="badge disc">披露</span> 主表/附注直接披露 · <span class="badge der">推算</span> 两数运算（毛利率/净现比/周转天数）· <span class="badge est">估算</span> 含假设（情景测算）</div>
       </div>
       <div class="card">
-        <div class="figtitle">杜邦三分解：ROE 由什么驱动</div>
+        <div class="figtitle">{{结论式：ROE 变动归因一句话，如「ROE -1.3pct：净利率升被募资摊薄对冲」}}</div>
         <!-- ◆ 方向列语义色规则 = 该因子变动对 ROE 的影响方向与质量（修旧示例「权益乘数 ↑ 却包 dn
              红样式」的 bug）：↑ 且抬升 ROE 用 <span class="up">；↑ 但属被动抬升/风险堆积
              （如靠加杠杆撑 ROE）用 <span class="dn"> 并在归因里注明；↓ 拖累 ROE 用 <span class="dn"> -->
@@ -239,22 +251,18 @@ table.data tr.total td{font-weight:800;border-top:1.5px solid var(--ink);border-
           <tr class="total"><td>ROE</td><td>{{}}</td><td>{{}}</td><td class="txt">{{主驱动一句话}}</td></tr>
         </table>
         <div class="srcline">质量排序：净利率驱动 &gt; 周转率驱动 &gt; 杠杆驱动</div>
-        <div class="figtitle">杜邦三因子 5 期趋势（同类型滚动）</div>
-        <table class="data">
-          <tr><th>年度</th><th>净利率</th><th>总资产周转率</th><th>权益乘数</th><th>ROE</th><th class="txt">当期主驱动</th></tr>
-          <tr><td>{{}}</td><td>{{}}</td><td>{{}}</td><td>{{}}</td><td>{{}}</td><td class="txt">{{}}</td></tr>
-          <tr><td>{{}}</td><td>{{}}</td><td>{{}}</td><td>{{}}</td><td>{{}}</td><td class="txt">{{}}</td></tr>
-          <tr><td>{{}}</td><td>{{}}</td><td>{{}}</td><td>{{}}</td><td>{{}}</td><td class="txt">{{}}</td></tr>
-          <tr><td>{{}}</td><td>{{}}</td><td>{{}}</td><td>{{}}</td><td>{{}}</td><td class="txt">{{}}</td></tr>
-          <tr><td>{{}}</td><td>{{}}</td><td>{{}}</td><td>{{}}</td><td>{{}}</td><td class="txt">{{}}</td></tr>
-        </table>
-        <div class="srcline">数据来源：data.json derived.ratios hist · calc.py ratio-hist 逐期复算</div>
+        <div class="figtitle">{{结论式：杜邦五年走向一句话，如「净利率趋势性抬升 vs 周转率下行，ROE 被两者拉锯」}}</div>
+        <!-- ◆ SLOT：杜邦三因子 5 期归一化折线（v0.0.7，替代表格形态）——同类型滚动
+             （年报对 FY、半年报对 H1），数据填 JS 区 DUPONT5（原始值，绘图函数归一化：
+             首点=100）；末点标原始值，指数刻度只表达相对走向 -->
+        <svg id="dupont5" viewBox="0 0 460 250" preserveAspectRatio="xMidYMid meet"></svg>
+        <div class="srcline">指数化（基期=100），末点标原始值 · 数据来源：data.json derived.ratios hist（net_margin / asset_turnover / equity_multiplier / roe）· calc.py ratio-hist 逐期复算</div>
       </div>
     </div>
     <div class="fig">
-      <div class="figtitle">{{图题：近三年趋势（左面板=收入柱+毛利率线 · 右面板=归母净利+扣非净利柱、ROE 线；扣非/ROE 缺数据时右板降级为归母净利单柱、ROE 线跳过）}}</div>
+      <div class="figtitle">{{结论式：五年趋势一句话，如「收入创新高、毛利率抬升、ROE 被摊薄」}}</div>
       <svg id="trend" viewBox="0 0 960 300" preserveAspectRatio="xMidYMid meet"></svg>
-      <div class="srcline">数据来源：{{…}} · 柱=收入（左）/归母净利+扣非净利（右）· 线=毛利率（左）/ROE（右）</div>
+      <div class="srcline">数据来源：{{…}} · 左面板=收入柱+毛利率线 · 右面板=归母净利+扣非净利柱、ROE 线（扣非/ROE 缺数据时右板降级为归母净利单柱、ROE 线跳过）</div>
     </div>
   </div>
 
@@ -263,14 +271,18 @@ table.data tr.total td{font-weight:800;border-top:1.5px solid var(--ink);border-
     <div class="secthead" id="s2"><span class="no">02</span><span class="t">排雷扫描</span><span class="line"></span><span class="tag">经营背离与需解释项 · 信号库逐条对照</span></div>
     <div class="card">
       <table class="data">
-        <tr><th>信号</th><th class="txt">判定</th><th>关键数据</th><th class="txt">证据出处</th><th class="txt">下钻</th></tr>
-        <!-- ◆ 分层呈现（P-5：正文承载动作价值，完整性由 data.json 承担；瘦身定案见修订计划 v0.2.0）：
-             ① 命中 🔴 逐条展开；② 观察 🟡 压缩为单行 ≤30 字（信号名 + 最关键一个读数），上限 6 行，
-             超出并入汇总；③ 反向未触发不再保留可见行，与未触发一并压入表末汇总行；
-             逐条读数与出处见 data.json signals 块 -->
-        <tr><td>{{命中信号}}</td><td class="txt"><span class="badge r">🔴 命中</span></td><td>{{}}</td><td class="txt">{{}}</td><td class="txt"><a class="drill" href="#s3">因素分析</a></td></tr>
-        <tr><td>{{观察信号}}</td><td class="txt"><span class="badge y">🟡 观察</span></td><td>{{单行 ≤30 字：信号名 + 最关键一个读数}}</td><td class="txt">{{}}</td><td class="txt"><a class="drill" href="#s1">财务总览</a></td></tr>
-        <tr class="total"><td colspan="5" class="txt">未触发汇总：已检 {{N}} 项——命中 {{x}} · 观察 {{y}} · 反向 {{z}} 组 · 未触发 {{w}}，逐条读数与出处见 data.json <code>signals</code> 块</td></tr>
+        <tr><th>信号（读数）</th><th class="txt">判定</th><th class="txt">担心 → 本案</th><th class="txt">下钻</th></tr>
+        <!-- ◆ 分层呈现（P-5：正文承载动作价值，完整性由 data.json 承担；两行形态定案见 v0.0.7）：
+             ① 命中 🔴 逐条展开；② 观察 🟡 两行形态（担心→本案），上限 6 条，超出并入汇总；
+             ③ 反向未触发不再保留可见行，与未触发一并压入表末汇总行；
+             逐条读数与出处见 data.json signals 块
+             ◆ 「担心 → 本案」列 = redflags.md 三问范式前两问的落地：
+               担心 = 三问①「这信号若是真雷，经营上意味着什么、会出什么错」（signals[].concern）；
+               本案 = 三问②「最可能的经营解释 + 区分证据」（signals[].evidence 压缩）——
+               禁止并列可能性、禁止「属正常波动」式空话（空话的标准回应见 redflags.md 反驳表） -->
+        <tr><td>{{命中信号 + 最关键读数 + 徽章}}</td><td class="txt"><span class="badge r">🔴 命中</span></td><td class="txt"><b>担心</b>：{{…}}<br><b>本案</b>：{{…}}</td><td class="txt"><a class="drill" href="#s3">因素分析</a></td></tr>
+        <tr><td>{{观察信号 + 最关键读数 + 徽章}}</td><td class="txt"><span class="badge y">🟡 观察</span></td><td class="txt"><b>担心</b>：{{一句话}}<br><b>本案</b>：{{一句话}}</td><td class="txt"><a class="drill" href="#s1">财务总览</a></td></tr>
+        <tr class="total"><td colspan="4" class="txt">未触发汇总：已检 {{N}} 项——命中 {{x}} · 观察 {{y}} · 反向 {{z}} 组 · 未触发 {{w}}，逐条读数与出处见 data.json <code>signals</code> 块</td></tr>
         <!-- ◆ 末列「下钻」必填：指向解释该信号的证据链章节锚点
              （s1 财务总览 / s3 因素分析 / s4 管理层在说什么 / s5 产能与在建工程 / s6 股东结构 / s7 外部校验）-->
       </table>
@@ -279,7 +291,7 @@ table.data tr.total td{font-weight:800;border-top:1.5px solid var(--ink);border-
     <!-- ◆ SLOT：勾稽异常分区（Phase 2.5 的 recon 三态结果）——只把 ⚠️/🔴 异常搬进正文，
          ✅ 闭合项压缩为表下一行汇总（全量三态见 data.json recon 块；无异常时该行写「全部闭合」） -->
     <div class="card">
-      <div class="figtitle">勾稽验算异常清单（过程层：数字验数字）</div>
+      <div class="figtitle">{{结论式：勾稽异常一句话，如「3 项可解释偏差，均指向口径而非粉饰」或「全部闭合」}}</div>
       <table class="data">
         <tr><th>等式</th><th class="txt">三态</th><th>偏差额 / 偏差率</th><th class="txt">解释或追问</th><th class="txt">下钻</th></tr>
         <tr><td>{{A4 收入-收现闭环}}</td><td class="txt"><span class="badge y">⚠️ 可解释偏差</span></td><td>{{偏差额 / 偏差率}}</td><td class="txt">{{合理解释}}</td><td class="txt"><a class="drill" href="#s1">财务总览</a></td></tr>
@@ -298,7 +310,11 @@ table.data tr.total td{font-weight:800;border-top:1.5px solid var(--ink);border-
     <p class="lede">{{一句话：本期利润变化的第一驱动是……}}</p>
     <div class="grid2">
       <div class="card">
-        <div class="figtitle">收入桥（多产品公司必拆量/价/结构三因素；无量价数据时降级为分部桥并标注）</div>
+        <div class="figtitle">{{结论式：Δ收入归因一句话，如「增长第一贡献来自高毛利的 XX 线，结构升级是真实的」}}</div>
+        <!-- ◆ 分组轴规则（v0.0.7）：优先与商业模式叙事同构的轴（industry-profiles.md 该模式
+             声明的收入轴，如医药=创新药/仿制药/license-out），不机械照搬附注分产品表；
+             分产品毛利表作为结构升级证据保留为注记。多产品公司能拆量价必拆量/价/结构
+             三因素；无量价数据时降级为分部桥并标注 -->
         <table class="data bridge">
           <tr><th>因素</th><th>贡献额（亿元）</th><th>占比</th></tr>
           <tr><td>基期收入</td><td>{{}}</td><td>—</td></tr>
@@ -307,10 +323,10 @@ table.data tr.total td{font-weight:800;border-top:1.5px solid var(--ink);border-
           <tr><td>结构效应（ΣΔ量ᵢ×(基期价ᵢ−基期均价)）</td><td class="{{up|dn}}">{{±}}</td><td>{{结构升级=亮点/结构恶化=增收不增利根源}}</td></tr>
           <tr class="total"><td>本期收入</td><td>{{}}</td><td>—</td></tr>
         </table>
-        <div class="srcline">数据来源：{{报告 MD&A 产销量表 / 分产品收入}}；三效应之和 = Δ收入（calc.py bridge.rev 已校验）；方法：factor-analysis.md 第一节</div>
+        <div class="srcline">数据来源：{{报告 MD&A 产销量表 / 分产品收入}}；三效应之和 = Δ收入（calc.py bridge.rev 已校验）；方法：factor-analysis.md 第一节（三行桥式表为必选形态，无量价降级见同文件第二节）</div>
       </div>
       <div class="card">
-        <div class="figtitle">净利润桥：各因素贡献额（亿元）</div>
+        <div class="figtitle">{{结论式：归母净利归因一句话，如「毛利是第一驱动、期间费用是最大拖累」}}</div>
         <table class="data bridge">
           <tr><th>环节</th><th>本期</th><th>上期</th><th>贡献额</th><th class="txt">备注</th></tr>
           <tr><td>毛利</td><td>{{}}</td><td>{{}}</td><td class="up">{{}}</td><td class="txt">{{毛利率变化解释}}</td></tr>
@@ -322,25 +338,32 @@ table.data tr.total td{font-weight:800;border-top:1.5px solid var(--ink);border-
           <tr><td>少数股东损益</td><td>{{}}</td><td>{{}}</td><td>{{}}</td><td class="txt">{{}}</td></tr>
           <tr class="total"><td>归母净利润</td><td>{{}}</td><td>{{}}</td><td>{{}}</td><td class="txt">第一驱动：{{}}</td></tr>
         </table>
-        <div class="srcline">正贡献记 + / 负贡献记 − · 数据来源：公司{{报告期}}{{报告类型}}合并利润表、Tushare 交叉核对</div>
+        <div class="srcline">正贡献记 + / 负贡献记 − · 单位：亿元 · 数据来源：公司{{报告期}}{{报告类型}}合并利润表、Tushare 交叉核对</div>
       </div>
     </div>
     <!-- ◆ SLOT：第二座桥（净利→经营现金流，间接法）+ Q4 单季透视 -->
     <div class="grid2">
       <div class="fig">
-        <div class="figtitle">净利 → 经营现金流调节桥（亿元）：利润为什么没变成现金</div>
-        <svg id="ocfbridge" viewBox="0 0 460 300" preserveAspectRatio="xMidYMid meet"></svg>
-        <div class="srcline">营运资本吞噬额 {{X}} 亿（占净利润 {{Y}}%）· 主吞噬项：{{应收/存货/应付}} · 数据来源：现金流量表补充资料 · calc.py bridge.ocf 已校验</div>
+        <div class="figtitle">{{结论式：OCF 与净利润的关系一句话，如「OCF 反超净利润：应付预收放大是主因」或「OCF 远低于净利润：营运资本吞噬在应收」}}</div>
+        <!-- ◆ 端点行 + delta 条形图（v0.0.7，替代瀑布图）：水平值（净利润/OCF）与调整项量级
+             悬殊时瀑布图会把调整项压成细线——水平值不画柱，以文字端点呈现；SVG 只画调整项
+             delta 条（按 |delta| 降序，零轴居中、右绿左红）。viewBox 高度按 30+26×行数调整 -->
+        <div class="brends">净利润 {{X}} 亿 →（调节净额 {{±Y}} 亿）→ 经营现金流净额 {{Z}} 亿</div>
+        <svg id="ocfbridge" viewBox="0 0 460 240" preserveAspectRatio="xMidYMid meet"></svg>
+        <div class="srcline">营运资本吞噬额 {{X}} 亿（占净利润 {{Y}}%，负值=净释放）· 主吞噬/释放项：{{应收/存货/应付}} · 数据来源：现金流量表补充资料 · calc.py bridge.ocf 已校验</div>
       </div>
       <div class="card">
-        <div class="figtitle">Q4 单季透视（年报必做，五项异常检测）</div>
+        <div class="figtitle">{{结论式：Q4 五项检验总判一句话，如「五项全过、无年末调节痕迹」或「减值占比超标，洗澡嫌疑待解释」}}</div>
+        <!-- ◆ 导读：Q4 单季拆解在防什么——A 股动手脚最集中在 Q4（年末调节高发区），
+             五项检验分别防收入突击确认 / 毛利率异动 / 洗澡式计提 / 费用挂账 / 拖延转固躲折旧；
+             贴线项须看绝对额占归母比再定性 -->
         <table class="data">
-          <tr><th>检测项</th><th>读数</th><th class="txt">阈值</th><th class="txt">判定</th></tr>
-          <tr><td>Q4 收入占全年</td><td>{{%}}</td><td class="txt">&gt;40%</td><td class="txt"><span class="badge {{}}">{{}}</span></td></tr>
-          <tr><td>Q4 毛利率 vs 前三季</td><td>{{%}} vs {{%}}</td><td class="txt">偏离&gt;5pct</td><td class="txt"><span class="badge {{}}">{{}}</span></td></tr>
-          <tr><td>Q4 减值占全年</td><td>{{%}}</td><td class="txt">&gt;60%</td><td class="txt"><span class="badge {{}}">{{}}</span></td></tr>
-          <tr><td>Q4 费用率 vs 前三季</td><td>{{%}} vs {{%}}</td><td class="txt">骤降&gt;3pct</td><td class="txt"><span class="badge {{}}">{{}}</span></td></tr>
-          <tr><td>Q4 集中转固</td><td>{{金额}}</td><td class="txt">集中且大</td><td class="txt"><span class="badge {{}}">{{}}</span></td></tr>
+          <tr><th>检验项</th><th>读数</th><th class="txt">在防什么（阈值）</th><th class="txt">判定</th></tr>
+          <tr><td>Q4 收入占全年</td><td>{{%}}</td><td class="txt">年末突击确认收入（&gt;40%）</td><td class="txt"><span class="badge {{}}">{{}}</span></td></tr>
+          <tr><td>Q4 毛利率 vs 前三季</td><td>{{%}} vs {{%}}</td><td class="txt">年末利润调节：少结转成本或突击让利（偏离&gt;5pct）</td><td class="txt"><span class="badge {{}}">{{}}</span></td></tr>
+          <tr><td>Q4 减值占全年</td><td>{{%}}</td><td class="txt">洗澡式计提：把明年利润也洗进去（&gt;60%）</td><td class="txt"><span class="badge {{}}">{{}}</span></td></tr>
+          <tr><td>Q4 费用率 vs 前三季</td><td>{{%}} vs {{%}}</td><td class="txt">费用挂账：推迟确认费用做高利润（骤降&gt;3pct）</td><td class="txt"><span class="badge {{}}">{{}}</span></td></tr>
+          <tr><td>Q4 集中转固</td><td>{{金额}}</td><td class="txt">拖延转固躲折旧 / 突击转固调节（集中且大）</td><td class="txt"><span class="badge {{}}">{{}}</span></td></tr>
         </table>
         <div class="srcline">数据来源：年报「分季度主要会计数据」/ 年报−三季报 · 阈值见 report-types.md 年报节</div>
       </div>
@@ -352,14 +375,14 @@ table.data tr.total td{font-weight:800;border-top:1.5px solid var(--ink);border-
     <div class="secthead" id="s4"><span class="no">04</span><span class="t">管理层在说什么</span><span class="line"></span><span class="tag">MD&A · 措辞 · 赛道重合度</span></div>
     <div class="grid2">
       <div class="card">
-        <div class="figtitle">叙事主线与发力方向</div>
+        <div class="figtitle">{{结论式：管理层叙事主线一句话，如「三条主线都有钱跟上」或「口号响但资本开支没跟上」}}</div>
         <ul class="flaglist">
           <li><span><span class="dot g"></span></span><div class="body">{{管理层强调的方向1 + 钱是否跟上}}<span class="src">出处：{{MD&A 章节}}</span></div></li>
           <li><span><span class="dot g"></span></span><div class="body">{{…}}<span class="src">出处：{{…}}</span></div></li>
         </ul>
       </div>
       <div class="card">
-        <div class="figtitle">措辞变化与隐晦信号（对比上期）</div>
+        <div class="figtitle">{{结论式：措辞变化一句话，如「语气强档为主，压档全部指向仿制药」或「风险提示新增 X 条 = 管理层最担心的事」}}</div>
         <ul class="flaglist">
           <li><span><span class="dot y"></span></span><div class="body">{{新增/删除/弱化的关键词 + 解读}}<span class="src">出处：{{两期同章节对比}}</span></div></li>
           <li><span><span class="dot r"></span></span><div class="body">{{风险提示新增条目}}<span class="src">出处：{{…}}</span></div></li>
@@ -367,16 +390,16 @@ table.data tr.total td{font-weight:800;border-top:1.5px solid var(--ink);border-
       </div>
     </div>
     <div class="card">
-      <div class="figtitle">热门赛道重合度：真布局还是蹭热点</div>
+      <div class="figtitle">{{结论式：真布局还是蹭热点的判定一句话，如「宣称方向四问全有 = 真布局」或「只有文字没有投入 = 蹭热点」}}</div>
       <table class="data">
         <tr><th>宣称方向</th><th class="txt">对应热门概念</th><th class="txt">资本开支</th><th class="txt">产能/订单</th><th class="txt">研发</th><th class="txt">收入贡献</th><th class="txt">判定</th></tr>
         <tr><td>{{方向}}</td><td class="txt">{{概念板块}}</td><td class="txt">{{有/无+金额}}</td><td class="txt">{{}}</td><td class="txt">{{}}</td><td class="txt">{{}}</td><td class="txt"><span class="badge {{}}">{{真布局/观察/蹭热点}}</span></td></tr>
       </table>
-      <div class="srcline">热门概念：Tushare dc_index/ths_hot；判定规则：text-mining.md 四问</div>
+      <div class="srcline">热门概念：Tushare dc_index/ths_hot；判定规则：text-mining.md 四问（资本开支/产能订单/研发/收入贡献）；重点宣称数字须给行业坐标（同行对比/行业占比/口径说明）</div>
     </div>
     <!-- ◆ SLOT：断言验证表（P1-12，text-mining.md 第七节） -->
     <div class="card">
-      <div class="figtitle">MD&A 断言验证：管理层说的每句话用数字验真</div>
+      <div class="figtitle">{{结论式：断言验证总判一句话，如「12 条断言：10 通过 / 2 缺披露无法验证 / 0 不实」}}</div>
       <table class="data">
         <tr><th>管理层断言</th><th class="txt">数据检验</th><th class="txt">三态</th><th class="txt">出处</th></tr>
         <tr><td>{{如：收入下降主要系系列酒结构调整}}</td><td class="txt">{{量/价/结构三效应检验：价-38.6亿为主因，与断言一致/矛盾}}</td><td class="txt"><span class="badge {{g|y|r}}">{{✅通过/❌不成立/❓无法验证}}</span></td><td class="txt">{{MD&A 章节}}</td></tr>
@@ -386,7 +409,7 @@ table.data tr.total td{font-weight:800;border-top:1.5px solid var(--ink);border-
     </div>
     <!-- ◆ SLOT：解释缺口清单（变动>30% 但 MD&A 未解释的科目）与指引兑现率 -->
     <div class="card">
-      <div class="figtitle">解释缺口与指引兑现率</div>
+      <div class="figtitle">{{结论式：缺口与兑现一句话，如「2 项大动未解释（金额均小）、本期新指引已在期后兑现」}}</div>
       <table class="data">
         <tr><th>变动 &gt;30% 的科目</th><th>变动幅度</th><th class="txt">MD&A 是否解释</th></tr>
         <tr><td>{{科目}}</td><td>{{%}}</td><td class="txt">{{未提及/提了无归因/归因与数据不符}}</td></tr>
@@ -414,12 +437,12 @@ table.data tr.total td{font-weight:800;border-top:1.5px solid var(--ink);border-
     <div class="secthead" id="s6"><span class="no">06</span><span class="t">股东结构</span><span class="line"></span><span class="tag">户数 · 前十大 · 增减持</span></div>
     <div class="grid2">
       <div class="fig">
-        <div class="figtitle">股东户数趋势（万户）+ 区间涨跌幅（线，%）</div>
+        <div class="figtitle">{{结论式：户数走向一句话，如「全年收敛 = 筹码集中，期后扩散 = 散户涌入」}}</div>
         <svg id="holders" viewBox="0 0 460 280" preserveAspectRatio="xMidYMid meet"></svg>
-        <div class="srcline">数据来源：Tushare stk_holdernumber · 户数骤降+价升 = 筹码集中</div>
+        <div class="srcline">数据来源：Tushare stk_holdernumber（万户）· 户数骤降+价升 = 筹码集中；线=区间涨跌幅（%）</div>
       </div>
       <div class="card">
-        <div class="figtitle">前十大股东变化（本期 vs 上期）</div>
+        <div class="figtitle">{{结论式：股东变化一句话，如「北向大幅增持、财务投资人退出、控股零质押」}}</div>
         <table class="data">
           <tr><th>股东</th><th>持股比例</th><th class="txt">变动</th></tr>
           <tr><td>{{}}</td><td>{{%}}</td><td class="txt"><span class="{{up|dn}}">{{新进/增持/减持/退出}}</span></td></tr>
@@ -434,7 +457,7 @@ table.data tr.total td{font-weight:800;border-top:1.5px solid var(--ink);border-
     <div class="secthead" id="s7"><span class="no">07</span><span class="t">外部校验</span><span class="line"></span><span class="tag">预期 · 同业 · 宏观 · 债务</span></div>
     <div class="grid2">
       <div class="card">
-        <div class="figtitle">实际 vs 机构一致预期</div>
+        <div class="figtitle">{{结论式：vs 一致预期一句话，如「收入符合、归母 miss，年报后无一下调评级」}}</div>
         <table class="data">
           <tr><th>指标</th><th>实际</th><th>一致预期</th><th>偏离度</th></tr>
           <tr><td>营业收入（亿元）</td><td>{{}}</td><td>{{}}</td><td class="{{up|dn}}">{{%}}</td></tr>
@@ -443,18 +466,19 @@ table.data tr.total td{font-weight:800;border-top:1.5px solid var(--ink);border-
         <div class="srcline">数据来源：Tushare report_rc（{{n}} 家券商，最新 {{日期}}）；近期评级动向：{{上修/下修/维持}}</div>
       </div>
       <div class="card">
-        <div class="figtitle">同业对比（{{所属申万行业}}）</div>
+        <div class="figtitle">{{结论式：同业坐标一句话，如「研发强度逊百济、杠杆与翰森同档最低」}}</div>
         <table class="data">
           <tr><th>公司</th><th>毛利率</th><th>研发费率</th><th>资产负债率</th></tr>
           <tr><td><b>{{本公司}}</b></td><td>{{}}</td><td>{{}}</td><td>{{}}</td></tr>
           <tr><td>{{同业A}}</td><td>{{}}</td><td>{{}}</td><td>{{}}</td></tr>
           <tr><td>{{同业B}}</td><td>{{}}</td><td>{{}}</td><td>{{}}</td></tr>
         </table>
-        <div class="srcline">数据来源：mx 东方财富 / Tushare，同一报告期</div>
+        <div class="takeaway">读法：{{一句话——本公司每项指标在同业中的位置与含义}}</div>
+        <div class="srcline">数据来源：mx 东方财富 / Tushare，同一报告期（{{所属申万行业}}；币种/准则差异须注明）</div>
       </div>
     </div>
     <div class="card">
-      <div class="figtitle">增收不增利判定 · 宏观敏感性 · 债务偿付</div>
+      <div class="figtitle">{{结论式：三项检验总判一句话，如「增收更增利、费用效率改善、偿付无虞」}}</div>
       <table class="data">
         <tr><th>检验项</th><th>读数</th><th class="txt">结论</th></tr>
         <tr><td>收入增速 vs 净利增速</td><td>{{x%}} vs {{y%}}</td><td class="txt">{{是否存在剪刀差 + 原因}}</td></tr>
@@ -470,7 +494,7 @@ table.data tr.total td{font-weight:800;border-top:1.5px solid var(--ink);border-
     </div>
     <!-- ◆ SLOT：期后事项（P1-11，核验期末余额真实性） -->
     <div class="card">
-      <div class="figtitle">期后事项（报告披露日 → 分析日）</div>
+      <div class="figtitle">{{结论式：期后健康/风险一句话，如「期后健康：负面项均为经营性而非财务真实性风险」}}</div>
       <table class="data">
         <tr><th>日期</th><th class="txt">事件</th><th class="txt">验证了什么</th></tr>
         <tr><td>{{YYYY-MM-DD}}</td><td class="txt">{{期后大额收款/退货/质押/减持/诉讼/违约}}</td><td class="txt">{{验证期末应收真实性 / 收入确认激进 / 偿债能力}}</td></tr>
@@ -543,10 +567,15 @@ function niceStep(raw){const p=Math.pow(10,Math.floor(Math.log10(raw)));const n=
    图例不列扣非（右板降级为归母净利单柱）；roe 整列留空则 ROE 线整线跳过。
    roe 存小数（如 0.3365），绘图时 ×100 显示 %；旧报告/旧数据两个数组直接留空即可 */
 const TREND={labels:['2022','2023','2024'],rev:[0,0,0],np:[0,0,0],np_dt:[],roe:[],gm:[0,0,0]};
-/* ocfbridge：净利→经营现金流调节桥（间接法，亿元）——首项「净利润」为水平值，其余为调节项，Σ=OCF；
+/* ocfbridge：净利→经营现金流调节桥（间接法，亿元）——首项「净利润」为水平值（不画柱，
+   与 OCF_END 一起填上方 .brends 端点行），其余为调节项，Σ=OCF；
    OCF_END = 经营活动现金流量净额（水平值，来自 data.json statements.cashflow.ocf.cur） */
 const OCF_BRIDGE=[['净利润',0],['折旧摊销',0],['减值',0],['递延税',0],['Δ应收',0],['Δ存货',0],['Δ应付',0],['其他',0]];
 const OCF_END=0;
+/* dupont5：杜邦三因子 + ROE 的 5 期原始值（同类型滚动：年报对 FY、半年报对 H1，旧→新）——
+   净利率/ROE 填百分数（如 24.4 表示 24.4%），周转率/权益乘数填原值（如 0.53 / 1.14）；
+   绘图函数归一化（首点=100），末点标原始值。数据来自 data.json derived.ratios hist（末位=cur） */
+const DUPONT5={labels:[],net_margin:[],asset_turn:[],equity_mult:[],roe:[]};
 /* holders：股东户数（万户，柱）+ 区间涨跌幅(%,线，可留空) */
 const HOLDERS={labels:[],num:[],px:[]};
 
@@ -701,46 +730,92 @@ function trendDual(id,labels,rev,np,gm,np_dt,roe){
   });
 }
 
-/* 瀑布图：起点水平值 → 调节项（正负浮动条，涨绿跌红）→ 终点水平值（蓝）。
-   用于「净利 → OCF」这类 水平值+增量 混合的桥；净利桥贡献由 s3 桥式明细表呈现。
-   视觉语法：胶囊端帽（水平柱圆上端、负调节条圆下端）、发丝网格 + 左侧累计刻度。 */
-function waterfall(id,startLabel,startVal,steps,endLabel,endVal){
+/* delta 条形图（v0.0.7，替代瀑布图）：水平值（净利润/OCF）与调整项量级悬殊时，
+   瀑布图会把调整项压成细线看不出相对大小（如净利润 77 vs 调整项多在 ±10 内）。
+   改为只画调整项：按 |delta| 降序横排，零轴居中、右绿左红、条端标数值；
+   水平值在 HTML .brends 端点行呈现。柱=长度契约保持（零轴不截断），每项可读。 */
+function deltaBars(id,steps){
   const s=document.getElementById(id);if(!s||!steps.length)return;
-  const W=+s.viewBox.baseVal.width,H=+s.viewBox.baseVal.height,L=48,R=16,T=26,B=42;
-  const n=steps.length+2,bw=(W-L-R)/n;
-  let cum=startVal;const segs=[[startLabel,0,startVal,'level']];
-  steps.forEach(([nm,d])=>{segs.push([nm,cum,cum+d,'delta']);cum+=d});
-  segs.push([endLabel,0,endVal,'level']);
-  let lo=0,hi=startVal;
-  segs.forEach(([,a,b])=>{lo=Math.min(lo,a,b);hi=Math.max(hi,a,b)});
-  const pad=(hi-lo)*.08||1;hi+=pad;lo-=pad*.5;
+  const W=+s.viewBox.baseVal.width,H=+s.viewBox.baseVal.height,L=86,R=54,T=14,B=8;
+  const rows=[...steps].sort((a,b)=>Math.abs(b[1])-Math.abs(a[1]));
+  const n=rows.length,rh=(H-T-B)/n;
+  const vmax=Math.max(...rows.map(r=>Math.abs(r[1])))*1.12||1;
+  const x0=L+(W-L-R)/2; /* 零轴居中：左右等幅量程，正负可比 */
+  const sx=v=>x0+(W-L-R)/2*v/vmax;
+  const step=niceStep(vmax/2);
+  for(let v=step;v<vmax;v+=step){
+    for(const sg of[-1,1]){
+      el(s,'line',{x1:sx(sg*v),y1:T,x2:sx(sg*v),y2:H-B,stroke:FAINT,'stroke-width':.7,'stroke-dasharray':'3 3'});
+    }
+  }
+  el(s,'line',{x1:x0,y1:T,x2:x0,y2:H-B,stroke:GRID,'stroke-width':1});
+  rows.forEach(([nm,v],i)=>{
+    const y=T+i*rh+rh*.18,h=rh*.64;
+    const pos=v>=0;
+    const x=pos?x0:sx(v),w=Math.abs(sx(v)-x0);
+    const r=el(s,'rect',{x:x,y:y,width:w,height:h,fill:pos?GOOD:BAD,rx:Math.min(h/2,7)});
+    tip(r,`${nm}：${v>0?'+':''}${v}`);
+    txt(s,{x:L-8,y:y+h/2+3.5,'font-size':9.5,'font-weight':600,fill:MUT,'text-anchor':'end'},nm);
+    txt(s,{x:pos?x+w+5:x-5,y:y+h/2+3.5,'font-size':9.5,'font-weight':800,fill:pos?GOOD:BAD,'text-anchor':pos?'start':'end'},(v>0?'+':'')+v);
+  });
+}
+
+/* 杜邦三因子 5 期归一化折线（v0.0.7，替代表格）：四因子量纲悬殊（净利率 17~24% vs
+   周转率 0.5~0.7），同轴原始值折线会把小量纲压成底部平线。归一化（首点=100）后同坐标系
+   可比，走向即故事；末点标原始值，tooltip 给「原值 + 指数」。末条 series 视为结果线（ROE）加粗。
+   series = [[name, values, color, unit], …]；values 允许 null（断点不硬连）。 */
+function dupontNorm(id,labels,series){
+  const s=document.getElementById(id);if(!s||!labels.length||!series.length)return;
+  const W=+s.viewBox.baseVal.width,H=+s.viewBox.baseVal.height,L=40,R=64,B=30,T=26;
+  const n=labels.length;
+  const idx=series.map(([nm,vals])=>vals.map(v=>v==null?null:v/vals[0]*100));
+  const all=idx.flat().filter(v=>v!=null);
+  let lo=Math.min(...all),hi=Math.max(...all);
+  const pad=(hi-lo)*.12||1;hi+=pad;lo-=pad;
+  const x=i=>L+(W-L-R)*(n===1?.5:i/(n-1));
   const y=v=>T+(H-T-B)*(1-(v-lo)/(hi-lo));
-  /* 发丝网格 + 左侧刻度：读「累计到哪」的基准 */
   const step=niceStep((hi-lo)/4);
   for(let v=Math.ceil(lo/step)*step;v<hi;v+=step){
     el(s,'line',{x1:L,y1:y(v),x2:W-R,y2:y(v),stroke:FAINT,'stroke-width':.7,'stroke-dasharray':'3 3'});
-    txt(s,{x:L-7,y:y(v)+3,'font-size':8.5,'font-weight':600,fill:MUT,'text-anchor':'end'},String(Math.round(v*10)/10));
+    txt(s,{x:L-6,y:y(v)+3,'font-size':8.5,'font-weight':600,fill:MUT,'text-anchor':'end'},Math.round(v));
   }
-  el(s,'line',{x1:L,y1:y(0),x2:W-R,y2:y(0),stroke:GRID,'stroke-width':1});
-  segs.forEach(([nm,a,b,k],i)=>{
-    const x=L+i*bw+bw*.15,w=bw*.7;
-    const top=Math.max(a,b),bot=Math.min(a,b);
-    const c=k==='level'?C1:(b>=a?GOOD:BAD);
-    const r=capsule(s,x,y(top),w,Math.max(y(bot)-y(top),1),Math.min(w/2,7),c,k==='delta'&&b<a?'down':'up');
-    tip(r,k==='level'?`${nm}：${b}`:`${nm}：${(b-a)>0?'+':''}${(b-a).toFixed(2)}（累计 ${b.toFixed(2)}）`);
-    if(i<segs.length-1){
-      const nx=L+(i+1)*bw+bw*.15;
-      el(s,'line',{x1:x+w,y1:y(b),x2:nx,y2:y(b),stroke:FAINT,'stroke-width':1,'stroke-dasharray':'2 2'});
+  /* 基期 100 参考线 */
+  el(s,'line',{x1:L,y1:y(100),x2:W-R,y2:y(100),stroke:GRID,'stroke-width':1,'stroke-dasharray':'4 3'});
+  series.forEach(([nm,vals,color,unit],si)=>{
+    const last=si===series.length-1;
+    const pts=idx[si].map((v,i)=>v==null?null:[x(i),y(v)]);
+    let run=[];
+    const flush=()=>{
+      if(run.length>1)el(s,'path',{d:'M'+run.map(p=>p.join(' ')).join(' L '),fill:'none',stroke:color,'stroke-width':last?2.2:1.5});
+      run=[];
+    };
+    pts.forEach(p=>{if(!p){flush();return;}run.push(p)});
+    flush();
+    pts.forEach((p,i)=>{
+      if(!p)return;
+      const c=el(s,'circle',{cx:p[0],cy:p[1],r:last?3:2.4,fill:color,stroke:'#fff','stroke-width':1.2});
+      tip(c,`${labels[i]} ${nm}：${vals[i]}${unit}（指数 ${idx[si][i].toFixed(0)}）`);
+    });
+    /* 末点标原始值 */
+    const li=idx[si].length-1;
+    if(idx[si][li]!=null){
+      txt(s,{x:x(li)+7,y:y(idx[si][li])+3,'font-size':9,'font-weight':700,fill:color,'text-anchor':'start'},`${vals[li]}${unit}`);
     }
-    const lbl=k==='level'?b:(b-a);
-    txt(s,{x:x+w/2,y:y(top)-7,'font-size':9.5,'font-weight':800,fill:k==='level'?INK:c,'text-anchor':'middle'},
-      (k==='delta'&&lbl>0?'+':'')+lbl.toFixed(1));
-    txt(s,{x:x+w/2,y:H-B+18,'font-size':9,'font-weight':600,fill:MUT,'text-anchor':'middle'},nm);
+  });
+  labels.forEach((lb,i)=>txt(s,{x:x(i),y:H-B+16,'font-size':9.5,'font-weight':600,fill:MUT,'text-anchor':'middle'},lb));
+  series.forEach(([nm,,color],i)=>{
+    el(s,'rect',{x:L+i*104,y:6,width:10,height:10,fill:color,rx:2});
+    txt(s,{x:L+i*104+14,y:15,'font-size':9,'font-weight':600,fill:MUT},nm);
   });
 }
 
 trendDual('trend',TREND.labels,TREND.rev,TREND.np,TREND.gm,TREND.np_dt,TREND.roe);
-waterfall('ocfbridge',OCF_BRIDGE[0][0],OCF_BRIDGE[0][1],OCF_BRIDGE.slice(1),'经营现金流净额',OCF_END);
+deltaBars('ocfbridge',OCF_BRIDGE.slice(1));
+dupontNorm('dupont5',DUPONT5.labels,[
+  ['净利率',DUPONT5.net_margin,C1,'%'],
+  ['总资产周转率',DUPONT5.asset_turn,'rgb(122,84,52)',''],
+  ['权益乘数',DUPONT5.equity_mult,MUT,''],
+  ['ROE',DUPONT5.roe,INK,'%']]);
 combo('holders',HOLDERS.labels,HOLDERS.num,[],HOLDERS.px,'区间涨跌幅','股东户数(万户)','');
 </script>
 </body>

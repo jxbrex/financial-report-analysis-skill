@@ -231,11 +231,14 @@ def main():
     smoke_run = smoke.returncode in (0, 1) and "汇总" in (smoke.stdout or "")
     # v0.0.6 T5：s8-shape（下期跟踪清单阈值化）新检查必须真的被执行到
     smoke_s8 = "s8-shape" in (smoke.stdout or "")
+    # v0.0.7：figtitle-style（结论式标题）新检查必须真的被执行到
+    smoke_fig = "figtitle-style" in (smoke.stdout or "")
     print(f"\n【报告机检冒烟】check_html.py 跑模板："
           f"{'✅' if smoke_run else '❌'} 可运行（exit {smoke.returncode}）· "
-          f"{'✅' if smoke_s8 else '❌'} s8-shape 检查存活")
-    if not (smoke_run and smoke_s8):
-        print("❌ 回归未通过：check_html.py 无法正常运行或 s8-shape 检查缺失。")
+          f"{'✅' if smoke_s8 else '❌'} s8-shape 检查存活 · "
+          f"{'✅' if smoke_fig else '❌'} figtitle-style 检查存活")
+    if not (smoke_run and smoke_s8 and smoke_fig):
+        print("❌ 回归未通过：check_html.py 无法正常运行或 s8-shape / figtitle-style 检查缺失。")
         return 1
 
     # ── T8 数字回验三断言（v0.0.6）──
