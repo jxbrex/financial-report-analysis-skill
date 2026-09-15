@@ -54,6 +54,14 @@ RECON_RULES = {
     "B2_inv_roll":      ("closure", 0.05),
     "B3_cip_roll":      ("closure", 0.05),
     "B4_goodwill_roll": ("closure", 0.01),
+    # D 组（母公司单体勾稽）：manual 型只做结构校验，不做机械方向判定——
+    # 判定是语境合取（占比低+集团现金充裕+分红/偿付受限），机械阈值会误报
+    # 财务公司归集、销售公司集中收款等正常模式（见 extraction-schema.md 第四节）
+    "D1_parent_cash":   ("manual",  None),
+    "D2_parent_retained": ("manual", None),
+    "D3_parent_other_ar": ("manual", None),
+    "D4_parent_invest": ("manual",  None),
+    "D5_parent_ocf":    ("manual",  None),
 }
 
 VERDICTS = {"闭合", "可解释", "无法解释"}
@@ -147,7 +155,7 @@ def check_structure(data, rep):
         rep.add(FAIL, "unit", "meta.unit 缺失")
 
     leaves = []
-    for section in ("statements", "notes"):
+    for section in ("statements", "parent_statements", "notes"):
         walk_leaves(data.get(section) or {}, [section], leaves)
 
     bad_src, bad_type, bad_hist = 0, 0, 0
@@ -194,7 +202,7 @@ def check_structure(data, rep):
             rep.add(FAIL, "hist", f"derived.ratios.{name}.hist 末位 {nums[-1]} ≠ cur {cur}"
                                   f"（hist 必须旧→新且以本期收尾）")
     if not leaves:
-        rep.add(FAIL, "structure", "statements/notes 下未找到任何叶子节点，schema 结构可能被破坏")
+        rep.add(FAIL, "structure", "statements/parent_statements/notes 下未找到任何叶子节点，schema 结构可能被破坏")
     else:
         rep.add(OK, "structure", f"叶子节点 {len(leaves)} 个；src 缺失 {bad_src}、类型错误 {bad_type}、hist 不一致 {bad_hist}")
 
@@ -361,7 +369,7 @@ def build_ratio_calcs(data):
     sales_cash = S("cashflow", "sales_cash")
     cash = S("balance", "cash")
     ta, ta_p = S("balance", "total_assets"), S("balance", "total_assets", key="prev")
-    tl = S("balance", "total_liab")
+    tl, tl_p = S("balance", "total_liab"), S("balance", "total_liab", key="prev")
     eq = S("balance", "equity_at")
     ar, ar_p = S("balance", "ar"), S("balance", "ar", key="prev")
     inv, inv_p = S("balance", "inventory"), S("balance", "inventory", key="prev")
@@ -370,6 +378,9 @@ def build_ratio_calcs(data):
     admin, admin_p = S("income", "admin_exp"), S("income", "admin_exp", key="prev")
     rd, rd_p = S("income", "rd_exp"), S("income", "rd_exp", key="prev")
     fin, fin_p = S("income", "fin_exp"), S("income", "fin_exp", key="prev")
+    np_total = S("income", "np_total")
+    income_tax = S("income", "income_tax")
+    dep_amort = S("cashflow", "dep_amort")
 
     def safe_div(a, b):
         if a is None or b in (None, 0):
@@ -393,6 +404,14 @@ def build_ratio_calcs(data):
     if cash is not None and ocf is not None and short_debt:
         cover = (cash + ocf) / short_debt
 
+    # 杠杆（中注协 X72/X71）：EBIT = 税前利润 + 财务费用
+    ebt = None if (np_total is None or income_tax is None) else np_total + income_tax
+    ebit = None if (ebt is None or fin is None) else ebt + fin
+    # X33 非主营业务收入占比：四字段逐字段 null 按 0 计，全 null 才 None（schema 血泪清单 8）
+    nm = [S("income", "non_op_income"), S("income", "other_biz_income"),
+          S("income", "invest_income"), S("income", "fv_change_income")]
+    non_main = None if all(x is None for x in nm) else safe_div(sum(x or 0 for x in nm), rev)
+
     return {
         "roe": safe_div(np_at, eq),
         "gross_margin": safe_div(gross, rev),
@@ -403,6 +422,10 @@ def build_ratio_calcs(data):
         "asset_turnover": safe_div(rev, avg(ta, ta_p)),
         "equity_multiplier": safe_div(ta, eq),
         "dso": dso, "dio": dio, "dpo": dpo, "ccc": ccc,
+        "dfl": safe_div(ebit, ebt),
+        "dol": safe_div(ebit + dep_amort, ebit) if (ebit is not None and dep_amort is not None) else None,
+        "non_main_rev_share": non_main,
+        "ocf_to_liab": safe_div(ocf, avg(tl, tl_p)),
         "short_debt_cover": cover,
         "incr_expense_eff": (None if (gross is None or gross_p is None or exp_cur is None or exp_prev is None
                                       or (exp_cur - exp_prev) == 0)
@@ -463,6 +486,9 @@ RATIO_HIST_SPECS = {
     "dpo":               ([("balance", "payable"), ("income", "cost")], True),
     "ccc":               ([("balance", "ar"), ("balance", "inventory"), ("balance", "payable"),
                            ("income", "revenue"), ("income", "cost")], True),
+    "dfl":               ([("income", "np_total"), ("income", "income_tax"), ("income", "fin_exp")], False),
+    "dol":               ([("income", "np_total"), ("income", "income_tax"), ("income", "fin_exp"),
+                           ("cashflow", "dep_amort")], False),
 }
 
 
@@ -500,6 +526,16 @@ def ratio_hist_expect(name, v):
         return safe_div(g("balance", "total_assets"), g("balance", "equity_at"))
     if name == "cash_to_sales":
         return safe_div(g("cashflow", "sales_cash"), g("income", "revenue"))
+
+    # 杠杆（X72/X71，非平均口径）：EBIT = 税前利润 + 财务费用
+    if name in ("dfl", "dol"):
+        np_t, tax, fin = g("income", "np_total"), g("income", "income_tax"), g("income", "fin_exp")
+        ebt = None if (np_t is None or tax is None) else np_t + tax
+        ebit = None if (ebt is None or fin is None) else ebt + fin
+        if name == "dfl":
+            return safe_div(ebit, ebt)
+        dep = g("cashflow", "dep_amort")
+        return safe_div(ebit + dep, ebit) if (ebit is not None and dep is not None) else None
 
     # 以下均为平均余额口径（余额取本期与上期均值），CCC 由 dso+dio-dpo 复合；
     # 各比率只取自己需要的序列，缺的科目不参与计算（avg 双缺返回 None，须先判空再乘）
@@ -617,7 +653,11 @@ def check_recon(data, rep):
             rep.add(FAIL, key, f"verdict=「{verdict}」但 explanation 为空")
 
         kind, thresh = rule
-        if kind == "closure":
+        if kind == "manual":
+            # 结构校验（verdict 合法/非闭合必填 explanation/src 非空）已在上方完成；
+            # 方向由分析师按合取条件判定，门禁不机械复核
+            rep.add(OK, key, f"manual 型结构合法，判定「{verdict}」（lhs={lhs} / rhs={rhs}）")
+        elif kind == "closure":
             dev = abs(lhs - rhs) / max(abs(rhs), 1e-9)
             closed = dev <= thresh
             if closed and verdict != "闭合":

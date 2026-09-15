@@ -39,7 +39,7 @@
     "company": "贵州茅台", "code": "600519.SH", "market": "A股",
     "period": "20251231", "report_type": "年报", "disclose_date": "2026-04-16",
     "unit": "亿元", "source_md": "reports/xxx.md", "analyst_date": "2026-09-10",
-    "schema_version": "1.0",
+    "schema_version": "1.1",
     "currency": "CNY",
     "accounting_standard": "CAS",
     "industry_profile": "通用",
@@ -59,7 +59,10 @@
       "interest_exp": { "cur": null, "prev": null, "src": "", "note": "财务费用附注中的利息支出" },
       "interest_inc": { "cur": null, "prev": null, "src": "", "note": "财务费用附注中的利息收入（redflags #2 利息收入与货币资金匹配用；A7 隐含利率取利息支出）" },
       "impair_loss":  { "cur": null, "prev": null, "src": "", "note": "资产+信用减值合计" },
-      "invest_income":{ "cur": null, "prev": null, "src": "" },
+      "invest_income":{ "cur": null, "prev": null, "src": "", "note": "投资收益（X33 非主业收入占比分子之一）" },
+      "fv_change_income": { "cur": null, "prev": null, "src": "", "note": "公允价值变动收益（X33 分子之一）" },
+      "non_op_income":{ "cur": null, "prev": null, "src": "", "note": "营业外收入毛额（X33 分子之一；与 non_op_net 收支净额并存，勿混）" },
+      "other_biz_income": { "cur": null, "prev": null, "src": "", "note": "其他业务收入（附注口径，利润表未单列填 null；X33 复算时 null 按 0 计）" },
       "non_op_net":   { "cur": null, "prev": null, "src": "" },
       "np_total":     { "cur": null, "prev": null, "src": "", "note": "净利润（含少数股东）——OCF 调节桥起点" },
       "np_at":        { "cur": null, "prev": null, "hist": [], "src": "", "note": "归母净利" },
@@ -108,6 +111,16 @@
     }
   },
 
+  "parent_statements": {
+    "_": "母公司单体报表关键科目（articulation.md D 组勾稽用；与 statements 合并口径并列，src 注明母公司报表页码；未做 D 组分析时整块可缺省）",
+    "cash":         { "cur": null, "prev": null, "src": "", "note": "母公司货币资金（D1：÷合并货币资金，长期 <10% 且集团现金充裕 → 资金沉淀子公司）" },
+    "retained_cur": { "cur": null, "prev": null, "src": "", "note": "母公司未分配利润（D2：不足以覆盖拟分红 → 分红能力受子公司制约）" },
+    "other_ar":     { "cur": null, "prev": null, "src": "", "note": "母公司其他应收款（D3：占合并大头 → 内部往来资金池）" },
+    "invest_income":{ "cur": null, "prev": null, "src": "", "note": "母公司投资收益（D4：÷母公司净利润占比高 → 纯控股平台）" },
+    "ocf":          { "cur": null, "prev": null, "src": "", "note": "母公司经营现金流净额（D5：常年为负而合并为正 → 靠子公司分红/借款维持）" },
+    "np_total":     { "cur": null, "prev": null, "src": "", "note": "母公司净利润（D4 分母）" }
+  },
+
   "notes": {
     "ar_aging": [
       { "bucket": "1年以内", "cur": null, "prev": null, "prov_rate_cur": null, "prov_rate_prev": null, "src": "" }
@@ -145,10 +158,14 @@
       "asset_turnover": { "cur": null, "prev": null, "hist": [] }, "equity_multiplier": { "cur": null, "prev": null, "hist": [] },
       "dso": { "cur": null, "prev": null, "hist": [] }, "dio": { "cur": null, "prev": null, "hist": [] },
       "dpo": { "cur": null, "prev": null, "hist": [] }, "ccc": { "cur": null, "prev": null, "hist": [] },
+      "dfl": { "cur": null, "prev": null, "hist": [], "note": "财务杠杆=(np_total+income_tax+fin_exp)÷(np_total+income_tax)，即 EBIT÷税前利润（X72）" },
+      "dol": { "cur": null, "prev": null, "hist": [], "note": "经营杠杆=(EBIT+dep_amort)÷EBIT，即 EBITDA÷EBIT（X71）；高=固定成本重，收入小降利润大降" },
       "short_debt_cover": { "cur": null },
       "incr_expense_eff": { "cur": null, "note": "Δ毛利÷Δ期间费用" },
       "incr_sales_eff":   { "cur": null, "note": "Δ收入÷Δ销售费用" },
-      "nonrecurring_share": { "cur": null, "note": "非经÷归母净利" }
+      "nonrecurring_share": { "cur": null, "note": "非经÷归母净利" },
+      "non_main_rev_share": { "cur": null, "note": "(营业外收入+其他业务收入+投资收益+公允价值变动)÷营业收入（X33 收入结构口径；与 nonrecurring_share 的利润调整口径不同源，勿混）" },
+      "ocf_to_liab": { "cur": null, "note": "OCF÷平均总负债（X6）；人话：照现在的造血能力，还清全部负债 ≈ 1/x 年" }
     },
     "dupont": { "driver": "净利率|周转率|杠杆", "src": "" },
     "q4": { "rev": null, "np": null, "rev_share": null, "gm_q4": null, "gm_q1q3": null,
@@ -179,7 +196,12 @@
     "B1_ar_roll":     { "lhs": null, "rhs": null, "verdict": "", "explanation": "", "src": "" },
     "B2_inv_roll":    { "lhs": null, "rhs": null, "verdict": "", "explanation": "", "src": "" },
     "B3_cip_roll":    { "lhs": null, "rhs": null, "verdict": "", "explanation": "", "src": "" },
-    "B4_goodwill_roll":{ "lhs": null, "rhs": null, "verdict": "", "explanation": "", "src": "" }
+    "B4_goodwill_roll":{ "lhs": null, "rhs": null, "verdict": "", "explanation": "", "src": "" },
+    "D1_parent_cash": { "lhs": null, "rhs": null, "verdict": "", "explanation": "", "src": "" },
+    "D2_parent_retained": { "lhs": null, "rhs": null, "verdict": "", "explanation": "", "src": "" },
+    "D3_parent_other_ar": { "lhs": null, "rhs": null, "verdict": "", "explanation": "", "src": "" },
+    "D4_parent_invest": { "lhs": null, "rhs": null, "verdict": "", "explanation": "", "src": "" },
+    "D5_parent_ocf":  { "lhs": null, "rhs": null, "verdict": "", "explanation": "", "src": "" }
   },
 
   "assertions": [
@@ -200,19 +222,22 @@
   "watchlist": [
     { "indicator": "合同负债增速 vs 收入增速（剪刀差）", "current": "合同负债 -12% vs 收入 +8%",
       "tripwire": "若合同负债增速连续两期低于收入增速，则需求端走弱成立",
-      "source": "资产负债表「合同负债」及其上期数", "badge": "der" }
+      "upper": "-5%", "upper_meaning": "高于 -5% 则打款意愿修复",
+      "lower": "-20%", "lower_meaning": "跌破 -20% 则需求走弱确认",
+      "source": "资产负债表「合同负债」及其上期数", "badge": "der",
+      "review": { "verdict": null, "actual": null, "attribution": null } }
   ]
 }
 ```
 
 **趋势比率 hist 规则**（三、derived.ratios 骨架）：
-- 12 个趋势比率（roe/gross_margin/net_margin/net_cash_ratio/cash_to_sales/debt_to_assets/
-  asset_turnover/equity_multiplier/dso/dio/dpo/ccc）hist 为 **5 期同类型滚动**（年报对 FY、
+- 14 个趋势比率（roe/gross_margin/net_margin/net_cash_ratio/cash_to_sales/debt_to_assets/
+  asset_turnover/equity_multiplier/dso/dio/dpo/ccc/dfl/dol）hist 为 **5 期同类型滚动**（年报对 FY、
   半年报对 H1），旧→新；**末位必须等于 cur**（报告提取值）；prev = 倒数第 2 期
 - avg 类比率（asset_turnover/dso/dio/dpo/ccc）首期无期初余额不可机复算，由 calc.py 跳过
 - 历史重述（如康得新 2019 追溯重述）致口径断裂时允许缺 hist 并在 note 说明，
   报告趋势降级两期呈现
-- 单期专用比率（short_debt_cover/incr_expense_eff/incr_sales_eff/nonrecurring_share）不序列化
+- 单期专用比率（short_debt_cover/incr_expense_eff/incr_sales_eff/nonrecurring_share/non_main_rev_share/ocf_to_liab）不序列化
 
 **`signals[]` 字段说明**：
 - `verdict ∈ 命中/观察/未触发/反向未触发`（**呈现四态**，判定标准见 redflags.md 第一节课后「判定分类」）；
@@ -232,8 +257,20 @@
 - `current`：当前读数（字符串，含单位与期次）
 - `tripwire`：**条件化触发线，必须是 if-then 形态**（「若 X 连续两期……则 Y 成立」），
   **禁止无条件预测**——方向性判断的合法形态见 SKILL.md「何时不用」
+- `upper` / `upper_meaning` / `lower` / `lower_meaning`（T5，**选填但至少给一侧**）：
+  上下阈值带，形态 `毛利率 45.2% → >46% 证实提价逻辑 / <43% 成本承压`；阈值必须有依据
+  （历史中枢 / 同业水平 / 管理层指引），依据写进 `source` 或 `note`；确实无法数字化阈值的
+  指标允许只保留 `tripwire` 的 if-then 句式
 - `source`：数据来源；`badge ∈ disc/der/est`：读数证据等级，与报告徽章一致
 - 下期回看（SKILL.md Phase 0 第 5 条）直接消费本块，逐条核对 `tripwire` 是否触发
+
+**`review` 子块（T6 冻结/归档语义）**：
+- **产出后 watchlist 原字段（`indicator/current/tripwire/upper/lower`）只读、禁止回改**——
+  预测登记不得事后改写；回看结果**只追加** `review` 子块
+- `verdict ∈ 兑现/未兑现/待观察`（对应回顾章 ✅/❌/⏳）；`actual`：下期实际读数
+  （含单位与期次）；`attribution`：**未兑现必填**误差归因——`假设错 / 时点错 / 口径错`
+  （可组合，须附一句依据）
+- 回看报告「上期跟踪回顾」章第一列必须**照抄原 `tripwire` 原文**，禁止美化改写
 
 **`assertions[]` 字段说明**（P1-12 断言验证表落库）：
 `verdict ∈ 通过/不成立/无法验证`；判「不成立」**必须**填 `evidence`（反证数字）；
@@ -247,6 +284,21 @@
 - `explanation`：非「闭合」时必填，写合理解释或风险定性
 - calc.py 判定逻辑：偏差率 ≤ 阈值 → verdict 必须是 `闭合`；超阈值且 verdict=`闭合` → **FAIL**
   （防止「算出来不平却硬说平」）；超阈值且 verdict=`无法解释` → 自动要求 signals 里有对应条目
+
+**D 组（D1–D5，母公司单体勾稽）是 manual 型**，calc.py **只做结构校验**
+（verdict 合法 / 非「闭合」必填 explanation / src 非空），**不做机械方向判定**——
+D 组判定是语境合取（如 D1 须同时满足「占比低 + 集团现金充裕 + 分红/偿付受限」），
+机械阈值会误报财务公司归集、销售公司集中收款等正常模式。lhs/rhs 填写约定：
+
+| key | lhs | rhs（参考基准） |
+|---|---|---|
+| D1_parent_cash | 母公司货币资金 ÷ 合并货币资金 | 0.10 |
+| D2_parent_retained | 母公司未分配利润（亿元） | 本年拟分红额（亿元） |
+| D3_parent_other_ar | 母公司其他应收款 ÷ 合并其他应收款 | 0.50 |
+| D4_parent_invest | 母公司投资收益 ÷ 母公司净利润 | 0.50 |
+| D5_parent_ocf | 母公司经营现金流净额（亿元） | 0 |
+
+verdict 由分析师按 articulation.md D 组判读规则综合给出；命中须在 signals 落对应条目。
 
 ## 五、字段级提取锚点速查
 
@@ -276,6 +328,10 @@
 | rd_exp | `研发投入`（MD&A 专节，注意含资本化） | `income.rd_exp`（仅费用化部分） |
 | ar_aging | `应收账款`附注内`账龄` | 无——只能来自原文 |
 | inventory_mix | `存货`附注内`原材料`/`在产品`/`库存商品` | 无——只能来自原文 |
+| fv_change_income | `公允价值变动收益`（利润表） | `income.fv_value_chg_gain` |
+| non_op_income | `营业外收入`（利润表） | `income.non_oper_income` |
+| other_biz_income | `营业收入`附注内`其他业务收入` | 无直接对照——附注口径 |
+| parent_statements.* | `母公司资产负债表`/`母公司利润表`/`母公司现金流量表` | 无——只能来自原文 |
 | kam | `关键审计事项` | 无——只能来自原文 |
 
 ## 六、常见坑（血泪清单）
@@ -290,3 +346,7 @@
 7. **历史重述断口径**：康得新 2019 年追溯重述后，公开库（tushare）2014–2017 为重述值、
    当年年报对比列为原始值，两者不可混用拼接趋势；遇此情况趋势比率缺 hist 是正当状态，
    note 写明，不得混口径
+8. **non_main_rev_share 的 null 口径**：四个分子字段（non_op_income/other_biz_income/
+   invest_income/fv_change_income）逐字段 null 按 0 计（利润表未单列=不重大），
+   全 null 才算「未提取」；note 必须标注哪个字段是按 0 计。禁止把「未提取」当 0 填报后
+   又在 note 里隐身

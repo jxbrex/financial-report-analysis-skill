@@ -157,6 +157,9 @@ def check_kangdexin(case, proc, data):
     # recon 覆盖率升级为硬门禁（--min-recon）后 WARN 计数会变化，断言不应随之假红
     case.expect("recon-coverage" in (proc.stdout or ""),
                 "新检查生效：calc.py 输出含 recon-coverage 行（覆盖率检查被执行）")
+    # v0.0.6 T9：D 组母公司单体勾稽（manual 型结构校验）必须真的被执行到
+    case.expect("D1_parent_cash" in (proc.stdout or ""),
+                "新检查生效：calc.py 输出含 D1_parent_cash 行（D 组母公司勾稽被执行）")
     asserts = data.get("assertions") or []
     case.expect(len(asserts) >= 1, f"断言表已落库（assertions >= 1，实际 {len(asserts)}）")
     bad = [a for a in asserts if isinstance(a, dict) and a.get("verdict") == "不成立"]
@@ -225,11 +228,41 @@ def main():
          str(SKILL / "assets" / "report-template.html")],
         capture_output=True, text=True, encoding="utf-8", errors="replace",
     )
-    smoke_ok = smoke.returncode in (0, 1) and "汇总" in (smoke.stdout or "")
+    smoke_run = smoke.returncode in (0, 1) and "汇总" in (smoke.stdout or "")
+    # v0.0.6 T5：s8-shape（下期跟踪清单阈值化）新检查必须真的被执行到
+    smoke_s8 = "s8-shape" in (smoke.stdout or "")
     print(f"\n【报告机检冒烟】check_html.py 跑模板："
-          f"{'✅ 可运行' if smoke_ok else '❌ 未产出预期输出'}（exit {smoke.returncode}）")
-    if not smoke_ok:
-        print("❌ 回归未通过：check_html.py 无法正常运行。")
+          f"{'✅' if smoke_run else '❌'} 可运行（exit {smoke.returncode}）· "
+          f"{'✅' if smoke_s8 else '❌'} s8-shape 检查存活")
+    if not (smoke_run and smoke_s8):
+        print("❌ 回归未通过：check_html.py 无法正常运行或 s8-shape 检查缺失。")
+        return 1
+
+    # ── T8 数字回验三断言（v0.0.6）──
+    # ①级：故意改错一个数字必须 FAIL 且指出位置；②级：src 行号回原文核对必须被执行
+    def run_check_html(html):
+        return subprocess.run(
+            [sys.executable, str(SKILL / "scripts" / "check_html.py"),
+             str(html), "--json", str(MOUTAI)],
+            capture_output=True, text=True, encoding="utf-8", errors="replace")
+
+    t8_ok = run_check_html(HERE / "t8_demo.html")
+    t8_bad = run_check_html(HERE / "t8_demo_bad.html")
+    t8_checks = [
+        (t8_ok.returncode == 0,
+         f"T8：正确样例 exit 0（实际 {t8_ok.returncode}）"),
+        (t8_bad.returncode == 1 and "相近但不等" in (t8_bad.stdout or ""),
+         f"T8①级：改错样例必 FAIL 且报疑似笔误（实际 exit {t8_bad.returncode}）"),
+        ("json-md" in (t8_ok.stdout or ""),
+         "T8②级：data.json↔原文 md 核对被执行（输出含 json-md 行）"),
+    ]
+    print("\n【T8 数字回验（check_html --json）】")
+    for ok, desc in t8_checks:
+        print(f"  {'✅' if ok else '❌'} {desc}")
+        total += 1
+        passed += ok
+    if not all(ok for ok, _ in t8_checks):
+        print("❌ 回归未通过：T8 数字回验断言失败，逐条核对上方 ❌。")
         return 1
 
     failed = total - passed

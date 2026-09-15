@@ -1,0 +1,666 @@
+<!doctype html>
+<html lang="zh-Hans">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>恒瑞医药 2025FY 年报分析 — financial-report-analysis</title>
+<style>
+:root{
+  --bg:rgb(247,242,235); --ink:rgb(58,42,28); --muted:rgba(58,42,28,.60);
+  --faint:rgba(58,42,28,.32); --grid:rgba(58,42,28,.16); --card:#fff;
+  --data:rgb(171,94,38); --data2:rgb(203,158,108); --faintdata:rgb(233,213,187);
+  --good:#0F7B4F; --warn:#B8860B; --bad:#C0392B;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:#000;
+  font-family:"Zhuque Fangsong","朱雀仿宋","FangSong","仿宋","STFangsong",serif;
+  -webkit-font-smoothing:antialiased;font-variant-numeric:tabular-nums lining-nums;
+  display:flex;justify-content:center;padding:40px 20px}
+.sheet{width:1040px;max-width:1040px}
+.masthead{border-bottom:3px double var(--ink);padding-bottom:18px;margin-bottom:8px}
+.masthead .kicker{font-size:11px;font-weight:700;letter-spacing:.22em;color:var(--muted)}
+.masthead h1{font-size:34px;font-weight:900;letter-spacing:.02em;margin:6px 0 4px}
+.masthead .sub{font-size:14px;color:var(--muted)}
+.masthead .sub b{color:var(--ink)}
+.badge{display:inline-block;padding:2px 10px;border-radius:999px;font-size:11px;font-weight:800}
+.badge.g{background:rgba(15,123,79,.12);color:var(--good)}
+.badge.y{background:rgba(184,134,11,.14);color:var(--warn)}
+.badge.r{background:rgba(192,57,43,.12);color:var(--bad)}
+.dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px;vertical-align:1px}
+.dot.g{background:var(--good)}.dot.y{background:var(--warn)}.dot.r{background:var(--bad)}
+.badge.disc{background:rgba(58,42,28,.09);color:rgba(58,42,28,.82)}
+.badge.der{background:rgba(122,84,52,.13);color:rgb(122,84,52)}
+.badge.est{background:rgba(58,42,28,.04);color:var(--muted);border:1px dashed rgba(58,42,28,.28)}
+.badge.rev{background:rgba(171,94,38,.12);color:var(--data)}
+a{color:var(--data);text-decoration:none}
+a:hover{text-decoration:underline}
+.drill{font-size:11.5px;font-weight:700;white-space:nowrap}
+.sect{margin-top:46px}
+.secthead{display:flex;align-items:baseline;gap:14px;margin-bottom:6px;border-radius:6px;scroll-margin-top:24px}
+.secthead:target{background:rgba(171,94,38,.07)}
+.secthead .no{font-size:13px;font-weight:800;color:var(--data)}
+.secthead .t{font-size:19px;font-weight:800;letter-spacing:.06em}
+.secthead .line{flex:1;border-top:1px solid var(--ink)}
+.secthead .tag{font-size:11px;font-weight:700;letter-spacing:.1em;color:var(--faint)}
+.lede{font-size:14.5px;line-height:1.85;margin:10px 0 16px;max-width:980px}
+.lede b{font-weight:800}
+.card{background:var(--card);border:1px solid var(--grid);border-radius:10px;padding:18px 22px;margin:14px 0}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+@media(max-width:860px){.grid2,.grid3{grid-template-columns:1fr}}
+table.data{width:100%;border-collapse:collapse;font-size:13.5px;margin:6px 0}
+table.data th{font-size:12px;font-weight:700;letter-spacing:.08em;color:var(--muted);text-align:left;padding:8px 10px;border-bottom:1.5px solid var(--ink)}
+table.data td{padding:7px 10px;border-bottom:1px dotted var(--faint);line-height:1.5}
+table.data td:not(:first-child):not(.txt),table.data th:not(:first-child):not(.txt){text-align:right}
+table.data tr:last-child td{border-bottom:0}
+table.data tr.total td{font-weight:800;border-top:1.5px solid var(--ink);border-bottom:0}
+.up{color:var(--good);font-weight:700}.dn{color:var(--bad);font-weight:700}
+.srcline{font-size:10.5px;font-weight:600;letter-spacing:.1em;color:var(--faint);margin-top:8px}
+.flaglist{list-style:none}
+.flaglist li{display:flex;gap:10px;padding:10px 2px;border-bottom:1px dotted var(--faint);font-size:14px;line-height:1.7}
+.flaglist li:last-child{border-bottom:0}
+.flaglist .body{flex:1}
+.flaglist .src{display:block;font-size:11.5px;color:var(--muted);margin-top:3px}
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin:14px 0}
+@media(max-width:860px){.kpis{grid-template-columns:repeat(2,1fr)}}
+.kpi{background:var(--card);border:1px solid var(--grid);border-radius:10px;padding:14px 16px}
+.kpi .v{font-size:26px;font-weight:800;line-height:1.1}
+.kpi .r{font-size:12px;font-weight:700;margin-top:3px}
+.kpi .l{font-size:11px;font-weight:600;letter-spacing:.12em;color:var(--faint);margin-top:3px}
+.fig{background:var(--card);border:1px solid var(--grid);border-radius:10px;padding:16px}
+.fig svg{width:100%;height:auto;display:block}
+.figtitle{font-size:13.5px;font-weight:800;margin-bottom:4px}
+.bridge td:first-child{font-weight:700}
+.foot{margin-top:52px;border-top:3px double var(--ink);padding-top:14px;
+  font-size:11px;font-weight:600;letter-spacing:.1em;color:var(--muted);
+  display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap;line-height:1.8}
+.fade{animation:fade .7s ease both}
+@keyframes fade{from{opacity:0;transform:translateY(6px)}}
+@media (prefers-reduced-motion:reduce){.fade{animation:none}}
+@media(max-width:640px){body{padding:20px 8px}.masthead h1{font-size:24px}}
+</style>
+</head>
+<body>
+<div class="sheet">
+
+  <div class="masthead fade">
+    <div class="kicker">FINANCIAL REPORT ANALYSIS · A股</div>
+    <h1>恒瑞医药（600276.SH）</h1>
+    <div class="sub"><b>2025FY 年报</b> 分析报告 · 报告发布于 2026-03-26 · 分析生成于 2026-09-15</div>
+  </div>
+
+  <!-- 无更早同公司报告，回看章按模板约定整块删除（2026H1 报告晚于本期，时序不触发回看） -->
+
+  <!-- ══ 核心结论 ══ -->
+  <div class="sect">
+    <div class="secthead" id="s0"><span class="no">00</span><span class="t">核心结论</span><span class="line"></span><span class="tag">EXECUTIVE SUMMARY</span></div>
+    <p class="lede">恒瑞 2025 年是「创新药过半 + license 出海 + 零杠杆」三件套成型的一年：创新药收入占比首次过半至 <b>51.7%</b>，五笔海外首付确认 <b>36.16 亿</b>，OCF <b>112.35 亿</b>连续三年净现比 >1。排雷扫描 <b>17 项零命中</b>；风险全部在经营层面——license 确认节奏波动（默克期后退货实证）、仿制药集采下滑加速（2026H1 已达 -16.1%）、FDA 三次 CRL。本报告按【上行阶段】框架解读信号（收入/毛利/Capex 三升），行业画像：<b>医药健康</b>。</p>
+    <div class="grid2">
+      <div class="card">
+        <div class="figtitle" style="color:var(--good)">亮点 TOP 3</div>
+        <ul class="flaglist">
+          <li><span><span class="dot g"></span></span><div class="body"><b>创新药收入 163.42 亿 +26.1%，占比首次过半（51.7%）</b>；24 款 1 类新药累计获批。行业坐标：管线广度居国内第一梯队，但研发费率 22.0% 低于百济神州 40.6%（详见 <a href="#s7">07 同业对比</a>）<span class="src">出处：L223 重要提示 + L534 MD&A · <span class="badge disc">披露</span></span></div></li>
+          <li><span><span class="dot g"></span></span><div class="body"><b>license-out 出海爆发</b>：GSK 5 亿美元、MSD 2 亿美元、IDEAYA 7500 万美元等五笔首付落地，其他业务收入 36.16 亿 +21.5%；许可预收款 30.77 亿挂账（含重分类 11.65 亿）；期后再签 BMS 框架（首付 6 亿美元预计 Q3 到账，潜在总额 152 亿美元）<span class="src">出处：L223-226 重要提示 + L8610 附注 38 + 期后公告 · <span class="badge disc">披露</span></span></div></li>
+          <li><span><span class="dot g"></span></span><div class="body"><b>现金含量与零杠杆</b>：OCF 112.35 亿 +51.4%，净现比 1.46 连续三年 >1；有息负债合计 0.74 亿（租赁）；H 股新发 25.82 亿股、募资 103.52 亿到账，货币资金 409.55 亿<span class="src">出处：现金流量表 + L5976 + 资产负债表 · <span class="badge disc">披露</span> / <span class="badge der">推算</span></span></div></li>
+        </ul>
+      </div>
+      <div class="card">
+        <div class="figtitle" style="color:var(--bad)">风险 TOP 3（均为观察级，无命中项）</div>
+        <ul class="flaglist">
+          <li><span><span class="dot y"></span></span><div class="body"><b>license 收入的节奏波动</b>：默克 KGaA 期后退货（里程碑预期折损，首付无需退还）；2026H1 许可确认 14.22 亿 vs 去年同期 19.91 亿——首付确认是非经常节奏，接续靠里程碑与新签（见 <a href="#s8">08 跟踪清单</a>）<span class="src">出处：期后公告 + 2026 半年报 · <span class="badge disc">披露</span></span></div></li>
+          <li><span><span class="dot y"></span></span><div class="body"><b>仿制药下滑加速</b>：2025 全年约 -3.1%（倒挤口径 <span class="badge der">推算</span>）→ 2026H1 -16.07%；七氟烷第 12 批国采中标，集采尾部冲击未见底<span class="src">出处：L886-890 MD&A + 2026 半年报 · <span class="badge disc">披露</span></span></div></li>
+          <li><span><span class="dot y"></span></span><div class="body"><b>FDA 第三次 CRL</b>：双艾组合（卡瑞利珠单抗+阿帕替尼）肝癌 BLA 因生产场地 cGMP 观察项被拒，不涉临床数据/安全性——国际化监管挫折，整改后仍可再申报<span class="src">出处：临2026-097 公告（2026-07-10）· <span class="badge disc">披露</span></span></div></li>
+        </ul>
+      </div>
+    </div>
+    <div class="card">
+      <div class="figtitle">分歧锚（同一事实的两种解读，不做倾向）</div>
+      <table class="data">
+        <tr><th>事实</th><th class="txt">读法 A</th><th class="txt">读法 B</th></tr>
+        <tr><td>其他业务收入 36.16 亿（占收入 11.4%） <span class="badge disc">披露</span></td><td class="txt">license-out 已成第二主业：预收 30.77 亿挂账 + BMS 152 亿美元框架佐证接续性</td><td class="txt">首付款集中确认的非经常节奏：2026H1 确认 14.22 亿、同比 -28.6%，默克退货实证里程碑可折损</td></tr>
+        <tr><td>ROE 12.6%，较上期 -1.3pct <span class="badge der">推算</span></td><td class="txt">净利率 +5.3pct 是经营改善的硬证据，ROE 降系 H 股募资摊薄（平均资产 +27.8%）</td><td class="txt">license 收入（高毛利、近零成本）抬升的净利率含「一次性」成分，持续性待验证</td></tr>
+      </table>
+      <div class="srcline">分歧锚不做倾向性裁决；两种读法的验证条件已列入 <a href="#s8">08 下期跟踪清单</a></div>
+    </div>
+  </div>
+
+  <!-- ══ S1 财务总览 ══ -->
+  <div class="sect">
+    <div class="secthead" id="s1"><span class="no">01</span><span class="t">财务总览</span><span class="line"></span><span class="tag">四维比率 · 杜邦</span></div>
+    <div class="kpis">
+      <div class="kpi"><div class="v">316.29</div><div class="r up">+13.0% <span class="badge disc">披露</span></div><div class="l">营业收入（亿元）</div></div>
+      <div class="kpi"><div class="v">77.11</div><div class="r up">+21.7% <span class="badge disc">披露</span></div><div class="l">归母净利润（亿元）</div></div>
+      <div class="kpi"><div class="v">112.35</div><div class="r">净现比 1.46 <span class="badge der">推算</span></div><div class="l">经营现金流净额（亿元）</div></div>
+      <div class="kpi"><div class="v">12.6%</div><div class="r dn">较上期 -1.3pct <span class="badge der">推算</span></div><div class="l">ROE（摊薄）</div></div>
+    </div>
+    <div class="grid2">
+      <div class="card">
+        <div class="figtitle">四维比率</div>
+        <table class="data">
+          <tr><th>指标</th><th>本期</th><th>上期</th><th class="txt">较上期</th><th class="txt">评价</th></tr>
+          <tr><td>毛利率 <span class="badge der">推算</span></td><td>86.2%</td><td>86.3%</td><td class="txt">▼ -0.1pct</td><td class="txt">高位持平</td></tr>
+          <tr><td>净利率 <span class="badge der">推算</span></td><td>24.4%</td><td>22.6%</td><td class="txt"><span class="up">▲ +1.7pct</span></td><td class="txt">license 高毛利驱动</td></tr>
+          <tr><td>资产负债率 <span class="badge der">推算</span></td><td>11.6%</td><td>8.1%</td><td class="txt">▲ +3.5pct</td><td class="txt">许可预收驱动，非恶化</td></tr>
+          <tr><td>存货周转天数 <span class="badge der">推算</span></td><td>221.5 天</td><td>224.4 天</td><td class="txt"><span class="up">▼ -2.9 天</span></td><td class="txt">微改善</td></tr>
+          <tr><td>应收周转天数 <span class="badge der">推算</span></td><td>58.1 天</td><td>65.9 天</td><td class="txt"><span class="up">▼ -7.8 天</span></td><td class="txt">回款改善</td></tr>
+          <tr><td>收现比 <span class="badge der">推算</span></td><td>1.06</td><td>0.97</td><td class="txt"><span class="up">▲ +0.09</span></td><td class="txt">接近含税基准</td></tr>
+          <tr><td>CCC（DSO+DIO−DPO，天） <span class="badge der">推算</span></td><td>102.3 天</td><td>136.8 天</td><td class="txt"><span class="up">▼ -34.4 天</span></td><td class="txt">连续三年收窄</td></tr>
+          <tr><td>经营杠杆 DOL <span class="badge der">推算</span></td><td>1.11</td><td>1.13</td><td class="txt">▼ -0.02</td><td class="txt">固定成本轻，弹性小</td></tr>
+          <tr><td>财务杠杆 DFL <span class="badge der">推算</span></td><td>0.95</td><td>0.92</td><td class="txt">▲ +0.03</td><td class="txt">&lt;1 财务费用为净收益</td></tr>
+          <tr><td>非主营业务收入占比 <span class="badge der">推算</span></td><td>11.75%</td><td>11.07%</td><td class="txt">▲ +0.7pct</td><td class="txt">主体 license 36.16 亿</td></tr>
+        </table>
+        <div class="srcline">数据来源：公司 2025FY 年报、Tushare；比率口径见 frameworks.md（DOL/DFL 方向须落到周期定位：当前上行期，双低杠杆=利润弹性小但下行期抗压强）</div>
+        <div class="srcline">证据等级：<span class="badge disc">披露</span> 主表/附注直接披露 · <span class="badge der">推算</span> 两数运算 · <span class="badge est">估算</span> 含假设</div>
+      </div>
+      <div class="card">
+        <div class="figtitle">杜邦三分解：ROE 由什么驱动</div>
+        <table class="data">
+          <tr><th>因子</th><th>本期</th><th>上期</th><th class="txt">方向 · 贡献归因</th></tr>
+          <tr><td>净利率 <span class="badge der">推算</span></td><td>24.4%</td><td>22.6%</td><td class="txt"><span class="up">▲ +1.7pct</span> · 约 +3.5pct ROE 正贡献（第一驱动）</td></tr>
+          <tr><td>总资产周转率 <span class="badge der">推算</span></td><td>0.53</td><td>0.60</td><td class="txt"><span class="dn">▼ -11.5%</span> · 约 -2.7pct（H 股募资致平均资产 +27.8% 快于收入 +13.0%）</td></tr>
+          <tr><td>权益乘数 <span class="badge der">推算</span></td><td>1.14</td><td>1.10</td><td class="txt">▲ +3.5% · 约 +0.4pct（预收款致负债升，非有息杠杆）</td></tr>
+          <tr class="total"><td>ROE <span class="badge der">推算</span></td><td>12.6%</td><td>13.9%</td><td class="txt">净利率升被募资摊薄对冲，-1.3pct（连乘闭合差约 1.5pct，口径见 frameworks.md 杜邦节）</td></tr>
+        </table>
+        <div class="srcline">质量排序：净利率驱动 &gt; 周转率驱动 &gt; 杠杆驱动——本期为典型的「净利率升 + 被动摊薄」组合</div>
+        <div class="figtitle">杜邦三因子 5 期趋势（同类型滚动）</div>
+        <table class="data">
+          <tr><th>年度</th><th>净利率</th><th>总资产周转率</th><th>权益乘数</th><th>ROE</th><th class="txt">当期主驱动</th></tr>
+          <tr><td>2021 <span class="badge der">推算</span></td><td>17.5%</td><td>0.70</td><td>1.12</td><td>12.9%</td><td class="txt">周转率</td></tr>
+          <tr><td>2022 <span class="badge der">推算</span></td><td>18.4%</td><td>0.52</td><td>1.12</td><td>10.3%</td><td class="txt">集采低谷</td></tr>
+          <tr><td>2023 <span class="badge der">推算</span></td><td>18.9%</td><td>0.53</td><td>1.08</td><td>10.6%</td><td class="txt">修复</td></tr>
+          <tr><td>2024 <span class="badge der">推算</span></td><td>22.6%</td><td>0.60</td><td>1.10</td><td>13.9%</td><td class="txt">净利率</td></tr>
+          <tr><td>2025 <span class="badge der">推算</span></td><td>24.4%</td><td>0.53</td><td>1.14</td><td>12.6%</td><td class="txt">净利率（被摊薄）</td></tr>
+        </table>
+        <div class="srcline">数据来源：data.json derived.ratios hist · calc.py ratio-hist 逐期复算（65 期通过）</div>
+      </div>
+    </div>
+    <div class="fig">
+      <div class="figtitle">近五年趋势（左面板=收入柱+毛利率线 · 右面板=归母净利+扣非净利柱、ROE 线；扣非 2021 缺，自 2022 起画）</div>
+      <svg id="trend" viewBox="0 0 960 300" preserveAspectRatio="xMidYMid meet"></svg>
+      <div class="srcline">数据来源：data.json statements hist（tushare 2021-2024 + 年报提取值 2025，双源核对一致） · 柱=收入（左）/归母净利+扣非净利（右）· 线=毛利率（左）/ROE（右）</div>
+    </div>
+  </div>
+
+  <!-- ══ S2 排雷扫描 ══ -->
+  <div class="sect">
+    <div class="secthead" id="s2"><span class="no">02</span><span class="t">排雷扫描</span><span class="line"></span><span class="tag">经营背离与需解释项 · 信号库逐条对照</span></div>
+    <div class="card">
+      <table class="data">
+        <tr><th>信号</th><th class="txt">判定</th><th>关键数据</th><th class="txt">证据出处</th><th class="txt">下钻</th></tr>
+        <tr><td>非主营业务收入占比 11.75%（X33） <span class="badge der">推算</span></td><td class="txt"><span class="badge y">🟡 观察</span></td><td>主体 license 36.16 亿</td><td class="txt">营业收入附注</td><td class="txt"><a class="drill" href="#s4">文字分析</a></td></tr>
+        <tr><td>母公司其他应收款 59.0 亿 <span class="badge der">推算</span></td><td class="txt"><span class="badge y">🟡 观察</span></td><td>合并抵销后仅 0.28 亿</td><td class="txt">L5659/L5566 其他应收款</td><td class="txt"><a class="drill" href="#s2">勾稽 D3</a></td></tr>
+        <tr><td>广东知识城在建进度 95% 未转固 <span class="badge der">推算</span></td><td class="txt"><span class="badge y">🟡 观察</span></td><td>期末余额 4.25 亿</td><td class="txt">L8286 重要在建项目表</td><td class="txt"><a class="drill" href="#s5">产能与在建</a></td></tr>
+        <tr><td>存货 +19.1% 超收入 +13.0% <span class="badge der">推算</span></td><td class="txt"><span class="badge y">🟡 观察</span></td><td>28.78 亿（+4.61 亿）</td><td class="txt">存货附注 + L9509</td><td class="txt"><a class="drill" href="#s3">因素分析</a></td></tr>
+        <tr><td>研发资本化率 20.2%（17.63 亿） <span class="badge der">推算</span></td><td class="txt"><span class="badge y">🟡 观察</span></td><td>投入 87.24 亿</td><td class="txt">L860 + KAM</td><td class="txt"><a class="drill" href="#s7">外部校验</a></td></tr>
+        <tr><td>解释缺口 2 项（投资收益转亏 / 减值 +3030% 未归因） <span class="badge der">推算</span></td><td class="txt"><span class="badge y">🟡 观察</span></td><td>合计 1.9 亿</td><td class="txt">利润表 + F2 扫描</td><td class="txt"><a class="drill" href="#s4">文字分析</a></td></tr>
+      </table>
+      <div class="srcline">已检 17 项：<b>命中 0</b> · 观察 8（正文 6 行，另 2 项并入上行）· 反向未触发 7 组 · 未触发 4——反向组：零有息负债/应收三维优/零质押/净现比连续三年>1/合同负债总额+1824%/扣非占比 96.1%/商誉为零；未触发：利息收入匹配/存货矛盾组合不成立/审计标准无保留/其他应收款占比 0.04% · 逐条读数与出处见 data.json signals 块</div>
+    </div>
+    <div class="card">
+      <div class="figtitle">勾稽异常清单（只列 ⚠️ 可解释项；✅ 闭合项汇总于表下）</div>
+      <table class="data">
+        <tr><th>等式</th><th class="txt">三态</th><th>偏差额 / 偏差率</th><th class="txt">解释或追问</th><th class="txt">下钻</th></tr>
+        <tr><td>A6 Capex 勾稽 <span class="badge der">推算</span></td><td class="txt"><span class="badge y">⚠️ 可解释偏差</span></td><td>12.56 亿 / 73.6%</td><td class="txt">缺口指向开发支出资本化 17.63 亿与土地购置（口径不对称，A6 最常见偏差源）；票据背书付设备款 13.98 亿为非现金口径</td><td class="txt"><a class="drill" href="#s5">产能与在建</a></td></tr>
+        <tr><td>B1 应收 roll-forward <span class="badge der">推算</span></td><td class="txt"><span class="badge y">⚠️ 可解释偏差</span></td><td>4.62 亿 / 9.0%</td><td class="txt">票据背书 41.07 亿已扣除；残余对应出口免税增值税高估（约 5.2 亿）与应收款项融资公允变动</td><td class="txt"><a class="drill" href="#s1">财务总览</a></td></tr>
+        <tr><td>D3 母公司其他应收款 <span class="badge der">推算</span></td><td class="txt"><span class="badge y">⚠️ 可解释偏差</span></td><td>209 倍 / 参考 0.5</td><td class="txt">对全资子公司运营拨款合并抵销；零质押+母公司 OCF +97.7 亿+标准无保留意见，系资金集中调度非占用</td><td class="txt"><a class="drill" href="#s6">股东结构</a></td></tr>
+      </table>
+      <div class="srcline">等式清单见 references/articulation.md；共核对 17 条：可解释 3 条如上，其余 14 条闭合（A5/B2 因附注未披露未执行，合法 SKIP）——闭合项明细见 data.json <code>recon</code> 块 · 偏差 ≠ 造假，先排除合理解释</div>
+    </div>
+  </div>
+
+  <!-- ══ S3 因素分析 ══ -->
+  <div class="sect">
+    <div class="secthead" id="s3"><span class="no">03</span><span class="t">因素分析</span><span class="line"></span><span class="tag">收入 · 成本 · 净利润桥</span></div>
+    <p class="lede">本期利润变化的第一驱动是<b>毛利 +31.3 亿</b>（收入 +13.0% 与毛利率高位持平共同贡献），其中高毛利肿瘤分部（毛利率 93.5%）贡献收入增量的 57%——结构升级是真实的；期间费用 -15.6 亿是最大拖累（销售/研发投入扩张）。</p>
+    <div class="grid2">
+      <div class="card">
+        <div class="figtitle">收入桥（药品业务无量价披露，降级为分部桥）</div>
+        <table class="data bridge">
+          <tr><th>分部（分产品）</th><th>贡献额（亿元）</th><th>占比</th></tr>
+          <tr><td>基期收入（2024） <span class="badge disc">披露</span></td><td>279.85</td><td>—</td></tr>
+          <tr><td>肿瘤（毛利率 93.5%） <span class="badge disc">披露</span></td><td class="up">+20.84</td><td>57.2%</td></tr>
+          <tr><td>代谢和心血管 <span class="badge disc">披露</span></td><td class="up">+6.88</td><td>18.9%</td></tr>
+          <tr><td>造影剂 <span class="badge disc">披露</span></td><td class="up">+2.44</td><td>6.7%</td></tr>
+          <tr><td>免疫和呼吸系统 <span class="badge disc">披露</span></td><td class="up">+0.85</td><td>2.3%</td></tr>
+          <tr><td>神经科学 <span class="badge disc">披露</span></td><td class="up">+0.03</td><td>0.1%</td></tr>
+          <tr><td>其他（含仿制药收缩） <span class="badge disc">披露</span></td><td class="dn">-1.01</td><td>-2.8%</td></tr>
+          <tr><td>其他业务收入（对外许可） <span class="badge disc">披露</span></td><td class="up">+6.41</td><td>17.6%</td></tr>
+          <tr class="total"><td>本期收入（2025） <span class="badge disc">披露</span></td><td>316.29</td><td>—</td></tr>
+        </table>
+        <div class="srcline">数据来源：MD&A 分产品收入表（L2656-2664）+ 营业收入附注；Σ增量 +36.45 亿 = Δ收入（舍入差 0.003 亿）；高毛利肿瘤贡献 57% 增量 = 结构升级 · 方法：factor-analysis.md 第一节降级路径</div>
+      </div>
+      <div class="card">
+        <div class="figtitle">净利润桥：各因素贡献额（亿元）</div>
+        <table class="data bridge">
+          <tr><th>环节</th><th>本期</th><th>上期</th><th>贡献额</th><th class="txt">备注</th></tr>
+          <tr><td>毛利 <span class="badge der">推算</span></td><td>272.67</td><td>241.36</td><td class="up">+31.3</td><td class="txt">收入增 + 毛利率持平（86.2% vs 86.3%）</td></tr>
+          <tr><td>税金及附加 <span class="badge der">推算</span></td><td>2.64</td><td>2.58</td><td class="dn">-0.1</td><td class="txt">随收入同步</td></tr>
+          <tr><td>期间费用合计 <span class="badge der">推算</span></td><td>184.67</td><td>169.02</td><td class="dn">-15.6</td><td class="txt">销售 +7.7 / 管理 +2.5 / 研发 +3.8 / 财务 +1.7（净收益收窄）</td></tr>
+          <tr><td>减值损失 <span class="badge der">推算</span></td><td>1.11</td><td>0.04</td><td class="dn">-1.1</td><td class="txt">资产 0.87+信用 0.24；占归母仅 1.4%</td></tr>
+          <tr><td>投资/公允 <span class="badge der">推算</span></td><td>0.93</td><td>1.13</td><td class="dn">-0.2</td><td class="txt">公允 +1.74 被投资亏损 -0.80 部分对冲</td></tr>
+          <tr><td>非经（营业外净额） <span class="badge der">推算</span></td><td>-2.82</td><td>-3.21</td><td class="up">+0.4</td><td class="txt">营业外支出收窄</td></tr>
+          <tr><td>所得税 <span class="badge der">推算</span></td><td>9.91</td><td>8.33</td><td class="dn">-1.6</td><td class="txt">有效税率 11.4% vs 11.6%</td></tr>
+          <tr><td>少数股东 <span class="badge der">推算</span></td><td>0.06</td><td>0.00</td><td class="dn">-0.1</td><td class="txt">极小</td></tr>
+          <tr><td>其他（资产处置/倒挤） <span class="badge der">推算</span></td><td>—</td><td>—</td><td class="up">+0.7</td><td class="txt">资产处置收益等未单列项</td></tr>
+          <tr class="total"><td>归母净利润</td><td>77.11</td><td>63.37</td><td class="up">+13.7</td><td class="txt">第一驱动：毛利 +31.3 亿</td></tr>
+        </table>
+        <div class="srcline">正贡献记 + / 负贡献记 − · 数据来源：公司 2025FY 年报合并利润表、Tushare 交叉核对 · calc.py bridge.np 已校验（Σ=Δ归母净利）</div>
+      </div>
+    </div>
+    <div class="grid2">
+      <div class="fig">
+        <div class="figtitle">净利 → 经营现金流调节桥（亿元）：利润怎么变成现金（含 license 预收放大）</div>
+        <svg id="ocfbridge" viewBox="0 0 460 300" preserveAspectRatio="xMidYMid meet"></svg>
+        <div class="srcline">营运资本吞噬额 <b>-25.58 亿</b>（占净利润 -33.1%，负值=净释放）：Δ经营性应付 +41.35 亿（许可预收约 30.77 亿为主）覆盖 Δ应收 -10.97 亿与 Δ存货 -4.79 亿 · 数据来源：L9481-9518 现金流量表补充资料 · calc.py bridge.ocf 已校验</div>
+      </div>
+      <div class="card">
+        <div class="figtitle">Q4 单季透视（年报必做，五项异常检测）</div>
+        <table class="data">
+          <tr><th>检测项</th><th>读数</th><th class="txt">阈值</th><th class="txt">判定</th></tr>
+          <tr><td>Q4 收入占全年 <span class="badge der">推算</span></td><td>26.7%</td><td class="txt">&gt;40%</td><td class="txt"><span class="badge g">正常</span></td></tr>
+          <tr><td>Q4 毛利率 vs 前三季 <span class="badge der">推算</span></td><td>86.2% vs 86.2%</td><td class="txt">偏离&gt;5pct</td><td class="txt"><span class="badge g">正常（-0.04pct）</span></td></tr>
+          <tr><td>Q4 减值占全年 <span class="badge der">推算</span></td><td>69.3%（0.77 亿）</td><td class="txt">&gt;60%</td><td class="txt"><span class="badge y">贴线</span> 绝对额占归母仅 1.0%</td></tr>
+          <tr><td>Q4 销售费用率 vs 前三季 <span class="badge der">推算</span></td><td>27.6% vs 29.2%</td><td class="txt">骤降&gt;3pct</td><td class="txt"><span class="badge g">正常（-1.7pct）</span></td></tr>
+          <tr><td>Q4 集中转固 <span class="badge disc">披露</span></td><td>全年 12.68 亿</td><td class="txt">集中且大</td><td class="txt"><span class="badge y">节奏未披露</span> 无法按季判定</td></tr>
+        </table>
+        <div class="srcline">数据来源：年报−三季报（tushare 20250930）· 阈值见 report-types.md 年报节；减值绝对额小，贴线不构成调节嫌疑</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ S4 文字部分分析 ══ -->
+  <div class="sect">
+    <div class="secthead" id="s4"><span class="no">04</span><span class="t">管理层在说什么</span><span class="line"></span><span class="tag">MD&A · 措辞 · 赛道重合度</span></div>
+    <div class="grid2">
+      <div class="card">
+        <div class="figtitle">叙事主线与发力方向</div>
+        <ul class="flaglist">
+          <li><span><span class="dot g"></span></span><div class="body"><b>创新药放量</b>：瑞维鲁胺/达尔西利「强劲增长」、非肿瘤创新药 +73.36%——钱跟上了：肿瘤分部 +14.3%、代谢 +39.4%、创新药整体 +26.1%<span class="src">出处：L863-873 MD&A · 断言验证 AS1/AS2 ✅</span></div></li>
+          <li><span><span class="dot g"></span></span><div class="body"><b>license-out 出海</b>：五笔首付落地 + 预收 30.77 亿挂账——钱跟上了：其他业务收入 36.16 亿、OCF 调节桥应付项 +41.35 亿<span class="src">出处：L881-885 MD&A · 断言验证 AS4/AS6 ✅</span></div></li>
+          <li><span><span class="dot y"></span></span><div class="body"><b>仿制药主动收缩</b>：定性「整体收入小幅下滑」并将资源转向创新药——与倒挤 -3.1% 一致，且 2026H1 加速至 -16.1%<span class="src">出处：L886-890/L3992-3993 · 断言验证 AS5/AS12 ✅</span></div></li>
+        </ul>
+      </div>
+      <div class="card">
+        <div class="figtitle">措辞变化与隐晦信号（本期快照，无上期基线）</div>
+        <ul class="flaglist">
+          <li><span><span class="dot g"></span></span><div class="body"><b>语气档位：强档为主</b>——强档词频 24 / 稳档 10 / 弱档 0 / 压档 10（极性比 3.4）；压档 10 处全部定向仿制药集采（下滑×5、收缩×3、严峻×2），与创新药叙事切割清晰<span class="src">出处：text-mining.md 语气档位词表，MD&A 全文词频计数（可复现）· 未取得上期报告，跨期对比精度受限（降级声明）</span></div></li>
+          <li><span><span class="dot y"></span></span><div class="body"><b>风险提示强化 2 条</b>：① 研发创新风险新增「同质化竞争下靶点前移承担更高研发风险」；② 国际化风险新增「对外许可合作伙伴临床试验未达预期将影响里程碑款支付」——后者被默克 KGaA 期后退货实证<span class="src">出处：L4006 起 可能面对的风险 + 期后公告</span></div></li>
+        </ul>
+      </div>
+    </div>
+    <div class="card">
+      <div class="figtitle">行业坐标：管理层宣称的规模与地位放在行业里有多大</div>
+      <table class="data">
+        <tr><th>宣称</th><th class="txt">同行对比</th><th class="txt">行业占比/口径</th><th class="txt">判定</th></tr>
+        <tr><td>创新药销售 163.42 亿 +26.1% <span class="badge disc">披露</span></td><td class="txt">百济神州总收入 382.25 亿（基本全为创新药）、翰森 166.4 亿港元、信达 144.4 亿港元</td><td class="txt">A 股传统药企转型标的中创新药体量第一梯队；口径=含税销售收入（公司披露）</td><td class="txt"><span class="badge g">成立</span>（第一梯队，但非第一）</td></tr>
+        <tr><td>「创新成果稳居行业领先地位」（24 款 1 类新药）</td><td class="txt">百济神州研发 155.08 亿（费率 40.6%）；恒瑞研发投入 87.24 亿（费率 27.6% 投入口径 / 22.0% 费用化）</td><td class="txt">管线广度（24 款获批 + 五笔 license 出海）居国内首位梯队</td><td class="txt"><span class="badge y">口径限定</span> 广度成立，研发强度逊于百济</td></tr>
+        <tr><td>毛利率 86.2% <span class="badge der">推算</span></td><td class="txt">翰森 90.0% / 百济 87.6% / 信达 86.5%</td><td class="txt">创新药行业正常区间</td><td class="txt"><span class="badge g">无异常</span>（「毛利率显著高于同行」信号未触发）</td></tr>
+      </table>
+      <div class="srcline">数据来源：各公司 2025 年报（Tushare / 东方财富）；港股为港元口径，详见 <a href="#s7">07 同业对比</a> · 规则：text-mining.md 第三节「重点宣称数字给行业坐标」</div>
+    </div>
+    <div class="card">
+      <div class="figtitle">热门赛道重合度：真布局还是蹭热点</div>
+      <table class="data">
+        <tr><th>宣称方向</th><th class="txt">对应热门概念</th><th class="txt">资本开支</th><th class="txt">产能/订单</th><th class="txt">研发</th><th class="txt">收入贡献</th><th class="txt">判定</th></tr>
+        <tr><td>创新药 + license-out 出海</td><td class="txt">创新药 / BD 出海概念板块</td><td class="txt">有：capex 29.62 亿 <span class="badge disc">披露</span></td><td class="txt">有：24 款获批 + 预收 30.77 亿</td><td class="txt">有：87.24 亿投入</td><td class="txt">有：163.42+36.16 亿</td><td class="txt"><span class="badge g">真布局</span>（四问全有）</td></tr>
+      </table>
+      <div class="srcline">判定规则：text-mining.md 四问（资本开支/产能订单/研发/收入贡献）· 宣称与当下热门概念板块重合（创新药出海为 2025-2026 主线之一），但证据链完整，非蹭热点</div>
+    </div>
+    <div class="card">
+      <div class="figtitle">MD&A 断言验证：管理层说的每句话用数字验真</div>
+      <table class="data">
+        <tr><th>管理层断言</th><th class="txt">数据检验</th><th class="txt">三态</th><th class="txt">出处</th></tr>
+        <tr><td>瑞维鲁胺、达尔西利销售收入继续保持强劲增长</td><td class="txt">近似口径：肿瘤分部 166.71 亿 +14.3%（单品未单列）</td><td class="txt"><span class="badge g">✅ 通过</span></td><td class="txt">L863-865</td></tr>
+        <tr><td>氟唑帕利、海曲泊帕持续注入稳定增量</td><td class="txt">近似口径：肿瘤分部 +14.3% 内含存量品种贡献</td><td class="txt"><span class="badge g">✅ 通过</span></td><td class="txt">L866-867</td></tr>
+        <tr><td>伊立替康脂质体、瑞康曲妥珠单抗驱动前期快速放量</td><td class="txt">单品收入未披露，与分部映射无法建立（免疫 +10.9% / 神经 +0.1%）</td><td class="txt"><span class="badge y">❓ 无法验证</span></td><td class="txt">L868-870</td></tr>
+        <tr><td>对外许可首付款确认为收入，推动经营业绩指标增长</td><td class="txt">其他业务收入 36.16 亿（+21.5%）+ 预收 30.77 亿挂账</td><td class="txt"><span class="badge g">✅ 通过</span></td><td class="txt">L881-885</td></tr>
+        <tr><td>仿制药整体收入出现小幅下滑</td><td class="txt">倒挤 116.71 亿 vs 120.48 亿 = -3.1%，「小幅」成立</td><td class="txt"><span class="badge g">✅ 通过</span></td><td class="txt">L886-890</td></tr>
+        <tr><td>OCF +51.36% 变动原因：对外许可首付款收到的现金增加 <span class="badge disc">披露</span></td><td class="txt">调节桥 Δ应付 +41.35 亿含预收 30.77 亿（占增量 81%），方向与强度均成立</td><td class="txt"><span class="badge g">✅ 通过</span></td><td class="txt">L2627/2632</td></tr>
+        <tr><td>筹资净额 +601.85% 变动原因：发行 H 股募集资金 <span class="badge disc">披露</span></td><td class="txt">吸收投资收现 103.52 亿（新发 H 股 25.82 亿股）</td><td class="txt"><span class="badge g">✅ 通过</span></td><td class="txt">L2630/2633</td></tr>
+        <tr><td>代谢和心血管收入/成本 +39.39%/+56.78% 系瑞沁等放量 <span class="badge disc">披露</span></td><td class="txt">分部精确一致：+39.4% / +56.7%</td><td class="txt"><span class="badge g">✅ 通过</span></td><td class="txt">L2690-2691</td></tr>
+        <tr><td>国外收入 +88.25% 系国外制剂销售增长较多 <span class="badge disc">披露</span></td><td class="txt">分地区表数据自洽；低基数高增速</td><td class="txt"><span class="badge g">✅ 通过</span></td><td class="txt">L2692-2693</td></tr>
+        <tr><td>代谢产品成本增速高于收入（原材料 +62.69%、人工制造 +44.15%） <span class="badge disc">披露</span></td><td class="txt">成本 +56.8% &gt; 收入 +39.4%，分部毛利率 -2.9pct，一致</td><td class="txt"><span class="badge g">✅ 通过</span></td><td class="txt">L2767-2768</td></tr>
+        <tr><td>免疫产品人工及制造费用增长 34.66% 系占比提高 <span class="badge disc">披露</span></td><td class="txt">成本构成明细未披露到该粒度；总成本 +4.7% 数学自洽</td><td class="txt"><span class="badge y">❓ 无法验证</span></td><td class="txt">L2769-2770</td></tr>
+        <tr><td>预计仿制药销售收入将有所下滑（前瞻指引）</td><td class="txt">2026H1 已兑现且加速：-16.07%（半年报）</td><td class="txt"><span class="badge g">✅ 兑现中</span></td><td class="txt">L3992-3993</td></tr>
+      </table>
+      <div class="srcline">共 12 条断言：✅ 10 / ❓ 2（均缺单品或明细披露，非归因不实）；❌ 0 条 · 判定规则：text-mining.md 第七节 · ❓ 条目已写明缺什么数据</div>
+    </div>
+    <div class="card">
+      <div class="figtitle">解释缺口与指引兑现率</div>
+      <table class="data">
+        <tr><th>变动 &gt;30% 的科目</th><th>变动幅度</th><th class="txt">MD&A 是否解释</th></tr>
+        <tr><td>投资收益（转亏） <span class="badge disc">披露</span></td><td>+0.04 → -0.80 亿</td><td class="txt">未提及（金额小，占归母 1.0%）</td></tr>
+        <tr><td>减值损失 <span class="badge disc">披露</span></td><td>+3030%（0.04 → 1.11 亿）</td><td class="txt">未提及（绝对额占归母 1.4%）</td></tr>
+        <tr class="total"><td>上期量化指引 vs 本期实际</td><td colspan="2" class="txt">未取得 2024 年报原文，上期指引兑现率无法计算（降级声明）；本期新指引「仿制药将有所下滑」已被 2026H1 兑现（-16.07%）</td></tr>
+      </table>
+      <div class="srcline">数字大动而文字不解释，本身就是信号（「该写而没写」的数字侧镜像）；两条缺口金额均小，定 🟡 观察</div>
+    </div>
+  </div>
+
+  <!-- ══ S5 产能与在建工程 ══ -->
+  <div class="sect">
+    <div class="secthead" id="s5"><span class="no">05</span><span class="t">产能与在建工程</span><span class="line"></span><span class="tag">钱押在哪条线</span></div>
+    <div class="card">
+      <table class="data">
+        <tr><th>项目</th><th>预算（亿元）</th><th>期末余额（亿元）</th><th>进度</th><th class="txt">对应产品线 / 判定</th></tr>
+        <tr><td>上海盛迪创新研发中心</td><td>未披露</td><td>0（期初 4.04 全部转固）</td><td>已转固</td><td class="txt">研发平台；本期转固主力之一</td></tr>
+        <tr><td>广东恒瑞知识城项目 <span class="badge disc">披露</span></td><td>6.30</td><td>4.25</td><td>95%</td><td class="txt">产业化基地；进度 95% 未转固，待下期验证（🟡）</td></tr>
+        <tr><td>福建盛迪厦门原料药基地及待安装设备</td><td>未披露</td><td>3.75</td><td>未披露</td><td class="txt">原料药产能（造影剂/麻醉线）</td></tr>
+        <tr><td>苏州盛迪亚东沙湖二期</td><td>未披露</td><td>3.30</td><td>未披露</td><td class="txt">产业化扩产</td></tr>
+        <tr><td>股份本部购入需安装设备</td><td>未披露</td><td>2.62</td><td>未披露</td><td class="txt">产线设备</td></tr>
+        <tr><td>天津恒瑞创新药产业化基地</td><td>未披露</td><td>1.13</td><td>未披露</td><td class="txt">创新药产能</td></tr>
+        <tr><td>广东恒瑞生物岛项目</td><td>未披露</td><td>1.05</td><td>未披露</td><td class="txt">生物药平台</td></tr>
+        <tr class="total"><td>合计（含其他 3.95 亿） <span class="badge disc">披露</span></td><td>—</td><td>20.06</td><td>—</td><td class="txt">期初 16.88 + 投入 15.87 − 转固 12.68（B3 勾稽闭合）</td></tr>
+      </table>
+      <div class="srcline">数据来源：L8225-8289 在建工程附注 + L8180 固定资产附注；预算/进度仅广东知识城完整披露（其余 6 项未披露，如实标注）</div>
+    </div>
+    <p class="lede">在建与资本开支主要押注<b>创新药产业化与研发平台</b>（天津产业化基地、上海盛迪研发中心、知识城项目），与「创新药过半」的战略资源投向一致；全年 capex 29.62 亿 +50.5%，重资产扩张处于上行期节奏，转固 12.68 亿与固定资产附注互证闭合。</p>
+  </div>
+
+  <!-- ══ S6 股东结构 ══ -->
+  <div class="sect">
+    <div class="secthead" id="s6"><span class="no">06</span><span class="t">股东结构</span><span class="line"></span><span class="tag">户数 · 前十大 · 增减持</span></div>
+    <div class="grid2">
+      <div class="fig">
+        <div class="figtitle">股东户数趋势（万户）：收敛 → 扩散</div>
+        <svg id="holders" viewBox="0 0 460 280" preserveAspectRatio="xMidYMid meet"></svg>
+        <div class="srcline">数据来源：Tushare stk_holdernumber（与年报披露值 39.85 万户核对一致） · 2025 全年 -10.8%（筹码集中）→ 2026H1 +35.3%（散户涌入）</div>
+      </div>
+      <div class="card">
+        <div class="figtitle">前十大股东变化（本期 vs 上期）</div>
+        <table class="data">
+          <tr><th>股东</th><th class="txt">变动</th><th class="txt">解读</th></tr>
+          <tr><td>香港中央结算（北向） <span class="badge disc">披露</span></td><td class="txt"><span class="up">+6,916 万股</span></td><td class="txt">北向大幅增持</td></tr>
+          <tr><td>HKSCC Nominees（H 股） <span class="badge disc">披露</span></td><td class="txt"><span class="up">新进 2.58 亿股</span></td><td class="txt">H 股上市托管持仓</td></tr>
+          <tr><td>中国医药投资 <span class="badge disc">披露</span></td><td class="txt"><span class="dn">减持</span></td><td class="txt">国资股东退出部分</td></tr>
+          <tr><td>青岛博森泰 / 连云港金控 <span class="badge disc">披露</span></td><td class="txt"><span class="dn">减持</span></td><td class="txt">财务投资人退出</td></tr>
+          <tr><td>西藏达远 <span class="badge disc">披露</span></td><td class="txt">更名（原恒信元）</td><td class="txt">非增减持</td></tr>
+        </table>
+        <div class="srcline">数据来源：年报前十大股东表 + Tushare top10_holders；控股股东恒瑞集团质押率 0% <span class="badge disc">披露</span>（零质押，无平仓与掏空动机）</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ S7 外部校验 ══ -->
+  <div class="sect">
+    <div class="secthead" id="s7"><span class="no">07</span><span class="t">外部校验</span><span class="line"></span><span class="tag">预期 · 同业 · 宏观 · 债务</span></div>
+    <div class="grid2">
+      <div class="card">
+        <div class="figtitle">实际 vs 机构一致预期</div>
+        <table class="data">
+          <tr><th>指标</th><th>实际</th><th>披露前一致预期</th><th>偏离度</th></tr>
+          <tr><td>营业收入（亿元） <span class="badge disc">披露</span></td><td>316.29</td><td>约 314~337</td><td class="txt">符合（区间下限）</td></tr>
+          <tr><td>归母净利（亿元） <span class="badge disc">披露</span></td><td>77.11</td><td>约 83~84</td><td class="dn">-7%~-9%（miss）</td></tr>
+        </table>
+        <div class="srcline">数据来源：Tushare report_rc（约 35 家券商，2026 年以来）；年报落地后全部维持买入/增持、无一下调评级；2026E 一致预期：收入 ≈353 亿（+11.6%）、归母 ≈93.4 亿（+21.1%）· 归母 miss 主因 Q4 费用与减值确认节奏，券商定性「符合/略超」</div>
+      </div>
+      <div class="card">
+        <div class="figtitle">同业对比（创新药，2025 年报）</div>
+        <table class="data">
+          <tr><th>公司</th><th>收入（亿）</th><th>毛利率</th><th>研发费率</th><th>资产负债率</th></tr>
+          <tr><td><b>恒瑞医药</b> <span class="badge disc">披露</span></td><td>316.29（RMB）</td><td>86.2%</td><td>22.0%</td><td>11.6%</td></tr>
+          <tr><td>百济神州 <span class="badge disc">披露</span></td><td>382.25（RMB）</td><td>87.6%</td><td>40.6%</td><td>46.5%</td></tr>
+          <tr><td>翰森制药 <span class="badge disc">披露</span></td><td>166.4（HKD）</td><td>90.0%</td><td>22.3%</td><td>11.4%</td></tr>
+          <tr><td>信达生物 <span class="badge disc">披露</span></td><td>144.4（HKD）</td><td>86.5%</td><td>20.1%</td><td>48.2%</td></tr>
+          <tr><td>复星医药 <span class="badge disc">披露</span></td><td>416.62（RMB）</td><td>50.1%</td><td>9.6%</td><td>48.5%</td></tr>
+          <tr><td>中国生物制药 <span class="badge disc">披露</span></td><td>352.5（HKD）</td><td>82.1%</td><td>缺（中报 34.95）</td><td>44.6%</td></tr>
+        </table>
+        <div class="srcline">数据来源：Tushare / 东方财富，同一报告期；港股为港元口径、中生制药年报研发缺项如实标注 · 恒瑞毛利率处行业正常区间、资产负债率与翰森并列最低档</div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="figtitle">增收不增利判定 · 敏感性 · 债务偿付</div>
+      <table class="data">
+        <tr><th>检验项</th><th>读数</th><th class="txt">结论</th></tr>
+        <tr><td>收入增速 vs 净利增速 <span class="badge der">推算</span></td><td>+13.0% vs +21.7%</td><td class="txt">增收更增利（净利率 +1.7pct），无剪刀差</td></tr>
+        <tr><td>研发费用（费率 / 资本化率） <span class="badge der">推算</span></td><td>69.61 亿（22.0% / 20.2%）</td><td class="txt">费率同业中位（百济 40.6%/翰森 22.3%/信达 20.1%）；资本化率 <30% 阈值内，KAM 已关注</td></tr>
+        <tr><td>短债覆盖倍数 <span class="badge der">推算</span></td><td>1,687 倍</td><td class="txt">（货币资金 409.55+OCF 112.35）÷短债 0.31 亿——分母近零失真参考，实际无刚性债务</td></tr>
+        <tr><td>现金流偿债口径（X6） <span class="badge der">推算</span></td><td>1.85（≈ 0.5 年）</td><td class="txt">OCF÷平均总负债；照现在造血能力约 6.5 个月可还清全部负债——与上行短债覆盖并列看，偿付无虞</td></tr>
+        <tr><td>敏感性：集采价格 <span class="badge der">推算</span></td><td class="txt" colspan="2">仿制药 116.71 亿（占收入 36.9%）持续暴露：七氟烷第 12 批国采中标（2026-07），白蛋白紫杉醇续约降价；集采尾部冲击未见底（2026H1 仿制药 -16.07%）</td></tr>
+        <tr><td>敏感性：汇率与境外监管 <span class="badge der">推算</span></td><td class="txt" colspan="2">license 收入以美元/欧元计价（五笔首付约 8.65 亿美元+1500 万欧元）；财务费用 -4.07 亿为净收益（含汇兑因素）；FDA 三次 CRL（双艾）系生产场地 cGMP 项，整改后可再申报——数据来源：mx_finance_search_notice 期后公告</td></tr>
+      </table>
+      <div class="srcline">费用 ROI 规则：frameworks.md 第七节 · 增量费用效率 2.00（Δ毛利÷Δ期间费用 &gt;1 🟢）、销售费用获客效率 4.73（Δ收入÷Δ销售费用，改善中）</div>
+    </div>
+    <div class="card">
+      <div class="figtitle">期后事项（披露日 → 分析日）</div>
+      <table class="data">
+        <tr><th>日期</th><th class="txt">事件</th><th class="txt">验证了什么</th></tr>
+        <tr><td class="txt">2026-05-12</td><td class="txt">BMS 全球战略合作：首付 6 亿美元预计 Q3 到账，潜在总额 152 亿美元（13 个早期项目）</td><td class="txt">license 出海接续性成立；2026 年大额收入弹药</td></tr>
+        <tr><td class="txt">2026-03-05</td><td class="txt">默克 KGaA 终止 HRS-1167 授权并放弃 SHR-A1904 选择权（首付 1.6 亿欧元无需退还）</td><td class="txt">BD 里程碑预期可折损——风险提示新增条的实证</td></tr>
+        <tr><td class="txt">2026-07-10</td><td class="txt">FDA 第三次 CRL：双艾组合肝癌 BLA 被拒（生产场地 cGMP 观察项，不涉临床数据）</td><td class="txt">国际化监管挫折；影响出海节奏而非存量经营</td></tr>
+        <tr><td class="txt">2026-07</td><td class="txt">七氟烷第 12 批国家集采拟中标</td><td class="txt">麻醉大品种进入国采；仿制药降价压力延续</td></tr>
+        <tr><td class="txt">2026-05-27</td><td class="txt">2025 年度分红 12.74 亿实施完毕（每 10 股派 2 元）</td><td class="txt">分红兑现，与未分配利润勾稽一致（A2）</td></tr>
+        <tr><td class="txt">2026-08-19</td><td class="txt">上一期回购完成（10.04 亿、1,659 万股用于员工持股）；新一期 10~20 亿回购启动</td><td class="txt">股东回报延续；控股方未来 3/6 个月暂无减持计划</td></tr>
+        <tr><td class="txt">2026-04/08</td><td class="txt">应收账款期后持续回收：2026Q1 末 50.21 亿 → H1 末 49.20 亿（较 2025 末 51.47 亿连降）</td><td class="txt">期末 51.47 亿应收真实性有期后回收佐证（联动 B1）</td></tr>
+        <tr><td class="txt">2026-06-23</td><td class="txt">艾玛昔替尼软膏撤回上市申请（累计研发投入 12.22 亿）</td><td class="txt">研发管线自然淘汰；损失已在研发投入中</td></tr>
+      </table>
+      <div class="srcline">数据来源：mx_finance_search_notice 期后公告时间线 · 已检查：无债务违约、无违规担保、无问询函/处罚、控股股东零质押零减持 · 总体定性：期后健康，负面项均为经营性而非财务真实性风险</div>
+    </div>
+  </div>
+
+  <!-- ══ S8 下期跟踪清单 ══ -->
+  <div class="sect">
+    <div class="secthead" id="s8"><span class="no">08</span><span class="t">下期跟踪清单</span><span class="line"></span><span class="tag">先行指标仪表盘 · 下份报告之前可观察</span></div>
+    <p class="lede">下一期最先看 <b>2026Q3 财报的「其他业务收入」与货币资金</b>——BMS 6 亿美元首付是否如期到账，最早暴露 license 叙事的接续方向。</p>
+    <div class="card">
+      <table class="data">
+        <tr><th>先行指标</th><th class="txt">当前读数</th><th class="txt">观察方向（&gt;上限 含义 / &lt;下限 含义）</th><th class="txt">数据来源</th></tr>
+        <tr><td>创新药收入增速</td><td class="txt">163.42 亿 +26.09% <span class="badge disc">披露</span></td><td class="txt">&gt; 30% 增长动能强化 / &lt; 20% 高增长叙事下修（阈值依据：管理层指引区间与近两年 20~26% 中枢）</td><td class="txt">MD&A 分部披露 + 定期报告</td></tr>
+        <tr><td>license-out 确认节奏（其他业务收入）</td><td class="txt">36.16 亿；预收 30.77 亿挂账 <span class="badge der">推算</span></td><td class="txt">&gt; 40 亿 管线接续顺畅 / &lt; 25 亿且预收收缩 = BD 断档成立（阈值依据：2024=29.75 / 2025=36.16 区间）</td><td class="txt">营业收入附注 + L8610 附注 38；BMS 交割公告</td></tr>
+        <tr><td>核心品种集采中标价降幅</td><td class="txt">七氟烷第 12 批国采中标（2026-07） <span class="badge est">估算</span></td><td class="txt">若新一轮核心品种中标价降幅 &gt;50%，则对应分部收入与毛利率下修成立（无法数字化阈值，保留 if-then 句式）</td><td class="txt">带量采购公告（早于报表）</td></tr>
+        <tr><td>应收账款 DSO（医院回款周期）</td><td class="txt">58.1 天（上期 65.9 天，收窄中） <span class="badge der">推算</span></td><td class="txt">&gt; 75 天连续两期 = 信用放松成立 / &lt; 45 天 = 回款改善确认（阈值依据：近三期 65.9→58.1 趋势与历史中枢）</td><td class="txt">应收账款附注 + calc 复算</td></tr>
+        <tr><td>管线里程碑达成（NDA/获批公告数）</td><td class="txt">24 款 1 类新药累计获批 <span class="badge est">估算</span></td><td class="txt">若年度 NDA 受理/获批较 2025 显著收缩且无合理说明，则后续增长管线空心化成立（保留 if-then 句式）</td><td class="txt">临床进展公告（早于报表）</td></tr>
+      </table>
+      <div class="srcline">watchlist 已写入 data.json（reports/archive/json/恒瑞医药-600276-年报-2025FY-20260915.json）——下期回看直接读该 JSON 块，不再解析本表；冻结纪律：回看只追加 review 子块，原触发线不回改 · 按 meta.industry_profile=医药健康 的建议集定制（5 项）</div>
+    </div>
+  </div>
+
+  <div class="foot">
+    <span>恒瑞医药（600276.SH）2025FY 年报分析 · 生成于 2026-09-15</span>
+    <span>数据：公司报告原文（双源核对：Tushare / 东方财富）· 本报告仅为信息分析，不构成投资建议</span>
+  </div>
+</div>
+
+<script>
+const NS='http://www.w3.org/2000/svg';
+const INK='rgb(58,42,28)',MUT='rgba(58,42,28,.60)',GRID='rgba(58,42,28,.16)',FAINT='rgba(58,42,28,.32)';
+const C1='rgb(171,94,38)',C2='rgb(233,213,187)',GOOD='#0F7B4F',BAD='#C0392B';
+const el=(p,t,a)=>{const n=document.createElementNS(NS,t);for(const k in a)n.setAttribute(k,a[k]);p.appendChild(n);return n};
+const txt=(p,a,s)=>{const n=el(p,'text',a);n.textContent=s;return n};
+const tip=(n,s)=>{const t=document.createElementNS(NS,'title');t.textContent=s;n.appendChild(t)};
+function capsule(p,x,y,w,h,r,fill,dir,cls){
+  if(h<=0)return el(p,'rect',{x:x,y:y,width:w,height:0,fill:'none'});
+  const rr=Math.min(r,w/2,h/2);
+  const d=dir==='down'
+    ?`M${x},${y} V${y+h-rr} Q${x},${y+h} ${x+rr},${y+h} H${x+w-rr} Q${x+w},${y+h} ${x+w},${y+h-rr} V${y} Z`
+    :`M${x},${y+h} V${y+rr} Q${x},${y} ${x+rr},${y} H${x+w-rr} Q${x+w},${y} ${x+w},${y+rr} V${y+h} Z`;
+  return el(p,'path',{d:d,fill:fill,class:cls});
+}
+function niceStep(raw){const p=Math.pow(10,Math.floor(Math.log10(raw)));const n=raw/p;return (n<=1?1:n<=2?2:n<=5?5:10)*p;}
+
+/* ════ DATA：本报告数据区 ════ */
+const TREND={labels:['2021','2022','2023','2024','2025'],
+  rev:[259.06,212.75,228.20,279.85,316.29],
+  np:[45.30,39.06,43.02,63.37,77.11],
+  np_dt:[null,34.10,41.41,61.78,74.13],
+  roe:[0.1294,0.1033,0.1063,0.1392,0.1258],
+  gm:[85.6,83.6,84.6,86.3,86.2]};
+const OCF_BRIDGE=[['净利润',77.17],['资产减值',0.87],['信用减值',0.24],['折旧摊销',9.42],
+  ['处置/报废',-0.01],['公允变动',-1.74],['财务费用',3.74],['投资损失',0.57],['递延税',-4.04],
+  ['Δ存货',-4.79],['Δ应收',-10.97],['Δ应付',41.35],['其他',0.53]];
+const OCF_END=112.35;
+const HOLDERS={labels:['2024末','25Q1','25H1','25Q3','2025末','26-02','26Q1','26H1'],
+  num:[44.66,41.10,36.47,39.73,39.85,44.97,45.83,53.92],px:[]};
+
+function combo(id,labels,barA,barB,line,lineName,aName,bName){
+  const s=document.getElementById(id);if(!s||!labels.length)return;
+  barB=barB||[];line=line||[];
+  const W=+s.viewBox.baseVal.width,H=+s.viewBox.baseVal.height,L=54,R=54,B=44,T=30;
+  const max=Math.max(...barA,...barB)*1.15||1;
+  const lspan=line.length?Math.max(...line)-Math.min(...line)||1:1;
+  const lmax=line.length?Math.max(...line)+lspan*.5:1,lmin=line.length?Math.min(...line)-lspan*.5:0;
+  const bw=(W-L-R)/labels.length;
+  const step=niceStep(max/4);
+  for(let v=step;v<max;v+=step){
+    const gy=T+(H-B-T)*(1-v/max);
+    el(s,'line',{x1:L,y1:gy,x2:W-R,y2:gy,stroke:FAINT,'stroke-width':.7,'stroke-dasharray':'3 3'});
+    txt(s,{x:L-8,y:gy+3,'font-size':8.5,'font-weight':600,fill:MUT,'text-anchor':'end'},Math.round(v));
+  }
+  labels.forEach((lb,i)=>{
+    const w=bw*.24;
+    const x=barB.length?L+i*bw+bw*.18:L+i*bw+(bw-w)/2;
+    const ha=(H-B-T)*barA[i]/max;
+    const r1=capsule(s,x,H-B-ha,w,ha,w/2,C1);
+    tip(r1,`${lb} ${aName}：${barA[i]}`);
+    if(barB.length){
+      const hb=(H-B-T)*barB[i]/max;
+      const r2=capsule(s,x+w+3,H-B-hb,w,hb,w/2,C2);
+      tip(r2,`${lb} ${bName}：${barB[i]}`);
+    }
+    const tx=barB.length?x+w:x+w/2;
+    txt(s,{x:tx,y:H-B-ha-6,'font-size':10,'font-weight':800,fill:INK,'text-anchor':'middle'},barA[i]);
+    txt(s,{x:L+i*bw+bw/2,y:H-B+18,'font-size':10,'font-weight':600,fill:MUT,'text-anchor':'middle'},lb);
+  });
+  el(s,'line',{x1:L,y1:H-B,x2:W-R,y2:H-B,stroke:GRID,'stroke-width':1});
+  if(line.length){
+    const lT=T+18,lB=H-B-16;
+    const pts=line.map((v,i)=>{
+      const x=L+i*bw+bw/2,y=lT+(lB-lT)*(1-(v-lmin)/(lmax-lmin||1));
+      return [x,y];
+    });
+    el(s,'path',{d:'M'+pts.map(p=>p.join(' ')).join(' L '),fill:'none',stroke:INK,'stroke-width':1.8});
+    pts.forEach((p,i)=>{
+      const c=el(s,'circle',{cx:p[0],cy:p[1],r:3,fill:INK,stroke:'#fff','stroke-width':1.5});
+      tip(c,`${labels[i]} ${lineName}：${line[i]}%`);
+      txt(s,{x:p[0]+8,y:p[1]-8,'font-size':9,'font-weight':700,fill:MUT,'text-anchor':'start'},line[i]+'%');
+    });
+  }
+  const lg=[[aName,C1],barB.length?[bName,C2]:null,line.length?[lineName,INK]:null].filter(Boolean);
+  lg.forEach(([n,c],i)=>{
+    el(s,'rect',{x:L+i*130,y:8,width:10,height:10,fill:c,rx:2});
+    txt(s,{x:L+i*130+15,y:17,'font-size':10,'font-weight':600,fill:MUT},n);
+  });
+}
+function trendDual(id,labels,rev,np,gm,np_dt,roe){
+  const s=document.getElementById(id);if(!s||!labels.length)return;
+  const W=+s.viewBox.baseVal.width,H=+s.viewBox.baseVal.height,B=44,T=52;
+  const L=54,R=16,GAP=52;
+  const pw=(W-L-R-GAP)/2;
+  const x2=L+pw+GAP,n=labels.length;
+  np_dt=np_dt||[];roe=roe||[];
+  const has_dt=np_dt.some(v=>v!=null);
+  const drawPanel=(px0,vals,color,vals2,color2)=>{
+    const has2=!!vals2&&vals2.some(v=>v!=null);
+    const pool=has2?vals.concat(vals2.filter(v=>v!=null)):vals;
+    const max=Math.max(...pool)*1.15||1,bw=pw/n;
+    const step=niceStep(max/5);
+    for(let v=step;v<max;v+=step){
+      const gy=T+(H-B-T)*(1-v/max);
+      el(s,'line',{x1:px0,y1:gy,x2:px0+pw,y2:gy,stroke:FAINT,'stroke-width':.7,'stroke-dasharray':'3 3'});
+      txt(s,{x:px0-8,y:gy+3,'font-size':8.5,'font-weight':600,fill:MUT,'text-anchor':'end'},Math.round(v));
+    }
+    el(s,'line',{x1:px0,y1:H-B,x2:px0+pw,y2:H-B,stroke:GRID,'stroke-width':1});
+    vals.forEach((v,i)=>{
+      const w=has2?bw*.24:bw*.4;
+      const x=has2?px0+i*bw+bw*.18:px0+i*bw+(bw-w)/2;
+      const h=(H-B-T)*v/max;
+      const r=capsule(s,x,H-B-h,w,h,w/2,color);
+      tip(r,`${labels[i]}：${v}`);
+      txt(s,{x:x+w/2,y:H-B-h-6,'font-size':10,'font-weight':800,fill:INK,'text-anchor':'middle'},v);
+      if(has2&&vals2[i]!=null){
+        const h2=(H-B-T)*vals2[i]/max;
+        const r2=capsule(s,x+w+3,H-B-h2,w,h2,w/2,color2);
+        tip(r2,`${labels[i]} 扣非净利：${vals2[i]}`);
+      }
+    });
+  };
+  drawPanel(L,rev,C1);
+  const lT=T+14,lB=H-B-16;
+  const lspan=Math.max(...gm)-Math.min(...gm)||1;
+  const lmax=Math.max(...gm)+lspan*.5,lmin=Math.min(...gm)-lspan*.5;
+  const pts=gm.map((v,i)=>{
+    const x=L+i*(pw/n)+pw/n/2,y=lT+(lB-lT)*(1-(v-lmin)/(lmax-lmin||1));
+    return [x,y];
+  });
+  el(s,'path',{d:'M'+pts.map(p=>p.join(' ')).join(' L '),fill:'none',stroke:INK,'stroke-width':1.8});
+  pts.forEach((p,i)=>{
+    el(s,'circle',{cx:p[0],cy:p[1],r:3,fill:INK,stroke:'#fff','stroke-width':1.5});
+    txt(s,{x:p[0]+14,y:p[1]-8,'font-size':9,'font-weight':700,fill:MUT},gm[i]+'%');
+  });
+  drawPanel(x2,np,C1,has_dt?np_dt:null,C2);
+  const rv=roe.map(v=>v==null?null:v*100);
+  if(rv.some(v=>v!=null)){
+    const vals=rv.filter(v=>v!=null);
+    const span=Math.max(...vals)-Math.min(...vals)||1;
+    const lmax=Math.max(...vals)+span*.5,lmin=Math.min(...vals)-span*.5;
+    const cx=i=>has_dt?x2+i*(pw/n)+(pw/n)*.42+1.5:x2+i*(pw/n)+(pw/n)/2;
+    const ry=v=>lT+(lB-lT)*(1-(v-lmin)/(lmax-lmin||1));
+    let run=[];
+    const flush=()=>{
+      if(run.length>1){
+        el(s,'path',{d:'M'+run.map(i=>[cx(i),ry(rv[i])]).map(p=>p.join(' ')).join(' L '),fill:'none',stroke:INK,'stroke-width':1.8});
+      }
+      run=[];
+    };
+    rv.forEach((v,i)=>{
+      if(v==null){flush();return;}
+      run.push(i);
+      el(s,'circle',{cx:cx(i),cy:ry(v),r:3,fill:INK,stroke:'#fff','stroke-width':1.5});
+      txt(s,{x:cx(i)+14,y:ry(v)-8,'font-size':9,'font-weight':700,fill:MUT},v.toFixed(2)+'%');
+    });
+    flush();
+  }
+  el(s,'line',{x1:x2-GAP/2,y1:T-8,x2:x2-GAP/2,y2:H-B,stroke:FAINT,'stroke-width':.7,'stroke-dasharray':'2 3'});
+  txt(s,{x:L,y:T-22,'font-size':10,'font-weight':700,fill:MUT},'营业收入（亿元）· 线=毛利率(%)');
+  txt(s,{x:x2,y:T-22,'font-size':10,'font-weight':700,fill:MUT},'归母净利+扣非净利（亿元）· 线=ROE(%)');
+  const lg=[['归母净利',C1],has_dt?['扣非净利',C2]:null,rv.some(v=>v!=null)?['ROE',INK]:null].filter(Boolean);
+  let lx=W-R-lg.length*110;
+  lg.forEach(([nm,c])=>{
+    el(s,'rect',{x:lx,y:6,width:10,height:10,fill:c,rx:2});
+    txt(s,{x:lx+15,y:15,'font-size':10,'font-weight':600,fill:MUT},nm);
+    lx+=110;
+  });
+  labels.forEach((lb,i)=>{
+    txt(s,{x:L+i*(pw/n)+pw/n/2,y:H-B+18,'font-size':9.5,'font-weight':600,fill:MUT,'text-anchor':'middle'},lb);
+    txt(s,{x:x2+i*(pw/n)+pw/n/2,y:H-B+18,'font-size':9.5,'font-weight':600,fill:MUT,'text-anchor':'middle'},lb);
+  });
+}
+function waterfall(id,startLabel,startVal,steps,endLabel,endVal){
+  const s=document.getElementById(id);if(!s||!steps.length)return;
+  const W=+s.viewBox.baseVal.width,H=+s.viewBox.baseVal.height,L=48,R=16,T=26,B=42;
+  const n=steps.length+2,bw=(W-L-R)/n;
+  let cum=startVal;const segs=[[startLabel,0,startVal,'level']];
+  steps.forEach(([nm,d])=>{segs.push([nm,cum,cum+d,'delta']);cum+=d});
+  segs.push([endLabel,0,endVal,'level']);
+  let lo=0,hi=startVal;
+  segs.forEach(([,a,b])=>{lo=Math.min(lo,a,b);hi=Math.max(hi,a,b)});
+  const pad=(hi-lo)*.08||1;hi+=pad;lo-=pad*.5;
+  const y=v=>T+(H-T-B)*(1-(v-lo)/(hi-lo));
+  const step=niceStep((hi-lo)/4);
+  for(let v=Math.ceil(lo/step)*step;v<hi;v+=step){
+    el(s,'line',{x1:L,y1:y(v),x2:W-R,y2:y(v),stroke:FAINT,'stroke-width':.7,'stroke-dasharray':'3 3'});
+    txt(s,{x:L-7,y:y(v)+3,'font-size':8.5,'font-weight':600,fill:MUT,'text-anchor':'end'},String(Math.round(v*10)/10));
+  }
+  el(s,'line',{x1:L,y1:y(0),x2:W-R,y2:y(0),stroke:GRID,'stroke-width':1});
+  segs.forEach(([nm,a,b,k],i)=>{
+    const x=L+i*bw+bw*.15,w=bw*.7;
+    const top=Math.max(a,b),bot=Math.min(a,b);
+    const c=k==='level'?C1:(b>=a?GOOD:BAD);
+    const r=capsule(s,x,y(top),w,Math.max(y(bot)-y(top),1),Math.min(w/2,7),c,k==='delta'&&b<a?'down':'up');
+    tip(r,k==='level'?`${nm}：${b}`:`${nm}：${(b-a)>0?'+':''}${(b-a).toFixed(2)}（累计 ${b.toFixed(2)}）`);
+    if(i<segs.length-1){
+      const nx=L+(i+1)*bw+bw*.15;
+      el(s,'line',{x1:x+w,y1:y(b),x2:nx,y2:y(b),stroke:FAINT,'stroke-width':1,'stroke-dasharray':'2 2'});
+    }
+    const lbl=k==='level'?b:(b-a);
+    txt(s,{x:x+w/2,y:y(top)-7,'font-size':9.5,'font-weight':800,fill:k==='level'?INK:c,'text-anchor':'middle'},
+      (k==='delta'&&lbl>0?'+':'')+lbl.toFixed(1));
+    txt(s,{x:x+w/2,y:H-B+18,'font-size':9,'font-weight':600,fill:MUT,'text-anchor':'middle'},nm);
+  });
+}
+trendDual('trend',TREND.labels,TREND.rev,TREND.np,TREND.gm,TREND.np_dt,TREND.roe);
+waterfall('ocfbridge',OCF_BRIDGE[0][0],OCF_BRIDGE[0][1],OCF_BRIDGE.slice(1),'经营现金流净额',OCF_END);
+combo('holders',HOLDERS.labels,HOLDERS.num,[],HOLDERS.px,'区间涨跌幅','股东户数(万户)','');
+</script>
+</body>
+</html>

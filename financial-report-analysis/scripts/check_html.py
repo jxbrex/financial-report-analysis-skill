@@ -62,6 +62,7 @@ calc.py 只校验数据层（data.json）；报告 HTML 层此前没有任何机
 """
 
 import argparse
+import json
 import re
 import sys
 from pathlib import Path
@@ -422,8 +423,9 @@ def check_s2_shape(text, rep):
     if len(g) > 1:
         rep.add(WARN, "s2-shape",
                 f"排雷章出现 {len(g)} 个绿色徽章行——未触发不应逐条展开（仅容忍汇总行 1 处），逐条读数见 data.json signals 块")
-    # 观察行上限：观察压缩为单行 ≤30 字，最多 6 行，超出并入汇总
-    y = badges("y")
+    # 观察行上限：观察压缩为单行 ≤30 字，最多 6 行，超出并入汇总。
+    # 只数「🟡」开头的观察徽章——勾稽表的「⚠️ 可解释偏差」同为 badge y 但语义不同，不计入
+    y = re.findall(r'class="[^"]*\bbadge\b[^"]*\by\b[^"]*"[^>]*>\s*🟡', seg)
     if len(y) > 6:
         rep.add(WARN, "s2-shape",
                 f"排雷章观察条目 {len(y)} 行，超过 6 行上限——应压缩或并入汇总")
@@ -431,11 +433,289 @@ def check_s2_shape(text, rep):
         rep.add(OK, "s2-shape", "排雷章符合瘦身形态：无反向可见行、未触发未逐条展开、观察 ≤6 行")
 
 
+# ─────────────────────────── 11. s8 阈值化与回看归因 ───────────────────────────
+
+# 数字阈值形态：>46 / <43 / ≥2 / -20% / 1.5 倍
+THRESH_RE = re.compile(r'[><≥≤]\s*[-+]?\d|[-+]?\d+(?:\.\d+)?\s*[%倍]')
+ATTRIB_RE = re.compile(r'假设错|时点错|口径错')
+
+
+def _section_seg(text, anchor):
+    """截取某 secthead 章至下一 secthead 的片段；找不到返回 None。"""
+    m = re.search(rf'<div class="secthead"[^>]*\bid="{anchor}"', text)
+    if not m:
+        return None
+    nxt = re.search(r'class="secthead"', text[m.end():])
+    return text[m.start(): m.end() + nxt.start() if nxt else len(text)]
+
+
+def check_s8_shape(text, rep):
+    """下期跟踪清单（s8）阈值化形态（v0.0.6 T5）：观察方向列（第 3 列）应含数字阈值
+    （>x% / <y% / ≥z 倍）；纯 if-then 句式允许但提示，推动阈值带落地。"""
+    seg = _section_seg(text, "s8")
+    if seg is None:
+        rep.add(WARN, "s8-shape", "未找到下期跟踪清单章节（secthead id=\"s8\"），无法校验阈值化形态")
+        return
+    bad = []
+    for r in re.findall(r'<tr>(.*?)</tr>', seg, re.S):
+        if '<th' in r:
+            continue
+        tds = re.findall(r'<td[^>]*>(.*?)</td>', r, re.S)
+        if len(tds) < 3:
+            continue
+        cell = re.sub(r'<[^>]+>', '', tds[2])
+        # HTML 实体反转义（&gt; 40 亿 → > 40 亿），否则规范的转义写法反被误报；
+        # 无法数字化阈值的 if-then 句式（若…则…）按 T5 设计豁免
+        cell = cell.replace("&lt;", "<").replace("&gt;", ">").replace("&amp;", "&")
+        if not THRESH_RE.search(cell) and not re.search(r'若.{2,30}则', cell):
+            name = re.sub(r'<[^>]+>', '', tds[0]).strip()[:20]
+            bad.append(f"「{name}」观察方向列未见数字阈值（>x / <y 形态）；无法数字化时应有 if-then 句式")
+    if bad:
+        rep.add(WARN, "s8-shape", f"下期跟踪清单 {len(bad)} 行未见数字阈值带（T5）", bad[:5])
+    else:
+        rep.add(OK, "s8-shape", "下期跟踪清单观察方向列均含数字阈值带（T5）")
+
+
+def check_review_shape(text, rep):
+    """上期跟踪回顾章（review）归因必填校验（v0.0.6 T6）：❌ 未兑现行的复盘列必须含
+    误差归因（假设错/时点错/口径错）；无回看章（无旧报告）属正常。"""
+    seg = _section_seg(text, "review")
+    if seg is None:
+        rep.add(OK, "review-shape", "无回看章（无旧报告时正常），跳过归因校验")
+        return
+    bad = []
+    for r in re.findall(r'<tr>(.*?)</tr>', seg, re.S):
+        if '<th' in r:
+            continue
+        tds = re.findall(r'<td[^>]*>(.*?)</td>', r, re.S)
+        if len(tds) < 3:
+            continue
+        verdict_cell = re.sub(r'<[^>]+>', '', tds[1])
+        if '❌' not in verdict_cell and '未兑现' not in verdict_cell:
+            continue
+        cell = re.sub(r'<[^>]+>', '', tds[2])
+        if not ATTRIB_RE.search(cell):
+            name = re.sub(r'<[^>]+>', '', tds[0]).strip()[:20]
+            bad.append(f"「{name}」❌ 行复盘列缺误差归因（假设错/时点错/口径错）")
+    if bad:
+        rep.add(WARN, "review-shape", f"回看章 {len(bad)} 行 ❌ 未填误差归因（T6 冻结纪律）", bad[:5])
+    else:
+        rep.add(OK, "review-shape", "回看章 ❌ 行均带误差归因（T6）")
+
+
+# ─────────────────────────── 12. 数字回验（T8，--json 时执行） ───────────────────────────
+
+# 正文数字（含千分位）；src 行号；数字阈值语境（>x / <y / ≥z）
+PLAIN_NUM_RE = re.compile(r"[-+]?\d[\d,]*(?:\.\d+)?")
+SRC_LINE_RE = re.compile(r"L(\d+)")
+NUM_KEY_LIST = ("cur", "prev", "lhs", "rhs",
+                "rev_cur", "rev_prev", "cost_cur", "cost_prev",
+                "vol_cur", "vol_prev", "price_cur", "price_prev",
+                "volume", "price", "mix", "delta")
+
+
+def _iter_metric_leaves(node, path, out):
+    """收集数值叶子：Metric 结构（含 cur）、by_segment 行（含 rev_cur）、recon 条目（含 lhs）、
+    rev_factors（含 volume）、桥条目（含 delta）。"""
+    if isinstance(node, dict):
+        if "cur" in node or "rev_cur" in node or "lhs" in node or "volume" in node or "delta" in node:
+            out.append((".".join(path), node))
+            return
+        for k, v in node.items():
+            _iter_metric_leaves(v, path + [k], out)
+    elif isinstance(node, list):
+        for i, v in enumerate(node):
+            _iter_metric_leaves(v, path + [str(i)], out)
+
+
+def _num_of(node, k):
+    v = node.get(k)
+    if isinstance(v, (int, float)) and not isinstance(v, bool) and v != 0:
+        return float(v)  # 保留符号：笔误检测符号敏感（负增速不会撞正比率）
+    return None
+
+
+def build_authority(data):
+    """权威值集：json 全部数值叶子。返回 (plain_entries, pct_entries, uniq_plain, uniq_pct)：
+    plain = 各字段原值（金额/天数/倍数，供无 % 语境数字比较）；
+    pct = 仅 derived.ratios 的 ×100 变体（供带 % 语境数字比较）。
+    「独特性」= 与【其他叶子】的值 2% 内无碰撞（同一叶子 cur/prev 互撞不算）；
+    笔误检测只在独特值上做：撞脸的值无法归因，报了也是噪音。"""
+    leaves = []
+    _iter_metric_leaves(data, [], leaves)
+    plain, pct = [], []
+    for path, node in leaves:
+        for k in NUM_KEY_LIST:
+            v = _num_of(node, k)
+            if v is None:
+                continue
+            plain.append((v, f"{path}.{k}", path))
+            if path.startswith("derived.ratios"):
+                pct.append((v * 100, f"{path}.{k}×100", path))
+
+    def uniq_of(entries):
+        out = []
+        for i, (v, p, leaf) in enumerate(entries):
+            if not any(j != i and leaf != leaf2 and v * w > 0 and abs(v - w) / max(abs(w), 1e-9) <= 0.02
+                       for j, (w, _, leaf2) in enumerate(entries)):
+                out.append((v, p))
+        return out
+
+    return plain, pct, uniq_of(plain), uniq_of(pct)
+
+
+def check_numbers_vs_json(body, raw, data, rep):
+    """①级：HTML 数字 ↔ data.json。
+    先把 HTML 标签等长屏蔽（viewBox/属性数字不是正文主张，替换保行号）；
+    % 语境分离：带 % 后缀的数字只与 derived.ratios ×100 变体比，不带 % 只与字段原值比
+    （增速/同业百分数不会撞金额，票据金额不会撞 ROE×100）。
+    与权威值「按显示精度相等且同号」→ 匹配 OK；未匹配但落在某【独特】值 0.15% 窗口内
+    → FAIL 疑似笔误（报告行号 + 最接近的 json 字段）；其余无关数字跳过。
+    阈值语境（&lt;x / &gt;y）、期次年份、序号小整数、外币（美元/欧元/港元）豁免。"""
+    plain, pct, uniq_plain, uniq_pct = build_authority(data)
+    tag_spans = [(m.start(), m.end()) for m in re.finditer(r'<[^>]+>', body)]
+    text = mask_ranges(body, tag_spans)
+    matched = 0
+    suspects = []
+    for m in PLAIN_NUM_RE.finditer(text):
+        # 阈值语境豁免：数字前是 &lt;/&gt;/&le;/&ge;/≥/≤ 的是触发线，不是数值主张
+        # （正文裸 < 必然转义为 &lt;；标签闭合 > 不算——否则 <td> 内数字全被误豁免）
+        head = text[max(0, m.start() - 8):m.start()].rstrip()
+        if head.endswith(("&lt;", "&gt;", "&le;", "&ge;", "≥", "≤")):
+            continue
+        txt = m.group(0).replace(",", "")
+        # 外币语境豁免：后随 美元/欧元/港元 等币种的数字不是人民币科目（json 全部为人民币亿元）
+        tail = text[m.end():m.end() + 12]
+        if re.match(r'\s*(?:万|亿|百亿|千万)?\s*(?:美元|欧元|港元|港币|日元|HKD|USD|EUR)', tail):
+            continue
+        try:
+            d = float(txt)
+        except ValueError:
+            continue
+        if abs(d) < 0.01:
+            continue
+        if d == int(d) and (1900 <= d <= 2100 or abs(d) < 10):
+            continue  # 期次年份 / 序号小整数
+        is_pct = text[m.end():].lstrip()[:1] in ("%", "％")
+        match_pool = pct if is_pct else plain
+        dec = len(txt.partition(".")[2])
+        tol = max(0.5 * (10 ** -dec), 1e-9)
+        # 显示精度内相等且同号：|v − d| ≤ 半个显示精度（双向舍入都算匹配，宽容防误报）
+        if any(v * d > 0 and abs(v - d) <= tol for v, _, _ in match_pool):
+            matched += 1
+            continue
+        pool = uniq_pct if is_pct else uniq_plain
+        same_sign = [vp for vp in pool if vp[0] * d > 0]
+        if not same_sign:
+            continue
+        bv, bp = min(same_sign, key=lambda vp: abs(vp[0] - d) / max(abs(vp[0]), 1e-9))
+        dev = abs(bv - d) / max(abs(bv), 1e-9)
+        if dev <= 0.0015:  # 笔误的特征是小偏差（抄错相邻位/小数点，典型 ≤0.12%）；
+            # 窗口外的「近似」多为语义不同的数字（实测：同业数字撞脸集中在 0.19%~0.5%）
+            suspects.append(f"L{line_of(raw, m.start())} 数字 {txt} 与 data.json {bp}={bv:g} "
+                            f"相近但不等（差 {dev:.2%}）——疑似笔误，请核对")
+    if suspects:
+        rep.add(FAIL, "num-vs-json",
+                f"①级 HTML↔data.json：{len(suspects)} 处数字与独特值相近但不等（疑似笔误；已匹配 {matched} 处）",
+                suspects[:DETAIL_CAP])
+    else:
+        rep.add(OK, "num-vs-json",
+                f"①级 HTML↔data.json：{matched} 处数字匹配，未见疑似笔误"
+                f"（原值 {len(plain)} · %变体 {len(pct)} · 独特值 {len(uniq_plain)}+{len(uniq_pct)}）")
+
+
+def _resolve_md(md_rel, json_path):
+    """meta.source_md（相对仓库根）的路径解析：依次试 原样 / cwd / json 上级各层；
+    兼容 v0.2.0 目录治理前旧路径（reports/xxx.md → reports/archive/原始报告/xxx.md）。"""
+    if not md_rel:
+        return None
+    variants = [md_rel]
+    if md_rel.startswith("reports/") and "archive" not in md_rel:
+        variants.append(md_rel.replace("reports/", "reports/archive/原始报告/", 1))
+    cands = []
+    for rel in variants:
+        cands += [Path(rel), Path.cwd() / rel]
+        base = json_path.parent
+        for _ in range(4):
+            cands.append(base / rel)
+            base = base.parent
+    for c in cands:
+        if c.is_file():
+            return c
+    return None
+
+
+def _value_in_text(v, text):
+    """v 的三档单位换算（×1e8 元 / ×1e4 万 / ×1 亿）在文本数字中是否有 5% 内容差命中（同号比较）。"""
+    for m in PLAIN_NUM_RE.finditer(text):
+        try:
+            d = float(m.group(0))
+        except ValueError:
+            continue
+        for cand in (v, v * 1e4, v * 1e8):
+            if cand and d * cand > 0 and abs(d - cand) / abs(cand) <= 0.05:
+                return True
+    return False
+
+
+def check_json_vs_md(data, json_path, rep):
+    """②级：data.json ↔ 原文 md（5% 容差 + 单位换算 + 行号窗 ±2）。
+    src 无 L 行号 → 跳过计数；md 缺失 → 声明并整体跳过（HANDOFF T8 定案）。"""
+    md_rel = (data.get("meta") or {}).get("source_md")
+    md_path = _resolve_md(md_rel, json_path)
+    if md_path is None:
+        rep.add(OK, "json-md", f"声明：原文 md 未找到（{md_rel}），②级 data.json↔原文 未执行")
+        return
+    lines = md_path.read_text(encoding="utf-8", errors="replace").splitlines()
+    leaves = []
+    for section in ("statements", "parent_statements", "notes"):
+        _iter_metric_leaves(data.get(section) or {}, [section], leaves)
+    checked = exact = shifted = no_src = 0
+    misses = []
+    for path, node in leaves:
+        src = node.get("src") or ""
+        lns = [int(x) for x in SRC_LINE_RE.findall(src)]
+        if not lns:
+            no_src += 1
+            continue
+        for key in ("cur", "prev"):
+            v = _num_of(node, key)
+            if v is None:
+                continue
+            checked += 1
+            hit_off = None
+            for ln in lns:
+                for off in (0, -1, 1, -2, 2):
+                    i = ln - 1 + off
+                    if 0 <= i < len(lines) and _value_in_text(v, lines[i].replace(",", "")):
+                        hit_off = off
+                        break
+                if hit_off is not None:
+                    break
+            if hit_off is None:
+                misses.append(f"{path}.{key}={v:g}：src 行 {lns}（±2）内未找到——行号偏移或表格错位")
+            elif hit_off != 0:
+                shifted += 1
+            else:
+                exact += 1
+    if misses:
+        rep.add(WARN, "json-md",
+                f"②级 data.json↔md：{len(misses)} 处 src 行内未找到值"
+                f"（checked {checked} · 精确命中 {exact} · 偏移命中 {shifted} · 无行号跳过 {no_src}）",
+                misses[:DETAIL_CAP])
+    else:
+        rep.add(OK, "json-md",
+                f"②级 data.json↔md：{checked} 处全部命中"
+                f"（精确 {exact} · 偏移 {shifted} · 无行号跳过 {no_src}）")
+
+
 # ─────────────────────────── 主流程 ───────────────────────────
 
 def main():
     ap = argparse.ArgumentParser(description="financial-report-analysis 报告 HTML 机检")
     ap.add_argument("html_path", help="报告 HTML 路径")
+    ap.add_argument("--json", dest="json_path", default=None,
+                    help="data.json 路径：启用 T8 数字回验（①级 HTML↔json 笔误检测 + ②级 json↔原文 md 核对）")
     ap.add_argument("--verbose", action="store_true", help="打印全部明细，不截断")
     ap.add_argument("--warn-only", action="store_true", help="纯提示模式：任何发现都不影响退出码")
     ap.add_argument("--strict", action="store_true", help="WARN 也判失败")
@@ -466,6 +746,14 @@ def main():
     secs = Sections(body)
     rep = Report()
 
+    data = None
+    if args.json_path:
+        try:
+            data = json.loads(Path(args.json_path).read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError) as e:
+            print(f"🔴 --json 读取失败：{e}")
+            return 1
+
     check_placeholders(raw, body, rep, args.verbose)
     check_bare_numbers(body, rep, args.verbose, secs)
     check_srcline(body, rep, args.verbose, secs)
@@ -473,6 +761,11 @@ def main():
     check_required(body, rep)
     check_structure(body, rep, secs)
     check_s2_shape(body, rep)
+    check_s8_shape(body, rep)
+    check_review_shape(body, rep)
+    if data is not None:
+        check_numbers_vs_json(body, raw, data, rep)
+        check_json_vs_md(data, Path(args.json_path).resolve(), rep)
 
     print(f"\n=== check_html.py 报告机检 · {path.name} ===\n")
     order = {FAIL: 0, WARN: 1, OK: 2}

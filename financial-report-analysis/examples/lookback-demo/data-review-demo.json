@@ -1,0 +1,53 @@
+{
+  "_": "watchlist[].review 落库形态演示（v0.0.6 T5+T6）。素材照抄 reports/archive/json/恒瑞医药-600276-半年报-2026H1.json 的 watchlist 前三条；upper/lower 为 T5 阈值带示例（依据写 source/note）；review 子块为回看追加值（演示构造读数，非真实预测）。冻结纪律：indicator/current/tripwire/upper/lower 产出后只读不回改，回看只追加 review。",
+  "watchlist": [
+    {
+      "indicator": "创新药收入增速 vs 公司 30%+ 指引",
+      "current": "2026H1 +16.38%（88.09 亿），全年指引 30%+（高盛引述公司管理层）",
+      "tripwire": "若 2026 年报创新药收入增速<20%，则公司 30%+ 指引落空、增长质量下修成立",
+      "upper": "25%",
+      "upper_meaning": "全年增速回到 25% 上方则指引可信、第二增长曲线成立",
+      "lower": "20%",
+      "lower_meaning": "跌破 20% 则指引落空、增长质量下修（阈值依据：管理层指引 30%+ 的 2/3 与近 3 年中枢）",
+      "source": "MD&A+定期报告创新药收入分部",
+      "badge": "disc",
+      "review": {
+        "verdict": "兑现",
+        "actual": "2026 年报创新药收入 +18.9%（演示构造读数）",
+        "attribution": null
+      }
+    },
+    {
+      "indicator": "对外许可收入确认节奏与剩余履约义务",
+      "current": "H1 许可收入 14.22 亿；期末剩余履约义务 17.32 亿（1 年内 9.49 亿）；BMS 首付 6 亿美元预计 Q4 起分批确认",
+      "tripwire": "若 2026 年报对外许可收入<25 亿（2025 年 33.9 亿的约 74%）且期末剩余履约义务较 17.32 亿继续收缩，则 BD 收入断档成立",
+      "upper": "30 亿",
+      "upper_meaning": "全年许可收入超 30 亿则 BD 管线接续无忧",
+      "lower": "25 亿",
+      "lower_meaning": "跌破 25 亿且剩余履约义务收缩则断档成立（阈值依据：2025 年 33.9 亿的约 74%）",
+      "source": "附注七、61(4)+中信建投 2026-09-04",
+      "badge": "der",
+      "review": {
+        "verdict": "未兑现",
+        "actual": "2026 年报对外许可收入 31.2 亿、剩余履约义务 19.5 亿（演示构造读数）",
+        "attribution": "时点错——BMS 首付确认从「Q4 起分批」推迟到次年，属确认时点误判而非趋势误判"
+      }
+    },
+    {
+      "indicator": "扣非/归母增速剪刀差与非经占比",
+      "current": "H1 扣非 -12.71% vs 归母 +0.34%，剪刀差 13.05pct；非经占归母 16.5%",
+      "tripwire": "若 2026 年报扣非增速仍低于归母增速 10pct 以上且非经占比>20%，则主业盈利恶化确认",
+      "upper": null,
+      "upper_meaning": "剪刀差收窄至 5pct 以内则主业修复（本侧无量化阈值，保留 if-then 句式）",
+      "lower": "20%",
+      "lower_meaning": "非经占比超 20% 且剪刀差 >10pct 则恶化确认",
+      "source": "主要会计数据表+非经常性损益表",
+      "badge": "disc",
+      "review": {
+        "verdict": "待观察",
+        "actual": null,
+        "attribution": null
+      }
+    }
+  ]
+}

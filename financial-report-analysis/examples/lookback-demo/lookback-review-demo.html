@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>上期跟踪回顾 · 机制演示（T6）</title>
+<style>
+  body { font-family: "Zhuque Fangsong","FangSong","仿宋","STFangsong",serif; margin: 2em auto; max-width: 960px; color: #000; }
+  table.data { border-collapse: collapse; width: 100%; }
+  .data th, .data td { border: 1px solid #999; padding: 4px 8px; vertical-align: top; }
+  .badge { font-size: .85em; padding: 0 4px; border-radius: 3px; }
+  .badge.g { background: #e6f4e6; } .badge.r { background: #fbe6e6; } .badge.y { background: #fdf6e0; } .badge.est { background: #eee; }
+  .srcline { font-size: .8em; color: #666; }
+</style>
+</head>
+<body>
+
+<!-- ══ 上期跟踪回顾 · 机制演示（v0.0.6 T6）══
+     ◆ 本文件是「回看章」机制演示片段，非完整报告：check_html 对缺失章节（s0~s8/章节编号）
+       的 WARN 属预期；演示目标是 review-shape 归因校验与 watchlist[].review 落库形态。
+     ◆ 素材来源：reports/archive/json/恒瑞医药-600276-半年报-2026H1.json 的 watchlist 前三条，
+       第一列 tripwire 为原文照抄（冻结纪律：禁止改写美化）。
+     ◆ 三行演示 ✅/❌/⏳ 全形态；「演示构造」读数均为机制示例值（恒瑞 2026 年报尚未披露，
+       真实回看将在 2026Q3/2026FY 披露后首测），非真实预测。 -->
+
+<div class="sect">
+  <div class="secthead" id="review"><span class="no">回溯</span><span class="t">上期跟踪回顾</span><span class="line"></span><span class="tag">LOOK-BACK · 上期清单兑现率（机制演示）</span></div>
+  <div class="card">
+    <table class="data">
+      <tr><th>上期跟踪项（tripwire 原文照抄）</th><th class="txt">兑现情况</th><th class="txt">读数复盘 · 误差归因（❌ 必填）</th></tr>
+      <tr>
+        <td>若 2026 年报创新药收入增速&lt;20%，则公司 30%+ 指引落空、增长质量下修成立</td>
+        <td class="txt"><span class="badge g">✅ 兑现</span></td>
+        <td class="txt">2026 年报创新药收入 +18.9%（演示构造读数 <span class="badge est">估算</span>），跌破 20% 触发线——「指引落空」判断兑现；与公司新指引口径（15~20% 中枢）互证</td>
+      </tr>
+      <tr>
+        <td>若 2026 年报对外许可收入&lt;25 亿（2025 年 33.9 亿的约 74%）且期末剩余履约义务较 17.32 亿继续收缩，则 BD 收入断档成立</td>
+        <td class="txt"><span class="badge r">❌ 未兑现</span></td>
+        <td class="txt">2026 年报对外许可收入 31.2 亿、剩余履约义务 19.5 亿（演示构造读数 <span class="badge est">估算</span>），未跌破 25 亿触发线——「BD 断档」不成立。误差归因：<b>时点错</b>——BMS 首付确认从「Q4 起分批」推迟到次年，属确认时点误判而非趋势误判</td>
+      </tr>
+      <tr>
+        <td>若 2026 年报扣非增速仍低于归母增速 10pct 以上且非经占比&gt;20%，则主业盈利恶化确认</td>
+        <td class="txt"><span class="badge y">⏳ 待观察</span></td>
+        <td class="txt">2026 年报未披露，无法判定；最近可观察锚点：2026Q3 季报扣非/归母增速差与非经占比</td>
+      </tr>
+    </table>
+    <div class="srcline">数据来源：恒瑞医药 2026H1 分析报告 data.json <code>watchlist</code> 块（tripwire 原文照抄，演示读数为机制示例）· 回看结果只追加写入 watchlist[].review 子块，原 tripwire 不回改 · 本期「下期跟踪清单」因 2026 年报未出暂以 ⏳ 为主，兑现率 m/n 待真实回看时计算</div>
+  </div>
+</div>
+
+<div class="foot">
+  <span>上期跟踪回顾机制演示片段 · 生成于 2026-09-15 · 演示读数均为构造示例，不构成投资建议</span>
+</div>
+
+</body>
+</html>
