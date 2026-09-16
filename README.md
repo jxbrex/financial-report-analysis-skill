@@ -75,7 +75,8 @@ Financial Report Analysis/          本仓库（技能唯一真源）
 │   │   └── report-types.md         年报/半年报/季报/招股书/港美股的差异与裁剪规则
 │   ├── scripts/
 │   │   ├── calc.py                 Phase 7.5 数据层门禁
-│   │   └── check_html.py           Phase 8 报告层门禁
+│   │   ├── check_html.py           Phase 8 报告层门禁
+│   │   └── ts_fetch.py             tushare HTTP 取数（双源核对通道，token 读环境变量，无需 MCP）
 │   ├── tests/
 │   │   ├── moutai_2025.json        干净样本金标准（应零误报）
 │   │   ├── kangdexin_2018.json     造假样本金标准（应命中）
@@ -100,7 +101,9 @@ Financial Report Analysis/          本仓库（技能唯一真源）
 
 - 任意支持 Skill 机制的 Agent 会话（Kimi Code 等），操作系统 win32 / darwin / linux
 - `markitdown` 技能：PDF/DOCX/HTML → Markdown 转换（必需）
-- tushare MCP：结构化财务数据双源核对（推荐；`anns_d` 公告接口需专项权限，无权限时用妙想 `mx_finance_search_notice` 替代）
+- tushare：结构化财务数据双源核对——经 `scripts/ts_fetch.py` HTTP 通道调用，token 读环境变量
+  `TUSHARE_TOKEN`，**无需 tushare MCP**（权限频控跟 token 走；`anns_d` 公告接口需专项权限，
+  无权限时用妙想 `mx_finance_search_notice` 替代；未设置 token 时 A 股双源降级为妙想单源并标注）
 - 妙想 mx-ds MCP：A股/港股/美股财务、公告、新闻检索（港股路径依赖它）
 - `tesseract`（可选）：扫描版 PDF 的 OCR 降级路径；无则改用 HTML 版公告源
 - 字体「朱雀仿宋」（可选）：报告视觉最优；未安装自动降级系统仿宋，不影响内容

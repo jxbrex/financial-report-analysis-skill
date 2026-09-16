@@ -31,7 +31,14 @@ markitdown 对**扫描版 PDF**（图片型，无文字层）会输出近乎空�
    **禁止用低质量 OCR 结果直接产出报告**
 4. OCR 得来的数据在 data.json 的 `src` 里标注 `[OCR]`，并在报告页脚声明
 
-## 二、tushare MCP（结构化数据主力）
+## 二、tushare（结构化数据主力·HTTP 脚本通道）
+
+**调用方式（无 tushare MCP 的环境等价可用）**：一律经 `scripts/ts_fetch.py` 走官方 HTTP API——
+`python "<技能目录>/scripts/ts_fetch.py" <接口> --params k=v k=v --fields a,b,c`（stdout 为
+JSONL 每行一个对象，默认截断 200 行、`--limit 0` 取全部、`--out path` 落盘）。token 读环境变量
+`TUSHARE_TOKEN`，未设置时脚本报设置提示。**权限与频控跟 token 走、不跟通道走**，与 MCP / Python
+SDK 完全等价；本环境无权限接口（40203）清单不变，报错文案已带降级提示（40203 两义：无权限或
+`hk_daily` 限流 1 次/小时）。
 
 ### 三表与财务指标（Phase 1/2 双源核对）
 | 接口 | 关键字段 |

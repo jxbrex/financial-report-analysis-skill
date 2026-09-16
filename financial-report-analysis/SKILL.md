@@ -8,7 +8,7 @@ description: >
 metadata:
   clawdbot:
     emoji: "📑"
-    version: "0.0.7"
+    version: "0.0.8"
     requires:
       anyBins: ["python"]
     os: ["win32", "darwin", "linux"]
@@ -18,7 +18,8 @@ metadata:
 
 > **执行前必读（防幻觉）**：本技能内容已通过 Skill 工具完整注入上下文，你**不需要**
 > 用 Read/Bash 去读取任何本地路径下的 SKILL.md。你拥有 Bash/Read/Write/markitdown/
-> tushare/mx-ds 等完整工具权限，直接按 Phase 0 开始执行。
+> mx-ds 等完整工具权限；tushare 数据一律经 `scripts/ts_fetch.py` 脚本调用（读环境变量
+> `TUSHARE_TOKEN`，不依赖 tushare MCP）。直接按 Phase 0 开始执行。
 
 对上市公司**年报、半年报、季报、招股说明书**做系统性分析。方法论收敛为五层质量观：
 **盈利质量 / 资产质量 / 现金含量 / 成长质量 / 风险信号**，并融合杜邦分解、Beneish
@@ -103,7 +104,9 @@ metadata:
    一年内到期非流动负债/长期借款/应付债券）、应收账款、存货、合同负债、商誉、在建工程、
    研发费用、总资产、归母净资产。多期数据写入 data.json 的 `hist` 数组（旧→新）——
    趋势图、周期定位、所有「连续 2 年以上」的信号判定都依赖它。
-2. 双源核对：A 股用 tushare `income` / `balancesheet` / `cashflow` / `fina_indicator`；
+2. 双源核对：A 股用 tushare `income` / `balancesheet` / `cashflow` / `fina_indicator`
+   （一律经 `scripts/ts_fetch.py` 调用，用法见 `references/data-sources.md` 第二节开头；
+   `TUSHARE_TOKEN` 未配置时 A 股降级为妙想单源核对，数字加 `[单源]` 标注）；
    港股/美股用妙想 `mx_hk_finance_data` / `mx_us_finance_data`（tushare 港股财报接口
    本环境无权限，实测 40203）。字段速查见 `references/data-sources.md`。
 3. **不一致处理**：以报告原文为准，在报告中显式标注「原文 X / 数据库 Y」。
@@ -317,3 +320,4 @@ Roll-forward（应收/存货/在建工程/商誉）+ C 组周期联动（CCC/DPO
 | 0.0.5 | 2026-09-14 | v0.2.0 修订轮（恒瑞报告评审驱动，定案见《修订计划-v0.2.0-20260914.md》）：目录治理（reports/ 顶层仅成品 HTML，原始报告与 data.json 入 archive/，规则进 AGENTS.md 纪律 6）；比率趋势 schema 扩展（statements 6 科目 + derived.ratios 11 项改 5 期同类型滚动 hist，calc.py 新增 ratio-hist 逐期复算门禁，回归 15 断言）；模板暖墨赭石去蓝 12 处（藏蓝/数据蓝/蓝紫清零）；四维比率「较上期」列 + frameworks.md 方向语义表；杜邦三分解贡献归因 + 5 期趋势小表；排雷瘦身新形态（观察单行 ≤30 字上限 6 行、反向并汇总）+ check_html 三条 s2-shape WARN；industry-profiles.md 新增第 8 类「医药健康」画像；趋势图左右同宽 + 右板归母/扣非双柱 + ROE 折线。**四份报告重出经用户决定取消**，新槽位零真实报告填充 |
 | 0.0.6 | 2026-09-15 | 定位修正轮（HANDOFF 二·九节 T1–T11 全部落地）：杠杆结构（经营 DOL/财务 DFL 杠杆 hist 序列化，趋势比率 12→14，frameworks 第九节）；非主营业务收入占比 X33（income 扩 3 字段）+ 现金流偿债口径 X6（单期专用共 6 项）；母公司口径字段化（`parent_statements` 块 + recon D 组 manual 型——康得新 D3/D4 命中：母公司其他应收款 25.5 倍于合并、投资收益占净利 100.2%）；排雷改名「经营背离信号」+ 三问范式 + T10 标准反驳表 + #5 存货矛盾组合三解读法；watchlist 阈值带（upper/lower 四键）+ review 冻结归档（原 tripwire 只读不回改）；check_html 加 s8/review-shape 两检查与 **T8 数字回验**（`--json`：①级 HTML↔data.json 独特值 0.5% 窗口笔误 FAIL + ②级 data.json↔原文 md 行号回核）；text-mining 语气档位词表（姜富伟词典引用不内置）；fixtures schema_version 1.1（康得新投资收益符号勘误，md+tushare 双证）。回归 15→19 断言全绿 |
 | 0.0.7 | 2026-09-15 | 报告读法层 + 图表重做（恒瑞 2025FY 报告评审 6+1 项）：figtitle 结论式 + 复杂表读法行（`.takeaway`，标题说结论/表格给证据/srcline 给出处）；排雷观察行两行形态（担心→本案，`signals[]` 加可选 `concern` 字段，废除 ≤30 字单行约束，上限 6 条不变）；Q4 表「在防什么」列 + 导读句；收入桥分组轴规则（叙事同构轴，industry-profiles 医药健康声明收入轴=创新药/仿制药/license-out）；杜邦 5 期趋势表格→归一化折线图（`dupontNorm`，基期=100，末点标原始值）；OCF 调节桥瀑布图→delta 条形图（`deltaBars` 按 \|delta\| 降序 + `.brends` 端点行，`waterfall` 函数删除）；Phase 0 A 股定期报告默认巨潮自动获取（未指定期次取最新已披露期次）；check_html 新增 figtitle-style 启发式 WARN；回归 19 断言 + 冒烟三条件（新增 figtitle-style 存活） |
+| 0.0.8 | 2026-09-16 | tushare 去 MCP 化（用户禁用 tushare MCP，上下文治理）：新增 `scripts/ts_fetch.py` HTTP 取数通道——token 读环境变量 `TUSHARE_TOKEN`、stdout JSONL（默认截断 200 行）、40203 无权限/限流两义报错带降级提示；权限频控跟 token 走、与 MCP/SDK 等价，无 MCP 环境可正常双源核对。`TUSHARE_TOKEN` 未配置时 A 股降级妙想单源 + `[单源]` 标注。data-sources.md 第二节、SKILL.md（防幻觉块/Phase 1/降级条款）、README 同步。实测 income/stk_holdernumber/hk_income 三路径；回归 19 断言全绿 |

@@ -1,6 +1,6 @@
 # HANDOFF · 交接文档
 
-> 版本 **0.0.7** · 截至 2026-09-15 · 本文档面向「下一个接手这个项目的人/AI 会话」
+> 版本 **0.0.8** · 截至 2026-09-16 · 本文档面向「下一个接手这个项目的人/AI 会话」
 > 仓库：https://github.com/jxbrex/financial-report-analysis-skill（**私密**）
 > 部署：`C:/Users/rexji/.agents/skills/financial-report-analysis/`（由 `deploy.cmd` 镜像）
 
@@ -593,3 +593,41 @@ cmd //c deploy.cmd
 ---
 
 *本文档随项目演进更新；重大变更请同步 `AGENTS.md` 与 `SKILL.md` 的 version。*
+
+## 二·十三、tushare 去 MCP 化：ts_fetch.py 脚本通道（2026-09-16）
+
+### 起因
+用户禁用 tushare MCP 与 GitHub MCP（控制上下文消耗）。排查确认：GitHub MCP 全库零依赖
+（发布链走 git/gh CLI，gh 2.95.0 独立可用）；tushare 数据面真实受影响的本技能唯一——
+另两个技能 golden-pit-screener（gps_common.py，SDK+环境变量）与 stock-deep-analysis
+（em_core.py ts_call 纯 HTTP，且其文档明禁 MCP 直调）本就无 MCP 依赖。用户拍板：给本技能
+加 HTTP 脚本通道，三个技能全部去 MCP 化。
+
+### 改动清单
+- **新增 `scripts/ts_fetch.py`**：官方 HTTP API（api.tushare.pro）CLI 取数。token 只读环境变量
+  `TUSHARE_TOKEN`（不落盘不打印，缺失给设置提示）；stdout JSONL 每行一个对象，默认截断 200 行、
+  `--limit 0` 取全部、`--out` 落盘；40203 报错带「无权限/限流」两义提示。无缓存——报告生成
+  低频且 CLI 每次新进程，进程内缓存无意义；额度消耗=调用次数（report_rc 1次/分、hk_daily 1次/时，
+  与 MCP 同档）。
+- `references/data-sources.md` 第二节：标题「tushare MCP」→「tushare（结构化数据主力·HTTP 脚本
+  通道）」，节首补调用方式与「权限频控跟 token 走、不跟通道走」；表内接口名/字段名不变（通道无关）。
+- `SKILL.md`：防幻觉块（19-21 行）与 Phase 1 第 2 条补通道说明（经 ts_fetch.py，不依赖 MCP）。
+- `README.md`：环境节与目录树同步。
+- calc.py / check_html.py / fixtures / run_regression.py **未动**（回归断言数不变）。
+
+### 验证（实测，非仅编译）
+- `income ts_code=600519.SH period=20241231` → 营收 174,144,069,958.25、归母 86,228,146,421.62，
+  与 moutai_2025.json hist（同源 tushare income）一致。
+- `stk_holdernumber 600519.SH` → 107 期，截断与总行数提示正确。
+- `hk_income 00700.HK` → 40203 无权限，exit 1 + 降级提示文案完整。
+- 无权限清单（与通道无关，实测）：anns_d / hk_income / hk_balancesheet / hk_cashflow /
+  hk_fina_indicator / yc_cb / news；港股财务降级路径（妙想 mx_hk_finance_data）不受影响。
+
+### 发布状态
+已定稿 v0.0.8（2026-09-16 走 AGENTS.md 发布链：回归 → commit → tag → push → release → deploy）。
+
+### 维护者注意
+- 存量报告 / 模板 / examples 里「Tushare」数据来源标注**不需要改**——数据同源，仅调用通道改变；
+  按 AGENTS.md 纪律 7，存量成品不随流程修订重出。
+- 若未来用户禁用 mx-ds MCP：港股/美股路径与 A 股公告检索将同时失源（Phase 0 自动取报告、
+  港股财务主源、期后公告检索全依赖妙想），那是比 tushare 禁用大得多的缺口，需另案评估。
