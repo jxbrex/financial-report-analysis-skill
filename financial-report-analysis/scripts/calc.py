@@ -84,7 +84,7 @@ class Report:
     def counts(self):
         c = {FAIL: 0, WARN: 0, OK: 0, SKIP: 0}
         for lv, _, _ in self.rows:
-            c[lv] = c.get(lv, 0) + 1
+            c[lv] += 1
         return c
 
 
@@ -128,6 +128,12 @@ def tol_bridge(delta_total, base):
     if base is not None:
         t = max(t, 0.005 * abs(base))
     return max(t, 0.01)
+
+
+def safe_div(a, b):
+    if a is None or b in (None, 0):
+        return None
+    return a / b
 
 
 # ─────────────────────────── 1. 结构检查 ───────────────────────────
@@ -373,6 +379,8 @@ def build_ratio_calcs(data):
     eq = S("balance", "equity_at")
     ar, ar_p = S("balance", "ar"), S("balance", "ar", key="prev")
     inv, inv_p = S("balance", "inventory"), S("balance", "inventory", key="prev")
+    # DPO 需要应付账款（+应付票据）；未提取则留空，CCC 随之不可算（见 schema balance.payable）
+    ap, ap_p = S("balance", "payable"), S("balance", "payable", key="prev")
     st, noncur = S("balance", "st_debt"), S("balance", "noncur_due_1y")
     sell, sell_p = S("income", "sell_exp"), S("income", "sell_exp", key="prev")
     admin, admin_p = S("income", "admin_exp"), S("income", "admin_exp", key="prev")
@@ -382,48 +390,37 @@ def build_ratio_calcs(data):
     income_tax = S("income", "income_tax")
     dep_amort = S("cashflow", "dep_amort")
 
-    def safe_div(a, b):
-        if a is None or b in (None, 0):
-            return None
-        return a / b
-
     gross = None if (rev is None or cost is None) else rev - cost
     gross_p = None if (rev_p is None or cost_p is None) else rev_p - cost_p
     exp_cur = None if any(x is None for x in (sell, admin, rd, fin)) else sell + admin + rd + fin
     exp_prev = None if any(x is None for x in (sell_p, admin_p, rd_p, fin_p)) else sell_p + admin_p + rd_p + fin_p
-
-    dso = safe_div(avg(ar, ar_p) * 365, rev) if rev else None
-    dio = safe_div(avg(inv, inv_p) * 365, cost) if cost else None
-    # DPO 需要应付账款（+应付票据）；未提取则留空，CCC 随之不可算（见 schema balance.payable）
-    ap, ap_p = S("balance", "payable"), S("balance", "payable", key="prev")
-    dpo = safe_div(avg(ap, ap_p) * 365, cost) if (cost and ap is not None) else None
-    ccc = None if any(x is None for x in (dso, dio, dpo)) else dso + dio - dpo
 
     short_debt = None if (st is None and noncur is None) else (st or 0) + (noncur or 0)
     cover = None
     if cash is not None and ocf is not None and short_debt:
         cover = (cash + ocf) / short_debt
 
-    # 杠杆（中注协 X72/X71）：EBIT = 税前利润 + 财务费用
-    ebt = None if (np_total is None or income_tax is None) else np_total + income_tax
-    ebit = None if (ebt is None or fin is None) else ebt + fin
     # X33 非主营业务收入占比：四字段逐字段 null 按 0 计，全 null 才 None（schema 血泪清单 8）
     nm = [S("income", "non_op_income"), S("income", "other_biz_income"),
           S("income", "invest_income"), S("income", "fv_change_income")]
     non_main = None if all(x is None for x in nm) else safe_div(sum(x or 0 for x in nm), rev)
 
-    return {
-        "roe": safe_div(np_at, eq),
-        "gross_margin": safe_div(gross, rev),
-        "net_margin": safe_div(np_at, rev),
-        "net_cash_ratio": safe_div(ocf, np_at),
-        "cash_to_sales": safe_div(sales_cash, rev),
-        "debt_to_assets": safe_div(tl, ta),
-        "asset_turnover": safe_div(rev, avg(ta, ta_p)),
-        "equity_multiplier": safe_div(ta, eq),
-        "dso": dso, "dio": dio, "dpo": dpo, "ccc": ccc,
-        "dfl": safe_div(ebit, ebt),
-        "dol": safe_div(ebit + dep_amort, ebit) if (ebit is not None and dep_amort is not None) else None,
+    # 14 项趋势比率委托 ratio_hist_expect（当期取值字典含上期余额）——
+    # 全脚本比率公式只此一份，杜绝双份维护漂移
+    trend_v = {
+        ("income", "np_at"): np_at, ("balance", "equity_at"): eq,
+        ("income", "revenue"): rev, ("income", "cost"): cost,
+        ("cashflow", "ocf"): ocf, ("cashflow", "sales_cash"): sales_cash,
+        ("balance", "total_liab"): tl, ("balance", "total_assets"): ta,
+        ("balance", "ar"): ar, ("balance", "inventory"): inv,
+        ("balance", "payable"): ap, ("income", "np_total"): np_total,
+        ("income", "income_tax"): income_tax, ("income", "fin_exp"): fin,
+        ("cashflow", "dep_amort"): dep_amort,
+        "total_assets_prev": ta_p, "ar_prev": ar_p,
+        "inventory_prev": inv_p, "payable_prev": ap_p,
+    }
+    out = {name: ratio_hist_expect(name, trend_v) for name in RATIO_HIST_SPECS}
+    out.update({
         "non_main_rev_share": non_main,
         "ocf_to_liab": safe_div(ocf, avg(tl, tl_p)),
         "short_debt_cover": cover,
@@ -435,7 +432,8 @@ def build_ratio_calcs(data):
                            else (rev - rev_p) / (sell - sell_p)),
         "nonrecurring_share": (None if (np_at is None or np_dt is None or np_at == 0)
                                else (np_at - np_dt) / np_at),
-    }
+    })
+    return out
 
 
 def check_ratios(data, rep):
@@ -503,13 +501,8 @@ def series_of(data, sec, field):
 
 
 def ratio_hist_expect(name, v):
-    """按某期科目取值字典复算比率，公式与 build_ratio_calcs 一致；缺数返回 None。"""
+    """按某期科目取值字典复算比率（全脚本比率公式唯一定义处）；缺数返回 None。"""
     g = lambda *p: v.get(p)
-
-    def safe_div(a, b):
-        if a is None or b in (None, 0):
-            return None
-        return a / b
 
     if name == "roe":
         return safe_div(g("income", "np_at"), g("balance", "equity_at"))

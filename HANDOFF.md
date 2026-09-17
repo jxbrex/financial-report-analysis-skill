@@ -1,6 +1,6 @@
 # HANDOFF · 交接文档
 
-> 版本 **0.0.8** · 截至 2026-09-16 · 本文档面向「下一个接手这个项目的人/AI 会话」
+> 版本 **0.0.9** · 截至 2026-09-17 · 本文档面向「下一个接手这个项目的人/AI 会话」
 > 仓库：https://github.com/jxbrex/financial-report-analysis-skill（**私密**）
 > 部署：`C:/Users/rexji/.agents/skills/financial-report-analysis/`（由 `deploy.cmd` 镜像）
 
@@ -87,6 +87,7 @@ financial-report-analysis/
 ## 二·五、本轮修订（v0.0.3，2026-09-11）
 
 起因：首份产出报告（特变电工 2026H1）暴露三处设计问题。按《修订计划-v0.1.0-20260911.md》
+（已按 AGENTS.md 纪律 8 清理，git 历史可查）
 的定案执行（计划里的目标版本号写的是 0.1.0，**实际按用户指定落为 0.0.3**）。
 
 | # | 变更 | 落点 |
@@ -140,7 +141,7 @@ fallback 是安慰剂；`calc.py` `Report.counts()` 里 `c.get(lv, 0)` 冗余。
 
 ## 二·八、v0.2.0 修订轮（2026-09-14，恒瑞医药报告评审驱动）
 
-起因：恒瑞医药 2026H1 报告评审 6 项意见 + 目录治理 1 项，拷问定案（《修订计划-v0.2.0-20260914.md》），改动档位 C。
+起因：恒瑞医药 2026H1 报告评审 6 项意见 + 目录治理 1 项，拷问定案（《修订计划-v0.2.0-20260914.md》，已按 AGENTS.md 纪律 8 清理，git 历史可查），改动档位 C。
 
 | 提交 | 内容 |
 |---|---|
@@ -510,10 +511,12 @@ v0.0.6 与 v0.0.7 均**未发布**（未 commit/tag/push），等用户发话按
 
 ## 五、下一步工作计划
 
-> **状态（2026-09-15）**：二·九节 T1–T11 已全部落地（见二·十节）。下列任务按现状更新：
+> **状态（2026-09-17）**：v0.0.9 呈现层修订轮（L1–L5）已全部落地（见二·十五节），回归 20/20。
+> 下列任务按现状更新：
 > - **任务 0 前置条件已齐**——v0.2.0 与 v0.3.0 全部新槽位就绪，一份报告即可同时首测两轮槽位
 > - **任务 4 机制层已完成**（T6），剩余真实数据实测等 2026Q3/2026FY 披露季
 > - **任务 8 已重估**：T8①级直接校验数字正确性（FAIL 级），裸数字启发式降级为辅助 WARN，不再投入精度改进
+> - **L4 视觉验收首测**随下一份新报告走（流程已入 SKILL.md Phase 8 第 5 条）
 
 ### P0（接着做，价值最高）
 
@@ -631,3 +634,265 @@ cmd //c deploy.cmd
   按 AGENTS.md 纪律 7，存量成品不随流程修订重出。
 - 若未来用户禁用 mx-ds MCP：港股/美股路径与 A 股公告检索将同时失源（Phase 0 自动取报告、
   港股财务主源、期后公告检索全依赖妙想），那是比 tushare 禁用大得多的缺口，需另案评估。
+
+---
+
+## 二·十四、v0.0.9 轮计划：lieflat-cards 审核借鉴——呈现层门禁（2026-09-16 定案 + 2026-09-17 渲染设计评审增补，已全部落地见二·十五节）
+
+### 1. 起因与核心发现
+
+用户触发 lieflat-cards skill 对本技能做交叉审核（审核双方文件：lieflat-cards 的
+`styles/rain/SKILL.md` + `scripts/render.py`；本技能的 SKILL.md / report-template.html /
+check_html.py 全文）。核心发现：**两个 skill 的门禁维度恰好互补**——
+
+| | 内容正确性门禁 | 呈现正确性门禁 |
+|---|---|---|
+| lieflat-cards | 无（不管文字对错） | 强（render.py：headless Chrome 真渲染后注入 JS 测量 DOM——溢出/裁剪/印章碰撞/单行槽位换行，exit code 卡死） |
+| 本技能 | 极强（双源核对 / 勾稽闭合 / T8 数字回验） | **空白**（check_html.py 全是静态正则，渲染后状态一概不知） |
+
+本技能图表质量目前靠人肉 browser preview（v0.0.7 两张新图「浏览器实测、验完即删」，
+不可复现、无门禁、无留痕）。SVG 标签重叠是历史返工最集中的点（v0.0.4 删 hbars、
+v0.0.7 瀑布图改 delta 条形图均与此有关）。内容层门禁本技能已远超 lieflat-cards，
+**本轮只补呈现层，不动内容层**。
+
+### 2. 定案（2026-09-16 用户拍板）
+
+做 4 项，顺序 **L1 → L2 → L3 → L4**（用户指定：先消色源风险，再建渲染门禁，
+后补契约与流程；编号按执行顺序重排，与审核讨论中的 2→1→3→4 对应）。
+
+**明确不借（YAGNI / 不适用）**：
+- accent 多皮肤机制——本技能单一机构报告风格，无换肤需求；借的只是「单一色源」思想；
+- contact_sheet.py——为整套卡片总览设计，长报告形态不适用（L4 用分章 PNG 替代）；
+- 字号下限纪律——本技能已有等价字号体系（SVG 内 8.5px 刻度字偏小，桌面报告可接受，不动）；
+- **check_html.py 保持零依赖纯静态**——Chrome 依赖全部收在新脚本 check_render.py，
+  静态硬门禁地位不动。
+
+### 3. 任务清单（L1–L4）
+
+#### L1 单一色源 + 趋势图线标签压柱修复（最小改动，先做）
+
+现状缺口：模板 `:root`（29-32 行）已集中 11 个颜色变量，但 JS 绘图区 544-545 行把
+同样色值硬编码第二遍，`dupontNorm` 调用处（816 行）还有第三处字面量 `rgb(122,84,52)`。
+换色只改 `:root` 时图表与页面脱节，且 check_html hardrule 抓不到（其暗色判据自声明
+不覆盖 rgb()/var()）。不处理则 v0.2.0「去蓝 12 处」式的 grep 换色还会重演。
+
+落点：`assets/report-template.html` 一处。
+
+- 544-545 行常量改从 CSS 变量读取：
+  ```js
+  const css=getComputedStyle(document.documentElement),v=n=>css.getPropertyValue(n).trim();
+  const INK=v('--ink'),MUT=v('--muted'),GRID=v('--grid'),FAINT=v('--faint');
+  const C1=v('--data'),C2=v('--faintdata'),GOOD=v('--good'),BAD=v('--bad');
+  ```
+  **映射必须对**：JS 的 `C2='rgb(233,213,187)'` 对应 `--faintdata`，**不是** `--data2`
+  （`--data2` 全模板零引用，已 grep 证实，见第 5 节）。
+- `:root` 新增 `--der:rgb(122,84,52)`；816 行 dupontNorm series 字面量改 `v('--der')`；
+  CSS `.badge.der`（57 行）的 `color:rgb(122,84,52)` 顺手改 `color:var(--der)`
+  （background 的 `rgba(122,84,52,.13)` 保留字面量——alpha 派生色不做变量，
+  与 .badge.g/y/r 现状写法一致）。
+- 注意：`getPropertyValue` 返回值带前导空格，必须 `.trim()`。
+- **趋势图线标签压柱修复（2026-09-17 渲染评审增补，bug 级）**：trendDual / combo 的
+  线标签用 x+14 / x+8 右偏移摆位，而单柱柱宽约 33px——标签起点几何上必然落在柱身内，
+  深棕字（MUT）压赭石柱（C1）低对比不可读。实证：恒瑞 2025FY s1 趋势图 2021~2023
+  毛利率标签（85.6% 只读出 5.6%），渲染截图目检发现。**与数据无关，只要线点低于
+  柱顶必现**。修法：线标签改数据点正上方居中（`text-anchor:'middle'`，y 上移）
+  + 白色描边 halo（`paint-order:stroke; stroke:#fff; stroke-width:2.5`），压在任何
+  图形上都可读；combo / trendDual 共三处线标签统一改。dupontNorm 末点标签无柱环境，
+  不动。
+  **维护者注意**：halo 方案下文字与柱身几何仍重叠——L2 门禁保持「text 与 text
+  重叠」检测范围，**不要扩展成 text-bar 检测**，否则 halo 方案被误报；「文字压图形
+  低对比」靠 L4 视觉验收兜底。
+
+验证：① 提取模板 JS 过 `node --check`；② 回归 19/19；③ check_html 模板
+FAIL 1（占位符，预期）WARN 0；④ 用茅台黄金样本数据临时填充渲染，图表色与顶层成品
+视觉一致（验完即删，不重出——纪律 7）；⑤ 用恒瑞 2025FY 数据临时填充渲染，s1 趋势图
+5 期线标签全部可读（验完即删）。
+回归影响：无（不动 calc/schema/fixture）。
+
+#### L2 渲染测量门禁（本轮核心）
+
+新脚本 `scripts/check_render.py`（不动 check_html.py）。框架自包含复制 lieflat-cards
+`scripts/render.py` 的 `chrome_run` / `measure` / `variant` 结构（**不跨 skill import**，
+部署目录须独立）；`CHROME_CANDIDATES` 沿用其 Windows 增补清单（含 Edge——本机按
+该清单实测：Chrome 候选均未命中、Edge (x86) 存在，`find_chrome` 可用）。
+
+测量逻辑（改造注入的 MEASURE_JS）：
+
+1. **SVG 文本重叠**（痛点最集中）：每个 `<svg>` 内收集 `<text>` 元素的 bounding rect，
+   两两相交测试（两轴重叠均 >1px 才算），报告 svg id + 两段文本 + 重叠像素。
+   本技能 SVG text 均单行，取整体 boundingRect 即可。
+2. **HTML 元素溢出 .sheet**：文本后代右/左缘超出 `.sheet` boundingRect >1px → spill。
+   **豁免 svg 内部元素**——svg 是 viewBox 缩放坐标系，「超出容器」判据不适用
+   （重叠判据不受影响，渲染后 rect 可直接比）。
+3. **横向裁剪**：`scrollWidth > clientWidth + 2` 且 computed overflowX ≠ visible → clipped。
+
+不需要 render.py 的 PRELUDE 帧封顶（本技能无 rAF 动画循环；`.fade` 是 CSS animation，
+virtual-time-budget 自然耗尽）。
+
+门禁定位：**可选门禁**——找不到 Chrome/Edge → 打印「渲染门禁跳过」声明 + exit 0，
+不 FAIL（check_html.py 仍是硬门禁）。发现问题 exit 1。
+
+验收（三条件）：
+① 茅台黄金样本（顶层成品）跑出 0 问题——若报出真实重叠，先校准判据并记录在案，
+   不许放水；
+② 构造坏样本（把 dupont5 某末点标签改长）→ 必须 exit 1 且指认 svg id 与文本；
+③ `--chrome` 指向不存在路径 → 声明跳过 exit 0。
+
+集成：SKILL.md Phase 8 第 4 条后补「渲染门禁（可选但默认执行）」；AGENTS.md 结构节
+scripts/ 两脚本 → 加第三条。回归：建议加条件冒烟（Chrome 可用时对 tests/t8_demo.html
+跑 check_render 期望 exit 0；不可用打印 SKIP 不判失败），断言计数声明同步更新。
+
+**维护者注意**：旧版式四份存量报告（v0.0.4 藏蓝）可能报重叠/溢出——存量只作判据
+校准参考，FAIL 不追溯（纪律 7 不重出）。
+
+#### L3 槽位长度契约机器化（WARN 级，宁宽勿严）
+
+落点：check_html.py 新增 `check_slot_length()`，WARN 级。
+
+试点契约（只此一条，先跑再扩）：s1 四维比率表「评价」列（模板约定 ≤15 字注脚）——
+定位 `_section_seg(text,"s1")` 内**第一张** table.data 每行最后一个 `td.txt`（跳过
+含 `<th>` 的表头行），纯文本 > 20 字 → WARN（契约 15 + 5 字容忍）。
+注意：杜邦表在 s1 内排第二张，其末列是归因长文本，**不在检查范围**——只测第一张表。
+模板自身的占位符 `{{≤15字注脚}}` 仅 7 字，模板冒烟不会误报。
+
+**明确不机器化**：figtitle「一句话」与 lede「一段话」（静态无法定义）；s2 担心→本案列
+（v0.0.7 已废 ≤30 字约束，不回加）。
+
+验收：茅台黄金样本 0 命中（若命中说明阈值设错，先校准）；构造 21 字注脚 → WARN 命中。
+试跑一份新报告评估误报后，再决定是否扩列（如 s7 结论列）。
+
+#### L4 Phase 8 视觉验收步骤（依赖 L2）
+
+check_render.py 加 `--png` 模式：按章分片截图（参考 render.py 的 ISOLATE_JS 变体——
+selector 用 `.sect`（另含 .masthead / .foot），每章一张 PNG、隐藏其余章节，与报告
+章节结构天然对齐；比「全页高图再分片」简单可靠）。
+
+SKILL.md Phase 8 加步骤：门禁全绿后跑 `check_render.py --png`，模型 ReadMediaFile
+逐章看图（标签重叠 / 溢出 / 朱雀仿宋缺失降级为系统仿宋时的可读性），确认后交付，
+对话交付语含「已视觉验收」。
+
+验收：下一份真实报告按新流程走一遍（可与本节五的任务 1 港股首测合并执行）。
+
+#### L5 s8 仪表盘化 + review 兑现率卡 + 分歧锚回填（2026-09-17 渲染评审定案，用户拍板三项都做）
+
+评审方法与证据：恒瑞 2025FY 用 Edge 无头渲染、按章切成 11 张截图逐张目检（非静态
+读码；截图为系统 temp 临时产物，复查按 L4 方法重出）。结论：卡片骨架合格（边距/
+网格/读法层与 Rain 同宗，扁平白卡是工具读物的合理取舍，不追纸张质感/角标/印章
+等装饰层）；另发现旧瀑布图 x 轴标签连成黑带（恒瑞 s3 实证，v0.0.7 已改
+deltaBars）——**人肉看图会漏检，L2/L4 门禁非建不可**；s2 表末汇总行 10.5px
+小字长段可读性弱，系排雷瘦身有意取舍，记录在案不动。
+
+三项卡片增补：
+
+1. **s8 watchlist 真仪表盘化**（主推）：现 s8 tag 写「先行指标仪表盘」实际渲染
+   是普通表格，名不副实。3~5 条先行指标改卡组（grid 一行/两行），每卡槽位：
+   指标名（label）/ 当前读数+证据徽章（value，允许短多行）/ 阈值带（>upper 含义 /
+   <lower 含义，长文小字）/ 数据来源（small）；读数槽位契约参照 Rain hero-stat
+   （值从简，长文本进阈值带槽）。watchlist JSON schema 不动（纯展示层变更）；
+   srcline「watchlist 已写入 data.json」说明保留。
+   **联动必改**：check_html 的 `check_s8_shape` 现按「表格行第 3 列含阈值」解析——
+   卡片化后表格不存在，该检查须同步重写为卡内阈值带存在性判据；回归冒烟的
+   s8-shape 断言跟着改。
+2. **review 章兑现率 KPI 卡**：复用 `.kpi` 结构（m/n 大数字 + ✅/❌/⏳ 分布小字），
+   置于回顾表上方，让「自我校准信用」第一眼可见。现模板注释「兑现率建议写进
+   00 章 lede」可随之废除（卡已承载）。
+3. **分歧锚表格卡回填模板**：模板 s0 分歧锚现是 p.lede 裸段落，恒瑞实战已进化为
+   「事实 / 读法A / 读法B」三列表格卡且验证良好——把该形态回收进模板（参照
+   reports/恒瑞医药-600276-年报-2025FY-20260915.html s0），替换 p.lede 版本。
+
+**明确不加**：报告封面卡（工具读物，YAGNI）、期后事项时间线卡（表格已是最佳
+形态）、s5 lede 结论入卡（导语本该是段落）。
+
+### 4. 执行顺序与依赖
+
+- L1 独立最小，先做——它动模板 JS 绘图区，须在 L2 门禁建基线之前落地
+  （避免门禁建好又改绘图代码）；
+- L2 依赖本机 Edge/Chrome（已实测 Edge 存在）；L3 独立但按用户指定顺序排 L2 后；
+  L4 依赖 L2；
+- L5 排最后——依赖 L2/L4 的视觉验收能力验证新卡片；动模板 s8 与 check_s8_shape，
+  与 L3 同轮回归；
+- 每项完成后跑回归；L1/L3/L5 动模板/脚本 → 回归强制；L2 新增脚本，除条件冒烟外
+  不动现有断言；
+- **版本号定案 0.0.9，只升一次（2026-09-17 用户拍板）**：L1–L5 虽分 9-16 / 9-17
+  两轮提出，**合并为一个版本执行**——SKILL.md version 0.0.8 → 0.0.9 一次到位，
+  版本记录合并写一条，全部落地后按 AGENTS.md 发布链一条链做完；禁止拆成
+  「L1 落地发 0.0.9、L5 落地再发 0.1.0」这类多次升版。
+
+### 5. 死代码提示（不擅自删，执行者知悉即可）
+
+`:root` 的 `--data2:rgb(203,158,108)` 全模板零引用（已 grep 证实）。L1 不动它；
+若要清理，与用户确认后单独处理。
+
+---
+
+## 二·十五、v0.0.9 轮执行记录：呈现层门禁 L1–L5（2026-09-17）
+
+二·十四节定案的 L1–L5 按序一次升版落地（用户拍板只升一次版），技能 0.0.8 → **0.0.9**，
+回归 19 → **20 断言**（渲染冒烟 Chrome 可用时计入）全绿。
+
+### 各项落地与验证
+
+| # | 内容 | 验证 |
+|---|---|---|
+| L1 | 单一色源：JS 绘图色全读 `:root` CSS 变量（`C2`→`--faintdata` 映射核对、新增 `--der`、`.badge.der` 用变量）；趋势图线标签改数据点正上方居中 + 白描边 halo（修压柱不可读）；**增补避让**：线标签与柱顶数字相交区间（点在柱顶上方 10px 内到下方 13px 内）移到点下方，dupont 末点标签纵向 ≥12px 避让 | node --check；回归全绿；茅台/恒瑞真实数据 preview 新旧对比——旧版压柱 bug 复现（2021 标签只读出 5.6%）、新版全可读且色值零偏差 |
+| L2 | 新增 `scripts/check_render.py`：SVG 文本重叠（两轴 >1px）/ HTML 溢出 .sheet（豁免 svg 内）/ 横向裁剪；可选门禁（无浏览器声明跳过 exit 0）；回归加条件冒烟（t8_demo，Chrome 可用计入断言） | 三条件：新布局双样本 0 问题；注入重叠文本 exit 1 并指认 svg id + 双文本；假 `--chrome` 路径跳过 exit 0 |
+| L3 | check_html 新增 `check_slot_length`（WARN）：s1 四维表第一张表每行末 `td.txt` >20 字告警（契约 15+5 容忍）；实体反转义后计数 | 恒瑞新版式 0 命中；构造 21 字注脚 WARN 命中指认；模板占位符不误报 |
+| L4 | `--png` 按章分片截图（.masthead/各 .sect/.foot，sections 高度由测量回传）；SKILL.md Phase 8 第 5 条加视觉验收步骤（ReadMediaFile 逐章看图、交付语含「已视觉验收」、截图验完即删） | 恒瑞报告 11 章分片全产出（见下） |
+| L5 | s8 真仪表盘化：卡组 grid2，每卡 figtitle 指标名 / `.wv` 读数大字+徽章 / `.wb` 阈值带小字 / srcline 来源（新增两条 CSS）；review 章兑现率 KPI 卡（m/n 大数字 + ✅❌⏳ 分布，废除「写进 00 章 lede」注释）；s0 分歧锚 p.lede → 事实/读法A/读法B 三列表格卡（回收恒瑞实战形态）；`check_s8_shape` 重写为 `.wb` 卡组判据 + 读数徽章检查，**旧表形态兜底 compat 存量** | 模板机检 FAIL 1（占位符）WARN 0；恒瑞旧表兜底 OK；三处新卡渲染目检形态成立；回归全绿 |
+
+### 本机实证发现（维护者必读，均为踩坑后定案）
+
+1. **Edge `--dump-dom` stdout 为空**（新旧 headless 均实测）——lieflat render.py 的 stdout
+   通道在本机不可用。check_render 改**页内同步 XHR 回传 localhost HTTP 端口**收测量结果，
+   `--screenshot` 探针作渲染完成终止机制。勿改回 dump-dom。
+2. **Edge headless 主进程先退出、渲染子进程异步完成写盘/回调**——截图与测量回传都「迟到一拍」。
+   `chrome_run` 的 `linger` 参数（主进程退出后续等）是修复，勿删；shoot 另有 3 次重试兜底。
+3. **halo 只解可读性、不解几何重叠**：L1 居中线标签后与柱顶数字 text-text 相撞（茅台 2023、
+   恒瑞 2021 实测），被 L2 门禁首跑抓出 → 相交区间避让是 L1 的必要组成，不是可选项。
+4. **门禁首战抓出人肉目检漏检**：恒瑞旧版 ocfbridge 瀑布图 x 轴标签黑带 9 处重叠
+   （二·十四节 L5 评审靠人肉截图发现过该问题，门禁机器化后首跑即完整指认）。
+   记录在案、不追溯（纪律 7）。
+5. **验收①校准结论**：茅台黄金样本（旧版式）报 2 处真重叠（trend 线标签撞柱顶数字 +
+   瀑布黑带）——判据正确非误报；两处在新版式均已结构性解决（L1 避让 + v0.0.7 deltaBars）。
+   「0 问题」验收在**新布局样本**成立（茅台/恒瑞数据 preview 双 0）。
+6. **旧版式报告无 secthead id 锚点** → 一切基于 `_section_seg` 的检查（s2/s8/slot-length）
+   走兜底 WARN，与既有已知行为同款，非误报、不修。
+
+### 改动文件
+
+技能源 6 项：`assets/report-template.html`、`scripts/check_html.py`、`scripts/check_render.py`（新）、
+`SKILL.md`（version 0.0.9 + Phase 8 第 5/6 条 + 版本记录）、`tests/run_regression.py`（条件冒烟）、
+根 `AGENTS.md`（scripts 第三条）。fixtures / calc.py / extraction-schema **未动**。
+
+### 发布状态
+
+未发布（未 commit/tag/push），等用户发话按 AGENTS 发布链一条链做完。deploy 本轮收尾跑。
+
+### 维护者注意
+
+- `check_s8_shape` 双形态判据的旧表兜底分支是存量 compat，**不是死代码**，勿清理
+- `slot-length` 只测 s1 内第一张表；杜邦表末列归因长文本不在范围
+- `--png` 单章窗口高 = 章节实测高 + 40；连续截图依赖 linger + 重试，换机器若截图全 🔴
+  先查该机的 Edge 异步写盘行为
+- L4 视觉验收的**真实报告首测**随下一份新产出走（流程已入 SKILL.md Phase 8）
+
+### 热核代码审计（2026-09-17，v0.0.9 落地后追加）
+
+用户触发 thermo-nuclear-code-quality-review 全项目审计（calc.py / check_html.py /
+check_render.py / ts_fetch.py / run_regression.py / 模板 JS）。发现并修复五项，
+回归 20/20 + calc 双例输出排序后**字节级一致**（重构不改变行为）：
+
+| # | 发现 | 处置 |
+|---|---|---|
+| 1 | **calc.py 比率公式双份维护已漂移**：`build_ratio_calcs`（dict 形态）与 `ratio_hist_expect`（if 链形态）同一套公式写两遍；漂移实证——build 版 dso/dio 缺 None 守卫（rev 在、ar 双期缺时 `None*365` TypeError 崩溃），hist 版有守卫 | build_ratio_calcs 的 14 项趋势比率**委托** ratio_hist_expect（当期取值字典 trend_v），公式全脚本唯一定义处；潜伏崩溃随之修复（实测该输入现返回 None 走降级） |
+| 2 | `safe_div` 嵌套定义两份（build/hist 各一） | 提模块级 |
+| 3 | 模板线标签避让条件三处重复（魔数 10/13/16/8×3，与 #1 同类漂移风险） | 提取 `labelY(py,barTop)` 助手；双 preview 复验 0 问题 |
+| 4 | check_render 调试期遗留三债：`_ReportHandler.holder` 类属性 mutate、`variant()` 的 subs 薄泛化（两处简单替换套通用机制）、shoot 三次重试（相对路径误诊期的兜底，根因修复后 11/11 一次成） | handler 改 measure 内嵌套闭包；variant 删 subs、调用点直接 replace；shoot 单次 + linger |
+| 5 | 上轮记录在案的安慰剂：run_regression `sys.executable or "python"` 死分支、calc `counts()` 的 `c.get(lv,0)` 冗余 | 删除 |
+
+**审视后有意保留（勿当债清理）**：check_s8_shape 旧表兜底分支（存量 compat）；
+check_render 与 lieflat render.py 的框架相似（部署独立约束，不跨 skill import）；
+calc `check_segments` 内全量重算 build_ratio_calcs 取毛利率（单次运行门禁）；
+RECON_RULES `("level", None)` 第二项死数据但可读；三脚本 UTF-8 reconfigure 块重复
+（各自独立部署）。ts_fetch.py（132 行）直接无赘物，通过。无文件跨 1k（check_html 875
+接近但未跨、内聚）。

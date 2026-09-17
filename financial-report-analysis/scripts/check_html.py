@@ -16,7 +16,7 @@ calc.py 只校验数据层（data.json）；报告 HTML 层此前没有任何机
     默认仅 FAIL 影响退出码（与 calc.py 一致）；--strict 让 WARN 也判失败；
     --warn-only 转纯提示模式：任何发现（含 FAIL）都不影响退出码，仅打印清单。
 
-十一类检查（★ = 启发式，有误报/漏报，输出「待人工确认」而非断言错误）：
+十二类检查（★ = 启发式，有误报/漏报，输出「待人工确认」而非断言错误）：
   1. placeholder  [FAIL] 未替换的 {{占位}}。HTML 注释内的不算——模板的
                   「◆ SLOT」注释里常写示例占位符，那是说明文字不是漏填；
                   <style>/<script> 内的也不算（CSS 里 `…1fr}}` 是合法语法，
@@ -41,6 +41,9 @@ calc.py 只校验数据层（data.json）；报告 HTML 层此前没有任何机
   11. figtitle-style [WARN] ★ 结论式标题（v0.0.7 读法层）：figtitle 括号内含方法
                   说明关键词（必做/滚动/降级/检测/方法/口径说明/规则见）→ 疑似
                   描述式标题，应改写为结论式、方法注记挪 srcline。
+  12. slot-length   [WARN] 槽位长度契约（v0.0.9 L3）：s1 四维表「评价」列（每行最后
+                  一个 td.txt）注脚 ≤15 字，>20 字告警（15+5 容忍）；杜邦表（s1 内
+                  第二张）末列是归因长文本，不在检查范围。
 
 启发式检查的边界（诚实声明，改判据前先读这段）：
   · bare-number 的判据是：在 <td> / KPI 卡 .v / .figtitle 里出现「3 位以上数字
@@ -453,30 +456,50 @@ def _section_seg(text, anchor):
 
 
 def check_s8_shape(text, rep):
-    """下期跟踪清单（s8）阈值化形态（v0.0.6 T5）：观察方向列（第 3 列）应含数字阈值
-    （>x% / <y% / ≥z 倍）；纯 if-then 句式允许但提示，推动阈值带落地。"""
+    """下期跟踪清单（s8）阈值化形态（v0.0.6 T5；v0.0.9 L5 卡组化）：
+    卡组形态判 .wb 阈值带槽（>x% / <y% / ≥z 倍）；存量旧表形态兜底判第 3 列。
+    纯 if-then 句式允许但提示，推动阈值带落地。"""
     seg = _section_seg(text, "s8")
     if seg is None:
         rep.add(WARN, "s8-shape", "未找到下期跟踪清单章节（secthead id=\"s8\"），无法校验阈值化形态")
         return
-    bad = []
-    for r in re.findall(r'<tr>(.*?)</tr>', seg, re.S):
-        if '<th' in r:
-            continue
-        tds = re.findall(r'<td[^>]*>(.*?)</td>', r, re.S)
-        if len(tds) < 3:
-            continue
-        cell = re.sub(r'<[^>]+>', '', tds[2])
-        # HTML 实体反转义（&gt; 40 亿 → > 40 亿），否则规范的转义写法反被误报；
-        # 无法数字化阈值的 if-then 句式（若…则…）按 T5 设计豁免
-        cell = cell.replace("&lt;", "<").replace("&gt;", ">").replace("&amp;", "&")
-        if not THRESH_RE.search(cell) and not re.search(r'若.{2,30}则', cell):
-            name = re.sub(r'<[^>]+>', '', tds[0]).strip()[:20]
-            bad.append(f"「{name}」观察方向列未见数字阈值（>x / <y 形态）；无法数字化时应有 if-then 句式")
-    if bad:
-        rep.add(WARN, "s8-shape", f"下期跟踪清单 {len(bad)} 行未见数字阈值带（T5）", bad[:5])
+
+    def plain(cell):
+        cell = re.sub(r'<[^>]+>', '', cell)
+        # HTML 实体反转义（&gt; 40 亿 → > 40 亿），否则规范的转义写法反被误报
+        return cell.replace("&lt;", "<").replace("&gt;", ">").replace("&amp;", "&")
+
+    def judge(cells, label):
+        bad = []
+        for i, cell in enumerate(cells):
+            p = plain(cell)
+            if not THRESH_RE.search(p) and not re.search(r'若.{2,30}则', p):
+                bad.append(f"{label}第 {i + 1} 项未见数字阈值（>x / <y 形态）；无法数字化时应有 if-then 句式")
+        return bad
+
+    wbs = re.findall(r'<div class="wb"[^>]*>(.*?)</div>', seg, re.S)
+    if wbs:
+        bad = judge(wbs, "阈值带槽")
+        wvs = re.findall(r'<div class="wv"[^>]*>(.*?)</div>', seg, re.S)
+        nobadge = [i + 1 for i, w in enumerate(wvs) if 'class="badge' not in w]
+        if nobadge:
+            bad.append(f"读数槽第 {nobadge} 个未挂证据等级徽章")
     else:
-        rep.add(OK, "s8-shape", "下期跟踪清单观察方向列均含数字阈值带（T5）")
+        # 存量旧表形态（v0.0.9 前产出）兜底：观察方向列 = 第 3 列
+        bad = []
+        for r in re.findall(r'<tr>(.*?)</tr>', seg, re.S):
+            if '<th' in r:
+                continue
+            tds = re.findall(r'<td[^>]*>(.*?)</td>', r, re.S)
+            if len(tds) < 3:
+                continue
+            name = plain(tds[0]).strip()[:20]
+            for b in judge([tds[2]], ""):
+                bad.append(f"「{name}」{b}")
+    if bad:
+        rep.add(WARN, "s8-shape", f"下期跟踪清单 {len(bad)} 处未见数字阈值带（T5）", bad[:5])
+    else:
+        rep.add(OK, "s8-shape", "下期跟踪清单阈值带均含数字阈值（T5）")
 
 
 def check_review_shape(text, rep):
@@ -528,6 +551,37 @@ def check_figtitle_style(text, rep, secs):
     rep.add(WARN, "figtitle-style",
             f"{len(hits)} 处 figtitle 括号内疑似方法说明——结论式标题应写判断，方法注记挪 srcline",
             details[:DETAIL_CAP])
+
+
+def check_slot_length(text, rep):
+    """槽位长度契约（v0.0.9 L3，WARN 级宁宽勿严）：s1 四维比率表「评价」列
+    （第一张 table.data 每行最后一个 td.txt）契约 ≤15 字注脚，>20 字 → WARN（15+5 容忍）。
+    杜邦表在 s1 内排第二张、末列是归因长文本，不在检查范围——只测第一张表。"""
+    seg = _section_seg(text, "s1")
+    if seg is None:
+        rep.add(WARN, "slot-length", "未找到财务总览章节（secthead id=\"s1\"），无法校验槽位长度契约")
+        return
+    m = re.search(r'<table class="data"[^>]*>(.*?)</table>', seg, re.S)
+    if not m:
+        rep.add(WARN, "slot-length", "s1 章未找到数据表，无法校验评价列契约")
+        return
+    bad = []
+    for r in re.findall(r'<tr>(.*?)</tr>', m.group(1), re.S):
+        if '<th' in r:
+            continue
+        td_txts = re.findall(r'<td[^>]*class="[^"]*txt[^"]*"[^>]*>(.*?)</td>', r, re.S)
+        if not td_txts:
+            continue
+        cell = re.sub(r'<[^>]+>', '', td_txts[-1]).strip()
+        cell = cell.replace("&lt;", "<").replace("&gt;", ">").replace("&amp;", "&")
+        if len(cell) > 20:
+            bad.append(f"评价列注脚 {len(cell)} 字（契约 ≤15）：「{cell[:24]}…」")
+    if bad:
+        rep.add(WARN, "slot-length",
+                f"s1 四维表 {len(bad)} 行评价列超契约长度（注脚应 ≤15 字，长解释挪 takeaway/srcline）",
+                bad[:6])
+    else:
+        rep.add(OK, "slot-length", "s1 四维表评价列均在契约长度内（≤15 字注脚）")
 
 
 # ─────────────────────────── 12. 数字回验（T8，--json 时执行） ───────────────────────────
@@ -791,6 +845,7 @@ def main():
     check_s8_shape(body, rep)
     check_review_shape(body, rep)
     check_figtitle_style(body, rep, secs)
+    check_slot_length(body, rep)
     if data is not None:
         check_numbers_vs_json(body, raw, data, rep)
         check_json_vs_md(data, Path(args.json_path).resolve(), rep)

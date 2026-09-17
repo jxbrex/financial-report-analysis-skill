@@ -80,7 +80,7 @@ class Case:
 def run_calc(fixture):
     """在技能根目录下用当前解释器跑 calc.py，返回 CompletedProcess。"""
     env = dict(os.environ, PYTHONIOENCODING="utf-8")
-    python = sys.executable or "python"
+    python = sys.executable
     return subprocess.run(
         [python, str(CALC), str(fixture)],
         cwd=str(SKILL),
@@ -267,6 +267,26 @@ def main():
     if not all(ok for ok, _ in t8_checks):
         print("❌ 回归未通过：T8 数字回验断言失败，逐条核对上方 ❌。")
         return 1
+
+    # ── 渲染测量条件冒烟（v0.0.9 L2）──
+    # Chrome/Edge 可用时对 t8_demo.html 跑 check_render 期望 exit 0；
+    # 不可用打印 SKIP 不计入断言（渲染门禁本体是可选门禁，环境无关时不假红）
+    render_smoke = subprocess.run(
+        [sys.executable, str(SKILL / "scripts" / "check_render.py"),
+         str(HERE / "t8_demo.html")],
+        capture_output=True, text=True, encoding="utf-8", errors="replace")
+    render_out = render_smoke.stdout or ""
+    if "渲染门禁跳过" in render_out:
+        print("\n【渲染测量冒烟】check_render.py：SKIP（本机无 Chrome/Edge，可选门禁不阻塞）")
+    else:
+        render_ok = render_smoke.returncode == 0 and "渲染测量 0 问题" in render_out
+        print(f"\n【渲染测量冒烟】check_render.py 跑 t8_demo.html："
+              f"{'✅' if render_ok else '❌'} exit {render_smoke.returncode}")
+        total += 1
+        passed += render_ok
+        if not render_ok:
+            print("❌ 回归未通过：渲染测量冒烟未绿，看上方 check_render 输出。")
+            return 1
 
     failed = total - passed
     print(f"\n--- 汇总：通过 {passed} · 失败 {failed} ---")

@@ -10,6 +10,7 @@
 - `financial-report-analysis/` — 技能源（SKILL.md + references/×9 + assets/ + scripts/ + tests/ + examples/），**只改这里**
   - `scripts/calc.py` — Phase 7.5 计算自检门禁（桥闭合/比率复算/勾稽三态/分部自洽/断言结构），exit 0 才允许写报告
   - `scripts/check_html.py` — Phase 8 报告机检（占位符/裸数字启发式/数据来源/模板硬规则/必备要素/锚点/s8 阈值形态/回看归因；`--json` 启用 T8 数字回验：①级 HTML↔data.json 笔误检测（独特值 0.5% 窗口 FAIL）+ ②级 data.json↔原文 md 行号回核），exit 0 才允许交付
+- `scripts/check_render.py` — 渲染测量门禁（可选但默认执行）：headless Chrome/Edge 真渲染后测量 SVG 文本重叠/HTML 溢出 .sheet/横向裁剪；`--png` 按章分片截图供 Phase 8 视觉验收；找不到浏览器声明跳过 exit 0，发现问题 exit 1
   - `tests/` — 金标准 fixtures + 回归入口：`moutai_2025.json`（干净样本，应零误报）、
     `kangdexin_2018.json`（造假样本，应命中）；`run_regression.py` 是唯一回归入口（含 check_html 冒烟）
   - `examples/` — 标杆样本报告（few-shot 参考；早期版本，结构以当前模板为准）
@@ -31,6 +32,11 @@
 7. 技能/模板更新后，reports/ 顶层存量成品**不随模板重出、不改版式**——报告是产出时点的
    快照，新版式只用于下一份新产出；用户明确要求重出除外。「黄金样本回归对比」指用其
    数据做临时验证，不替换顶层成品（v0.0.7 用户定案）
+8. 工作区文件及时清理：阶段性文档（修订计划 / 临时脚本 / 一次性验证产物）在其对应
+   版本落地后即删除——git 历史可查，不另建存档；工作区根目录只留长期文件
+   （AGENTS.md / README.md / HANDOFF.md / deploy.cmd / 技能源 / reports/）。
+   修订的定案结论以 HANDOFF.md 为唯一真源，修订计划文档本身不作长期留存
+   （2026-09-17 用户定案；v0.0.3 / v0.0.5 / v0.0.7 三份旧修订计划已按此条清理）
 
 ## 发布流程（版本定稿时一条链做完，不拆散等提示）
 

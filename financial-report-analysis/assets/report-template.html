@@ -29,7 +29,7 @@
   --bg:rgb(247,242,235); --ink:rgb(58,42,28); --muted:rgba(58,42,28,.60);
   --faint:rgba(58,42,28,.32); --grid:rgba(58,42,28,.16); --card:#fff;
   --data:rgb(171,94,38); --data2:rgb(203,158,108); --faintdata:rgb(233,213,187);
-  --good:#0F7B4F; --warn:#B8860B; --bad:#C0392B;
+  --good:#0F7B4F; --warn:#B8860B; --bad:#C0392B; --der:rgb(122,84,52);
 }
 *{margin:0;padding:0;box-sizing:border-box}
 body{background:var(--bg);color:#000;
@@ -54,7 +54,7 @@ body{background:var(--bg);color:#000;
 .dot.g{background:var(--good)}.dot.y{background:var(--warn)}.dot.r{background:var(--bad)}
 /* 证据等级徽章（P2-19）：披露 / 推算 / 估算，语义色低饱和，与 g/y/r 风险徽章可区分 */
 .badge.disc{background:rgba(58,42,28,.09);color:rgba(58,42,28,.82)}
-.badge.der{background:rgba(122,84,52,.13);color:rgb(122,84,52)}
+.badge.der{background:rgba(122,84,52,.13);color:var(--der)}
 .badge.est{background:rgba(58,42,28,.04);color:var(--muted);border:1px dashed rgba(58,42,28,.28)}
 /* 排雷四态之「反向未触发」：信号反向成立且含信息量，用主数据色（赭石）与 g/y/r 风险色区分 */
 .badge.rev{background:rgba(171,94,38,.12);color:var(--data)}
@@ -96,6 +96,10 @@ table.data tr.total td{font-weight:800;border-top:1.5px solid var(--ink);border-
 .takeaway{font-size:12.5px;font-weight:700;margin-top:8px}
 /* OCF 调节桥端点行：净利润 →（调节净额）→ 经营现金流净额（水平值不画柱） */
 .brends{font-size:12.5px;font-weight:800;margin:2px 0 8px}
+
+/* ── s8 先行指标仪表盘（v0.0.9 L5）：读数从简大字、阈值带长文小字（Rain hero-stat 同构） ── */
+.wv{font-size:22px;font-weight:800;line-height:1.25;margin:6px 0 4px}
+.wb{font-size:11.5px;line-height:1.7;color:var(--muted);margin-bottom:6px}
 
 /* ── 亮点/风险清单 ── */
 .flaglist{list-style:none}
@@ -152,13 +156,18 @@ table.data tr.total td{font-weight:800;border-top:1.5px solid var(--ink);border-
          （假设错 / 时点错 / 口径错，可组合并附一句依据）。 -->
   <div class="sect">
     <div class="secthead" id="review"><span class="no">回溯</span><span class="t">上期跟踪回顾</span><span class="line"></span><span class="tag">LOOK-BACK · 上期清单兑现率</span></div>
+    <div class="kpi" style="margin:0 0 14px">
+      <div class="v">{{m}}/{{n}}</div>
+      <div class="r">✅ 兑现 {{a}} · ❌ 未兑现 {{b}} · ⏳ 待观察 {{c}}</div>
+      <div class="l">上期跟踪清单兑现率 · 自我校准的唯一硬证据</div>
+    </div>
     <div class="card">
       <table class="data">
         <tr><th>上期跟踪项（tripwire 原文照抄）</th><th class="txt">兑现情况</th><th class="txt">读数复盘 · 误差归因（❌ 必填）</th></tr>
         <tr><td>{{上期清单第 1 条 · tripwire 原文照抄}}</td><td class="txt"><span class="badge g">✅ 兑现</span></td><td class="txt">{{读数现在是多少，与上期预期的差}}</td></tr>
         <tr><td>{{上期清单第 2 条 · tripwire 原文照抄}}</td><td class="txt"><span class="badge r">❌ 未兑现</span></td><td class="txt">{{实际读数 + 误差归因（必填：假设错 / 时点错 / 口径错，附一句依据）}}</td></tr>
         <tr><td>{{上期清单第 3 条 · tripwire 原文照抄}}</td><td class="txt"><span class="badge y">⏳ 待观察</span></td><td class="txt">{{还差哪条数据才能判定}}</td></tr>
-        <!-- ◆ 按上期清单条数增删行；兑现率 {{m}}/{{n}} 建议写进 00 章 lede -->
+        <!-- ◆ 按上期清单条数增删行 -->
       </table>
       <div class="srcline">数据来源：上一期分析报告的 data.json <code>watchlist</code> 块（旧版产物无 JSON 时降级解析其「下期跟踪清单」表，并在报告注明「回看基于旧版 HTML 解析」）· 兑现率是自我校准的唯一硬证据 · 回看结果只追加写入 watchlist[].review 子块，原 tripwire 不回改</div>
     </div>
@@ -186,9 +195,17 @@ table.data tr.total td{font-weight:800;border-top:1.5px solid var(--ink);border-
       </div>
     </div>
     <p class="lede">{{一段话说清这家公司本期发生了什么：业绩主线 + 利润第一驱动 + 最大隐忧}}</p>
-    <!-- ◆ 分歧锚（默认保留；认为多余可删本行与下一行）：只陈列同一事实的两种解读，
-         不做倾向判断——多空立场构建归 stock-deep-analysis，本报告只到「可证伪的 if-then」为止 -->
-    <p class="lede"><b>本期分歧锚</b>：{{本期最关键的分歧变量（同一个数字）}} —— {{解读A：乐观情形意味着什么}}；{{解读B：悲观情形意味着什么}}。</p>
+    <!-- ◆ 分歧锚（默认保留；认为多余可删本卡）：只陈列同一事实的两种解读，
+         不做倾向判断——多空立场构建归 stock-deep-analysis，本报告只到「可证伪的 if-then」为止；
+         两种读法的验证条件进 s8 跟踪清单 -->
+    <div class="card">
+      <div class="figtitle">分歧锚：同一事实的两种解读，不做倾向裁决</div>
+      <table class="data">
+        <tr><th>事实</th><th class="txt">读法 A</th><th class="txt">读法 B</th></tr>
+        <tr><td>{{本期最关键的分歧变量（同一个数字）+ 徽章}}</td><td class="txt">{{解读A：乐观情形意味着什么}}</td><td class="txt">{{解读B：悲观情形意味着什么}}</td></tr>
+      </table>
+      <div class="srcline">分歧锚不做倾向性裁决；两种读法的验证条件列入 <a href="#s8">08 下期跟踪清单</a></div>
+    </div>
     <!-- ◆ 异常下钻地图（P2-25）：从「哪里异常」一步跳到「哪一章解释」；按本期实际异常增删行 -->
     <div class="card">
       <div class="figtitle">异常下钻地图：异常指标 → 结构定位 → 驱动因素</div>
@@ -509,26 +526,44 @@ table.data tr.total td{font-weight:800;border-top:1.5px solid var(--ink);border-
          （3~5 项）定制，无法归类时用通用缺省集；入选标准：报表出来前就能观察到的公开信息。
        ◆ 每条必须写成条件化触发线（if-then 形态，如「若 X 连续两期低于 Y 则 Z 成立」），
          禁止无条件预测；语料同步写入同目录同名 .json 的 watchlist 块，回看读 JSON 不解析本表。
-       ◆ 「观察方向」列升级阈值带形态（v0.0.6 T5）：>upper 含义 / <lower 含义，阈值必须有依据
+       ◆ 阈值带槽（v0.0.6 T5 起、v0.0.9 L5 卡组化）：>upper 含义 / <lower 含义，阈值必须有依据
          （历史中枢 / 同业水平 / 管理层指引，依据写 data.json source/note）；无法数字化阈值的
-         指标允许保留纯 if-then 句式。
+         指标允许在阈值带槽保留纯 if-then 句式。读数槽从简（值 + 徽章），长文本进阈值带槽。
        ◆ 读数凡含假设的一律挂 .badge.est 并写明假设；报表内指标归 01 章，不在这里重复。 -->
   <div class="sect">
     <div class="secthead" id="s8"><span class="no">08</span><span class="t">下期跟踪清单</span><span class="line"></span><span class="tag">先行指标仪表盘 · 下份报告之前可观察</span></div>
     <p class="lede">{{一句话：下一期最先看哪个数，它最早暴露方向}}</p>
-    <div class="card">
-      <table class="data">
-        <tr><th>先行指标</th><th class="txt">当前读数</th><th class="txt">观察方向（>上限 含义 / <下限 含义）</th><th class="txt">数据来源</th></tr>
-        <tr><td>合同负债增速 vs 收入增速（剪刀差）</td><td class="txt">{{合同负债增速%}} vs {{收入增速%}} <span class="badge der">推算</span></td><td class="txt">{{> -5% 打款意愿修复 / < -20% 需求走弱确认（阈值依据：近 5 期中枢）；无法数字化时写「若连续两期低于收入增速则需求走弱成立」}}</td><td class="txt">定期报告资产负债表「合同负债」；经销商打款/预收政策公告</td></tr>
-        <tr><td>存货原材料 / 在产品占比变化（备产信号）</td><td class="txt">{{原材料占比%}} / {{在产品占比%}} <span class="badge der">推算</span></td><td class="txt">{{原材料占比 > 40% 备产确认（前置看多）/ < 25% 备产结束；在产品积压且产成品同步升 = 产销脱节}}</td><td class="txt">存货按形态拆分附注；上游供应商月度订单/经营快报</td></tr>
-        <tr><td>产能利用率 / 开工率</td><td class="txt">{{产能利用率%}} <span class="badge est">估算</span></td><td class="txt">{{> 85% 且在建未转固 = 供给偏紧 / < 70% 仍在扩产 = 过剩风险}}</td><td class="txt">行业月度开工率、环评/能耗公示、募投项目投产公告</td></tr>
-        <tr><td>资本开支节奏</td><td class="txt">{{购建固定资产等支付的现金（亿元）}}，同比 {{%}} <span class="badge disc">披露</span></td><td class="txt">{{同比 > +20% 扩张确认 / < -20% 连续两期 = 转保守；逆势扩张要追问钱从哪来、产能谁来消化}}</td><td class="txt">募投项目进展/环评批复/招标中标公告（早于报表）</td></tr>
-        <tr><td>大宗价格与 DIO 传导状态</td><td class="txt">{{主原料价格}} / DIO {{天}} <span class="badge der">推算</span></td><td class="txt">{{DIO > 90 天 = 成本传导时滞长，毛利压力在后头 / < 45 天 = 传导充分，拐点临近；价跌 + DIO 高企 = 减值风险}}</td><td class="txt">公开现货/期货价格（mx_macro_data）；DIO 由 01 章报表数推算</td></tr>
-        <!-- ◆ 按模式定制 3~5 项（见本节文件头注释）；每行「当前读数」必挂证据等级徽章，
-             观察方向必须是可判定的条件化触发线（阈值带或 if-then），不写无条件预测 -->
-      </table>
-      <div class="srcline">watchlist 已写入 data.json（同目录同名 .json）——下期回看直接读该 JSON 块，不再解析本表 · 数据来源：各指标对应公开信息（见每行末列）</div>
+    <!-- ◆ 按模式定制 3~5 卡（见本节文件头注释）；读数槽从简（值 + 证据等级徽章），
+         长文本进阈值带槽；阈值带 = >upper 含义 / <lower 含义（至少一侧），阈值必须有依据
+         （历史中枢 / 同业水平 / 管理层指引，依据写 data.json source/note）；
+         无法数字化阈值的指标在阈值带槽写「若…则…」条件句 -->
+    <div class="grid2">
+      <div class="card">
+        <div class="figtitle">{{先行指标名，如：合同负债增速 vs 收入增速（剪刀差）}}</div>
+        <div class="wv">{{当前读数，如：-8.3% vs +2.1%}} <span class="badge der">推算</span></div>
+        <div class="wb">&gt; {{upper，如：-5%}} {{upper_meaning，如：打款意愿修复}} / &lt; {{lower，如：-20%}} {{lower_meaning，如：需求走弱确认}}（阈值依据：{{近 5 期中枢}}）</div>
+        <div class="srcline">数据来源：{{定期报告资产负债表「合同负债」；经销商打款/预收政策公告}}</div>
+      </div>
+      <div class="card">
+        <div class="figtitle">{{先行指标名，如：存货原材料/在产品占比（备产信号）}}</div>
+        <div class="wv">{{当前读数，如：38% / 22%}} <span class="badge der">推算</span></div>
+        <div class="wb">&gt; {{upper，如：40%}} {{upper_meaning，如：备产确认（前置看多）}} / &lt; {{lower，如：25%}} {{lower_meaning，如：备产结束；在产品积压且产成品同步升 = 产销脱节}}</div>
+        <div class="srcline">数据来源：{{存货按形态拆分附注；上游供应商月度订单/经营快报}}</div>
+      </div>
+      <div class="card">
+        <div class="figtitle">{{先行指标名，如：产能利用率/开工率}}</div>
+        <div class="wv">{{当前读数，如：82%}} <span class="badge est">估算</span></div>
+        <div class="wb">&gt; {{upper，如：85%}} {{upper_meaning，如：且在建未转固 = 供给偏紧}} / &lt; {{lower，如：70%}} {{lower_meaning，如：仍在扩产 = 过剩风险}}</div>
+        <div class="srcline">数据来源：{{行业月度开工率、环评/能耗公示、募投项目投产公告}}</div>
+      </div>
+      <div class="card">
+        <div class="figtitle">{{先行指标名，如：资本开支节奏}}</div>
+        <div class="wv">{{当前读数，如：12.4 亿，同比 +18%}} <span class="badge disc">披露</span></div>
+        <div class="wb">{{同比 &gt; +20% 扩张确认 / &lt; -20% 连续两期 = 转保守；无法数字化时写「若…则…」条件句}}</div>
+        <div class="srcline">数据来源：{{募投项目进展/环评批复/招标中标公告（早于报表）}}</div>
+      </div>
     </div>
+    <div class="srcline">watchlist 已写入 data.json（同目录同名 .json）——下期回看直接读该 JSON 块，不再解析本卡组 · 数据来源：各指标对应公开信息（见每卡末行）</div>
   </div>
 
   <!-- ══ 页脚 ◆ SLOT ══ -->
@@ -541,8 +576,15 @@ table.data tr.total td{font-weight:800;border-top:1.5px solid var(--ink);border-
 <script>
 /* ── 内联绘图助手：模型只改 DATA 区数组，不改绘图逻辑 ── */
 const NS='http://www.w3.org/2000/svg';
-const INK='rgb(58,42,28)',MUT='rgba(58,42,28,.60)',GRID='rgba(58,42,28,.16)',FAINT='rgba(58,42,28,.32)';
-const C1='rgb(171,94,38)',C2='rgb(233,213,187)',GOOD='#0F7B4F',BAD='#C0392B';
+/* 单一色源：全部色值读 :root CSS 变量，换色只改 :root 一处（v0.0.9 L1）。
+   映射注意：C2=--faintdata（不是零引用的 --data2）；getPropertyValue 带前导空格须 trim */
+const css=getComputedStyle(document.documentElement),v=n=>css.getPropertyValue(n).trim();
+const INK=v('--ink'),MUT=v('--muted'),GRID=v('--grid'),FAINT=v('--faint');
+const C1=v('--data'),C2=v('--faintdata'),GOOD=v('--good'),BAD=v('--bad');
+/* 线标签 halo：白描边垫底，文字压在柱身/网格线上仍可读 */
+const HALO={'paint-order':'stroke',stroke:'#fff','stroke-width':2.5};
+/* 线标签避让：与柱顶数字文本盒相交（点在柱顶上方 10px 内到下方 13px 内）移到点下方，否则点上方 */
+const labelY=(py,barTop)=>(py>barTop-10&&py<barTop+13)?py+16:py-8;
 const el=(p,t,a)=>{const n=document.createElementNS(NS,t);for(const k in a)n.setAttribute(k,a[k]);p.appendChild(n);return n};
 const txt=(p,a,s)=>{const n=el(p,'text',a);n.textContent=s;return n};
 const tip=(n,s)=>{const t=document.createElementNS(NS,'title');t.textContent=s;n.appendChild(t)};
@@ -580,7 +622,7 @@ const DUPONT5={labels:[],net_margin:[],asset_turn:[],equity_mult:[],roe:[]};
 const HOLDERS={labels:[],num:[],px:[]};
 
 /* 柱线组合图：柱（C1 主数据 / C2 次序列）+ 可选线（INK，独立缩放）。barB/line 传空数组即跳过。
-   视觉语法：胶囊柱端（圆上端）、发丝网格 + 左侧刻度（读数基准）、线标签与柱顶数字防重叠。 */
+   视觉语法：胶囊柱端（圆上端）、发丝网格 + 左侧刻度（读数基准）、线标签数据点正上方居中 + halo 白描边。 */
 function combo(id,labels,barA,barB,line,lineName,aName,bName){
   const s=document.getElementById(id);if(!s||!labels.length)return;
   barB=barB||[];line=line||[];
@@ -622,8 +664,11 @@ function combo(id,labels,barA,barB,line,lineName,aName,bName){
     pts.forEach((p,i)=>{
       const c=el(s,'circle',{cx:p[0],cy:p[1],r:3,fill:INK,stroke:'#fff','stroke-width':1.5});
       tip(c,`${labels[i]} ${lineName}：${line[i]}%`);
-      /* 线标签放数据点右上：横向天然离开柱顶数字（数字锚在柱中心），无需避让逻辑 */
-      txt(s,{x:p[0]+8,y:p[1]-8,'font-size':9,'font-weight':700,fill:MUT,'text-anchor':'start'},line[i]+'%');
+      /* 线标签数据点正上方居中 + halo 白描边：压在柱身上仍可读；
+         仅当与柱顶数字的文本盒相交（点在柱顶上方 10px 内到下方 13px 内）时移到点下方避让 */
+      const barTop=H-B-(H-B-T)*barA[i]/max;
+      const ly=labelY(p[1],barTop);
+      txt(s,{x:p[0],y:ly,'font-size':9,'font-weight':700,fill:MUT,'text-anchor':'middle',...HALO},line[i]+'%');
     });
   }
   const lg=[[aName,C1],barB.length?[bName,C2]:null,line.length?[lineName,INK]:null].filter(Boolean);
@@ -683,9 +728,12 @@ function trendDual(id,labels,rev,np,gm,np_dt,roe){
     return [x,y];
   });
   el(s,'path',{d:'M'+pts.map(p=>p.join(' ')).join(' L '),fill:'none',stroke:INK,'stroke-width':1.8});
+  const lmaxBar=Math.max(...rev)*1.15||1; /* 与 drawPanel 单柱量程同式，供线标签避让柱顶数字 */
   pts.forEach((p,i)=>{
     el(s,'circle',{cx:p[0],cy:p[1],r:3,fill:INK,stroke:'#fff','stroke-width':1.5});
-    txt(s,{x:p[0]+14,y:p[1]-8,'font-size':9,'font-weight':700,fill:MUT},gm[i]+'%');
+    const barTop=H-B-(H-B-T)*rev[i]/lmaxBar;
+    const ly=labelY(p[1],barTop);
+    txt(s,{x:p[0],y:ly,'font-size':9,'font-weight':700,fill:MUT,'text-anchor':'middle',...HALO},gm[i]+'%');
   });
   /* 右面板：归母净利柱（+扣非净利柱，可缺省） */
   drawPanel(x2,np,C1,has_dt?np_dt:null,C2);
@@ -698,6 +746,7 @@ function trendDual(id,labels,rev,np,gm,np_dt,roe){
     const lmax=Math.max(...vals)+span*.5,lmin=Math.min(...vals)-span*.5;
     const cx=i=>has_dt?x2+i*(pw/n)+(pw/n)*.42+1.5:x2+i*(pw/n)+(pw/n)/2; /* 双柱时锚柱组中心 */
     const ry=v=>lT+(lB-lT)*(1-(v-lmin)/(lmax-lmin||1));
+    const rmaxBar=Math.max(...(has_dt?np.concat(np_dt.filter(v=>v!=null)):np))*1.15||1;
     let run=[];
     const flush=()=>{
       if(run.length>1){
@@ -709,7 +758,9 @@ function trendDual(id,labels,rev,np,gm,np_dt,roe){
       if(v==null){flush();return;}
       run.push(i);
       el(s,'circle',{cx:cx(i),cy:ry(v),r:3,fill:INK,stroke:'#fff','stroke-width':1.5});
-      txt(s,{x:cx(i)+14,y:ry(v)-8,'font-size':9,'font-weight':700,fill:MUT},v.toFixed(2)+'%');
+      const barTop=H-B-(H-B-T)*np[i]/rmaxBar;
+      const ly=labelY(ry(v),barTop);
+      txt(s,{x:cx(i),y:ly,'font-size':9,'font-weight':700,fill:MUT,'text-anchor':'middle',...HALO},v.toFixed(2)+'%');
     });
     flush();
   }
@@ -796,12 +847,16 @@ function dupontNorm(id,labels,series){
       const c=el(s,'circle',{cx:p[0],cy:p[1],r:last?3:2.4,fill:color,stroke:'#fff','stroke-width':1.2});
       tip(c,`${labels[i]} ${nm}：${vals[i]}${unit}（指数 ${idx[si][i].toFixed(0)}）`);
     });
-    /* 末点标原始值 */
-    const li=idx[si].length-1;
-    if(idx[si][li]!=null){
-      txt(s,{x:x(li)+7,y:y(idx[si][li])+3,'font-size':9,'font-weight':700,fill:color,'text-anchor':'start'},`${vals[li]}${unit}`);
-    }
   });
+  /* 末点原始值标签：多序列末点纵向接近时依次下移避让（相邻间距 ≥12px） */
+  const li=labels.length-1;
+  const ends=[];
+  series.forEach(([nm,vals,color,unit],si)=>{
+    if(idx[si][li]!=null)ends.push({y:y(idx[si][li])+3,text:`${vals[li]}${unit}`,color});
+  });
+  ends.sort((a,b)=>a.y-b.y);
+  for(let i=1;i<ends.length;i++)if(ends[i].y-ends[i-1].y<12)ends[i].y=ends[i-1].y+12;
+  ends.forEach(e=>txt(s,{x:x(li)+7,y:e.y,'font-size':9,'font-weight':700,fill:e.color,'text-anchor':'start'},e.text));
   labels.forEach((lb,i)=>txt(s,{x:x(i),y:H-B+16,'font-size':9.5,'font-weight':600,fill:MUT,'text-anchor':'middle'},lb));
   series.forEach(([nm,,color],i)=>{
     el(s,'rect',{x:L+i*104,y:6,width:10,height:10,fill:color,rx:2});
@@ -813,7 +868,7 @@ trendDual('trend',TREND.labels,TREND.rev,TREND.np,TREND.gm,TREND.np_dt,TREND.roe
 deltaBars('ocfbridge',OCF_BRIDGE.slice(1));
 dupontNorm('dupont5',DUPONT5.labels,[
   ['净利率',DUPONT5.net_margin,C1,'%'],
-  ['总资产周转率',DUPONT5.asset_turn,'rgb(122,84,52)',''],
+  ['总资产周转率',DUPONT5.asset_turn,v('--der'),''],
   ['权益乘数',DUPONT5.equity_mult,MUT,''],
   ['ROE',DUPONT5.roe,INK,'%']]);
 combo('holders',HOLDERS.labels,HOLDERS.num,[],HOLDERS.px,'区间涨跌幅','股东户数(万户)','');

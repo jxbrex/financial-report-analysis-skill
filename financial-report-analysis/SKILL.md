@@ -8,7 +8,7 @@ description: >
 metadata:
   clawdbot:
     emoji: "📑"
-    version: "0.0.8"
+    version: "0.0.9"
     requires:
       anyBins: ["python"]
     os: ["win32", "darwin", "linux"]
@@ -286,7 +286,16 @@ Roll-forward（应收/存货/在建工程/商誉）+ C 组周期联动（CCC/DPO
    **数字回验（T8，`--json` 时启用）**：①级 HTML 数字 ↔ data.json 笔误检测（仅对数值上
    可唯一归因的「独特值」，0.5% 窗口，FAIL 级）；②级 data.json ↔ 原文 md 按 src 行号
    回核（5% 容差 + 元/万/亿单位换算 + 行号窗 ±2，md 缺失跳过并声明）。FAIL 未清零不得交付
-5. 对话内回复：报告路径 + 三大亮点 + 三大风险
+5. **渲染门禁（可选但默认执行，v0.0.9 L2）**：`python "<技能目录>/scripts/check_render.py" reports/xxx.html`
+   headless Chrome/Edge 真渲染后测量三类呈现问题：SVG 文本重叠（两轴相交 >1px）、
+   HTML 元素溢出 .sheet、横向裁剪。静态正则看不到渲染后状态，图表标签压柱/重叠
+   只能靠它抓。找不到浏览器时打印跳过声明 + exit 0（不阻塞交付，check_html 硬门禁地位不动）；
+   发现问题 exit 1，修呈现后再交付。旧版式存量报告的问题记录在案、不追溯（AGENTS 纪律 7）。
+   **视觉验收（v0.0.9 L4）**：门禁全绿后跑 `check_render.py reports/xxx.html --png <临时目录>/`
+   按章分片截图（.masthead / 各 .sect / .foot 每章一张），模型用 ReadMediaFile 逐章看图
+   （SVG 标签重叠/溢出/朱雀仿宋缺失降级系统仿宋时的可读性），确认后交付；
+   对话交付语含「已视觉验收」。截图为临时产物，验完即删
+6. 对话内回复：报告路径 + 三大亮点 + 三大风险
 
 ## 质量门禁（硬性）
 
@@ -321,3 +330,4 @@ Roll-forward（应收/存货/在建工程/商誉）+ C 组周期联动（CCC/DPO
 | 0.0.6 | 2026-09-15 | 定位修正轮（HANDOFF 二·九节 T1–T11 全部落地）：杠杆结构（经营 DOL/财务 DFL 杠杆 hist 序列化，趋势比率 12→14，frameworks 第九节）；非主营业务收入占比 X33（income 扩 3 字段）+ 现金流偿债口径 X6（单期专用共 6 项）；母公司口径字段化（`parent_statements` 块 + recon D 组 manual 型——康得新 D3/D4 命中：母公司其他应收款 25.5 倍于合并、投资收益占净利 100.2%）；排雷改名「经营背离信号」+ 三问范式 + T10 标准反驳表 + #5 存货矛盾组合三解读法；watchlist 阈值带（upper/lower 四键）+ review 冻结归档（原 tripwire 只读不回改）；check_html 加 s8/review-shape 两检查与 **T8 数字回验**（`--json`：①级 HTML↔data.json 独特值 0.5% 窗口笔误 FAIL + ②级 data.json↔原文 md 行号回核）；text-mining 语气档位词表（姜富伟词典引用不内置）；fixtures schema_version 1.1（康得新投资收益符号勘误，md+tushare 双证）。回归 15→19 断言全绿 |
 | 0.0.7 | 2026-09-15 | 报告读法层 + 图表重做（恒瑞 2025FY 报告评审 6+1 项）：figtitle 结论式 + 复杂表读法行（`.takeaway`，标题说结论/表格给证据/srcline 给出处）；排雷观察行两行形态（担心→本案，`signals[]` 加可选 `concern` 字段，废除 ≤30 字单行约束，上限 6 条不变）；Q4 表「在防什么」列 + 导读句；收入桥分组轴规则（叙事同构轴，industry-profiles 医药健康声明收入轴=创新药/仿制药/license-out）；杜邦 5 期趋势表格→归一化折线图（`dupontNorm`，基期=100，末点标原始值）；OCF 调节桥瀑布图→delta 条形图（`deltaBars` 按 \|delta\| 降序 + `.brends` 端点行，`waterfall` 函数删除）；Phase 0 A 股定期报告默认巨潮自动获取（未指定期次取最新已披露期次）；check_html 新增 figtitle-style 启发式 WARN；回归 19 断言 + 冒烟三条件（新增 figtitle-style 存活） |
 | 0.0.8 | 2026-09-16 | tushare 去 MCP 化（用户禁用 tushare MCP，上下文治理）：新增 `scripts/ts_fetch.py` HTTP 取数通道——token 读环境变量 `TUSHARE_TOKEN`、stdout JSONL（默认截断 200 行）、40203 无权限/限流两义报错带降级提示；权限频控跟 token 走、与 MCP/SDK 等价，无 MCP 环境可正常双源核对。`TUSHARE_TOKEN` 未配置时 A 股降级妙想单源 + `[单源]` 标注。data-sources.md 第二节、SKILL.md（防幻觉块/Phase 1/降级条款）、README 同步。实测 income/stk_holdernumber/hk_income 三路径；回归 19 断言全绿 |
+| 0.0.9 | 2026-09-17 | 呈现层门禁轮（lieflat-cards 交叉审核借鉴 + 渲染设计评审，L1–L5 一次升版）：**L1 单一色源**（JS 绘图色全读 `:root` CSS 变量、新增 `--der`，换色只改一处）+ 趋势图线标签改数据点正上方居中 + 白描边 halo（修标签压柱不可读），与柱顶数字相交区间移到点下方、dupont 末点标签纵向避让；**L2 新增 `scripts/check_render.py` 渲染测量门禁**（headless Chrome/Edge 真渲染测 SVG 文本重叠/溢出 .sheet/横向裁剪；可选门禁——无浏览器声明跳过 exit 0；本机 Edge `--dump-dom` stdout 空，结果改 localhost HTTP 回传 + screenshot 探针终止）；**L3 check_html 新增 slot-length WARN**（s1 四维表评价列 ≤15 字契约 +5 容忍）；**L4 `--png` 按章分片截图 + Phase 8 视觉验收步骤**（交付语含「已视觉验收」）；**L5 s8 真仪表盘化**（卡组 `.wv` 读数大字+徽章 / `.wb` 阈值带小字，check_s8_shape 重写为卡组判据、旧表兜底 compat 存量）+ review 兑现率 KPI 卡 + s0 分歧锚表格卡回收。首测即抓出恒瑞旧版瀑布图标签黑带 9 处重叠（人肉目检曾漏检）。回归 19→20 断言（渲染冒烟 Chrome 可用时计入） |
