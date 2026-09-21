@@ -400,7 +400,7 @@ def check_structure(text, rep, secs):
     head_html = re.findall(r'<div class="secthead"[^>]*>', text)
     with_id = sum(1 for h in head_html if re.search(r'\bid="', h))
     if head_html and with_id == 0:
-        rep.add(WARN, "anchor", f"{len(head_html)} 个章节头都没有 id——模板约定 s0~s8，跨章下钻链接会失效")
+        rep.add(WARN, "anchor", f"{len(head_html)} 个章节头都没有 id——模板约定 s0~s8，跨章追查链接会失效")
 
 
 # ─────────────────────────── 8~10. 排雷章瘦身形态（s2） ───────────────────────────
@@ -538,7 +538,7 @@ FIGTITLE_METHOD_RE = re.compile(r'（[^）]*(?:必做|滚动|降级|检测|方�
 
 def check_figtitle_style(text, rep, secs):
     """figtitle 结论式（v0.0.7 读法层硬规则）：括号内含方法说明关键词 → 疑似描述式标题。
-    启发式 WARN：清单导航类标题（异常下钻地图）天然无结论，命中后人工确认即可。"""
+    启发式 WARN：清单导航类标题（异常线索追查）天然无结论，命中后人工确认即可。"""
     hits = []
     for m in re.finditer(r'<div class="figtitle"[^>]*>(.*?)</div>', text, re.S):
         plain = re.sub(r"<[^>]+>", "", m.group(1))

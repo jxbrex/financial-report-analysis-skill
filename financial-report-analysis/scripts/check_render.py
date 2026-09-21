@@ -116,6 +116,14 @@ window.addEventListener('load', () => setTimeout(() => {
     }
   }
 
+  /* 4. 字体回退检测：模板字体栈以朱雀仿宋为首选，document.fonts.check 验证其真实
+     可用性；缺失（读者机器回退系统仿宋）是环境级降级，WARN 不计入 exit 1 */
+  report.fontwarn = [];
+  try {
+    if (!document.fonts.check('12px "Zhuque Fangsong"'))
+      report.fontwarn.push('朱雀仿宋未加载，正文回退系统仿宋（可读性降级，非报告内容问题）');
+  } catch (e) {}
+
   /* 本机 Edge 的 --dump-dom stdout 为空（实测），测量结果改由同步 XHR 回传本地端口 */
   const x = new XMLHttpRequest();
   x.open('POST', 'http://127.0.0.1:%PORT%/report', false);
@@ -317,6 +325,8 @@ def main() -> int:
         for item in report["clipped"]:
             problems += 1
             print(f"🔴 [clipped] 横向裁剪 {item['px']}px — {item['sel']}")
+        for item in report.get("fontwarn") or []:
+            print(f"🟡 [font] {item}")
 
         if args.png:
             args.png.mkdir(parents=True, exist_ok=True)

@@ -59,7 +59,7 @@ body{background:var(--bg);color:#000;
 /* 排雷四态之「反向未触发」：信号反向成立且含信息量，用主数据色（赭石）与 g/y/r 风险色区分 */
 .badge.rev{background:rgba(171,94,38,.12);color:var(--data)}
 
-/* ── 下钻链接（P2-25）── */
+/* ── 追查链接（P2-25）── */
 a{color:var(--data);text-decoration:none}
 a:hover{text-decoration:underline}
 .drill{font-size:11.5px;font-weight:700;white-space:nowrap}
@@ -206,9 +206,9 @@ table.data tr.total td{font-weight:800;border-top:1.5px solid var(--ink);border-
       </table>
       <div class="srcline">分歧锚不做倾向性裁决；两种读法的验证条件列入 <a href="#s8">08 下期跟踪清单</a></div>
     </div>
-    <!-- ◆ 异常下钻地图（P2-25）：从「哪里异常」一步跳到「哪一章解释」；按本期实际异常增删行 -->
+    <!-- ◆ 异常线索追查（P2-25）：从「哪里异常」一步跳到「哪一章解释」；按本期实际异常增删行 -->
     <div class="card">
-      <div class="figtitle">异常下钻地图：异常指标 → 结构定位 → 驱动因素</div>
+      <div class="figtitle">异常线索追查：异常指标 → 结构定位 → 驱动因素</div>
       <table class="data">
         <tr><th>异常指标</th><th class="txt">结构定位</th><th class="txt">驱动因素</th></tr>
         <tr><td>{{净现比 &lt; 1}}</td><td class="txt"><a href="#s3">因素分析 · 净利→经营现金流桥</a></td><td class="txt">{{应收/存货吞噬营运资本}}</td></tr>
@@ -220,7 +220,7 @@ table.data tr.total td{font-weight:800;border-top:1.5px solid var(--ink);border-
         <tr><td>{{股东户数骤降 + 股价上行}}</td><td class="txt"><a href="#s6">股东结构</a></td><td class="txt">{{筹码集中}}</td></tr>
         <!-- ◆ 每行「结构定位」必须是指向章节 secthead id 的页内锚点；本期无异常的章节不要凑行 -->
       </table>
-      <div class="srcline">下钻路径：异常指标 → 结构定位（哪张表 / 哪条等式）→ 驱动因素（谁造成的）· 锚点 id 见各章 secthead</div>
+      <div class="srcline">追查路径：异常指标 → 结构定位（哪张表 / 哪条等式）→ 驱动因素（谁造成的）· 锚点 id 见各章 secthead</div>
     </div>
   </div>
 
@@ -288,7 +288,7 @@ table.data tr.total td{font-weight:800;border-top:1.5px solid var(--ink);border-
     <div class="secthead" id="s2"><span class="no">02</span><span class="t">排雷扫描</span><span class="line"></span><span class="tag">经营背离与需解释项 · 信号库逐条对照</span></div>
     <div class="card">
       <table class="data">
-        <tr><th>信号（读数）</th><th class="txt">判定</th><th class="txt">担心 → 本案</th><th class="txt">下钻</th></tr>
+        <tr><th>信号（读数）</th><th class="txt">判定</th><th class="txt">担心 → 本案</th><th class="txt">追查</th></tr>
         <!-- ◆ 分层呈现（P-5：正文承载动作价值，完整性由 data.json 承担；两行形态定案见 v0.0.7）：
              ① 命中 🔴 逐条展开；② 观察 🟡 两行形态（担心→本案），上限 6 条，超出并入汇总；
              ③ 反向未触发不再保留可见行，与未触发一并压入表末汇总行；
@@ -300,7 +300,7 @@ table.data tr.total td{font-weight:800;border-top:1.5px solid var(--ink);border-
         <tr><td>{{命中信号 + 最关键读数 + 徽章}}</td><td class="txt"><span class="badge r">🔴 命中</span></td><td class="txt"><b>担心</b>：{{…}}<br><b>本案</b>：{{…}}</td><td class="txt"><a class="drill" href="#s3">因素分析</a></td></tr>
         <tr><td>{{观察信号 + 最关键读数 + 徽章}}</td><td class="txt"><span class="badge y">🟡 观察</span></td><td class="txt"><b>担心</b>：{{一句话}}<br><b>本案</b>：{{一句话}}</td><td class="txt"><a class="drill" href="#s1">财务总览</a></td></tr>
         <tr class="total"><td colspan="4" class="txt">未触发汇总：已检 {{N}} 项——命中 {{x}} · 观察 {{y}} · 反向 {{z}} 组 · 未触发 {{w}}，逐条读数与出处见 data.json <code>signals</code> 块</td></tr>
-        <!-- ◆ 末列「下钻」必填：指向解释该信号的证据链章节锚点
+        <!-- ◆ 末列「追查」必填：指向解释该信号的证据链章节锚点
              （s1 财务总览 / s3 因素分析 / s4 管理层在说什么 / s5 产能与在建工程 / s6 股东结构 / s7 外部校验）-->
       </table>
       <div class="srcline">判定规则：references/redflags.md 四态标准；🔴 命中 / 🟡 观察 / ↩ 反向未触发（信号反向成立且含信息量）/ 未触发（数字有波动但结论正常）——反向与未触发均不保留可见行，统一并入上方汇总行</div>
@@ -310,12 +310,12 @@ table.data tr.total td{font-weight:800;border-top:1.5px solid var(--ink);border-
     <div class="card">
       <div class="figtitle">{{结论式：勾稽异常一句话，如「3 项可解释偏差，均指向口径而非粉饰」或「全部闭合」}}</div>
       <table class="data">
-        <tr><th>等式</th><th class="txt">三态</th><th>偏差额 / 偏差率</th><th class="txt">解释或追问</th><th class="txt">下钻</th></tr>
+        <tr><th>等式</th><th class="txt">三态</th><th>偏差额 / 偏差率</th><th class="txt">解释或追问</th><th class="txt">追查</th></tr>
         <tr><td>{{A4 收入-收现闭环}}</td><td class="txt"><span class="badge y">⚠️ 可解释偏差</span></td><td>{{偏差额 / 偏差率}}</td><td class="txt">{{合理解释}}</td><td class="txt"><a class="drill" href="#s1">财务总览</a></td></tr>
         <tr><td>{{B1 应收 roll-forward}}</td><td class="txt"><span class="badge r">🔴 无法解释偏差</span></td><td>{{}}</td><td class="txt">{{追问方向}}</td><td class="txt"><a class="drill" href="#s3">因素分析</a></td></tr>
         <!-- ◆ 按 articulation.md 的 A1~A8 / B1~B4 逐条核对；本表只列 ⚠️可解释 / 🔴无法解释 两类，
              ✅闭合项不进正文（C1/C2 归入 S1） -->
-        <!-- ◆ 末列「下钻」必填：B1 应收/存货类指向 #s1，#s3 桥式偏差指向 #s3，与 MD&A 矛盾指向 #s4 -->
+        <!-- ◆ 末列「追查」必填：B1 应收/存货类指向 #s1，#s3 桥式偏差指向 #s3，与 MD&A 矛盾指向 #s4 -->
       </table>
       <div class="srcline">等式清单见 references/articulation.md（阈值与三态规则同）；共核对 {{N}} 条：{{全部闭合 / 其余 M 条闭合}}——闭合项明细见 data.json <code>recon</code> 块 · 偏差 ≠ 造假，先排除合理解释</div>
     </div>

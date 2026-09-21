@@ -1,6 +1,6 @@
 # HANDOFF · 交接文档
 
-> 版本 **0.0.9** · 截至 2026-09-17 · 本文档面向「下一个接手这个项目的人/AI 会话」
+> 版本 **0.0.10** · 截至 2026-09-21 · 本文档面向「下一个接手这个项目的人/AI 会话」
 > 仓库：https://github.com/jxbrex/financial-report-analysis-skill（**私密**）
 > 部署：`C:/Users/rexji/.agents/skills/financial-report-analysis/`（由 `deploy.cmd` 镜像）
 
@@ -896,3 +896,92 @@ calc `check_segments` 内全量重算 build_ratio_calcs 取毛利率（单次运
 RECON_RULES `("level", None)` 第二项死数据但可读；三脚本 UTF-8 reconfigure 块重复
 （各自独立部署）。ts_fetch.py（132 行）直接无赘物，通过。无文件跨 1k（check_html 875
 接近但未跨、内聚）。
+
+
+---
+
+## 二·十六、宁德时代报告评审轮：平均余额口径定案 + 说人话修订（2026-09-21）
+
+起因：宁德时代 2026H1 报告评审 5 项反馈。核心一项是**建模层面的真问题**，
+其余 4 项是表达层。全部落地，回归 20/20 绿，已 deploy。**版本号用户未指定**，
+发布时定。
+
+### 1. 平均余额口径定案（本轮最重要改动，第一性原理推导，不依赖旧报告惯例）
+
+**问题**：半年报做 DSO/DIO/DPO/CCC/总资产周转率时，平均余额的"期初"有两个
+候选——上年末（12-31，与 json 叶子 prev 一致）vs 上年同期末（6-30，与 H1 序列
+滚动一致）。旧报告（恒瑞半年报）的答案是"半年报不填 hist，趋势降级两期"——
+这是回避不是解决。评审追问"从零开始做报告怎么办"，逼出真解法。
+
+**定案（从公式推导）**：平均余额的窗口必须与分母的期间匹配——H1 收入只对应
+1-6 月的资金占用，所以**期初一律取该期所在年度的上一年 12-31**。上年 6-30
+在收入期间之外，用它算平均占用是窗口错配（天数系统性偏低）。年报天然满足
+（期初=hist 前一期）；**半年报期初=hist_ye 同位元素**。
+
+**实证（宁德时代，tushare 10 时点对）**：现行 json 的 dso.cur=108.62 用的就是
+上年末口径（avg(764.03, 884.18)×365/2769 ✓），而 dso.prev=124.39 用的却是
+H1 滚动口径（avg(2024-06-30, 638.00)）——**两期对比混用两套规则**，"同比改善
+15.8 天"是混口径产物；统一口径后 prev=130.52，改善 22.0 天。
+
+**改动落点**：
+- `extraction-schema.md`：键表加 `hist_ye`（各年 12-31 序列，末位=prev；仅半年报
+  给 balance 的 ar/inventory/payable/total_assets 填）；趋势比率 hist 规则补口径条款
+- `calc.py` 三处：结构校验加 `hist_ye 末位=prev` FAIL 检查；新增 `series_of_ye()`；
+  `check_ratio_hist` 期初取值分支——平均余额科目的期初优先取 hist_ye（尾部对齐），
+  无/短时整科目退化为 hist 前一期（**年报行为字节级不变**，回归 fixtures 未动数值）
+- **首测修出 calc.py 一个真 bug**：期初分支初版给流量科目（revenue）也设 `_prev`，
+  SKIP 检查对全部 fields 判空 → 首期被误 SKIP；修正为 `prev_fields` 只查 balance
+  科目（ratio_hist_expect 只读 total_assets_prev/ar_prev/inventory_prev/payable_prev
+  四个键），首期有 hist_ye 即复算
+- `frameworks.md`：CCC 节写明"期初取上年末"规则与窗口匹配理由
+- **宁德 json 回填**：4 科目 hist+hist_ye（tushare balancesheet 取数，acct_payable+
+  notes_payable 合成 payable，与 json 既有 cur/prev 全部对齐），dso/dio/dpo/ccc/
+  asset_turnover 5 期序列落地、prev 按新口径修正；calc.py 实测 **ratio-hist 58 期
+  全过、FAIL 0**（改动前 33 期 + 5 比率降级 SKIP）
+
+**下一份半年报的执行要点**：balance 四科目填 hist（6-30 序列）+ hist_ye（12-31
+序列）→ 平均余额比率自动获得 5 期趋势，不再降级两期。
+
+### 2. "下钻"→"追查"（模板 8 处 + check_html 2 处文案）
+
+"下钻"（drill down）是 BI 行业黑话，读者不懂。统一替换：异常下钻地图→**异常线索
+追查**、下钻路径→**追查路径**、排雷/勾稽表末列→**追查**。`.drill` CSS 类名与锚点
+机制不动（内部实现）。SKILL.md 版本记录里的"下钻导航"是历史记录，不改。
+
+### 3. 杜邦 figtitle 四段式 + 缩写纪律（SKILL.md Phase 8 读法层）
+
+- **归因类图表的四段式**：归因只是中间步骤——杜邦/因素桥的 figtitle 必须
+  **变化方向 → 靠什么（归因）→ 这意味着什么（经营含义）→ 盯什么（前瞻验证）**
+  四段完整。反例即本轮回评原句（"ROE +1.06pct：总资产周转率独扛……"——只报
+  归因，读者看不出好坏与风险）
+- **缩写纪律**：正文缩写首次出现必须中文全称 + 一句白话（例：经营现金流净额
+  （OCF）——公司做生意实际收到的现金）；数据徽章/图表刻度内缩写豁免
+
+### 4. L4 视觉验收改机器优先 + check_render 字体回退检测
+
+评审批评"每份报告截图人眼看图不合理，标准应固化在技能里"。回应：
+- `check_render.py` 新增**字体回退检测**（`document.fonts.check('12px "Zhuque Fangsong"')`，
+  朱雀仿宋缺失回退系统仿宋时 🟡 WARN）——历史人眼目检的主要对象（字体降级）机器化；
+  WARN 不计入 exit 1（字体缺失是读者环境问题，非报告内容问题，修不了报告）
+- SKILL.md Phase 8 第 5 条：人眼截图验收**只在两个触发条件下执行**——①渲染门禁
+  报 WARN/问题待定性；②模板或绘图函数改动后的首份报告。常规报告机器全绿即交付。
+  澄清事实：check_render.py 本就是技能内建脚本（不依赖 lieflat-cards，只借鉴过设计）
+
+### 验证
+
+- 回归 20/20 全绿（calc/check_html/T8/渲染冒烟四段全过）
+- 宁德 json calc.py：FAIL 0 · WARN 4 · ratio-hist 58 期全过
+- 宁德报告 check_render：overlap 0 · spill 0 · clipped 0（本机朱雀仿宋可用，fontwarn
+  未触发；检测分支经 XHR 回传成功验证执行到位）
+- 已 deploy（2026-09-21）
+
+### 维护者注意
+
+- **宁德 HTML 未重出**（AGENTS 纪律 7）：报告里 dso 读数仍是旧口径（prev 124.39/
+  改善 15.8 天），json 已是新口径（130.52/22.0 天）——T8①级若以这份 json 跑该 HTML
+  会报版本差，属预期，不重出
+- hist_ye 只对平均余额比率需要的 4 个 balance 科目定义；其他科目加了也不消费，
+  但会被结构校验（末位=prev）约束，别乱加
+- 半年报缺 hist_ye 时 calc 退化为 hist 前一期（期初=上年 6-30，窗口错配），该期
+  趋势不做但两期对比仍合法——这是兜底不是首选，取数成本只是 4 个年末数（tushare
+  balancesheet 现成）

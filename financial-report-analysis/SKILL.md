@@ -8,7 +8,7 @@ description: >
 metadata:
   clawdbot:
     emoji: "📑"
-    version: "0.0.9"
+    version: "0.0.10"
     requires:
       anyBins: ["python"]
     os: ["win32", "darwin", "linux"]
@@ -265,7 +265,14 @@ Roll-forward（应收/存货/在建工程/商誉）+ C 组周期联动（CCC/DPO
    模型不手写 CSS，只替换内容与数据。**读法层（v0.0.7 硬规则）**：figtitle 一律
    「结论式」——标题即判断，方法说明/口径注记挪 srcline，不占标题；复杂表
    （≥4 行或含多方向读数）在 srcline 前加一行 `.takeaway` 读法行。
-   三层各归其位：标题说结论、表格给证据、srcline 给出处
+   三层各归其位：标题说结论、表格给证据、srcline 给出处。
+   **归因类图表的四段式（杜邦/因素桥，评审定案）**：归因只是中间步骤——
+   figtitle 必须四段完整：**变化方向 → 靠什么（归因）→ 这意味着什么（经营含义）
+   → 盯什么（前瞻验证）**。禁止只报归因停在第一层（反例：「ROE +1.06pct：总资产
+   周转率独扛（+2.3pct），净利率五年来首次回落」——读者看不出好坏与风险）。
+   **缩写纪律（评审定案）**：正文缩写首次出现必须给中文全称 + 一句白话解释
+   （例：经营现金流净额（OCF）——公司做生意实际收到的现金；之后可用缩写）；
+   数据徽章、图表刻度内缩写豁免
 2. 报告类型差异（哪些模块可裁剪）见 `references/report-types.md`：
    - 年报 = 全模块；半年报 = 同比为主 + 注明未经审计；季报 = 仅 P2/P4/P7 精简版；
      招股书 = 三年一期趋势 + 募投项目 + 发行前后股权 + 风险提示专章（权重上调），
@@ -291,10 +298,12 @@ Roll-forward（应收/存货/在建工程/商誉）+ C 组周期联动（CCC/DPO
    HTML 元素溢出 .sheet、横向裁剪。静态正则看不到渲染后状态，图表标签压柱/重叠
    只能靠它抓。找不到浏览器时打印跳过声明 + exit 0（不阻塞交付，check_html 硬门禁地位不动）；
    发现问题 exit 1，修呈现后再交付。旧版式存量报告的问题记录在案、不追溯（AGENTS 纪律 7）。
-   **视觉验收（v0.0.9 L4）**：门禁全绿后跑 `check_render.py reports/xxx.html --png <临时目录>/`
-   按章分片截图（.masthead / 各 .sect / .foot 每章一张），模型用 ReadMediaFile 逐章看图
-   （SVG 标签重叠/溢出/朱雀仿宋缺失降级系统仿宋时的可读性），确认后交付；
-   对话交付语含「已视觉验收」。截图为临时产物，验完即删
+   **视觉验收（v0.0.9 L4，机器优先——评审修订）**：呈现问题以 check_render 机器判据为准
+   （含字体回退检测：渲染后实际字体非朱雀仿宋时 WARN）。**人眼截图验收只在两个触发
+   条件下执行**：①渲染门禁报出 WARN/问题待定性；②模板或绘图函数改动后的首份报告
+   （跑 `check_render.py reports/xxx.html --png <临时目录>/` 按章分片，模型用 ReadMediaFile
+   逐章看图）。常规报告机器门禁全绿即交付，不强制逐章截图；触发人眼验收时交付语含
+   「已视觉验收」。截图为临时产物，验完即删
 6. 对话内回复：报告路径 + 三大亮点 + 三大风险
 
 ## 质量门禁（硬性）
@@ -331,3 +340,4 @@ Roll-forward（应收/存货/在建工程/商誉）+ C 组周期联动（CCC/DPO
 | 0.0.7 | 2026-09-15 | 报告读法层 + 图表重做（恒瑞 2025FY 报告评审 6+1 项）：figtitle 结论式 + 复杂表读法行（`.takeaway`，标题说结论/表格给证据/srcline 给出处）；排雷观察行两行形态（担心→本案，`signals[]` 加可选 `concern` 字段，废除 ≤30 字单行约束，上限 6 条不变）；Q4 表「在防什么」列 + 导读句；收入桥分组轴规则（叙事同构轴，industry-profiles 医药健康声明收入轴=创新药/仿制药/license-out）；杜邦 5 期趋势表格→归一化折线图（`dupontNorm`，基期=100，末点标原始值）；OCF 调节桥瀑布图→delta 条形图（`deltaBars` 按 \|delta\| 降序 + `.brends` 端点行，`waterfall` 函数删除）；Phase 0 A 股定期报告默认巨潮自动获取（未指定期次取最新已披露期次）；check_html 新增 figtitle-style 启发式 WARN；回归 19 断言 + 冒烟三条件（新增 figtitle-style 存活） |
 | 0.0.8 | 2026-09-16 | tushare 去 MCP 化（用户禁用 tushare MCP，上下文治理）：新增 `scripts/ts_fetch.py` HTTP 取数通道——token 读环境变量 `TUSHARE_TOKEN`、stdout JSONL（默认截断 200 行）、40203 无权限/限流两义报错带降级提示；权限频控跟 token 走、与 MCP/SDK 等价，无 MCP 环境可正常双源核对。`TUSHARE_TOKEN` 未配置时 A 股降级妙想单源 + `[单源]` 标注。data-sources.md 第二节、SKILL.md（防幻觉块/Phase 1/降级条款）、README 同步。实测 income/stk_holdernumber/hk_income 三路径；回归 19 断言全绿 |
 | 0.0.9 | 2026-09-17 | 呈现层门禁轮（lieflat-cards 交叉审核借鉴 + 渲染设计评审，L1–L5 一次升版）：**L1 单一色源**（JS 绘图色全读 `:root` CSS 变量、新增 `--der`，换色只改一处）+ 趋势图线标签改数据点正上方居中 + 白描边 halo（修标签压柱不可读），与柱顶数字相交区间移到点下方、dupont 末点标签纵向避让；**L2 新增 `scripts/check_render.py` 渲染测量门禁**（headless Chrome/Edge 真渲染测 SVG 文本重叠/溢出 .sheet/横向裁剪；可选门禁——无浏览器声明跳过 exit 0；本机 Edge `--dump-dom` stdout 空，结果改 localhost HTTP 回传 + screenshot 探针终止）；**L3 check_html 新增 slot-length WARN**（s1 四维表评价列 ≤15 字契约 +5 容忍）；**L4 `--png` 按章分片截图 + Phase 8 视觉验收步骤**（交付语含「已视觉验收」）；**L5 s8 真仪表盘化**（卡组 `.wv` 读数大字+徽章 / `.wb` 阈值带小字，check_s8_shape 重写为卡组判据、旧表兜底 compat 存量）+ review 兑现率 KPI 卡 + s0 分歧锚表格卡回收。首测即抓出恒瑞旧版瀑布图标签黑带 9 处重叠（人肉目检曾漏检）。回归 19→20 断言（渲染冒烟 Chrome 可用时计入） |
+| 0.0.10 | 2026-09-21 | 宁德时代报告评审轮（HANDOFF 二·十六节）：**平均余额口径定案**（第一性原理——平均余额窗口必须与收入期间匹配，期初一律取该期上一年 12-31；半年报绝不用上年 6-30 当期初）：balance 四科目（ar/inventory/payable/total_assets）新增 `hist_ye`（各年 12-31 序列，末位=prev），calc.py 期初分支优先取 hist_ye（年报退化 hist 前一期、行为字节级不变）+ hist_ye 末位=prev 结构校验 + 修期初判空误伤流量科目的 SKIP bug；frameworks.md 写入口径规则。宁德 json 回填 10 时点的 hist/hist_ye，dso/dio/dpo/ccc/asset_turnover 5 期序列落地（prev 修正：宁德 DSO 上期 124.4→130.5、改善 15.8→22.0 天——原两期对比混用两套期初规则），calc 实测 ratio-hist 58 期全过。**「下钻」→「追查」**（异常线索追查/追查路径/排雷与勾稽表末列，模板 8 处 + check_html 2 处文案，CSS 类名不动）。**读法层两条新硬规则**：归因类图表（杜邦/因素桥）figtitle 四段式（变化方向→靠什么→经营含义→盯什么，禁止只报归因）；缩写纪律（正文首次全称+一句白话，徽章/刻度豁免）。**L4 改机器优先**：check_render 新增字体回退检测（朱雀仿宋缺失 🟡 WARN 不计 exit 1），人眼截图验收只在两个触发条件下执行（门禁 WARN / 模板改动后首份报告）。回归 20/20 全绿 |

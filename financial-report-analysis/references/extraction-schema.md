@@ -27,6 +27,7 @@
 | `cur` | 本期值（亿元） | 必填，未披露填 null |
 | `prev` | 上期值 | 同上；招股书=上一完整年度 |
 | `hist` | 多期数组，**旧→新** | 选填；趋势图与 P1-13 五期分析消费，缺省至少 3 期。趋势科目（见三）hist 深度 5 期，同类型滚动：年报对 FY、半年报对 H1；末位=cur |
+| `hist_ye` | 各年 **12-31 年末**序列，**旧→新** | 选填，**仅半年报**给 balance 的 ar/inventory/payable/total_assets 填（平均余额比率的期初口径）；长度=hist，hist_ye[i]=第 i 期 H1 的上年末（12-31），末位=prev。年报不填（期初=hist 前一期天然正确）；缺此字段时 calc 退化为 hist 前一期（窗口错配，趋势不做） |
 | `level` | **证据等级**：`disc` 披露 / `der` 推算 / `est` 估算 | P2-19：报告中的关键数字必须带对应徽章；`disc`=主表或附注直接披露，`der`=由两个以上披露值运算得到，`est`=含假设的测算。缺省视为 `disc` |
 | `src` | 出处：行号或「章节名+表名」 | **必填**，calc.py 校验非空 |
 | `note` | 原始口径/换算说明/异常备注 | 选填；`est` 必须在此写明假设 |
@@ -78,19 +79,19 @@
     "balance": {
       "cash":             { "cur": null, "prev": null, "src": "" },
       "restricted_cash":  { "cur": null, "prev": null, "src": "", "note": "货币资金附注受限明细合计" },
-      "ar":               { "cur": null, "prev": null, "hist": [], "src": "", "note": "应收账款" },
+      "ar":               { "cur": null, "prev": null, "hist": [], "hist_ye": [], "src": "", "note": "应收账款" },
       "ar_notes":         { "cur": null, "prev": null, "src": "", "note": "应收票据+应收款项融资" },
       "other_ar":         { "cur": null, "prev": null, "src": "", "note": "其他应收款" },
-      "inventory":        { "cur": null, "prev": null, "hist": [], "src": "" },
+      "inventory":        { "cur": null, "prev": null, "hist": [], "hist_ye": [], "src": "" },
       "contract_liab":    { "cur": null, "prev": null, "src": "" },
-      "payable":          { "cur": null, "prev": null, "hist": [], "src": "", "note": "应付账款+应付票据（DPO/CCC 计算必需；先款后货型公司可为 0）" },
+      "payable":          { "cur": null, "prev": null, "hist": [], "hist_ye": [], "src": "", "note": "应付账款+应付票据（DPO/CCC 计算必需；先款后货型公司可为 0）" },
       "fixed_assets":     { "cur": null, "prev": null, "src": "", "note": "固定资产净值（A6 Capex 勾稽用）" },
       "cip":              { "cur": null, "prev": null, "src": "", "note": "在建工程" },
       "goodwill":         { "cur": null, "prev": null, "src": "" },
       "st_debt":          { "cur": null, "prev": null, "src": "", "note": "短期借款" },
       "noncur_due_1y":    { "cur": null, "prev": null, "src": "", "note": "一年内到期非流动负债" },
       "lt_debt":          { "cur": null, "prev": null, "src": "", "note": "长期借款+应付债券+租赁负债" },
-      "total_assets":     { "cur": null, "prev": null, "hist": [], "src": "" },
+      "total_assets":     { "cur": null, "prev": null, "hist": [], "hist_ye": [], "src": "" },
       "total_liab":       { "cur": null, "prev": null, "hist": [], "src": "" },
       "equity_at":        { "cur": null, "prev": null, "hist": [], "src": "", "note": "归母净资产" },
       "minority_eq":      { "cur": null, "prev": null, "src": "" },
@@ -235,7 +236,10 @@
 - 14 个趋势比率（roe/gross_margin/net_margin/net_cash_ratio/cash_to_sales/debt_to_assets/
   asset_turnover/equity_multiplier/dso/dio/dpo/ccc/dfl/dol）hist 为 **5 期同类型滚动**（年报对 FY、
   半年报对 H1），旧→新；**末位必须等于 cur**（报告提取值）；prev = 倒数第 2 期
-- avg 类比率（asset_turnover/dso/dio/dpo/ccc）首期无期初余额不可机复算，由 calc.py 跳过
+- avg 类比率（asset_turnover/dso/dio/dpo/ccc）首期无期初余额不可机复算，由 calc.py 跳过；
+  **期初一律取「该期所在年度的上一年 12-31」**（平均余额窗口必须与收入期间匹配）——
+  年报期初=hist 前一期（天然满足）；半年报期初=hist_ye 同位元素（hist_ye[i]=第 i 期 H1 的上年末），
+  缺 hist_ye 时退化为 hist 前一期（期初=上年 6-30，窗口错配，该期趋势不做）
 - 历史重述（如康得新 2019 追溯重述）致口径断裂时允许缺 hist 并在 note 说明，
   报告趋势降级两期呈现
 - 单期专用比率（short_debt_cover/incr_expense_eff/incr_sales_eff/nonrecurring_share/non_main_rev_share/ocf_to_liab）不序列化

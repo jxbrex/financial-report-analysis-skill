@@ -1,0 +1,844 @@
+<!doctype html>
+<html lang="zh-Hans">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>宁德时代 2026H1半年报分析 — financial-report-analysis</title>
+<style>
+/* ═══════════════════════════════════════════════════════════════
+   财报分析报告模板 · financial-report-analysis
+   视觉基底：暖墨赭石色系（去蓝）+ 浅色卡片
+   使用方式：复制本文件为最终报告文件名，替换 {{占位}} 与
+   「◆ SLOT」注释标记的内容；JS 区只填数据数组，不改绘图逻辑。
+   硬规则：不引入外部字体/CDN/JS；不用暗色背景、渐变、投影。字体栈为朱雀仿宋
+           （Zhuque Fangsong）→ 系统仿宋降级，不加载外部资源、不做 base64 内嵌。
+   硬规则：关键数字必须带证据等级徽章，报告中不允许出现「裸数字」——
+           .badge.disc 披露（主表/附注直接披露，最硬）/ .badge.der 推算
+           （两数运算得来，如毛利率、净现比、周转天数）/ .badge.est 估算
+           （含假设，如情景测算）。KPI 卡、比率表、结论句里的关键数字都要挂。
+   锚点约定：每个章节的 .secthead 带固定 id（s0~s8；可选回溯块为 review），
+           不受章节增删影响；跨章引用一律写页内锚点 <a href="#s2">排雷扫描</a>，
+           不写「见第 2 章」。
+   读法层硬规则（v0.0.7）：figtitle 必须「结论式」——标题即判断
+           （如「Q4 无年末调节痕迹：减值贴线仅占归母 1%」），方法说明/口径注记
+           挪 srcline，不占标题；复杂表（≥4 行或含多方向读数）在 srcline 前加
+           一行 .takeaway 读法行。三层各归其位：标题说结论、表格给证据、
+           srcline 给出处。
+   ═══════════════════════════════════════════════════════════════ */
+:root{
+  --bg:rgb(247,242,235); --ink:rgb(58,42,28); --muted:rgba(58,42,28,.60);
+  --faint:rgba(58,42,28,.32); --grid:rgba(58,42,28,.16); --card:#fff;
+  --data:rgb(171,94,38); --data2:rgb(203,158,108); --faintdata:rgb(233,213,187);
+  --good:#0F7B4F; --warn:#B8860B; --bad:#C0392B; --der:rgb(122,84,52);
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:#000;
+  font-family:"Zhuque Fangsong","朱雀仿宋","FangSong","仿宋","STFangsong",serif;
+  -webkit-font-smoothing:antialiased;font-variant-numeric:tabular-nums lining-nums;
+  display:flex;justify-content:center;padding:40px 20px}
+.sheet{width:1040px;max-width:1040px}
+
+/* ── 页眉 ── */
+.masthead{border-bottom:3px double var(--ink);padding-bottom:18px;margin-bottom:8px}
+.masthead .kicker{font-size:11px;font-weight:700;letter-spacing:.22em;color:var(--muted)}
+.masthead h1{font-size:34px;font-weight:900;letter-spacing:.02em;margin:6px 0 4px}
+.masthead .sub{font-size:14px;color:var(--muted)}
+.masthead .sub b{color:var(--ink)}
+
+/* ── 徽章 ── */
+.badge{display:inline-block;padding:2px 10px;border-radius:999px;font-size:11px;font-weight:800}
+.badge.g{background:rgba(15,123,79,.12);color:var(--good)}
+.badge.y{background:rgba(184,134,11,.14);color:var(--warn)}
+.badge.r{background:rgba(192,57,43,.12);color:var(--bad)}
+.dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px;vertical-align:1px}
+.dot.g{background:var(--good)}.dot.y{background:var(--warn)}.dot.r{background:var(--bad)}
+/* 证据等级徽章（P2-19）：披露 / 推算 / 估算，语义色低饱和，与 g/y/r 风险徽章可区分 */
+.badge.disc{background:rgba(58,42,28,.09);color:rgba(58,42,28,.82)}
+.badge.der{background:rgba(122,84,52,.13);color:var(--der)}
+.badge.est{background:rgba(58,42,28,.04);color:var(--muted);border:1px dashed rgba(58,42,28,.28)}
+/* 排雷四态之「反向未触发」：信号反向成立且含信息量，用主数据色（赭石）与 g/y/r 风险色区分 */
+.badge.rev{background:rgba(171,94,38,.12);color:var(--data)}
+
+/* ── 下钻链接（P2-25）── */
+a{color:var(--data);text-decoration:none}
+a:hover{text-decoration:underline}
+.drill{font-size:11.5px;font-weight:700;white-space:nowrap}
+
+/* ── 章节 ── */
+.sect{margin-top:46px}
+.secthead{display:flex;align-items:baseline;gap:14px;margin-bottom:6px;
+  border-radius:6px;scroll-margin-top:24px}
+.secthead:target{background:rgba(171,94,38,.07)}
+.secthead .no{font-size:13px;font-weight:800;color:var(--data)}
+.secthead .t{font-size:19px;font-weight:800;letter-spacing:.06em}
+.secthead .line{flex:1;border-top:1px solid var(--ink)}
+.secthead .tag{font-size:11px;font-weight:700;letter-spacing:.1em;color:var(--faint)}
+.lede{font-size:14.5px;line-height:1.85;margin:10px 0 16px;max-width:980px}
+.lede b{font-weight:800}
+
+/* ── 卡片与表格 ── */
+.card{background:var(--card);border:1px solid var(--grid);border-radius:10px;
+  padding:18px 22px;margin:14px 0}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+@media(max-width:860px){.grid2,.grid3{grid-template-columns:1fr}}
+table.data{width:100%;border-collapse:collapse;font-size:13.5px;margin:6px 0}
+table.data th{font-size:12px;font-weight:700;letter-spacing:.08em;color:var(--muted);
+  text-align:left;padding:8px 10px;border-bottom:1.5px solid var(--ink)}
+table.data td{padding:7px 10px;border-bottom:1px dotted var(--faint);line-height:1.5}
+table.data td:not(:first-child):not(.txt),table.data th:not(:first-child):not(.txt){text-align:right}
+table.data tr:last-child td{border-bottom:0}
+table.data tr.total td{font-weight:800;border-top:1.5px solid var(--ink);border-bottom:0}
+.up{color:var(--good);font-weight:700}.dn{color:var(--bad);font-weight:700}
+.srcline{font-size:10.5px;font-weight:600;letter-spacing:.1em;color:var(--faint);margin-top:8px}
+
+/* ── 读法层（v0.0.7）：复杂表/图的一句话读法，位于表格之后、srcline 之前 ── */
+.takeaway{font-size:12.5px;font-weight:700;margin-top:8px}
+/* OCF 调节桥端点行：净利润 →（调节净额）→ 经营现金流净额（水平值不画柱） */
+.brends{font-size:12.5px;font-weight:800;margin:2px 0 8px}
+
+/* ── s8 先行指标仪表盘（v0.0.9 L5）：读数从简大字、阈值带长文小字（Rain hero-stat 同构） ── */
+.wv{font-size:22px;font-weight:800;line-height:1.25;margin:6px 0 4px}
+.wb{font-size:11.5px;line-height:1.7;color:var(--muted);margin-bottom:6px}
+
+/* ── 亮点/风险清单 ── */
+.flaglist{list-style:none}
+.flaglist li{display:flex;gap:10px;padding:10px 2px;border-bottom:1px dotted var(--faint);
+  font-size:14px;line-height:1.7}
+.flaglist li:last-child{border-bottom:0}
+.flaglist .body{flex:1}
+.flaglist .src{display:block;font-size:11.5px;color:var(--muted);margin-top:3px}
+
+/* ── KPI 行 ── */
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin:14px 0}
+@media(max-width:860px){.kpis{grid-template-columns:repeat(2,1fr)}}
+.kpi{background:var(--card);border:1px solid var(--grid);border-radius:10px;padding:14px 16px}
+.kpi .v{font-size:26px;font-weight:800;line-height:1.1}
+.kpi .r{font-size:12px;font-weight:700;margin-top:3px}
+.kpi .l{font-size:11px;font-weight:600;letter-spacing:.12em;color:var(--faint);margin-top:3px}
+
+/* ── 图 ── */
+.fig{background:var(--card);border:1px solid var(--grid);border-radius:10px;padding:16px}
+.fig svg{width:100%;height:auto;display:block}
+.card>svg{width:100%;height:auto;display:block}
+.figtitle{font-size:13.5px;font-weight:800;margin-bottom:4px}
+
+/* ── 桥式表强调 ── */
+.bridge td:first-child{font-weight:700}
+
+/* ── 页脚 ── */
+.foot{margin-top:52px;border-top:3px double var(--ink);padding-top:14px;
+  font-size:11px;font-weight:600;letter-spacing:.1em;color:var(--muted);
+  display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap;line-height:1.8}
+
+/* ── 动效 ── */
+.fade{animation:fade .7s ease both}
+@keyframes fade{from{opacity:0;transform:translateY(6px)}}
+@media (prefers-reduced-motion:reduce){.fade{animation:none}}
+@media(max-width:640px){body{padding:20px 8px}.masthead h1{font-size:24px}}
+</style>
+</head>
+<body>
+<div class="sheet">
+
+  <!-- ══ 页眉 ══ -->
+  <div class="masthead fade">
+    <div class="kicker">FINANCIAL REPORT ANALYSIS · A股（创业板）+ H股（03750.HK）</div>
+    <h1>宁德时代（300750.SZ）</h1>
+    <div class="sub"><b>2026H1半年报</b> 分析报告 · 报告发布于 2026-07-25 · 分析生成于 2026-09-21 · <b>半年度财务报告未经审计（L3812-3815）</b></div>
+  </div>
+
+  <!-- ══ 核心结论 ══ -->
+  <div class="sect">
+    <div class="secthead" id="s0"><span class="no">00</span><span class="t">核心结论</span><span class="line"></span><span class="tag">EXECUTIVE SUMMARY</span></div>
+    <div class="grid2">
+      <div class="card">
+        <div class="figtitle" style="color:var(--good)">亮点 TOP 3</div>
+        <ul class="flaglist">
+          <li><span><span class="dot g"></span></span><div class="body">逆行业加速：收入 2,769.17亿（+54.8%）、归母净利 432.84亿（+42.0%）、扣非 +43.4%——全球动力电池需求仅 +16.3%、新能源车销量 +3.5%，公司靠市占率 40.2%（+2.2pct）与储能（+87.5%、全球第一）逆势提速，Q2 单季收入环比再加速 +14.5% <span class="badge disc">披露</span><span class="src">出处：主要会计数据表 L131-160；行业节 L216-246；妙想单季口径</span></div></li>
+          <li><span><span class="dot g"></span></span><div class="body">现金含量与造血结构双优：经营现金流 602.17亿、净现比 1.39（连续 5 个 H1 &gt;1）；CCC −232.5 天——存货/应收备货吞噬 708.85亿 被应付释放 716.90亿全额覆盖，靠产业链占款运营 <span class="badge der">推算</span><span class="src">出处：合并现金流量表 L4369-4478；补充资料 L7779-7845</span></div></li>
+          <li><span><span class="dot g"></span></span><div class="body">股东回报与报表自信：中期分红 64.93亿（占归母 15%）+ 200-400亿回购注销（9/11 已首购 2.00亿）；H 股配售 355亿落地后控股股东零质押、惠誉上调至 A；研发 113.77亿 100% 费用化 <span class="badge disc">披露</span><span class="src">出处：利润分配 L1173-1198；公告 2026-060/2026-081；L3671-3675；L7582-7589</span></div></li>
+        </ul>
+      </div>
+      <div class="card">
+        <div class="figtitle" style="color:var(--bad)">风险 TOP 3</div>
+        <ul class="flaglist">
+          <li><span><span class="dot r"></span></span><div class="body">增收不增利剪刀差：收入 +54.8% vs 归母 +42.0%，毛利率 −1.09pct——碳酸锂 H1 均价 +127% 的成本冲击 + 汇兑损失 28.10亿；价格联动传导能否持续是 Q3 分水岭 <span class="badge der">推算</span><span class="src">出处：分产品表 L447-477；财务费用附注 L7592-7599；mx_macro_data</span></div></li>
+          <li><span><span class="dot y"></span></span><div class="body">需求节奏待证伪：合同负债较年初 −25.9%（同比持平）+ 库存商品 +110.6%——「交付提速」与「需求见顶」两种读法 Q3 见分晓；期后 3Q 排产环比 +15-20%（中金引鑫椤）暂指向前者 <span class="badge der">推算</span><span class="src">出处：L3899/L6446-6502；外部排产数据（见 <a href="#s7">外部校验</a>）</span></div></li>
+          <li><span><span class="dot y"></span></span><div class="body">利润结构稀释：联营权益法收益 57.22亿（+92%，占利润总额 10.3%）按经常性认定不进扣非；少数股东损益 +99.3%；政府补助类其他收益 45.90亿——归母核心利润的「干净度」下降，三者均与锂价/合资结构同向 <span class="badge disc">披露</span><span class="src">出处：L4124/L7620-7631；L4188；L7607</span></div></li>
+        </ul>
+      </div>
+    </div>
+    <p class="lede">宁德时代 2026H1 的主线是<b>「份额与储能驱动的逆势加速」</b>：收入 2,769.17亿（+54.8%）、归母净利 432.84亿（+42.0%），利润第一驱动是毛利 +215.0亿（量增对冲碳酸锂涨价）；剪刀差可全额归因于汇兑（财务费用同比恶化 51.91亿）、所得税（+22.89亿）与少数股东（+18.66亿）三项，主业盈利方向未变坏。最大隐忧不在报表内——合同负债与库存商品的组合需要 Q3 数据证伪（期后排产指向前者）。排雷扫描 12 条红色信号零命中、16 条勾稽等式零无法解释：<b>财务真实性层面干净，分歧全部在「周期节奏」而非「报表质量」</b>。商业模式判定为<b>重资产制造（叠加资源周期属性）</b>（识别依据：收入确认以交付为主、固定资产+在建 2,024.07亿占总资产 17.8%、capex/折旧 &gt;1.5）→ 本报告重点勾稽 A5 折旧/A6 Capex/B3 在建转固；已降级：高 Capex、存货总量（重资产满产属性，见 <a href="#s2">排雷扫描</a>）。按 <b>上行期</b> 框架解读信号（收入↑、毛利率高位回落、资本开支↑）。</p>
+    <div class="card">
+      <div class="figtitle">分歧锚：同一事实的两种解读，不做倾向裁决</div>
+      <table class="data">
+        <tr><th>事实</th><th class="txt">读法 A</th><th class="txt">读法 B</th></tr>
+        <tr><td>合同负债较年初 −25.9%（同比 −0.4%）<span class="badge disc">披露</span> + 库存商品 +110.6% <span class="badge der">推算</span></td><td class="txt">满产+交付提速：利用率 94.86%、合同履约成本 −45.2%、3Q 排产环比 +15-20% 支持良性扩张</td><td class="txt">需求见顶前堆积：若 Q3 收入增速 &lt;+30% 且 DIO 升破 220 天，则「交付提速」证伪、Y1/Y2 升级</td></tr>
+      </table>
+      <div class="srcline">分歧锚不做倾向性裁决；两种读法的验证条件列入 <a href="#s8">08 下期跟踪清单</a></div>
+    </div>
+    <div class="card">
+      <div class="figtitle">异常下钻地图：异常指标 → 结构定位 → 驱动因素</div>
+      <table class="data">
+        <tr><th>异常指标</th><th class="txt">结构定位</th><th class="txt">驱动因素</th></tr>
+        <tr><td>毛利率 −1.09pct / 净利率 −1.41pct</td><td class="txt"><a href="#s3">因素分析 · 净利润桥</a></td><td class="txt">碳酸锂 +127% 成本冲击 + 汇兑损失 28.10亿</td></tr>
+        <tr><td>合同负债较年初 −25.9%</td><td class="txt"><a href="#s2">排雷扫描 · 观察 Y1</a></td><td class="txt">年初高基数/交付提速 vs 需求走弱（待证伪）</td></tr>
+        <tr><td>库存商品 +110.6%</td><td class="txt"><a href="#s2">排雷扫描 · 观察 Y2</a></td><td class="txt">满产全形态备货 vs 滞销（待证伪）</td></tr>
+        <tr><td>财务费用 +89.17%</td><td class="txt"><a href="#s3">因素分析 · 净利桥</a></td><td class="txt">人民币升值，汇兑由收益 23.32亿 转损失 28.10亿</td></tr>
+        <tr><td>股东户数 Q2 环比 +32%</td><td class="txt"><a href="#s6">股东结构</a></td><td class="txt">H股配售+散户涌入 vs 高位筹码分散</td></tr>
+        <tr><td>少数股东损益 +99.3% 未解释</td><td class="txt"><a href="#s4">管理层在说什么 · 解释缺口</a></td><td class="txt">储能/回收合资放量（已立案观察 Y6）</td></tr>
+        <tr><td>在建产能 764GWh vs 现有 525</td><td class="txt"><a href="#s5">产能与在建工程</a></td><td class="txt">供需赌注：上行扩张 vs 产能过剩前瞻</td></tr>
+      </table>
+      <div class="srcline">下钻路径：异常指标 → 结构定位（哪张表 / 哪条等式）→ 驱动因素（谁造成的）· 锚点 id 见各章 secthead</div>
+    </div>
+  </div>
+
+  <!-- ══ S1 财务总览 ══ -->
+  <div class="sect">
+    <div class="secthead" id="s1"><span class="no">01</span><span class="t">财务总览</span><span class="line"></span><span class="tag">四维比率 · 杜邦</span></div>
+    <div class="kpis">
+      <div class="kpi"><div class="v">2,769.17</div><div class="r up">+54.8% 同比 <span class="badge disc">披露</span></div><div class="l">营业收入（亿元）</div></div>
+      <div class="kpi"><div class="v">432.84</div><div class="r up">+42.0% 同比 <span class="badge disc">披露</span></div><div class="l">归母净利润（亿元）</div></div>
+      <div class="kpi"><div class="v">602.17</div><div class="r">净现比 1.39 <span class="badge der">推算</span></div><div class="l">经营现金流净额（亿元）</div></div>
+      <div class="kpi"><div class="v">12.08%</div><div class="r up">+0.45pct 同比 <span class="badge disc">披露</span></div><div class="l">ROE（加权平均）</div></div>
+    </div>
+    <div class="grid2">
+      <div class="card">
+        <div class="figtitle">盈利小幅让利、营运显著改善、负债率升系占用上游款而非有息加杠杆</div>
+        <table class="data">
+          <tr><th>指标</th><th>本期</th><th>上期</th><th class="txt">较上期</th><th class="txt">评价</th></tr>
+          <tr><td>毛利率 <span class="badge der">推算</span></td><td>23.93%</td><td>25.02%</td><td class="txt"><span class="dn">▼ 1.09pct</span></td><td class="txt">碳酸锂成本冲击</td></tr>
+          <tr><td>净利率（归母）</td><td>15.63%</td><td>17.04%</td><td class="txt"><span class="dn">▼ 1.41pct</span></td><td class="txt">汇兑+少数股东拖累</td></tr>
+          <tr><td>资产负债率</td><td>63.65%</td><td>62.59%</td><td class="txt"><span class="dn">▲ 1.06pct</span></td><td class="txt">有息占比仅 13.1%</td></tr>
+          <tr><td>存货周转天数</td><td>195.2</td><td>163.8</td><td class="txt"><span class="dn">▲ 31.4 天</span></td><td class="txt">满产主动备货</td></tr>
+          <tr><td>应收周转天数</td><td>108.6</td><td>124.4</td><td class="txt"><span class="up">▼ 15.8 天</span></td><td class="txt">回款持续改善</td></tr>
+          <tr><td>收现比</td><td>0.95</td><td>1.25</td><td class="txt"><span class="dn">▼ 0.30</span></td><td class="txt">票据+出口占比升</td></tr>
+          <tr><td>CCC（DSO+DIO−DPO，天）</td><td>−232.5</td><td>−247.4</td><td class="txt"><span class="dn">▲ 14.9 天</span></td><td class="txt">持续深度为负</td></tr>
+          <tr><td>经营杠杆 DOL <span class="badge der">推算</span></td><td>1.29</td><td>1.38</td><td class="txt">▼ 0.09（中性）</td><td class="txt">趋降仍具弹性</td></tr>
+          <tr><td>财务杠杆 DFL <span class="badge der">推算</span></td><td>0.99</td><td>0.85</td><td class="txt">▲（中性，≈1）</td><td class="txt">利息为净收益</td></tr>
+          <tr><td>非主营业务收入占比 <span class="badge der">推算</span></td><td>2.74%</td><td>1.80%</td><td class="txt">▲ 0.94pct（中性）</td><td class="txt">联营收益 +92% 所致</td></tr>
+        </table>
+        <div class="takeaway">读法：营运三维（DSO/应收/CCC）与杠杆结构全面改善或稳健；承压集中在毛利率与收现比——前者是碳酸锂成本、后者是票据与出口结算占比上升的口径性回落，两者均非收入质量恶化。</div>
+        <div class="srcline">数据来源：公司 2026H1 半年报、Tushare/东方财富双源核对；比率口径见 frameworks.md；均值类比率本期=平均(年初,期末)，同比列=去年同期末均额口径</div>
+        <div class="srcline">证据等级：<span class="badge disc">披露</span> 主表/附注直接披露 · <span class="badge der">推算</span> 两数运算（毛利率/净现比/周转天数）· <span class="badge est">估算</span> 含假设（情景测算）</div>
+      </div>
+      <div class="card">
+        <div class="figtitle">ROE +1.06pct：总资产周转率独扛（+2.3pct），净利率五年来首次回落（−0.9pct）</div>
+        <table class="data">
+          <tr><th>因子</th><th>本期</th><th>上期</th><th class="txt">方向 · 贡献归因</th></tr>
+          <tr><td>净利率</td><td>15.63%</td><td>17.04%</td><td class="txt"><span class="dn">▼</span> 贡献 −0.9pct（碳酸锂+汇兑）</td></tr>
+          <tr><td>总资产周转率</td><td>0.262</td><td>0.226</td><td class="txt"><span class="up">▲</span> 贡献 +2.3pct（收入 +54.8% 摊薄资产）</td></tr>
+          <tr><td>权益乘数</td><td>3.00</td><td>2.94</td><td class="txt"><span class="up">▲</span> 贡献 +0.3pct（H股配售后被动微升）</td></tr>
+          <tr class="total"><td>ROE（摊薄）</td><td>11.41%</td><td>10.34%</td><td class="txt">主驱动：总资产周转率</td></tr>
+        </table>
+        <div class="srcline">质量排序：净利率驱动 &gt; 周转率驱动 &gt; 杠杆驱动——本期为「周转率驱动」，质量次于净利率驱动但远好于杠杆驱动；连环替代贡献之和与 ROE 实际变动差 0.6pct 为口径差（乘积闭合容差 1~2pct，frameworks.md 第二节）</div>
+        <div class="figtitle">五年 H1 走向：净利率冲高回落，周转率 V 型反转，ROE 爬坡未止</div>
+        <svg id="dupont5" viewBox="0 0 460 250" preserveAspectRatio="xMidYMid meet"></svg>
+        <div class="srcline">指数化（基期=100），末点标原始值 · 数据来源：data.json derived.ratios hist（net_margin / asset_turnover / equity_multiplier / roe）· calc.py ratio-hist 逐期复算</div>
+      </div>
+    </div>
+    <div class="fig">
+      <div class="figtitle">收入两年翻 1.45 倍、归母 5 年 5.3 倍；毛利率回落至 23.9% 仍高于 2022-23 平台</div>
+      <svg id="trend" viewBox="0 0 960 300" preserveAspectRatio="xMidYMid meet"></svg>
+      <div class="srcline">数据来源：data.json statements hist（2022H1-2026H1 同类型滚动，tushare/原文双源核对）· 左面板=收入柱+毛利率线 · 右面板=归母/扣非净利柱+ROE 线（2022/2023H1 扣非未披露降级留空）</div>
+    </div>
+  </div>
+
+  <!-- ══ S2 排雷扫描 ══ -->
+  <div class="sect">
+    <div class="secthead" id="s2"><span class="no">02</span><span class="t">排雷扫描</span><span class="line"></span><span class="tag">经营背离与需解释项 · 信号库逐条对照</span></div>
+    <div class="card">
+      <table class="data">
+        <tr><th>信号（读数）</th><th class="txt">判定</th><th class="txt">担心 → 本案</th><th class="txt">下钻</th></tr>
+        <tr><td>合同负债较年初 −25.9%（同比 −0.4%）、预收覆盖倍率 34.8%→13.2% <span class="badge der">推算</span></td><td class="txt"><span class="badge y">🟡 观察</span></td><td class="txt"><b>担心</b>：收入 +55% 背景下预收大降，若是需求走弱先行信号，下季度收入增速将失速<br><b>本案</b>：上年末储能抢单高基数+交付周期缩短（合同履约成本 −45.2%）+锂价回落期客户不愿提前锁价；区分证据：利用率 94.86% 满产、Q2 环比 +14.5%、期后 3Q 排产环比 +15-20%；下期看 Q3 合同负债同比</td><td class="txt"><a class="drill" href="#s3">因素分析</a></td></tr>
+        <tr><td>库存商品账面 476.39亿（同比 +110.6%）<span class="badge disc">披露</span></td><td class="txt"><span class="badge y">🟡 观察</span></td><td class="txt"><b>担心</b>：库存商品翻倍若系滞销，将伴随跌价风险与收入失速<br><b>本案</b>：原材料 +26.7%/半成品 +50.4%/委托加工 +58.8% 全形态同步扩张，指向交付前置的主动备货；自保充分（跌价准备 81.28亿、本期计提 66.91亿&gt;转销 62.59亿）；下期看 Q3 库存商品与 DIO</td><td class="txt"><a class="drill" href="#s3">因素分析</a></td></tr>
+        <tr><td>毛利率 23.93%，高于同业 8.6~9.6pct <span class="badge der">推算</span></td><td class="txt"><span class="badge y">🟡 观察</span></td><td class="txt"><b>担心</b>：价差若无硬解释，可能隐含口径差异或补贴性定价<br><b>本案</b>：硬解释链完整——规模为三家同业合计 2.3 倍、垂直一体化（材料回收毛利率 27.04% 且 +5.81pct）、境外占比 31.5%（境外毛利率 29.97%）、研发 100% 费用化无美化；价差系结构性</td><td class="txt"><a class="drill" href="#s7">外部校验</a></td></tr>
+        <tr><td>股东户数 Q2 环比 +32%（20.45万→27.00万户）+ 宁波联合创新 H1 减持 5,800万股 <span class="badge disc">披露</span></td><td class="txt"><span class="badge y">🟡 观察</span></td><td class="txt"><b>担心</b>：户数激增+高位通常是筹码分散、散户接盘信号<br><b>本案</b>：同期 H 股配售 6,238.5 万股上市+股价上行，户数增部分源于流通盘扩大；北向 H1 净增 +2.02亿股、UBS 新进——机构与产业资本方向分化，不构成单一结论；下期看 Q3 户数与北向</td><td class="txt"><a class="drill" href="#s6">股东结构</a></td></tr>
+        <tr><td>联营权益法收益 57.22亿（+92%）占利润总额 10.3%，按经常性认定 <span class="badge disc">披露</span></td><td class="txt"><span class="badge y">🟡 观察</span></td><td class="txt"><b>担心</b>：参股上游资源公司盈利若随锂价回落，10% 利润来源收缩且不被扣非口径提示<br><b>本案</b>：权益法收益与上游景气同向（碳酸锂 H1 均价 +127%）；参股明细未披露无法逐家验证，故列观察；下期看年报联营企业明细</td><td class="txt"><a class="drill" href="#s3">因素分析</a></td></tr>
+        <tr><td>少数股东损益 37.47亿（+99.3%）占净利 8.0%，MD&amp;A 未解释 <span class="badge disc">披露</span></td><td class="txt"><span class="badge y">🟡 观察</span></td><td class="txt"><b>担心</b>：少数股东占比高的储能/回收合资若持续快于整体，归母分享比例下降<br><b>本案</b>：随储能/回收放量的合理同向；绝对额不改变归母 +42% 主结论；属「数字大动而文字不解释」的 F2 缺口，已立案</td><td class="txt"><a class="drill" href="#s4">管理层在说什么</a></td></tr>
+        <tr class="total"><td colspan="4" class="txt">已检 20 项——命中 0 · 观察 6 · 反向 3 组 · 未触发 11，逐条读数与出处见 data.json <code>signals</code> 块</td></tr>
+      </table>
+      <div class="srcline">判定规则：references/redflags.md 四态标准；🔴 命中 / 🟡 观察 / ↩ 反向未触发（信号反向成立且含信息量）/ 未触发（数字有波动但结论正常）——反向与未触发均不保留可见行，统一并入上方汇总行；本期未经审计，⚠️ 可解释偏差容忍度较年报从宽</div>
+    </div>
+    <div class="card">
+      <div class="figtitle">16 条等式 13 闭合、3 可解释、0 无法解释——偏差全部指向口径与业务结构，无粉饰指向</div>
+      <table class="data">
+        <tr><th>等式</th><th class="txt">三态</th><th>偏差额 / 偏差率</th><th class="txt">解释或追问</th><th class="txt">下钻</th></tr>
+        <tr><td>A6 Capex 勾稽</td><td class="txt"><span class="badge y">⚠️ 可解释偏差</span></td><td>−170.40亿 / 40.5%</td><td class="txt">①rhs 缺 Δ应付工程设备款（期末 336.41亿、期初未单列）②本期转固 406.37亿 主要来自以前年度已付现投入 ③capex 含无形/长期待摊 12.6亿——三因素叠加，非体外循环；交叉验证 Σ重要在建投入 60.90亿 ≤ capex 250.73亿 ✓</td><td class="txt"><a class="drill" href="#s5">产能与在建</a></td></tr>
+        <tr><td>B1 应收 roll-forward</td><td class="txt"><span class="badge y">⚠️ 可解释偏差</span></td><td>+175.75亿 / 12.5%</td><td class="txt">票据背书/贴现终止确认 841.42亿 使收现与应收不同步（附注 L8272）+ 应收款项融资 519.23亿 票据池未入 rhs + 出口零税率口径；无保理/证券化出表，无「应收凭空多出」通道</td><td class="txt"><a class="drill" href="#s1">财务总览</a></td></tr>
+        <tr><td>D3 母公司其他应收款</td><td class="txt"><span class="badge y">⚠️ 可解释偏差</span></td><td>母公司占合并 50.96 倍</td><td class="txt">集团资金池向下放款（合并抵销后仅 26.19亿）——方向与康得新相反：母公司是归集方，自身货币资金 2,153.77亿、零质押、分红覆盖 22 倍</td><td class="txt"><a class="drill" href="#s1">财务总览</a></td></tr>
+      </table>
+      <div class="srcline">等式清单见 references/articulation.md（阈值与三态规则同）；共核对 16 条（B2 存货 roll 因半年报未披露生产成本表而跳过，属合法缺数）：其余 13 条闭合（A1 现金 6.5%/A2 未分配利润 0.3%/A3 调节桥 0.0%/A4 收现 6.3%/A5 折旧 1.8%/A7 隐含利率 1.1%/A8 投资收益 4.5%/B3 在建 2.2%/B4 商誉 0.0%/D1/D2/D4/D5）——闭合项明细见 data.json <code>recon</code> 块 · 偏差 ≠ 造假，先排除合理解释</div>
+    </div>
+  </div>
+
+  <!-- ══ S3 因素分析 ══ -->
+  <div class="sect">
+    <div class="secthead" id="s3"><span class="no">03</span><span class="t">因素分析</span><span class="line"></span><span class="tag">收入 · 成本 · 净利润桥</span></div>
+    <p class="lede">本期利润变化第一驱动是<b>毛利 +215.0亿</b>（量增对冲碳酸锂涨价）；最大单项拖累是<b>汇兑——财务费用同比恶化 51.91亿</b>。增收不增利的剪刀差（收入 +54.8% vs 归母 +42.0%）可全额归因于汇兑、所得税、少数股东三项，主业毛利方向为正、质量未坏。</p>
+    <div class="grid2">
+      <div class="card">
+        <div class="figtitle">Δ收入 980.30亿：动力贡献 62% 是基本盘，储能+材料以 33% 增量收入贡献 38% 增量毛利</div>
+        <table class="data bridge">
+          <tr><th>因素</th><th>贡献额（亿元）</th><th>占比</th></tr>
+          <tr><td>基期收入（2025H1）</td><td>1,788.86</td><td>—</td></tr>
+          <tr><td>动力电池系统（+46.0%，毛利率 20.63%）</td><td class="up">+605.51</td><td>61.8%</td></tr>
+          <tr><td>储能电池系统（+87.5%，毛利率 23.96）</td><td class="up">+248.61</td><td>25.4%</td></tr>
+          <tr><td>电池材料及回收、矿产（+67.2%，毛利率 27.04%）</td><td class="up">+75.62</td><td>7.7%</td></tr>
+          <tr><td>其他业务（原材料贸易等）</td><td class="up">+50.57</td><td>5.2%</td></tr>
+          <tr class="total"><td>本期收入（2026H1）</td><td>2,769.17</td><td>—</td></tr>
+        </table>
+        <div class="takeaway">读法：半年报未披露分产品量价，降级为分部收入桥（calc.py bridge.rev 记 SKIP 已声明）——量增是主驱动（动力+储能放量），价格端对碳酸锂上行的传导是「部分成功」（动力/储能毛利率各降 1.8/1.6pct，材料端受益 +5.81pct）。</div>
+        <table class="data">
+          <tr><th>双排名（收入占比 vs 毛利贡献占比）</th><th>收入占比</th><th>毛利贡献占比</th></tr>
+          <tr><td>动力电池系统</td><td>69.4%</td><td>59.8%</td></tr>
+          <tr><td>储能电池系统</td><td>19.2%</td><td>19.3%</td></tr>
+          <tr><td>电池材料及回收</td><td>6.8%</td><td>7.7%</td></tr>
+        </table>
+        <div class="takeaway">读法：动力「收入第一、毛利第一」但毛利率垫底且下行；储能+材料合计 26% 收入贡献 27% 毛利——结构升级真实，增量毛利的 38% 来自储能+材料。</div>
+        <div class="srcline">数据来源：报告 MD&amp;A 分产品表 L447-477（prev 由披露同比反推）；双排名与象限归属按 factor-analysis.md 第六节（动力=现金牛转以量换价、储能/材料=明星象限）；分部合计占收入 95.4%，其余为未列示的其他业务</div>
+      </div>
+      <div class="card">
+        <div class="figtitle">毛利 +215.0亿 是第一驱动；汇兑 −51.9亿 是最大拖累；归母 +128.0亿 全额可桥</div>
+        <table class="data bridge">
+          <tr><th>环节</th><th>本期</th><th>上期</th><th>贡献额</th><th class="txt">备注</th></tr>
+          <tr><td>毛利</td><td>662.62</td><td>447.63</td><td class="up">+214.99</td><td class="txt">收入 +54.8% 对冲锂价，毛利率 −1.09pct</td></tr>
+          <tr><td>税金及附加</td><td>13.25</td><td>12.46</td><td>−0.79</td><td class="txt">随收入微增</td></tr>
+          <tr><td>期间费用合计</td><td>189.29</td><td>110.22</td><td class="dn">−79.07</td><td class="txt">销售 −5.42 / 管理 −8.92 / 研发 −12.82 / 财务(汇兑) −51.91</td></tr>
+          <tr><td>减值损失</td><td>−23.48</td><td>−28.50</td><td class="up">+5.02</td><td class="txt">资产+信用减值同比少提</td></tr>
+          <tr><td>投资及非经常收益</td><td>119.83</td><td>91.14</td><td class="up">+29.40</td><td class="txt">联营权益法 +32.77 主项；其他收益(补助) −14.70 反向</td></tr>
+          <tr><td>所得税</td><td>87.36</td><td>64.47</td><td class="dn">−22.89</td><td class="txt">有效税率 15.66%（−1.0pct）</td></tr>
+          <tr><td>少数股东损益</td><td>37.47</td><td>18.80</td><td class="dn">−18.66</td><td class="txt">+99.3% 未解释（观察 Y6）</td></tr>
+          <tr class="total"><td>归母净利润</td><td>432.84</td><td>304.85</td><td>+127.99</td><td class="txt">第一驱动：毛利</td></tr>
+        </table>
+        <div class="srcline">正贡献记 + / 负贡献记 − · 单位：亿元 · 数据来源：公司 2026H1 半年报合并利润表、Tushare 交叉核对；calc.py bridge.np 已校验闭合</div>
+      </div>
+    </div>
+    <div class="grid2">
+      <div class="fig">
+        <div class="figtitle">OCF 602.17亿 &gt; 净利润 470.31亿：应付释放 716.90亿 覆盖备货吞噬 708.85亿</div>
+        <div class="brends">净利润 470.31 亿 →（调节净额 +131.86 亿）→ 经营现金流净额 602.17 亿</div>
+        <svg id="ocfbridge" viewBox="0 0 460 300" preserveAspectRatio="xMidYMid meet"></svg>
+        <div class="srcline">营运资本吞噬额 −11.59 亿（占净利润 −2.5%，负值=净释放）· 应收吞 330.27 + 存货吞 378.59 − 应付释放 716.90 − 其他 3.55 · 数据来源：现金流量表补充资料 · calc.py bridge.ocf 已校验</div>
+      </div>
+      <div class="card">
+        <div class="figtitle">Q4 单季透视：半年报不适用——Q2 环比加速度替代观察，毛利率环比 −1.6pct 是期后关键线索</div>
+        <table class="data">
+          <tr><th>检验项（半年报替代读数）</th><th>读数</th><th class="txt">在防什么</th><th class="txt">判定</th></tr>
+          <tr><td>Q2 收入环比（单季）</td><td>1,478亿，+14.5% <span class="badge der">推算</span></td><td class="txt">需求失速 / 冲量后回落</td><td class="txt"><span class="badge g">加速</span></td></tr>
+          <tr><td>Q2 归母环比（单季）</td><td>225.5亿，+8.7% <span class="badge der">推算</span></td><td class="txt">盈利失速</td><td class="txt"><span class="badge g">加速但慢于收入</span></td></tr>
+          <tr><td>Q2 毛利率 vs Q1</td><td>23.2% vs 24.8% <span class="badge der">推算</span></td><td class="txt">成本传导失败、让利扩大</td><td class="txt"><span class="badge y">环比走低，Q3 待验</span></td></tr>
+          <tr><td>中报后毛利率预期（卖方）</td><td>里昂：Q3 改善待验</td><td class="txt">利润下滑暂时性 vs 结构性</td><td class="txt"><span class="badge y">期后观察锚</span></td></tr>
+        </table>
+        <div class="srcline">数据来源：妙想 2026 一季报/中报单季拆分（推算）；Q4 五项检测为年报模块（report-types.md），半年报以同比+环比替代；「在防什么」列口径沿用 Q4 检测语义</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ S4 管理层在说什么 ══ -->
+  <div class="sect">
+    <div class="secthead" id="s4"><span class="no">04</span><span class="t">管理层在说什么</span><span class="line"></span><span class="tag">MD&amp;A · 措辞 · 赛道重合度</span></div>
+    <div class="grid2">
+      <div class="card">
+        <div class="figtitle">叙事主线有钱跟上：AI 储能是真布局，低空/换电属叙事超前于财务</div>
+        <ul class="flaglist">
+          <li><span><span class="dot g"></span></span><div class="body">「零碳新能源科技」新定位 + AI 数据中心供电全场景方案（AI 词频 0→9）：有产品（天恒 6.25MWh/9MWh TENER Stack、587Ah 电芯）、有订单（2GWh 独立储能项目、欧洲黑启动中标）、有收入（储能 +87.5%）——叙事与财务一致 <span class="src">出处：MD&amp;A L248/282-283/354-365；分产品表 L449</span></div></li>
+          <li><span><span class="dot y"></span></span><div class="body">第二曲线（钠电/凝聚态/低空/换电）：钠电有 60GWh 海博思创三年协议 + 天恒钠电发布；低空为 1 亿美元参股峰飞；换电全国约 2,000 座——均有投入证据但收入贡献未单列，属「叙事超前于财务」 <span class="src">出处：MD&amp;A L354/358-359/372-384</span></div></li>
+        </ul>
+      </div>
+      <div class="card">
+        <div class="figtitle">语气档位零迁移（极性比 4.0→4.0）；「价值竞争而非价格竞争」与碳酸锂点名是新信号，美国口径消失</div>
+        <ul class="flaglist">
+          <li><span><span class="dot y"></span></span><div class="body">新增关键词：AI/数据中心（0→9 次）、固态电池（0→1）、低空（0→4）、虚拟电厂（0→1）；「碳酸锂价格明显上行」首次点名进入风险条款——管理层最担心的是成本而非需求 <span class="src">出处：两期 MD&amp;A 词频对比（2026 L225-390 vs 2025 同节）；风险节 L1100-1110</span></div></li>
+          <li><span><span class="dot y"></span></span><div class="body">竞争风险应对新增「坚持价值竞争而非价格竞争」；风险提示 4 条无增删但「市场竞争加剧」提前至第 2 条；「美国/北美」在 2026 版 MD&amp;A 基本消失（仅统计口径出现）——该写而没写，地缘敞口的措辞回避 <span class="src">出处：L1086-1091；两期风险节对比</span></div></li>
+        </ul>
+      </div>
+    </div>
+    <div class="card">
+      <div class="figtitle">赛道四问：储能/AIDC 真布局，钠电观察偏真，低空与固态仍是期权</div>
+      <table class="data">
+        <tr><th>宣称方向</th><th class="txt">对应热门概念</th><th class="txt">资本开支</th><th class="txt">产能/订单</th><th class="txt">研发</th><th class="txt">收入贡献</th><th class="txt">判定</th></tr>
+        <tr><td>储能电池系统（含 AIDC 供电）</td><td class="txt">AI 算力、储能、数据中心</td><td class="txt">有：在建产能 764GWh 主要指向</td><td class="txt">2GWh 单体项目+海外中标；60GWh 钠电协议（海博思创）</td><td class="txt">587Ah/TENER Stack 量产</td><td class="txt">有：收入 532.61亿（+87.5%）</td><td class="txt"><span class="badge g">真布局</span></td></tr>
+        <tr><td>钠离子电池</td><td class="txt">钠电、储能新化学体系</td><td class="txt">有（储能产线共线）</td><td class="txt">60GWh 三年协议；天恒钠电发布</td><td class="txt">钠新电池发布</td><td class="txt">未单列</td><td class="txt"><span class="badge g">真布局（订单锚硬）</span></td></tr>
+        <tr><td>低空/eVTOL 与船舶电动化</td><td class="txt">低空经济</td><td class="txt">有：参股峰飞 1 亿美元</td><td class="txt">峰飞适航取证中；印尼 VTC 取证</td><td class="txt">电池系统交付海外</td><td class="txt">无单列</td><td class="txt"><span class="badge y">观察（投入早期）</span></td></tr>
+        <tr><td>凝聚态/固态路线</td><td class="txt">固态电池（2026 市场最热）</td><td class="txt">未单列</td><td class="txt">麒麟凝聚态电池发布</td><td class="txt">有</td><td class="txt">无单列</td><td class="txt"><span class="badge y">观察（技术期权）</span></td></tr>
+        <tr><td>巧克力/骐骥换电网络</td><td class="txt">换电、重卡电动化</td><td class="txt">有：约 2,000 座站</td><td class="txt">欧洲重卡换电合资（章鱼能源）</td><td class="txt">26# 电池发布</td><td class="txt">未单列</td><td class="txt"><span class="badge g">真布局（规模可查）</span></td></tr>
+      </table>
+      <div class="srcline">判定规则：text-mining.md 四问（资本开支/产能订单/研发/收入贡献）；重点宣称数字行业坐标：储能全球电芯出货 486GWh（+93%，SMM）中公司出货全球第一（鑫椤）；动力市占率 40.2%（SNE）——口径为公司引用，未独立验真</div>
+    </div>
+    <div class="card">
+      <div class="figtitle">6 条断言：✅ 5 通过 / ❌ 0 不实 / ❓ 1 无法验证（联营「可持续性」缺参股明细）</div>
+      <table class="data">
+        <tr><th>管理层断言</th><th class="txt">数据检验</th><th class="txt">三态</th><th class="txt">出处</th></tr>
+        <tr><td>收入增长系「业务规模增长带动」</td><td class="txt">分部桥：动力 +605.51亿（62%）+ 储能 +248.61亿（25%），与归因一致</td><td class="txt"><span class="badge g">✅ 通过</span></td><td class="txt">L406/L447-477</td></tr>
+        <tr><td>财务费用 +89.17% 主要为汇兑损失</td><td class="txt">汇兑差额 51.42亿 ≈ 财务费用变差 51.91亿（残差利息净收入 +1.76亿）</td><td class="txt"><span class="badge g">✅ 通过</span></td><td class="txt">L424/L7592-7599</td></tr>
+        <tr><td>投资现金流 −40.58% 主要系购买理财支出增加</td><td class="txt">投资支付现金 +208.33亿（306.51 vs 98.18）为主驱动，购建固定资产 +48.60亿 次之</td><td class="txt"><span class="badge g">✅ 通过</span></td><td class="txt">L425/L4412-4442</td></tr>
+        <tr><td>投资收益 11.03% 主要为联营权益法收益且具有可持续性</td><td class="txt">联营收益 57.22亿 = 投资收益的 93% ✓；「可持续性」无法检验——参股明细未披露，盈利与锂价同向</td><td class="txt"><span class="badge est">❓ 无法验证</span></td><td class="txt">L500-522/L7620-7631</td></tr>
+        <tr><td>碳酸锂等原材料价格明显上行，可能影响成本管控及毛利率</td><td class="txt">碳酸锂 H1 均价 +127%；毛利率 −1.09pct、动力 −1.78pct/储能 −1.56pct，方向一致；一体化对冲后降幅温和</td><td class="txt"><span class="badge g">✅ 通过</span></td><td class="txt">L1100-1110 + mx_macro_data</td></tr>
+        <tr><td>动力市占率 40.2%（+2.2pct）</td><td class="txt">外部权威口径引用；与国内装车 46.7%（+5.6pct）及海外 33.7%（+3.7pct）互证</td><td class="txt"><span class="badge g">✅ 通过</span></td><td class="txt">L244-245/L332-337</td></tr>
+      </table>
+      <div class="srcline">判定规则：text-mining.md 第七节 · 「❌ 不成立」= 管理层解释与数据矛盾，重大信号——本期 0 条</div>
+    </div>
+    <div class="card">
+      <div class="figtitle">1 项大动未解释（少数股东损益 +99.3%，已立案 Y6）；上期未给量化指引，兑现率不适用</div>
+      <table class="data">
+        <tr><th>变动 &gt;30% 的科目</th><th>变动幅度</th><th class="txt">MD&amp;A 是否解释</th></tr>
+        <tr><td>少数股东损益（L4188）</td><td>+99.3%</td><td class="txt">未提及 → 已立案观察 Y6</td></tr>
+        <tr><td>应付票据 / 其他流动负债 / 衍生金融资产</td><td>+48.1% / +51.8% / +134.6%</td><td class="txt">未单列解释；随采购扩张与套保规模联动的经营性变动，金额不重大或方向可解释，不立案（备查）</td></tr>
+        <tr class="total"><td>上期量化指引 vs 本期实际</td><td colspan="2" class="txt">2025 半年报无「经营计划/下半年展望」章节、无量化指引——指引兑现率不适用（F3 记 ❓）；本期亦无新指引给出</td></tr>
+      </table>
+      <div class="srcline">数字大动而文字不解释，本身就是信号（「该写而没写」的数字侧镜像）；两期半年报均无展望节，属报告类型裁减而非刻意缺席</div>
+    </div>
+  </div>
+
+  <!-- ══ S5 产能与在建工程 ══ -->
+  <div class="sect">
+    <div class="secthead" id="s5"><span class="no">05</span><span class="t">产能与在建工程</span><span class="line"></span><span class="tag">钱押在哪条线</span></div>
+    <div class="card">
+      <table class="data">
+        <tr><th>项目</th><th>预算（亿元）</th><th>期末余额</th><th>进度</th><th class="txt">对应产品线 / 判定</th></tr>
+        <tr><td>境外中西基地（匈牙利/西班牙等）</td><td>519.95</td><td>98.04</td><td>32.26%</td><td class="txt">欧洲动力+储能本地化，规避关税与就近配套——海外是最大的单一押注</td></tr>
+        <tr><td>西南基地（宜宾等）</td><td>240.00</td><td>10.31</td><td>33.97%</td><td class="txt">西部动力+储能（绿电成本优势）；本期转固 33.91亿，投产兑现中</td></tr>
+        <tr><td>其他项目（华东/华中/华南及境外小项）</td><td>—</td><td>221.90</td><td>—</td><td class="txt">国内技改+溧阳/济宁/中州等基地 + 印尼工厂</td></tr>
+        <tr class="total"><td>在建工程合计</td><td>—</td><td>330.25</td><td>—</td><td class="txt">境外占 134.05亿（40.6%）——海外产能是本期资本配置的第一方向</td></tr>
+      </table>
+      <div class="srcline">数据来源：在建工程附注 L6772-6824（重要项目表仅披露占预算 5% 以上两项，进度为报告披露口径）；长期挂账未转固项目：无（两项目进度 32-34% 正常建设中，B3 roll-forward 闭合 2.2%）</div>
+    </div>
+    <p class="lede">产能现状是「满产+大扩产」：电池系统产量 498GWh、产能利用率 94.86%（上年同期 89.86%），<b>在建产能 764GWh 为现有产能 525GWh 的 1.5 倍</b>（上年同期在建仅 235GWh）——上行期的重注。叠加期后获批收购吉利旗下重庆耀宁 24GWh 产能，扩张路径「自建+整合」并行；已签约未付资本承诺 98.80亿（年初 137.26亿，下降）显示前期高峰已过。2022 年定增 450亿 募资累计投入 90.48%（变更 48亿 至厦门基地，占 10.70%）。供需赌注的两面：若 2027 年需求增速 &lt;20%，764GWh 集中投放将复写 2023-24 产能过剩剧本——这是把「上行期」框架延续到下一期的最大前提，已列入 <a href="#s8">08 跟踪清单</a> 第 4、5 卡。</p>
+  </div>
+
+  <!-- ══ S6 股东结构 ══ -->
+  <div class="sect">
+    <div class="secthead" id="s6"><span class="no">06</span><span class="t">股东结构</span><span class="line"></span><span class="tag">户数 · 前十大 · 增减持</span></div>
+    <div class="grid2">
+      <div class="fig">
+        <div class="figtitle">户数 27.00万户创新高：Q2 环比 +32% 系 H 股配售+行情扩散，机构（北向）同期在买</div>
+        <svg id="holders" viewBox="0 0 460 280" preserveAspectRatio="xMidYMid meet"></svg>
+        <div class="srcline">数据来源：Tushare stk_holdernumber（万户，期末口径）；区间涨跌幅线缺省未画——户数骤降+价升=筹码集中，本期读数相反（扩散），机构与个人方向分化见右表</div>
+      </div>
+      <div class="card">
+        <div class="figtitle">北向 H1 净增 +2.02亿股 vs 宁波联合创新减持 5,800万股：机构买、产业资本卖的二分</div>
+        <table class="data">
+          <tr><th>股东（前十大）</th><th>持股比例</th><th class="txt">变动</th></tr>
+          <tr><td>厦门瑞庭投资（控股股东）</td><td>22.04%</td><td class="txt">−500.00万股（比例微降，无质押）</td></tr>
+          <tr><td>香港中央结算（北向）</td><td>19.33%</td><td class="txt"><span class="up">+20,161.64万股</span></td></tr>
+          <tr><td>黄世霖</td><td>9.09%</td><td class="txt">不变</td></tr>
+          <tr><td>宁波联合创新（产业资本）</td><td>4.89%</td><td class="txt"><span class="dn">−5,800.00万股</span></td></tr>
+          <tr><td>HKSCC NOMINEES（H股）</td><td>4.72%</td><td class="txt">+6,238.47万股（H 股配售新增）</td></tr>
+          <tr><td>李平（副董事长）</td><td>4.27%</td><td class="txt">质押 2,042万股（占其持股 10.3%）</td></tr>
+          <tr><td>UBS AG</td><td>0.59%</td><td class="txt"><span class="up">+1,339.41万股 新进</span></td></tr>
+        </table>
+        <div class="srcline">数据来源：半年报前十大股东表 L3466-3555；tushare stk_holdertrade（董监高本期无增减持）；H 股配售 6,238.5 万股 @628.20港元（2026-04-30）募资约 355亿元——即现金流量表「吸收投资收到的现金」主项；控股股东质押率 0%（<a href="#s2">排雷 R9</a> 未触发）</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ S7 外部校验 ══ -->
+  <div class="sect">
+    <div class="secthead" id="s7"><span class="no">07</span><span class="t">外部校验</span><span class="line"></span><span class="tag">预期 · 同业 · 宏观 · 债务</span></div>
+    <div class="grid2">
+      <div class="card">
+        <div class="figtitle">H1 完成全年一致预期 45.1%：快于历史节奏 2.9pct，中报后评级集体维持</div>
+        <table class="data">
+          <tr><th>指标</th><th>实际</th><th>一致预期</th><th>偏离度</th></tr>
+          <tr><td>归母净利（亿元）</td><td>432.84</td><td>959.8（FY2026）</td><td class="up">完成度 45.1%</td></tr>
+          <tr><td>营业收入（亿元）</td><td>2,769.17</td><td>≈6,100-6,300（FY2026）</td><td class="up">完成度 ≈45%</td></tr>
+        </table>
+        <div class="takeaway">读法：上年同期 H1 占全年 42.2%（收入/归母同），本期 45.1% 处历史偏快档；9 月「去宁化」叙事致股价回调约 30% 后，中金（跑赢行业，500元）、大摩（增持，595元）、小摩（增持，H股725港元）、里昂（优于大市，770港元/535元）、瑞银（买入，600元）、伯恩斯坦（跑赢，800元）集体维持——卖方与市场的分歧本身即信息。</div>
+        <div class="srcline">数据来源：东方财富一致预期中值（2026-09-20，33.15% 增速）；tushare report_rc 样本区间 921-982亿（该接口限流，取 mx 中值锚定）；近期评级动向：无一下调，关键词「盈利预测下调忧虑被夸大」（大摩 09-18）</div>
+      </div>
+      <div class="card">
+        <div class="figtitle">毛利率高于同业 8.6-9.6pct 系结构性价差：一体化+海外 mix+规模，研发 100% 费用化</div>
+        <table class="data">
+          <tr><th>公司（2026H1）</th><th>毛利率（%）</th><th>研发费率（%）</th><th>资产负债率（%）</th></tr>
+          <tr><td><b>宁德时代</b></td><td><b>23.93</b></td><td><b>4.11</b></td><td><b>63.65</b></td></tr>
+          <tr><td>亿纬锂能</td><td>14.31</td><td>3.73</td><td>63.60</td></tr>
+          <tr><td>国轩高科</td><td>15.60</td><td>4.05</td><td>71.73</td></tr>
+          <tr><td>欣旺达</td><td>15.33</td><td>6.19</td><td>73.62</td></tr>
+        </table>
+        <div class="takeaway">读法：负债率与亿纬同档为四者最低之一，研发费率居中但口径最保守（全部费用化，同业含资本化）——价差不构成「毛利率异常」立案要件（<a href="#s2">观察 Y3</a> 已给硬解释链）。</div>
+        <div class="srcline">数据来源：mx 东方财富同一报告期批量取数；同业口径为整体毛利率（含消费/动力混合业务），与本公司分产品口径存在结构性差异，判读以区间为准</div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="figtitle">剪刀差可全额归因、费用效率 2.72&gt;1、短债覆盖 10 倍——经营面无虞；压力全部来自外部价格与税政</div>
+      <table class="data">
+        <tr><th>检验项</th><th>读数</th><th class="txt">结论</th></tr>
+        <tr><td>收入增速 vs 净利增速</td><td>+54.8% vs +42.0%</td><td class="txt">剪刀差 12.8pct 存在但非经营恶化：汇兑 −51.91/所得税 −22.89/少数股东 −18.66 三项全额解释，毛利贡献 +215.0亿 为正</td></tr>
+        <tr><td>研发费用（费率 / 资本化率）</td><td>113.77亿（4.11% / 0%）</td><td class="txt">同业居中、口径最保守；高研发低资本化=利润质量加分项</td></tr>
+        <tr><td>短债覆盖倍数</td><td>10.08 倍</td><td class="txt">(货币资金 3,720.53+OCF 602.17)÷(短借 208.86+一年内到期 220.11)——无流动性缺口（<a href="#s2">R11</a> 未触发）</td></tr>
+        <tr><td>现金流偿债口径（X6）</td><td>0.0906（≈11 年）</td><td class="txt">OCF÷平均总负债；H1 半年口径年化后约 5.5 年——与短债覆盖并列看，不替代</td></tr>
+        <tr><td>大宗/税率/汇率敏感性</td><td class="txt" colspan="2">碳酸锂 H1 均价 ≈16.1万/吨（同比 +127%，隆众/长江口径），9/18 已回落至 12.8-13.0万——DIO 195 天意味着成本端缓解在 Q3-Q4 进表；汇率：境外收入占 31.5%，人民币升值使汇兑由收益 23.32亿 转损失 28.10亿（±50亿级利润弹性，公司称已开展套保）；税政：锂电消费税 2026-09-01 起 2%（2027-09 起 4%、出口退免）——境内电芯直接承压，验证「价格联动传导」条款；有效税率 15.66%（−1.0pct，研发加计+西部优惠）</td></tr>
+        <tr><td>增量费用效率（Δ毛利÷Δ期间费用）</td><td>2.72</td><td class="txt">&gt;1：费用换来更多毛利（Δ毛利 214.99亿 ÷ Δ期间费用 79.07亿，含汇兑拖累）</td></tr>
+        <tr><td>销售费用获客效率（Δ收入÷Δ销售费用）</td><td>180.9</td><td class="txt">绝对值受 2025 年起销售费用口径收窄（质保金重分类）影响，仅作方向参考</td></tr>
+        <tr><td>费用率上升归因</td><td class="txt" colspan="2">销售/管理/研发费用增速（+33.4%/+17.4%/+12.7%）均低于收入增速（+54.8%）——扩张驱动而非效率下降，财务费用属汇率结构（中性）；三分归因（frameworks.md 第七节）无「效率下降」项</td></tr>
+      </table>
+      <div class="srcline">费用 ROI 规则：frameworks.md 第七节 · 诊断经营效率，不进排雷清单</div>
+    </div>
+    <div class="card">
+      <div class="figtitle">期后健康：分红落地、回购启动、零减持零违约；需跟踪的是外部税政与叙事而非公司动作</div>
+      <table class="data">
+        <tr><th>日期</th><th class="txt">事件</th><th class="txt">验证了什么</th></tr>
+        <tr><td>2026-07-25</td><td class="txt">董事会通过 200-400亿元 A股回购方案（用于注销减资），价格上限 573 元</td><td class="txt">现金充裕与管理层信心——<a href="#s2">存贷双高 R1</a> 的反向证据</td></tr>
+        <tr><td>2026-08-10</td><td class="txt">2026 中期分红除权除息，A股派发 61.80亿元（每 10 股 14.11 元）</td><td class="txt">D2 母公司分红能力的期后兑现</td></tr>
+        <tr><td>2026-09-11</td><td class="txt">首次回购 60.43万股、成交 2.00亿元（330.15-331.61 元/股）</td><td class="txt">回购方案执行力（9 月股价回调窗口启动）</td></tr>
+        <tr><td>2026-09-01</td><td class="txt">锂电消费税 2% 落地（2027-09 起 4%，出口退免）——期后外部税政</td><td class="txt">境内电芯成本与提价传导的压力测试（<a href="#s8">跟踪清单</a>）</td></tr>
+        <tr><td>2026-09-21 前</td><td class="txt">已检索期后公告：无减持、无新增质押、无重大诉讼/违约；美元债 5亿（1.50%）2026-09-09 到期正常兑付</td><td class="txt">期末余额真实性未见反证；期后回款无公开披露，以 3Q26 收现比替代验证</td></tr>
+      </table>
+      <div class="srcline">数据来源：mx_finance_search_notice 期后公告时间线（2026-07-25 → 2026-09-21）· 与 B1 应收 roll-forward 联动</div>
+    </div>
+  </div>
+
+  <!-- ══ S8 下期跟踪清单 ══ -->
+  <div class="sect">
+    <div class="secthead" id="s8"><span class="no">08</span><span class="t">下期跟踪清单</span><span class="line"></span><span class="tag">先行指标仪表盘 · 下份报告之前可观察</span></div>
+    <p class="lede">下一期最先看两个数：<b>3Q26 毛利率</b>（验证让利是暂时还是结构性——卖方与市场的分歧全部押在这一格）与<b>合同负债同比</b>（验证需求真伪——交付提速 vs 见顶的第一裁判）。</p>
+    <div class="grid2">
+      <div class="card">
+        <div class="figtitle">合同负债增速 vs 收入增速（剪刀差）</div>
+        <div class="wv">同比 −0.4% vs 收入 +54.8% <span class="badge der">推算</span></div>
+        <div class="wb">&gt; 0% 同比转正则打款意愿修复、年初收缩定性为交付节奏 / &lt; −20% 且收入增速 &lt;+30% 则需求走弱确认（触发线：若 2026Q3-Q4 合同负债同比降幅扩大至 −20% 以下且收入增速同步放缓，则需求走弱成立；阈值依据：自身 5 年 H1 区间 196-492亿 + 黄表 15% 收缩线）</div>
+        <div class="srcline">数据来源：定期报告资产负债表「合同负债」；经销商打款/预收政策公告</div>
+      </div>
+      <div class="card">
+        <div class="figtitle">库存商品余额与 DIO（存货形态结构）</div>
+        <div class="wv">库存商品 476.39亿（+110.6%）；DIO 195 天 <span class="badge der">推算</span></div>
+        <div class="wb">DIO &lt; 180 天 回到上年水平以下则备货健康 / DIO &gt; 220 天 突破 2024H1 高点则滞销风险确认（触发线：若 Q3 库存商品余额环比续升且 DIO 破 220 天，则「交付前置」证伪；阈值依据：自身 H1 历史 DIO 区间 164-240 天）</div>
+        <div class="srcline">数据来源：存货附注按形态拆分；3Q 排产/库存调研（中金引鑫椤：3Q 排产环比 +15-20%）</div>
+      </div>
+      <div class="card">
+        <div class="figtitle">碳酸锂价格 × 毛利率传导（成本曲线位置）</div>
+        <div class="wv">13.0 万/吨（2026-09）vs H1 均价 ≈16.1 万 <span class="badge der">推算</span></div>
+        <div class="wb">&gt; 18 万/吨 成本压力再起、验证价格联动传导 / &lt; 10 万/吨 存货跌价准备压力区（2024 年计提 66.9亿 背景价位）（触发线：若碳酸锂跌破 10 万且 DIO 同步拉长，则高价库存减值风险上升；若重回 18 万上方而电池提价受阻，则毛利率承压）</div>
+        <div class="srcline">数据来源：mx_macro_data 碳酸锂现货 + 分产品毛利率表；阈值依据 2024-2026 价格区间 6-20 万</div>
+      </div>
+      <div class="card">
+        <div class="figtitle">资本开支节奏与在建产能投放</div>
+        <div class="wv">capex 250.73亿（+24.1%）；在建产能 764GWh <span class="badge disc">披露</span></div>
+        <div class="wb">同比 &gt; +20% 扩张延续 / 同比 &lt; 0% 转保守、周期定位下修（触发线：若连续两期 capex 收缩且在建转固延期，则扩张周期见顶；若 764GWh 按期投放而需求增速 &lt;20%，则供需反转——2023-24 剧本的前置条件）</div>
+        <div class="srcline">数据来源：现金流量表购建长期资产 + MD&amp;A 产销表；环评/投产公告早于报表</div>
+      </div>
+      <div class="card">
+        <div class="figtitle">产能利用率（满产状态）</div>
+        <div class="wv">94.86%（上年同期 89.86%） <span class="badge disc">披露</span></div>
+        <div class="wb">&gt; 95% 维持供不应求 / &lt; 85% 供需反转确认（触发线：若利用率跌破 85% 且在建产能集中转固，则价格战风险上升；行业均值 65% 的领先意义见外部校验）</div>
+        <div class="srcline">数据来源：MD&amp;A 产销情况表；行业月度开工率对照（大摩：行业均值约 65%）</div>
+      </div>
+    </div>
+    <div class="srcline">watchlist 已写入 data.json（同目录同名 .json）——下期回看直接读该 JSON 块，不再解析本卡组 · 数据来源：各指标对应公开信息（见每卡末行）</div>
+  </div>
+
+  <!-- ══ 页脚 ══ -->
+  <div class="foot">
+    <span>宁德时代（300750.SZ / 03750.HK）2026H1 半年报分析 · 生成于 2026-09-21</span>
+    <span>数据：公司报告原文（双源核对：Tushare / 东方财富）· 半年度报告未经审计 · T8 ②级行号回核因 markitdown 表格错位降级（以双源核对替代）· 本报告仅为信息分析，不构成投资建议</span>
+  </div>
+</div>
+
+<script>
+/* ── 内联绘图助手：模型只改 DATA 区数组，不改绘图逻辑 ── */
+const NS='http://www.w3.org/2000/svg';
+/* 单一色源：全部色值读 :root CSS 变量，换色只改 :root 一处（v0.0.9 L1）。
+   映射注意：C2=--faintdata（不是零引用的 --data2）；getPropertyValue 带前导空格须 trim */
+const css=getComputedStyle(document.documentElement),v=n=>css.getPropertyValue(n).trim();
+const INK=v('--ink'),MUT=v('--muted'),GRID=v('--grid'),FAINT=v('--faint');
+const C1=v('--data'),C2=v('--faintdata'),GOOD=v('--good'),BAD=v('--bad');
+/* 线标签 halo：白描边垫底，文字压在柱身/网格线上仍可读 */
+const HALO={'paint-order':'stroke',stroke:'#fff','stroke-width':2.5};
+/* 线标签避让：与柱顶数字文本盒相交（点在柱顶上方 10px 内到下方 13px 内）移到点下方，否则点上方 */
+const labelY=(py,barTop)=>(py>barTop-10&&py<barTop+13)?py+16:py-8;
+const el=(p,t,a)=>{const n=document.createElementNS(NS,t);for(const k in a)n.setAttribute(k,a[k]);p.appendChild(n);return n};
+const txt=(p,a,s)=>{const n=el(p,'text',a);n.textContent=s;return n};
+const tip=(n,s)=>{const t=document.createElementNS(NS,'title');t.textContent=s;n.appendChild(t)};
+
+/* 胶囊柱：竖柱圆上端（dir='down' 圆下端），h 不足时圆角自动收缩；零值不画实形 */
+function capsule(p,x,y,w,h,r,fill,dir,cls){
+  if(h<=0)return el(p,'rect',{x:x,y:y,width:w,height:0,fill:'none'});
+  const rr=Math.min(r,w/2,h/2);
+  const d=dir==='down'
+    ?`M${x},${y} V${y+h-rr} Q${x},${y+h} ${x+rr},${y+h} H${x+w-rr} Q${x+w},${y+h} ${x+w},${y+h-rr} V${y} Z`
+    :`M${x},${y+h} V${y+rr} Q${x},${y} ${x+rr},${y} H${x+w-rr} Q${x+w},${y} ${x+w},${y+rr} V${y+h} Z`;
+  return el(p,'path',{d:d,fill:fill,class:cls});
+}
+/* nice step：网格间距取 1/2/5×10ⁿ，刻度值不出现长尾小数 */
+function niceStep(raw){const p=Math.pow(10,Math.floor(Math.log10(raw)));const n=raw/p;return (n<=1?1:n<=2?2:n<=5?5:10)*p;}
+
+/* ════ DATA ◆ SLOT：只填这里 ════ */
+/* trend：2022H1-2026H1 同类型滚动（半年报对 H1）——左=收入柱+毛利率线，右=归母/扣非净利柱+ROE 线 */
+const TREND={labels:['2022H1','2023H1','2024H1','2025H1','2026H1'],
+  rev:[1129.71,1892.46,1667.67,1788.86,2769.17],
+  np:[81.68,207.17,228.65,304.85,432.84],
+  np_dt:[null,null,200.54,271.97,390.13],
+  roe:[0.0585,0.1103,0.0926,0.1034,0.1141],
+  gm:[18.67,21.63,26.53,25.02,23.93]};
+/* ocfbridge：净利→经营现金流调节桥（间接法，亿元）——首项「净利润」为水平值（不画柱，
+  与 OCF_END 一起填上方 .brends 端点行），其余为调节项，Σ=OCF */
+const OCF_BRIDGE=[['净利润',470.31],['折旧摊销',158.39],['减值准备',23.48],['递延所得税',-29.47],
+  ['公允价值变动',-12.41],['财务费用',42.02],['投资损失',-61.53],['处置及其他',3.33],
+  ['Δ应收',-330.27],['Δ存货',-378.59],['Δ应付',716.90]];
+const OCF_END=602.17;
+/* dupont5：杜邦三因子 + ROE 的 5 期原始值（2022H1-2026H1，旧→新） */
+const DUPONT5={labels:['2022H1','2023H1','2024H1','2025H1','2026H1'],
+  net_margin:[7.23,10.95,13.71,17.04,15.63],
+  asset_turn:[0.3279,0.3373,0.2459,0.2261,0.2620],
+  equity_mult:[3.4456,3.4113,2.8966,2.9404,3.0022],
+  roe:[5.85,11.03,9.26,10.34,11.41]};
+/* holders：股东户数（万户，柱）——区间涨跌幅线缺省（未取股价序列） */
+const HOLDERS={labels:['24-06','24-12','25-03','25-06','25-09','25-12','26-03','26-06'],
+  num:[23.73,21.21,22.63,22.64,22.75,24.98,20.45,27.00],px:[]};
+
+/* 柱线组合图：柱（C1 主数据 / C2 次序列）+ 可选线（INK，独立缩放）。barB/line 传空数组即跳过。
+   视觉语法：胶囊柱端（圆上端）、发丝网格 + 左侧刻度（读数基准）、线标签数据点正上方居中 + halo 白描边。 */
+function combo(id,labels,barA,barB,line,lineName,aName,bName){
+  const s=document.getElementById(id);if(!s||!labels.length)return;
+  barB=barB||[];line=line||[];
+  const W=+s.viewBox.baseVal.width,H=+s.viewBox.baseVal.height,L=54,R=54,B=44,T=30;
+  const max=Math.max(...barA,...barB)*1.15||1;
+  const lspan=line.length?Math.max(...line)-Math.min(...line)||1:1;
+  const lmax=line.length?Math.max(...line)+lspan*.5:1,lmin=line.length?Math.min(...line)-lspan*.5:0;
+  const bw=(W-L-R)/labels.length;
+  /* 发丝网格 + 刻度：柱顶数字是精确值，网格刻度只管量级 */
+  const step=niceStep(max/4);
+  for(let v=step;v<max;v+=step){
+    const gy=T+(H-B-T)*(1-v/max);
+    el(s,'line',{x1:L,y1:gy,x2:W-R,y2:gy,stroke:FAINT,'stroke-width':.7,'stroke-dasharray':'3 3'});
+    txt(s,{x:L-8,y:gy+3,'font-size':8.5,'font-weight':600,fill:MUT,'text-anchor':'end'},Math.round(v));
+  }
+  labels.forEach((lb,i)=>{
+    const w=bw*.24;
+    const x=barB.length?L+i*bw+bw*.18:L+i*bw+(bw-w)/2; /* 双柱成组，单柱居中 */
+    const ha=(H-B-T)*barA[i]/max;
+    const r1=capsule(s,x,H-B-ha,w,ha,w/2,C1);
+    tip(r1,`${lb} ${aName}：${barA[i]}`);
+    if(barB.length){
+      const hb=(H-B-T)*barB[i]/max;
+      const r2=capsule(s,x+w+3,H-B-hb,w,hb,w/2,C2);
+      tip(r2,`${lb} ${bName}：${barB[i]}`);
+    }
+    const tx=barB.length?x+w:x+w/2;
+    txt(s,{x:tx,y:H-B-ha-6,'font-size':10,'font-weight':800,fill:INK,'text-anchor':'middle'},barA[i]);
+    txt(s,{x:L+i*bw+bw/2,y:H-B+18,'font-size':10,'font-weight':600,fill:MUT,'text-anchor':'middle'},lb);
+  });
+  el(s,'line',{x1:L,y1:H-B,x2:W-R,y2:H-B,stroke:GRID,'stroke-width':1});
+  if(line.length){
+    const lT=T+18,lB=H-B-16; /* 线域上下留白：避开图例与柱底 */
+    const pts=line.map((v,i)=>{
+      const x=L+i*bw+bw/2,y=lT+(lB-lT)*(1-(v-lmin)/(lmax-lmin||1));
+      return [x,y];
+    });
+    el(s,'path',{d:'M'+pts.map(p=>p.join(' ')).join(' L '),fill:'none',stroke:INK,'stroke-width':1.8});
+    pts.forEach((p,i)=>{
+      const c=el(s,'circle',{cx:p[0],cy:p[1],r:3,fill:INK,stroke:'#fff','stroke-width':1.5});
+      tip(c,`${labels[i]} ${lineName}：${line[i]}%`);
+      /* 线标签数据点正上方居中 + halo 白描边：压在柱身上仍可读；
+         仅当与柱顶数字的文本盒相交（点在柱顶上方 10px 内到下方 13px 内）时移到点下方避让 */
+      const barTop=H-B-(H-B-T)*barA[i]/max;
+      const ly=labelY(p[1],barTop);
+      txt(s,{x:p[0],y:ly,'font-size':9,'font-weight':700,fill:MUT,'text-anchor':'middle',...HALO},line[i]+'%');
+    });
+  }
+  const lg=[[aName,C1],barB.length?[bName,C2]:null,line.length?[lineName,INK]:null].filter(Boolean);
+  lg.forEach(([n,c],i)=>{
+    el(s,'rect',{x:L+i*130,y:8,width:10,height:10,fill:c,rx:2});
+    txt(s,{x:L+i*130+15,y:17,'font-size':10,'font-weight':600,fill:MUT},n);
+  });
+}
+
+/* 趋势双面板（主图+放大镜）：左=收入柱+毛利率线，右=归母净利柱（+扣非净利柱，可缺省）+ROE 线，
+  两面板等宽、各自独立缩放。收入与净利量级悬殊时同轴双柱会把矮柱压扁看不出趋势，
+  而断轴违反「柱=长度」契约；双面板让每个面板各自保持柱=长度，量级悬殊不再吞掉副序列的趋势。
+  右板可缺省设计（schema 未强制 np_dt hist）：np_dt 整列留空或某期为 null 时该期不画扣非柱、
+  图例不列扣非（降级为单柱）；roe 整列留空则整线跳过。roe 存小数，呈现时 ×100 显示 %。 */
+function trendDual(id,labels,rev,np,gm,np_dt,roe){
+  const s=document.getElementById(id);if(!s||!labels.length)return;
+  const W=+s.viewBox.baseVal.width,H=+s.viewBox.baseVal.height,B=44,T=52;
+  const L=54,R=16,GAP=52;
+  const pw=(W-L-R-GAP)/2; /* 左右面板等宽（中缝对称各半），不再 62/38 */
+  const x2=L+pw+GAP,n=labels.length;
+  np_dt=np_dt||[];roe=roe||[];
+  const has_dt=np_dt.some(v=>v!=null);
+  /* drawPanel：单柱或双柱（vals2 传 null 即单柱）；双柱成组仿 combo 几何（w=bw*.24），
+     有副序列时布局按双柱统一（某期缺数只跳画扣非柱，柱位不漂移），柱顶数字只标主序列 */
+  const drawPanel=(px0,vals,color,vals2,color2)=>{
+    const has2=!!vals2&&vals2.some(v=>v!=null);
+    const pool=has2?vals.concat(vals2.filter(v=>v!=null)):vals;
+    const max=Math.max(...pool)*1.15||1,bw=pw/n;
+    const step=niceStep(max/5);
+    for(let v=step;v<max;v+=step){
+      const gy=T+(H-B-T)*(1-v/max);
+      el(s,'line',{x1:px0,y1:gy,x2:px0+pw,y2:gy,stroke:FAINT,'stroke-width':.7,'stroke-dasharray':'3 3'});
+      txt(s,{x:px0-8,y:gy+3,'font-size':8.5,'font-weight':600,fill:MUT,'text-anchor':'end'},Math.round(v));
+    }
+    el(s,'line',{x1:px0,y1:H-B,x2:px0+pw,y2:H-B,stroke:GRID,'stroke-width':1});
+    vals.forEach((v,i)=>{
+      const w=has2?bw*.24:bw*.4;
+      const x=has2?px0+i*bw+bw*.18:px0+i*bw+(bw-w)/2;
+      const h=(H-B-T)*v/max;
+      const r=capsule(s,x,H-B-h,w,h,w/2,color);
+      tip(r,`${labels[i]}：${v}`);
+      txt(s,{x:x+w/2,y:H-B-h-6,'font-size':10,'font-weight':800,fill:INK,'text-anchor':'middle'},v);
+      if(has2&&vals2[i]!=null){
+        const h2=(H-B-T)*vals2[i]/max;
+        const r2=capsule(s,x+w+3,H-B-h2,w,h2,w/2,color2);
+        tip(r2,`${labels[i]} 扣非净利：${vals2[i]}`);
+      }
+    });
+  };
+  /* 左面板：收入（柱）+ 毛利率（线，独立缩放） */
+  drawPanel(L,rev,C1);
+  const lT=T+14,lB=H-B-16;
+  const lspan=Math.max(...gm)-Math.min(...gm)||1;
+  const lmax=Math.max(...gm)+lspan*.5,lmin=Math.min(...gm)-lspan*.5;
+  const pts=gm.map((v,i)=>{
+    const x=L+i*(pw/n)+pw/n/2,y=lT+(lB-lT)*(1-(v-lmin)/(lmax-lmin||1));
+    return [x,y];
+  });
+  el(s,'path',{d:'M'+pts.map(p=>p.join(' ')).join(' L '),fill:'none',stroke:INK,'stroke-width':1.8});
+  const lmaxBar=Math.max(...rev)*1.15||1; /* 与 drawPanel 单柱量程同式，供线标签避让柱顶数字 */
+  pts.forEach((p,i)=>{
+    el(s,'circle',{cx:p[0],cy:p[1],r:3,fill:INK,stroke:'#fff','stroke-width':1.5});
+    const barTop=H-B-(H-B-T)*rev[i]/lmaxBar;
+    const ly=labelY(p[1],barTop);
+    txt(s,{x:p[0],y:ly,'font-size':9,'font-weight':700,fill:MUT,'text-anchor':'middle',...HALO},gm[i]+'%');
+  });
+  /* 右面板：归母净利柱（+扣非净利柱，可缺省） */
+  drawPanel(x2,np,C1,has_dt?np_dt:null,C2);
+  /* 右面板 ROE 线：小数 ×100 呈现 %，独立缩放，样式与左板毛利率线一致；
+     null 期跳点不画，只连连续非空段（断点不硬连，避免误读为连续趋势） */
+  const rv=roe.map(v=>v==null?null:v*100);
+  if(rv.some(v=>v!=null)){
+    const vals=rv.filter(v=>v!=null);
+    const span=Math.max(...vals)-Math.min(...vals)||1;
+    const lmax=Math.max(...vals)+span*.5,lmin=Math.min(...vals)-span*.5;
+    const cx=i=>has_dt?x2+i*(pw/n)+(pw/n)*.42+1.5:x2+i*(pw/n)+(pw/n)/2; /* 双柱时锚柱组中心 */
+    const ry=v=>lT+(lB-lT)*(1-(v-lmin)/(lmax-lmin||1));
+    const rmaxBar=Math.max(...(has_dt?np.concat(np_dt.filter(v=>v!=null)):np))*1.15||1;
+    let run=[];
+    const flush=()=>{
+      if(run.length>1){
+        el(s,'path',{d:'M'+run.map(i=>[cx(i),ry(rv[i])]).map(p=>p.join(' ')).join(' L '),fill:'none',stroke:INK,'stroke-width':1.8});
+      }
+      run=[];
+    };
+    rv.forEach((v,i)=>{
+      if(v==null){flush();return;}
+      run.push(i);
+      el(s,'circle',{cx:cx(i),cy:ry(v),r:3,fill:INK,stroke:'#fff','stroke-width':1.5});
+      const barTop=H-B-(H-B-T)*np[i]/rmaxBar;
+      const ly=labelY(ry(v),barTop);
+      txt(s,{x:cx(i),y:ly,'font-size':9,'font-weight':700,fill:MUT,'text-anchor':'middle',...HALO},v.toFixed(2)+'%');
+    });
+    flush();
+  }
+  /* 面板分隔、标题与图例（扣非/ROE 无数据时图例相应缺省，右对齐避让面板标题） */
+  el(s,'line',{x1:x2-GAP/2,y1:T-8,x2:x2-GAP/2,y2:H-B,stroke:FAINT,'stroke-width':.7,'stroke-dasharray':'2 3'});
+  txt(s,{x:L,y:T-22,'font-size':10,'font-weight':700,fill:MUT},'营业收入（亿元）· 线=毛利率(%)');
+  txt(s,{x:x2,y:T-22,'font-size':10,'font-weight':700,fill:MUT},'归母净利+扣非净利（亿元）· 线=ROE(%)');
+  const lg=[['归母净利',C1],has_dt?['扣非净利',C2]:null,rv.some(v=>v!=null)?['ROE',INK]:null].filter(Boolean);
+  let lx=W-R-lg.length*110;
+  lg.forEach(([nm,c])=>{
+    el(s,'rect',{x:lx,y:6,width:10,height:10,fill:c,rx:2});
+    txt(s,{x:lx+15,y:15,'font-size':10,'font-weight':600,fill:MUT},nm);
+    lx+=110;
+  });
+  labels.forEach((lb,i)=>{
+    txt(s,{x:L+i*(pw/n)+pw/n/2,y:H-B+18,'font-size':9.5,'font-weight':600,fill:MUT,'text-anchor':'middle'},lb);
+    txt(s,{x:x2+i*(pw/n)+pw/n/2,y:H-B+18,'font-size':9.5,'font-weight':600,fill:MUT,'text-anchor':'middle'},lb);
+  });
+}
+
+/* delta 条形图（v0.0.7，替代瀑布图）：水平值（净利润/OCF）与调整项量级悬殊时，
+  瀑布图会把调整项压成细线看不出相对大小（如净利润 77 vs 调整项多在 ±10 内）。
+  改为只画调整项：按 |delta| 降序横排，零轴居中、右绿左红、条端标数值；
+  水平值在 HTML .brends 端点行呈现。柱=长度契约保持（零轴不截断），每项可读。 */
+function deltaBars(id,steps){
+  const s=document.getElementById(id);if(!s||!steps.length)return;
+  const W=+s.viewBox.baseVal.width,H=+s.viewBox.baseVal.height,L=86,R=54,T=14,B=8;
+  const rows=[...steps].sort((a,b)=>Math.abs(b[1])-Math.abs(a[1]));
+  const n=rows.length,rh=(H-T-B)/n;
+  const vmax=Math.max(...rows.map(r=>Math.abs(r[1])))*1.12||1;
+  const x0=L+(W-L-R)/2; /* 零轴居中：左右等幅量程，正负可比 */
+  const sx=v=>x0+(W-L-R)/2*v/vmax;
+  const step=niceStep(vmax/2);
+  for(let v=step;v<vmax;v+=step){
+    for(const sg of[-1,1]){
+      el(s,'line',{x1:sx(sg*v),y1:T,x2:sx(sg*v),y2:H-B,stroke:FAINT,'stroke-width':.7,'stroke-dasharray':'3 3'});
+    }
+  }
+  el(s,'line',{x1:x0,y1:T,x2:x0,y2:H-B,stroke:GRID,'stroke-width':1});
+  rows.forEach(([nm,v],i)=>{
+    const y=T+i*rh+rh*.18,h=rh*.64;
+    const pos=v>=0;
+    const x=pos?x0:sx(v),w=Math.abs(sx(v)-x0);
+    const r=el(s,'rect',{x:x,y:y,width:w,height:h,fill:pos?GOOD:BAD,rx:Math.min(h/2,7)});
+    tip(r,`${nm}：${v>0?'+':''}${v}`);
+    txt(s,{x:L-8,y:y+h/2+3.5,'font-size':9.5,'font-weight':600,fill:MUT,'text-anchor':'end'},nm);
+    txt(s,{x:pos?x+w+5:x-5,y:y+h/2+3.5,'font-size':9.5,'font-weight':800,fill:pos?GOOD:BAD,'text-anchor':pos?'start':'end'},(v>0?'+':'')+v);
+  });
+}
+
+/* 杜邦三因子 5 期归一化折线（v0.0.7，替代表格）：四因子量纲悬殊（净利率 17~24% vs
+  周转率 0.5~0.7），同轴原始值折线会把小量纲压成底部平线。归一化（首点=100）后同坐标系
+  可比，走向即故事；末点标原始值，tooltip 给「原值 + 指数」。末条 series 视为结果线（ROE）加粗。
+  series = [[name, values, color, unit], …]；values 允许 null（断点不硬连）。 */
+function dupontNorm(id,labels,series){
+  const s=document.getElementById(id);if(!s||!labels.length||!series.length)return;
+  const W=+s.viewBox.baseVal.width,H=+s.viewBox.baseVal.height,L=40,R=64,B=30,T=26;
+  const n=labels.length;
+  const idx=series.map(([nm,vals])=>vals.map(v=>v==null?null:v/vals[0]*100));
+  const all=idx.flat().filter(v=>v!=null);
+  let lo=Math.min(...all),hi=Math.max(...all);
+  const pad=(hi-lo)*.12||1;hi+=pad;lo-=pad;
+  const x=i=>L+(W-L-R)*(n===1?.5:i/(n-1));
+  const y=v=>T+(H-T-B)*(1-(v-lo)/(hi-lo));
+  const step=niceStep((hi-lo)/4);
+  for(let v=Math.ceil(lo/step)*step;v<hi;v+=step){
+    el(s,'line',{x1:L,y1:y(v),x2:W-R,y2:y(v),stroke:FAINT,'stroke-width':.7,'stroke-dasharray':'3 3'});
+    txt(s,{x:L-6,y:y(v)+3,'font-size':8.5,'font-weight':600,fill:MUT,'text-anchor':'end'},Math.round(v));
+  }
+  /* 基期 100 参考线 */
+  el(s,'line',{x1:L,y1:y(100),x2:W-R,y2:y(100),stroke:GRID,'stroke-width':1,'stroke-dasharray':'4 3'});
+  series.forEach(([nm,vals,color,unit],si)=>{
+    const last=si===series.length-1;
+    const pts=idx[si].map((v,i)=>v==null?null:[x(i),y(v)]);
+    let run=[];
+    const flush=()=>{
+      if(run.length>1)el(s,'path',{d:'M'+run.map(p=>p.join(' ')).join(' L '),fill:'none',stroke:color,'stroke-width':last?2.2:1.5});
+      run=[];
+    };
+    pts.forEach(p=>{if(!p){flush();return;}run.push(p)});
+    flush();
+    pts.forEach((p,i)=>{
+      if(!p)return;
+      const c=el(s,'circle',{cx:p[0],cy:p[1],r:last?3:2.4,fill:color,stroke:'#fff','stroke-width':1.2});
+      tip(c,`${labels[i]} ${nm}：${vals[i]}${unit}（指数 ${idx[si][i].toFixed(0)}）`);
+    });
+  });
+  /* 末点原始值标签：多序列末点纵向接近时依次下移避让（相邻间距 ≥12px） */
+  const li=labels.length-1;
+  const ends=[];
+  series.forEach(([nm,vals,color,unit],si)=>{
+    if(idx[si][li]!=null)ends.push({y:y(idx[si][li])+3,text:`${vals[li]}${unit}`,color});
+  });
+  ends.sort((a,b)=>a.y-b.y);
+  for(let i=1;i<ends.length;i++)if(ends[i].y-ends[i-1].y<12)ends[i].y=ends[i-1].y+12;
+  ends.forEach(e=>txt(s,{x:x(li)+7,y:e.y,'font-size':9,'font-weight':700,fill:e.color,'text-anchor':'start'},e.text));
+  labels.forEach((lb,i)=>txt(s,{x:x(i),y:H-B+16,'font-size':9.5,'font-weight':600,fill:MUT,'text-anchor':'middle'},lb));
+  series.forEach(([nm,,color],i)=>{
+    el(s,'rect',{x:L+i*104,y:6,width:10,height:10,fill:color,rx:2});
+    txt(s,{x:L+i*104+14,y:15,'font-size':9,'font-weight':600,fill:MUT},nm);
+  });
+}
+
+trendDual('trend',TREND.labels,TREND.rev,TREND.np,TREND.gm,TREND.np_dt,TREND.roe);
+deltaBars('ocfbridge',OCF_BRIDGE.slice(1));
+dupontNorm('dupont5',DUPONT5.labels,[
+  ['净利率',DUPONT5.net_margin,C1,'%'],
+  ['总资产周转率',DUPONT5.asset_turn,v('--der'),''],
+  ['权益乘数',DUPONT5.equity_mult,MUT,''],
+  ['ROE',DUPONT5.roe,INK,'%']]);
+combo('holders',HOLDERS.labels,HOLDERS.num,[],HOLDERS.px,'区间涨跌幅','股东户数(万户)','');
+</script>
+</body>
+</html>

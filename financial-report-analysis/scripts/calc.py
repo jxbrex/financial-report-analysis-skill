@@ -190,6 +190,18 @@ def check_structure(data, rep):
             elif abs(nums[-1] - float(cur)) > max(0.005 * abs(float(cur)), 0.005):
                 bad_hist += 1
                 rep.add(FAIL, "hist", f"{loc}.hist 末位 {nums[-1]} ≠ cur {cur}（hist 必须旧→新且以本期收尾）")
+        # hist_ye（半年报平均余额比率的期初口径）：末位必须 = prev（本期期初）
+        hye = node.get("hist_ye")
+        prev = node.get("prev")
+        if isinstance(hye, list) and hye:
+            nums_ye = [num(x) for x in hye]
+            if any(n is None for n in nums_ye):
+                rep.add(FAIL, "type", f"{loc}.hist_ye 含非数值元素")
+            elif isinstance(prev, (int, float)) and not isinstance(prev, bool) \
+                    and abs(nums_ye[-1] - float(prev)) > max(0.005 * abs(float(prev)), 0.005):
+                bad_hist += 1
+                rep.add(FAIL, "hist", f"{loc}.hist_ye 末位 {nums_ye[-1]} ≠ prev {prev}"
+                                      f"（hist_ye 末位必须是本期期初=prev）")
 
     # derived.ratios 的趋势比率同样带 hist，末位必须 = cur。比率节点无 src（复算值），
     # 不能混入 walk_leaves（会误报 src 为空），故单独遍历、只查 hist 一致性
@@ -500,6 +512,13 @@ def series_of(data, sec, field):
     return vals
 
 
+def series_of_ye(data, sec, field):
+    """科目年末序列（hist_ye）：半年报平均余额比率的期初口径（各年 12-31）。
+    末位=prev（cur 期的期初）。无 hist_ye 返回 []（年报形态，期初退化为 hist 前一期）。"""
+    node = leaf(data, "statements", sec, field) or {}
+    return [num(x) for x in node.get("hist_ye") or []]
+
+
 def ratio_hist_expect(name, v):
     """按某期科目取值字典复算比率（全脚本比率公式唯一定义处）；缺数返回 None。"""
     g = lambda *p: v.get(p)
@@ -576,16 +595,27 @@ def check_ratio_hist(data, rep):
             continue  # 单期专用比率不序列化，无 hist 可查
         fields, avg_based = spec
         ss = [series_of(data, sec, f) for sec, f in fields]
+        # 平均余额口径的期初（上一期余额）：半年报取 hist_ye（该期上年 12-31，平均余额
+        # 窗口与收入期间匹配），与科目序列尾部对齐（hist_ye 末位=prev=cur 期的期初）；
+        # 无 hist_ye 或短于科目序列时整科目退化为 hist 前一期（年报形态，期初=上年末
+        # 天然正确）。期初只在存量（balance）科目上取，流量科目不读 _prev
+        yes = ([series_of_ye(data, sec, f) for sec, f in fields]
+               if avg_based else [[] for _ in fields])
+        prev_fields = [f for sec, f in fields if sec == "balance"] if avg_based else []
         # hist 旧→新且以 cur 收尾，比率与科目序列按尾部对齐逐期比对
         L = min([len(rh)] + [len(s) for s in ss])
         for j in range(L):
             v = {}
-            for (sec, f), s in zip(fields, ss):
+            for (sec, f), s, ye in zip(fields, ss, yes):
                 i = len(s) - L + j
                 v[(sec, f)] = s[i]
                 # 平均余额口径还需上一期余额（期初），一并取入取值字典
-                v[f"{f}_prev"] = s[i - 1] if i > 0 else None
-            if avg_based and any(v[f"{f}_prev"] is None for _, f in fields):
+                if not avg_based or sec != "balance":
+                    continue
+                use_ye = bool(ye) and len(ye) >= len(s)
+                v[f"{f}_prev"] = (ye[i + len(ye) - len(s)] if use_ye
+                                  else (s[i - 1] if i > 0 else None))
+            if prev_fields and any(v.get(f"{f}_prev") is None for f in prev_fields):
                 rep.add(SKIP, "ratio-hist", f"{name} 首期无期初余额，跳过（平均余额口径从第 2 期起算）")
                 n_skip += 1
                 continue
