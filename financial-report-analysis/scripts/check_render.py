@@ -44,8 +44,11 @@ CHROME_CANDIDATES = [
 
 VIRTUAL_TIME_BUDGET = 8000
 
-# 测量视口：.sheet 1040px + body 左右 padding 各 20px，留 20px 余量
-VIEW_W, VIEW_H = 1100, 2000
+# 测量视口：(宽, 高, 标签)——桌面 = .sheet 1040px + body 左右 padding 20px 留余量；
+# 窄屏 = 390px（iPhone 12/13/14 逻辑宽），验证流式骨架与页面级横向溢出（v0.0.11）
+VIEW_H = 2000
+DESKTOP_W, MOBILE_W = 1100, 390
+VIEWPORTS = ((DESKTOP_W, VIEW_H, "桌面"), (MOBILE_W, VIEW_H, "窄屏"))
 
 SKIP_NOTE = ("渲染门禁跳过：未找到 Chrome/Edge（check_html.py 静态硬门禁仍然生效，"
              "本项为可选门禁，不阻塞交付）")
@@ -57,7 +60,7 @@ window.addEventListener('load', () => setTimeout(() => {
   const label = (el) => el.tagName.toLowerCase() +
     (el.className && typeof el.className === 'string'
       ? '.' + el.className.trim().split(/\\s+/).join('.') : '');
-  const report = {overlaps: [], spills: [], clipped: [], sections: []};
+  const report = {overlaps: [], spills: [], clipped: [], pageclip: [], sections: []};
 
   /* 1. SVG 文本重叠：本技能 SVG text 均单行，取整体 boundingRect 即可 */
   for (const svg of document.querySelectorAll('svg')) {
@@ -81,8 +84,18 @@ window.addEventListener('load', () => setTimeout(() => {
     const sb = sheet.getBoundingClientRect();
     const spilled = [];
     const clip = [];
+    /* 处于有意横向滚动容器（overflow-x:auto/scroll，v0.0.11 宽表格卡片内横滑）内的
+       元素，其超宽由滚动访问承载，不算溢出 .sheet */
+    const inScroller = (el) => {
+      for (let p = el.parentElement; p; p = p.parentElement) {
+        const ox = getComputedStyle(p).overflowX;
+        if (ox === 'auto' || ox === 'scroll') return true;
+      }
+      return false;
+    };
     for (const el of sheet.querySelectorAll('*')) {
       if (el.closest('svg')) continue; /* svg 是 viewBox 缩放坐标系，溢出判据不适用 */
+      if (inScroller(el)) continue;
       const copy = (el.textContent || '').trim();
       if (copy) {
         const r = el.getBoundingClientRect();
@@ -94,8 +107,10 @@ window.addEventListener('load', () => setTimeout(() => {
                                            sel: label(el), text: copy.slice(0, 44)});
         }
       }
+      /* overflowX 为 auto/scroll 属有意滚动设计（v0.0.11 起宽表格卡片内横滑），
+         内容可滚动访问不算裁剪；只有 hidden/clip（内容被切掉）才算问题 */
       if (el.scrollWidth > el.clientWidth + 2 &&
-          getComputedStyle(el).overflowX !== 'visible')
+          ['hidden', 'clip'].includes(getComputedStyle(el).overflowX))
         clip.push({sel: label(el), px: el.scrollWidth - el.clientWidth});
     }
     /* 只留最内层溢出元素：外层容器因包含溢出后代而连带超界时不重复报 */
@@ -114,6 +129,12 @@ window.addEventListener('load', () => setTimeout(() => {
         id: head ? head.id : '',
         h: Math.ceil(el.getBoundingClientRect().height)});
     }
+
+    /* 页面级横向溢出：流式骨架（v0.0.11，.sheet max-width 而非定宽）下页面
+       不得出现横向滚动条——骨架被改回定宽或某元素撑破视口时此处命中 */
+    const de = document.documentElement;
+    if (de.scrollWidth > window.innerWidth + 2)
+      report.pageclip.push({px: de.scrollWidth - window.innerWidth});
   }
 
   /* 4. 字体回退检测：模板字体栈以朱雀仿宋为首选，document.fonts.check 验证其真实
@@ -140,7 +161,9 @@ window.addEventListener('load', () => setTimeout(() => {
   style.textContent =
     'html,body{margin:0!important;padding:0!important;background:none!important;' +
     'display:block!important;min-height:0!important}' +
-    '.sheet{padding:0!important}';
+    /* .sheet 居中由 body flex 承载，isolate 覆写 display 后必须补 margin:auto，
+       否则分片截图左偏移、与真实版式（及 v0.0.11 后模板自身 margin 居中）不一致 */
+    '.sheet{padding:0!important;margin:0 auto!important}';
   document.head.appendChild(style);
   const parts = [...document.querySelectorAll('.masthead, .sect, .foot')];
   parts.forEach((el, i) => { if (i !== %INDEX%) el.style.display = 'none'; });
@@ -223,7 +246,8 @@ def variant(html: str, snippet: str) -> str:
     return html + snippet
 
 
-def measure(chrome: str, html: str, work: Path) -> dict:
+def measure(chrome: str, html: str, work: Path, view_w: int,
+            view_h: int = VIEW_H) -> dict:
     holder = {"event": threading.Event()}
 
     class _ReportHandler(BaseHTTPRequestHandler):
@@ -244,15 +268,15 @@ def measure(chrome: str, html: str, work: Path) -> dict:
     port = srv.server_address[1]
     threading.Thread(target=srv.serve_forever, daemon=True).start()
     try:
-        page = work / "measure.html"
+        page = work / f"measure-{view_w}.html"
         page.write_text(variant(html, MEASURE_JS.replace("%PORT%", str(port))),
                         encoding="utf-8")
         # 终止机制用 --screenshot 探针：本机 Edge 的 --dump-dom 会空输出并提前退出，
         # 而 screenshot 通道实测可靠（渲染完成后写盘并退出）
         chrome_run(
             chrome, page, work, lambda _out: holder["event"].is_set(),
-            f"--screenshot={work / 'probe.png'}",
-            f"--window-size={VIEW_W},{VIEW_H}",
+            f"--screenshot={work / f'probe-{view_w}.png'}",
+            f"--window-size={view_w},{view_h}",
             linger=20,
         )
     finally:
@@ -272,7 +296,7 @@ def shoot(chrome: str, html: str, work: Path, index: int, height: int,
         chrome, page, work,
         lambda _out: dest.exists() and dest.stat().st_size > 0,
         f"--screenshot={dest}",
-        f"--window-size={VIEW_W},{height + 40}",
+        f"--window-size={DESKTOP_W},{height + 40}",
         f"--force-device-scale-factor={scale}",
         linger=20,
     )
@@ -310,38 +334,49 @@ def main() -> int:
     with tempfile.TemporaryDirectory(prefix="fra-render-",
                                      ignore_cleanup_errors=True) as tmp:
         work = Path(tmp)
-        report = measure(chrome, html, work)
 
         problems = 0
         print(f"=== check_render.py 渲染测量 · {args.source.name} ===")
-        for item in report["overlaps"]:
-            problems += 1
-            print(f"🔴 [overlap] svg#{item['svg']}: “{item['a']}” × “{item['b']}” "
-                  f"重叠 {item['px']}px")
-        for item in report["spills"]:
-            problems += 1
-            print(f"🔴 [spill] 溢出 .sheet {item['edge']} 缘 {item['px']}px — "
-                  f"{item['sel']} “{item['text']}”")
-        for item in report["clipped"]:
-            problems += 1
-            print(f"🔴 [clipped] 横向裁剪 {item['px']}px — {item['sel']}")
-        for item in report.get("fontwarn") or []:
-            print(f"🟡 [font] {item}")
+        sections = []
+        for vw, vh, tag in VIEWPORTS:
+            report = measure(chrome, html, work, vw, vh)
+            if tag == "桌面":
+                sections = report["sections"]  # --png 分片按桌面视口章节高度
+            vp_problems = 0
+            for item in report["overlaps"]:
+                vp_problems += 1
+                print(f"🔴 [{tag}·overlap] svg#{item['svg']}: “{item['a']}” × “{item['b']}” "
+                      f"重叠 {item['px']}px")
+            for item in report["spills"]:
+                vp_problems += 1
+                print(f"🔴 [{tag}·spill] 溢出 .sheet {item['edge']} 缘 {item['px']}px — "
+                      f"{item['sel']} “{item['text']}”")
+            for item in report["clipped"]:
+                vp_problems += 1
+                print(f"🔴 [{tag}·clipped] 横向裁剪 {item['px']}px — {item['sel']}")
+            for item in report["pageclip"]:
+                vp_problems += 1
+                print(f"🔴 [{tag}·pageclip] 页面横向溢出 {item['px']}px — "
+                      f"骨架非流式或元素撑破视口")
+            if tag == "桌面":  # 字体回退是环境级降级，与视口无关，报一次
+                for item in report.get("fontwarn") or []:
+                    print(f"🟡 [font] {item}")
+            n = lambda k: len(report[k])
+            print(f"--- [{tag}] 汇总：overlap {n('overlaps')} · spill {n('spills')} · "
+                  f"clipped {n('clipped')} · pageclip {n('pageclip')} ---")
+            problems += vp_problems
 
         if args.png:
             args.png.mkdir(parents=True, exist_ok=True)
-            for i, sec in enumerate(report["sections"]):
+            for i, sec in enumerate(sections):
                 name = sec["id"] or f"{sec['cls']}-{i:02d}"
                 dest = args.png / f"{args.source.stem}-{name}.png"
                 ok = shoot(chrome, html, work, i, sec["h"], dest, args.scale)
                 print(f"  {'✅' if ok else '🔴'} 分片截图 {dest.name} "
-                      f"({VIEW_W}x{sec['h'] + 40} @x{args.scale})")
+                      f"({DESKTOP_W}x{sec['h'] + 40} @x{args.scale})")
                 if not ok:
                     problems += 1
 
-        n = lambda k: len(report[k])
-        print(f"--- 汇总：overlap {n('overlaps')} · spill {n('spills')} · "
-              f"clipped {n('clipped')} ---")
         if problems:
             print("❌ 渲染测量发现问题：修呈现后再交付（旧版式存量报告的问题记录在案、不追溯）。")
             return 1

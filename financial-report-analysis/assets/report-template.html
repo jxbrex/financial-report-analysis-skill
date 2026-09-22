@@ -35,8 +35,8 @@
 body{background:var(--bg);color:#000;
   font-family:"Zhuque Fangsong","朱雀仿宋","FangSong","仿宋","STFangsong",serif;
   -webkit-font-smoothing:antialiased;font-variant-numeric:tabular-nums lining-nums;
-  display:flex;justify-content:center;padding:40px 20px}
-.sheet{width:1040px;max-width:1040px}
+  padding:40px 20px}
+.sheet{width:100%;max-width:1040px;margin:0 auto}
 
 /* ── 页眉 ── */
 .masthead{border-bottom:3px double var(--ink);padding-bottom:18px;margin-bottom:8px}
@@ -78,7 +78,7 @@ a:hover{text-decoration:underline}
 
 /* ── 卡片与表格 ── */
 .card{background:var(--card);border:1px solid var(--grid);border-radius:10px;
-  padding:18px 22px;margin:14px 0}
+  padding:18px 22px;margin:14px 0;overflow-x:auto}
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:18px}
 .grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
 @media(max-width:860px){.grid2,.grid3{grid-template-columns:1fr}}
@@ -135,7 +135,21 @@ table.data tr.total td{font-weight:800;border-top:1.5px solid var(--ink);border-
 .fade{animation:fade .7s ease both}
 @keyframes fade{from{opacity:0;transform:translateY(6px)}}
 @media (prefers-reduced-motion:reduce){.fade{animation:none}}
-@media(max-width:640px){body{padding:20px 8px}.masthead h1{font-size:24px}}
+/* ── 窄屏（手机）适配（v0.0.11）：骨架流式 + 宽表格卡片内横滑 + 字号内边距微调。
+   图表 SVG 不重绘，整图等比缩小——PC 为主、移动尽量可读的取舍 ── */
+@media(max-width:640px){
+  body{padding:20px 12px}
+  .masthead h1{font-size:24px}
+  .masthead .sub{font-size:13px}
+  .card{padding:14px}
+  table.data{font-size:12.5px}
+  table.data th,table.data td{padding:7px 8px}
+  .lede{font-size:14px}
+  .flaglist li{font-size:13.5px}
+  .drill{white-space:normal}
+  .kpi .v{font-size:22px}
+  .sect{margin-top:34px}
+}
 </style>
 </head>
 <body>

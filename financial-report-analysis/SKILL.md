@@ -8,7 +8,7 @@ description: >
 metadata:
   clawdbot:
     emoji: "📑"
-    version: "0.0.10"
+    version: "0.0.11"
     requires:
       anyBins: ["python"]
     os: ["win32", "darwin", "linux"]
@@ -293,11 +293,14 @@ Roll-forward（应收/存货/在建工程/商誉）+ C 组周期联动（CCC/DPO
    **数字回验（T8，`--json` 时启用）**：①级 HTML 数字 ↔ data.json 笔误检测（仅对数值上
    可唯一归因的「独特值」，0.5% 窗口，FAIL 级）；②级 data.json ↔ 原文 md 按 src 行号
    回核（5% 容差 + 元/万/亿单位换算 + 行号窗 ±2，md 缺失跳过并声明）。FAIL 未清零不得交付
-5. **渲染门禁（可选但默认执行，v0.0.9 L2）**：`python "<技能目录>/scripts/check_render.py" reports/xxx.html`
-   headless Chrome/Edge 真渲染后测量三类呈现问题：SVG 文本重叠（两轴相交 >1px）、
-   HTML 元素溢出 .sheet、横向裁剪。静态正则看不到渲染后状态，图表标签压柱/重叠
-   只能靠它抓。找不到浏览器时打印跳过声明 + exit 0（不阻塞交付，check_html 硬门禁地位不动）；
-   发现问题 exit 1，修呈现后再交付。旧版式存量报告的问题记录在案、不追溯（AGENTS 纪律 7）。
+5. **渲染门禁（可选但默认执行，v0.0.9 L2，v0.0.11 起双视口）**：`python "<技能目录>/scripts/check_render.py" reports/xxx.html`
+   headless Chrome/Edge 真渲染后测量呈现问题（**桌面 1100px + 窄屏 390px 双视口**各一轮）：
+   SVG 文本重叠（两轴相交 >1px）、HTML 元素溢出 .sheet（滚动容器内元素豁免）、
+   横向裁剪（仅 overflow hidden/clip；auto/scroll 是模板有意滚动设计，不算）、
+   **页面级横向溢出**（pageclip：骨架非流式或元素撑破视口，仅对含 .sheet 的报告页）。
+   静态正则看不到渲染后状态，图表标签压柱/重叠只能靠它抓。找不到浏览器时打印跳过声明
+   + exit 0（不阻塞交付，check_html 硬门禁地位不动）；发现问题 exit 1，修呈现后再交付。
+   旧版式存量报告的问题记录在案、不追溯（AGENTS 纪律 7）。
    **视觉验收（v0.0.9 L4，机器优先——评审修订）**：呈现问题以 check_render 机器判据为准
    （含字体回退检测：渲染后实际字体非朱雀仿宋时 WARN）。**人眼截图验收只在两个触发
    条件下执行**：①渲染门禁报出 WARN/问题待定性；②模板或绘图函数改动后的首份报告
@@ -341,3 +344,4 @@ Roll-forward（应收/存货/在建工程/商誉）+ C 组周期联动（CCC/DPO
 | 0.0.8 | 2026-09-16 | tushare 去 MCP 化（用户禁用 tushare MCP，上下文治理）：新增 `scripts/ts_fetch.py` HTTP 取数通道——token 读环境变量 `TUSHARE_TOKEN`、stdout JSONL（默认截断 200 行）、40203 无权限/限流两义报错带降级提示；权限频控跟 token 走、与 MCP/SDK 等价，无 MCP 环境可正常双源核对。`TUSHARE_TOKEN` 未配置时 A 股降级妙想单源 + `[单源]` 标注。data-sources.md 第二节、SKILL.md（防幻觉块/Phase 1/降级条款）、README 同步。实测 income/stk_holdernumber/hk_income 三路径；回归 19 断言全绿 |
 | 0.0.9 | 2026-09-17 | 呈现层门禁轮（lieflat-cards 交叉审核借鉴 + 渲染设计评审，L1–L5 一次升版）：**L1 单一色源**（JS 绘图色全读 `:root` CSS 变量、新增 `--der`，换色只改一处）+ 趋势图线标签改数据点正上方居中 + 白描边 halo（修标签压柱不可读），与柱顶数字相交区间移到点下方、dupont 末点标签纵向避让；**L2 新增 `scripts/check_render.py` 渲染测量门禁**（headless Chrome/Edge 真渲染测 SVG 文本重叠/溢出 .sheet/横向裁剪；可选门禁——无浏览器声明跳过 exit 0；本机 Edge `--dump-dom` stdout 空，结果改 localhost HTTP 回传 + screenshot 探针终止）；**L3 check_html 新增 slot-length WARN**（s1 四维表评价列 ≤15 字契约 +5 容忍）；**L4 `--png` 按章分片截图 + Phase 8 视觉验收步骤**（交付语含「已视觉验收」）；**L5 s8 真仪表盘化**（卡组 `.wv` 读数大字+徽章 / `.wb` 阈值带小字，check_s8_shape 重写为卡组判据、旧表兜底 compat 存量）+ review 兑现率 KPI 卡 + s0 分歧锚表格卡回收。首测即抓出恒瑞旧版瀑布图标签黑带 9 处重叠（人肉目检曾漏检）。回归 19→20 断言（渲染冒烟 Chrome 可用时计入） |
 | 0.0.10 | 2026-09-21 | 宁德时代报告评审轮（HANDOFF 二·十六节）：**平均余额口径定案**（第一性原理——平均余额窗口必须与收入期间匹配，期初一律取该期上一年 12-31；半年报绝不用上年 6-30 当期初）：balance 四科目（ar/inventory/payable/total_assets）新增 `hist_ye`（各年 12-31 序列，末位=prev），calc.py 期初分支优先取 hist_ye（年报退化 hist 前一期、行为字节级不变）+ hist_ye 末位=prev 结构校验 + 修期初判空误伤流量科目的 SKIP bug；frameworks.md 写入口径规则。宁德 json 回填 10 时点的 hist/hist_ye，dso/dio/dpo/ccc/asset_turnover 5 期序列落地（prev 修正：宁德 DSO 上期 124.4→130.5、改善 15.8→22.0 天——原两期对比混用两套期初规则），calc 实测 ratio-hist 58 期全过。**「下钻」→「追查」**（异常线索追查/追查路径/排雷与勾稽表末列，模板 8 处 + check_html 2 处文案，CSS 类名不动）。**读法层两条新硬规则**：归因类图表（杜邦/因素桥）figtitle 四段式（变化方向→靠什么→经营含义→盯什么，禁止只报归因）；缩写纪律（正文首次全称+一句白话，徽章/刻度豁免）。**L4 改机器优先**：check_render 新增字体回退检测（朱雀仿宋缺失 🟡 WARN 不计 exit 1），人眼截图验收只在两个触发条件下执行（门禁 WARN / 模板改动后首份报告）。回归 20/20 全绿 |
+| 0.0.11 | 2026-09-22 | 移动端可读性轮（HANDOFF 二·十七节，用户定调「PC 为主、移动尽量可读」，存量不重出）：模板骨架流式化（`body` 去 flex、`.sheet` width:100%+max-width:1040+margin 居中，PC 像素级零变化）、`.card` overflow-x:auto 宽表格卡片内横滑、640 断点字号/内边距微调；图表 SVG 维持整图等比缩小不重绘。check_render.py **桌面 1100+窄屏 390 双视口测量**：新增 pageclip 页面级横向溢出判据（仅含 .sheet 报告页）、clipped 判据修正（auto/scroll 有意滚动不算裁剪）、spill 豁免滚动容器内元素；ISOLATE_JS 补 .sheet margin 居中（修分片截图左偏移——v0.0.9 L4 以来截图一直左偏 30px 未被发现）。桌面版式像素级零变化验证（9/12 分片逐像素一致，masthead 为 fade 动画帧非确定）。回归 20/20 全绿 |
