@@ -247,6 +247,10 @@
 }
 ```
 
+**`source_md` 契约（v0.0.13）**：新报告指向 `scripts/md_clean.py` 产出的
+`{stem}.clean.md`（唯一工作副本；T8② 行号回核对其执行）；v0.0.13 前的存量 json 仍指
+原始 md——快照不回改，两种文件在 `reports/archive/原始报告/` 共存。
+
 **趋势比率 hist 规则**（三、derived.ratios 骨架）：
 - 14 个趋势比率（roe/gross_margin/net_margin/net_cash_ratio/cash_to_sales/debt_to_assets/
   asset_turnover/equity_multiplier/dso/dio/dpo/ccc/dfl/dol）hist 为 **5 期同类型滚动**（年报对 FY、

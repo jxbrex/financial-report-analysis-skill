@@ -94,9 +94,10 @@ table.data tr.total td{font-weight:800;border-top:1.5px solid var(--ink);border-
 
 /* ── 读法层（v0.0.7）：复杂表/图的一句话读法，位于表格之后、srcline 之前 ── */
 .takeaway{font-size:12.5px;font-weight:700;margin-top:8px}
-/* 迷你走势字符（v0.0.12 趋势列）：八档块字符拼五期形状；强制 sans 字体栈——
-   朱雀仿宋不保证有块字符字形，缺字形会出豆腐块 */
-.spark{font-family:"Segoe UI",system-ui,sans-serif;letter-spacing:1px;font-size:12px}
+/* 迷你折线（v0.0.13 趋势列，替代 v0.0.12 块字符——块字符只编码水平、年度涨跌不可辨）：
+   每格一个 64×16 内嵌 SVG，JS spark() 画 polyline + 末点圆；线色由填充者按
+   frameworks.md 方向语义表对「本期 vs 上期」的好坏选 GOOD/BAD/INK */
+.spark{width:64px;height:16px;vertical-align:middle}
 /* OCF 调节桥端点行：净利润 →（调节净额）→ 经营现金流净额（水平值不画柱） */
 .brends{font-size:12.5px;font-weight:800;margin:2px 0 8px}
 
@@ -254,23 +255,23 @@ table.data tr.total td{font-weight:800;border-top:1.5px solid var(--ink);border-
     </div>
     <div class="card">
       <div class="figtitle">{{结论式：四维比率总判一句话，如「营运三维全面改善，负债率升系预收非恶化」}}</div>
-      <!-- ◆ v0.0.12：四维表全宽化——它是 S1 信息密度最高的表，半宽挤压「评价」列；
-           「近5期趋势」列填**迷你走势字符**（▁▂▃▄▅▆▇█ 八档块字符，一期一格，
-           值映射 = (值−5期最小)÷(5期最大−最小)×7 取整，五期同值全 ▄；缺 hist 填「—」），
-           外层套 <span class="spark"> 并按方向语义表染色（利好 .up / 利空 .dn / 中性不染）。
-           禁填五格数字链（14.2→10.8→…→11.2 形态阅读效果差，评审否决）；数字明细在
-           本期/上期列、杜邦变迁表与 trend 大图承担 -->
+      <!-- ◆ v0.0.12 全宽化、v0.0.13 趋势列改内嵌 SVG 迷你折线：四维表是 S1 信息密度最高的表，
+           半宽挤压「评价」列；「近5期趋势」列每格一个 64×16 SVG（JS spark() 画 polyline+末点圆，
+           数据填 JS 区 SPARK 槽=ratios 五期 hist 同类型滚动），**线色由填充者按 frameworks.md
+           方向语义表对「本期 vs 上期」的好坏选 GOOD/BAD/INK**——年度涨跌靠折线斜率直接可辨
+           （v0.0.12 块字符只编码水平、跌年不可辨，云铝首测评审否决）；禁填数字链；
+           数字明细由本期/上期列、杜邦变迁表与 trend 大图承担 -->
       <table class="data">
         <tr><th>指标</th><th>本期</th><th>上期</th><th class="txt">较上期</th><th class="txt">近5期趋势</th><th class="txt">评价</th></tr>
-        <tr><td>毛利率 <span class="badge der">推算</span></td><td>{{}}</td><td>{{}}</td><td class="txt">{{▲|▼|→ +Δ值；好坏语义色：利好用 <span class="up">、利空用 <span class="dn">、语境中性不染色——语义判据见 references/frameworks.md 方向语义表}}</td><td class="txt"><span class="spark">{{▁▂▃▄▅}}</span></td><td class="txt">{{≤15字注脚}}</td></tr>
-        <tr><td>净利率</td><td>{{}}</td><td>{{}}</td><td class="txt">{{▲|▼ + Δ值}}</td><td class="txt"><span class="spark">{{▁▂▃▄▅}}</span></td><td class="txt">{{≤15字注脚}}</td></tr>
-        <tr><td>资产负债率</td><td>{{}}</td><td>{{}}</td><td class="txt">{{▲|▼ + Δ值}}</td><td class="txt"><span class="spark">{{▁▂▃▄▅}}</span></td><td class="txt">{{≤15字注脚}}</td></tr>
-        <tr><td>存货周转天数</td><td>{{}}</td><td>{{}}</td><td class="txt">{{▲|▼ + Δ值}}</td><td class="txt"><span class="spark">{{▁▂▃▄▅}}</span></td><td class="txt">{{≤15字注脚}}</td></tr>
-        <tr><td>应收周转天数</td><td>{{}}</td><td>{{}}</td><td class="txt">{{▲|▼ + Δ值}}</td><td class="txt"><span class="spark">{{▁▂▃▄▅}}</span></td><td class="txt">{{≤15字注脚}}</td></tr>
-        <tr><td>收现比</td><td>{{}}</td><td>{{}}</td><td class="txt">{{▲|▼ + Δ值}}</td><td class="txt"><span class="spark">{{▁▂▃▄▅}}</span></td><td class="txt">{{≤15字注脚}}</td></tr>
-        <tr><td>现金转换周期 CCC（应收周转天数 DSO＋存货周转天数 DIO−应付周转天数 DPO，天）</td><td>{{}}</td><td>{{}}</td><td class="txt">{{▲|▼ + Δ值}}</td><td class="txt"><span class="spark">{{▁▂▃▄▅}}</span></td><td class="txt">{{≤15字注脚}}</td></tr>
-        <tr><td>经营杠杆 DOL <span class="badge der">推算</span></td><td>{{}}</td><td>{{}}</td><td class="txt">{{▲|▼ + Δ值；方向须落到周期定位后定性，语境中性不染色——见 frameworks.md 第九节}}</td><td class="txt"><span class="spark">{{▁▂▃▄▅}}</span></td><td class="txt">{{≤15字注脚}}</td></tr>
-        <tr><td>财务杠杆 DFL <span class="badge der">推算</span></td><td>{{}}</td><td>{{}}</td><td class="txt">{{▲|▼ + Δ值；接近 1 = 利息负担轻，语境中性不染色}}</td><td class="txt"><span class="spark">{{▁▂▃▄▅}}</span></td><td class="txt">{{≤15字注脚}}</td></tr>
+        <tr><td>毛利率 <span class="badge der">推算</span></td><td>{{}}</td><td>{{}}</td><td class="txt">{{▲|▼|→ +Δ值；好坏语义色：利好用 <span class="up">、利空用 <span class="dn">、语境中性不染色——语义判据见 references/frameworks.md 方向语义表}}</td><td class="txt"><svg class="spark" id="spark-gm" viewBox="0 0 64 16" preserveAspectRatio="none"></svg></td><td class="txt">{{≤15字注脚}}</td></tr>
+        <tr><td>净利率</td><td>{{}}</td><td>{{}}</td><td class="txt">{{▲|▼ + Δ值}}</td><td class="txt"><svg class="spark" id="spark-nm" viewBox="0 0 64 16" preserveAspectRatio="none"></svg></td><td class="txt">{{≤15字注脚}}</td></tr>
+        <tr><td>资产负债率</td><td>{{}}</td><td>{{}}</td><td class="txt">{{▲|▼ + Δ值}}</td><td class="txt"><svg class="spark" id="spark-da" viewBox="0 0 64 16" preserveAspectRatio="none"></svg></td><td class="txt">{{≤15字注脚}}</td></tr>
+        <tr><td>存货周转天数</td><td>{{}}</td><td>{{}}</td><td class="txt">{{▲|▼ + Δ值}}</td><td class="txt"><svg class="spark" id="spark-dio" viewBox="0 0 64 16" preserveAspectRatio="none"></svg></td><td class="txt">{{≤15字注脚}}</td></tr>
+        <tr><td>应收周转天数</td><td>{{}}</td><td>{{}}</td><td class="txt">{{▲|▼ + Δ值}}</td><td class="txt"><svg class="spark" id="spark-dso" viewBox="0 0 64 16" preserveAspectRatio="none"></svg></td><td class="txt">{{≤15字注脚}}</td></tr>
+        <tr><td>收现比</td><td>{{}}</td><td>{{}}</td><td class="txt">{{▲|▼ + Δ值}}</td><td class="txt"><svg class="spark" id="spark-c2s" viewBox="0 0 64 16" preserveAspectRatio="none"></svg></td><td class="txt">{{≤15字注脚}}</td></tr>
+        <tr><td>现金转换周期 CCC（应收周转天数 DSO＋存货周转天数 DIO−应付周转天数 DPO，天）</td><td>{{}}</td><td>{{}}</td><td class="txt">{{▲|▼ + Δ值}}</td><td class="txt"><svg class="spark" id="spark-ccc" viewBox="0 0 64 16" preserveAspectRatio="none"></svg></td><td class="txt">{{≤15字注脚}}</td></tr>
+        <tr><td>经营杠杆 DOL <span class="badge der">推算</span></td><td>{{}}</td><td>{{}}</td><td class="txt">{{▲|▼ + Δ值；方向须落到周期定位后定性，语境中性不染色——见 frameworks.md 第九节}}</td><td class="txt"><svg class="spark" id="spark-dol" viewBox="0 0 64 16" preserveAspectRatio="none"></svg></td><td class="txt">{{≤15字注脚}}</td></tr>
+        <tr><td>财务杠杆 DFL <span class="badge der">推算</span></td><td>{{}}</td><td>{{}}</td><td class="txt">{{▲|▼ + Δ值；接近 1 = 利息负担轻，语境中性不染色}}</td><td class="txt"><svg class="spark" id="spark-dfl" viewBox="0 0 64 16" preserveAspectRatio="none"></svg></td><td class="txt">{{≤15字注脚}}</td></tr>
         <tr><td>非主营业务收入占比 <span class="badge der">推算</span></td><td>{{}}</td><td>{{}}</td><td class="txt">{{▲|▼ + Δ值；升 = 需拆解构成（投资/公允/营业外）再定性，语境中性不染色}}</td><td class="txt">—（单期专用，不序列化）</td><td class="txt">{{≤15字注脚}}</td></tr>
       </table>
       <div class="takeaway">读法：{{一句话总判——哪几项在改善、哪几项承压、最大的一项怎么定性}}</div>
@@ -301,11 +302,11 @@ table.data tr.total td{font-weight:800;border-top:1.5px solid var(--ink);border-
         <div class="figtitle">{{结论式：五年驱动变迁一句话，如「早期靠净利率 → 中期被周转率接管（变差）→ 本期净利率重新接管」}}</div>
         <table class="data">
           <tr><th>期间</th><th>净利率</th><th>周转率</th><th>权益乘数</th><th>ROE</th><th class="txt">主驱动</th></tr>
-          <tr><td>{{期间1}}</td><td>{{}}</td><td>{{}}</td><td>{{}}</td><td>{{}}</td><td class="txt">{{净利率|周转率|杠杆——连环替代 |贡献| 最大者；净利率驱动用 <span class="up">、杠杆驱动用 <span class="dn">、周转率驱动不染色}}</td></tr>
-          <tr><td>{{期间2}}</td><td>{{}}</td><td>{{}}</td><td>{{}}</td><td>{{}}</td><td class="txt">{{}}</td></tr>
-          <tr><td>{{期间3}}</td><td>{{}}</td><td>{{}}</td><td>{{}}</td><td>{{}}</td><td class="txt">{{}}</td></tr>
-          <tr><td>{{期间4}}</td><td>{{}}</td><td>{{}}</td><td>{{}}</td><td>{{}}</td><td class="txt">{{}}</td></tr>
-          <tr><td>{{期间5}}</td><td>{{}}</td><td>{{}}</td><td>{{}}</td><td>{{}}</td><td class="txt">{{}}</td></tr>
+          <tr><td>{{期间1}} <span class="badge der">推算</span></td><td>{{}}</td><td>{{}}</td><td>{{}}</td><td>{{}}</td><td class="txt">{{净利率|周转率|杠杆——连环替代 |贡献| 最大者；净利率驱动用 <span class="up">、杠杆驱动用 <span class="dn">、周转率驱动不染色}}</td></tr>
+          <tr><td>{{期间2}} <span class="badge der">推算</span></td><td>{{}}</td><td>{{}}</td><td>{{}}</td><td>{{}}</td><td class="txt">{{}}</td></tr>
+          <tr><td>{{期间3}} <span class="badge der">推算</span></td><td>{{}}</td><td>{{}}</td><td>{{}}</td><td>{{}}</td><td class="txt">{{}}</td></tr>
+          <tr><td>{{期间4}} <span class="badge der">推算</span></td><td>{{}}</td><td>{{}}</td><td>{{}}</td><td>{{}}</td><td class="txt">{{}}</td></tr>
+          <tr><td>{{期间5}} <span class="badge der">推算</span></td><td>{{}}</td><td>{{}}</td><td>{{}}</td><td>{{}}</td><td class="txt">{{}}</td></tr>
         </table>
         <div class="srcline">数据来源：data.json derived.ratios hist（同类型滚动：年报对 FY、半年报对 H1）· calc.py ratio-hist 逐期复算 · 缺 hist（口径断裂）时整卡降级为两期归因并在标题注明</div>
       </div>
@@ -647,6 +648,21 @@ function niceStep(raw){const p=Math.pow(10,Math.floor(Math.log10(raw)));const n=
    图例不列扣非（右板降级为归母净利单柱）；roe 整列留空则 ROE 线整线跳过。
    roe 存小数（如 0.3365），绘图时 ×100 显示 %；旧报告/旧数据两个数组直接留空即可 */
 const TREND={labels:['2022','2023','2024'],rev:[0,0,0],np:[0,0,0],np_dt:[],roe:[],gm:[0,0,0]};
+/* spark：四维表「近5期趋势」迷你折线（v0.0.13，替代 v0.0.12 块字符）——vals 填 ratios
+   五期 hist（同类型滚动，旧→新）；color 由填充者按方向语义表对本期 vs 上期的好坏选
+   GOOD/BAD/INK；不足 2 期不画（该格留空并在评价列注明） */
+const SPARK={gm:[],nm:[],da:[],dio:[],dso:[],c2s:[],ccc:[],dol:[],dfl:[]};
+function spark(id,vals,color){
+  const s=document.getElementById(id);
+  if(!s||!vals||vals.length<2)return;
+  const W=64,H=16,P=2.5;
+  const lo=Math.min(...vals),hi=Math.max(...vals),span=(hi-lo)||1;
+  const x=i=>P+(W-2*P)*i/(vals.length-1);
+  const y=v=>H-P-(H-2*P)*(v-lo)/span;
+  el(s,'polyline',{points:vals.map((v,i)=>x(i)+','+y(v)).join(' '),fill:'none',
+    stroke:color,'stroke-width':1.6,'stroke-linejoin':'round','stroke-linecap':'round'});
+  el(s,'circle',{cx:x(vals.length-1),cy:y(vals[vals.length-1]),r:1.9,fill:color});
+}
 /* ocfbridge：净利→经营现金流调节桥（间接法，亿元）——首项「净利润」为水平值（不画柱，
    与 OCF_END 一起填上方 .brends 端点行），其余为调节项，Σ=OCF；
    OCF_END = 经营活动现金流量净额（水平值，来自 data.json statements.cashflow.ocf.cur）
@@ -849,6 +865,11 @@ function deltaBars(id,steps){
 }
 
 trendDual('trend',TREND.labels,TREND.rev,TREND.np,TREND.gm,TREND.np_dt,TREND.roe);
+/* 四维表迷你折线线色：由填充者按方向语义表对「本期 vs 上期」的好坏选 GOOD/BAD/INK
+   （模板默认全 INK 占位——交付前必须逐行改对，同 v0.0.12 徽章纪律） */
+spark('spark-gm',SPARK.gm,INK);spark('spark-nm',SPARK.nm,INK);spark('spark-da',SPARK.da,INK);
+spark('spark-dio',SPARK.dio,INK);spark('spark-dso',SPARK.dso,INK);spark('spark-c2s',SPARK.c2s,INK);
+spark('spark-ccc',SPARK.ccc,INK);spark('spark-dol',SPARK.dol,INK);spark('spark-dfl',SPARK.dfl,INK);
 deltaBars('ocfbridge',OCF_BRIDGE.slice(1));
 combo('holders',HOLDERS.labels,HOLDERS.num,[],HOLDERS.px,'区间涨跌幅','股东户数(万户)','');
 </script>

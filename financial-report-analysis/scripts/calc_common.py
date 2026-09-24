@@ -241,3 +241,35 @@ def ratio_hist_expect(name, v):
         return None if any(x is None for x in (dso, dio, dpo)) else dso + dio - dpo
     return None
 
+
+
+def ratio_hist_series(data, name):
+    """某趋势比率的逐期复算序列（旧→新，与科目 hist 尾部对齐）；不可算期为 None。
+    逐期对齐逻辑（hist_ye 期初/退化规则）全脚本唯一定义处——calc.py 的 check_ratio_hist
+    与 --fill 预填共用，禁止第二份实现。"""
+    spec = RATIO_HIST_SPECS.get(name)
+    if spec is None:
+        return None
+    fields, avg_based = spec
+    ss = [series_of(data, sec, f) for sec, f in fields]
+    if not ss or not min(len(s) for s in ss):
+        return []
+    yes = ([series_of_ye(data, sec, f) for sec, f in fields]
+           if avg_based else [[] for _ in fields])
+    prev_fields = [f for sec, f in fields if sec == "balance"] if avg_based else []
+    L = min(len(s) for s in ss)
+    out = []
+    for j in range(L):
+        v = {}
+        for (sec, f), s, ye in zip(fields, ss, yes):
+            i = len(s) - L + j
+            v[(sec, f)] = s[i]
+            if avg_based and sec == "balance":
+                use_ye = bool(ye) and len(ye) >= len(s)
+                v[f"{f}_prev"] = (ye[i + len(ye) - len(s)] if use_ye
+                                  else (s[i - 1] if i > 0 else None))
+        if prev_fields and any(v.get(f"{f}_prev") is None for f in prev_fields):
+            out.append(None)
+            continue
+        out.append(ratio_hist_expect(name, v))
+    return out

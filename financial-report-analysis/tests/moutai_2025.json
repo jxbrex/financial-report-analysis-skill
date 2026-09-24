@@ -581,25 +581,45 @@
       "note": "吞噬额=−(Δ应收+Δ存货−Δ应付−Δ其他)=248.74亿；分母用净利润(含少数股东)853.10亿，占29.2%，<50%不警示"
     },
     "dupont": {
-      "driver": "周转率",
       "margin_effect": -0.013,
       "turnover_effect": -0.0236,
-      "leverage_effect": -0.0111,
+      "leverage_effect": -0.011,
       "roe_product_cur": 0.3393,
       "roe_product_prev": 0.3869,
       "closure_gap": 0.0142,
+      "driver": "周转率",
       "src": "连环替代（净利率→周转率→权益乘数），calc.py 复算",
       "note": "ROE 修复缺席期：三因子全降，主拖累周转率（资产周转放缓）；口径差 +1.42pct = 周转率平均余额口径 vs ROE 期末口径"
     },
     "risk_models": {
-      "altman_z": { "cur": 24.4586, "zone": "安全", "annualized": false },
-      "ohlson_o": { "cur": -4.522, "prob": 0.0108, "level": "低" }
+      "altman_z": {
+        "cur": 24.4586,
+        "zone": "安全",
+        "annualized": false
+      },
+      "ohlson_o": {
+        "cur": -4.522,
+        "prob": 0.0108,
+        "level": "低"
+      }
     },
     "stress": {
       "scenarios": [
-        { "p": 0.1, "np_stressed": 766.73, "cover_stressed": 2421.64 },
-        { "p": 0.2, "np_stressed": 680.36, "cover_stressed": 2282.48 },
-        { "p": 0.3, "np_stressed": 593.98, "cover_stressed": 2143.32 }
+        {
+          "p": 0.1,
+          "np_stressed": 766.7193,
+          "cover_stressed": 2421.6374
+        },
+        {
+          "p": 0.2,
+          "np_stressed": 680.3354,
+          "cover_stressed": 2282.4784
+        },
+        {
+          "p": 0.3,
+          "np_stressed": 593.9514,
+          "cover_stressed": 2143.3194
+        }
       ],
       "note": "DOL 传导：受压EBIT=EBIT×(1−p×DOL=1.0198)；有效税率 25.66%；零有息负债下短债覆盖对压力不敏感"
     },

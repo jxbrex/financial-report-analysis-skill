@@ -8,7 +8,7 @@ description: >
 metadata:
   clawdbot:
     emoji: "📑"
-    version: "0.0.12"
+    version: "0.0.13"
     requires:
       anyBins: ["python"]
     os: ["win32", "darwin", "linux"]
@@ -74,7 +74,25 @@ metadata:
    半年报 8/31 前、三季报 10/31 前）——如半年报已披露就不再取年报；用户明确指定期次时
    照做不打扰；搜索/下载有歧义或失败时才问用户。
    港股/美股维持 HKEX 披露易 / SEC EDGAR 路径（见 P1-9 分支）。
-2. 调用 **markitdown 技能**转为 markdown，存入 `reports/archive/原始报告/`。
+2. 调用 **markitdown 技能**转为 markdown，存入 `reports/archive/原始报告/`；
+   **随即运行 `scripts/md_clean.py`**（v0.0.13）：把 PDF 拆碎的逻辑表行拼回、删重复
+   分隔行与页眉页脚（实测 −15~21% 行数、拼行税 1.39×→1.0×），产出
+   `{stem}.clean.md`（**唯一工作副本**：data.json 的 `source_md` 指向它，T8② 行号对其回核；
+   原始 md 仅作溯源快照保留）与 `{stem}.index.json`（章节名→clean md 行区间 + 三表/MD&A/
+   审计/附注关键块位置——**后续所有 Read 按索引精确切片，禁止无索引盲读全 md**）。
+   脚本内置双不变量（数字 token 不丢 / 中文行不丢），违反即 exit 1 禁止产出。
+   既有报告的 json 仍指原始 md（快照不回改，两文件共存）。
+2.5 **并行派发窗（v0.0.13 效率修订）**：md 转换完成后**一次性并行派 5 个子代理**——
+   它们只依赖 md、不依赖 data.json，可与主线 P2~P4 全程并行（云铝首测 1 小时复盘：
+   P5/6/7 原先串行排在 P4 后，约 15 分钟被白白串行）：
+   ① 三表+母公司提取（P1）② 附注明细提取（P1）③ MD&A 断言与语气（P5）
+   ④ 产能/在建/股东/户数（P6）⑤ 期后事项/同业/机构预期（P7）。
+   **提取类子代理（①②）读 clean md + index sidecar 切片**（见 Phase 0 第 2 条）。
+   主线等 ①② 回传组装 data.json 后串行走 P2→P2.5→P3→P4；③④⑤ 产出以结构化表
+   暂存、Phase 8 填充时合并。**字段归属边界按 schema 块划分、互不重叠**
+   （① statements/parent_statements、② notes、③ assertions、④ notes.capacity/
+   shareholders、⑤ notes.subsequent_events+外部）；回传一律压缩成「字段=值+出处」表，
+   不回传原文段落。单上下文降级时此窗失效、回退全串行。
 3. **长文档分章策略（关键）**：年报常 200~400 页，转换后的 md 可能数十万字符。
    先读目录/章节标题定位，再按需分段读取：
    - 必定位章节：主要会计数据与财务指标、管理层讨论与分析（MD&A）、财务报告
@@ -108,7 +126,10 @@ metadata:
    趋势图、周期定位、所有「连续 2 年以上」的信号判定都依赖它。
 2. 双源核对：A 股用 tushare `income` / `balancesheet` / `cashflow` / `fina_indicator`
    （一律经 `scripts/ts_fetch.py` 调用，用法见 `references/data-sources.md` 第二节开头；
-   `TUSHARE_TOKEN` 未配置时 A 股降级为妙想单源核对，数字加 `[单源]` 标注）；
+   `TUSHARE_TOKEN` 未配置时 A 股降级为妙想单源核对，数字加 `[单源]` 标注）。
+   **批量取数约定（v0.0.13）**：核对所需接口在**一次 shell 命令内串联多次 ts_fetch**
+   （或单进程循环）一把取回再比对，禁止逐接口串行往返——串行调用是首测里可观测的
+   纯等待时间；
    港股/美股用妙想 `mx_hk_finance_data` / `mx_us_finance_data`（tushare 港股财报接口
    本环境无权限，实测 40203）。字段速查见 `references/data-sources.md`。
 3. **不一致处理**：以报告原文为准，在报告中显式标注「原文 X / 数据库 Y」。
@@ -128,7 +149,11 @@ metadata:
 0.5 **周期定位（P1-13）**：用 `hist` 多期数据 + 资本开支趋势定周期阶段（上行/顶部/下行/底部，
    规则见 frameworks.md 第六节），阶段决定后续信号的解读方向——报告须声明所用阶段框架。
 1. 四维比率（公式与阈值全在 `references/frameworks.md`；**先读其「〇、口径总则」**——
-   存量/流量年化、平均余额期初、同口径同比四条规矩，**数值因子不在本文件复述**，防双写漂移）：
+   存量/流量年化、平均余额期初、同口径同比四条规矩，**数值因子不在本文件复述**，防双写漂移）。
+   **机械字段一律 `calc.py <json> --fill` 预填**（v0.0.13）：ratios 全 14 项+hist、dupont
+   连环替代、risk_models、stress、cash_ts、单期六项由脚本按唯一公式定义处写入并产出
+   `{stem}.fillsheet.md` 填充速查表；**模型只补判断字段**（verdict/解释/notes/rev_factors/
+   桥/recon）并照速查表抄机械槽——模型手算公式是错误源与回炉循环，**禁止**。
    盈利能力（ROE/毛利率/净利率/ROIC + 非主营业务收入占比 X33）、营运能力（应收/存货/总资产周转 + CCC）、
    偿债能力（资产负债率/流动比率/速动比率/利息保障）、成长能力（收入/利润增速）；
    **杠杆结构**（经营杠杆 DOL / 财务杠杆 DFL，frameworks.md 第九节——方向须落到周期定位后定性，
@@ -279,6 +304,8 @@ Roll-forward（应收/存货/在建工程/商誉）+ C 组周期联动（CCC/DPO
 ### Phase 8：输出报告
 
 1. 复制 `assets/report-template.html` 为最终文件名，按模板内注释逐槽位填充；
+   **机械槽位（数字/徽章/语义色/SPARK 数组/桥表数值）照 `{stem}.fillsheet.md` 速查表抄**
+   （--fill 产物，值+徽章+语义色齐备），判断槽位（figtitle 裁决/takeaway/三问/归因措辞）自己写；
    模型不手写 CSS，只替换内容与数据。**读法层（v0.0.7 硬规则）**：figtitle 一律
    「结论式」——标题即判断，方法说明/口径注记挪 srcline，不占标题；复杂表
    （≥4 行或含多方向读数）在 srcline 前加一行 `.takeaway` 读法行。
@@ -290,10 +317,12 @@ Roll-forward（应收/存货/在建工程/商誉）+ C 组周期联动（CCC/DPO
    **缩写纪律（评审定案）**：正文缩写首次出现必须给中文全称 + 一句白话解释
    （例：经营现金流净额（OCF）——公司做生意实际收到的现金；之后可用缩写）；
    数据徽章、图表刻度内缩写豁免。
-   **S1 版面（v0.0.12）**：四维比率卡全宽 + 「近5期趋势」列（**迷你走势字符** ▁~█，
-   映射与染色规则见模板 S1 注释，本文件不复述）；禁填五格数字链（评审否决）；
-   杜邦独立成行 grid2——左卡归因（连环替代闭合值）+ 修复路径 takeaway 一行，
-   右卡五年驱动变迁表（主驱动列染色）；dupont5 归一化折线图已废（丢绝对量感）。
+   **S1 版面（v0.0.12，v0.0.13 趋势列改形）**：四维比率卡全宽 + 「近5期趋势」列
+   （**内嵌 SVG 迷你折线**：64×16 polyline+末点圆，数据填 JS 区 SPARK 槽=ratios 五期 hist，
+   线色按方向语义表对「本期 vs 上期」好坏选 GOOD/BAD/INK；v0.0.12 块字符因跌年不可辨
+   被云铝首测评审否决）；禁填数字链；杜邦独立成行 grid2——左卡归因（连环替代闭合值）+
+   修复路径 takeaway 一行，右卡五年驱动变迁表（主驱动列染色，行首带推算徽章）；
+   dupont5 归一化折线图已废（丢绝对量感）。
    **v0.0.12 机检兜底四条**（check_html，WARN 级）：缩写首现展开（白名单首现判定）、
    OCF 桥调节柱项数（≤8 + 其他桶 ≤30%）、归因类 figtitle（前瞻词 + 表格复述检测）、
    检验/期后表判定列（✅/⚠️/❌ 或 — 披露项）
@@ -312,6 +341,8 @@ Roll-forward（应收/存货/在建工程/商誉）+ C 组周期联动（CCC/DPO
    无法数字化阈值的指标允许只保留 if-then 句式。
    **冻结纪律（T6）**：产出后 watchlist 原字段只读不回改，回看只追加 `review` 子块。
 4. **报告机检**：`python "<技能目录>/scripts/check_html.py" reports/xxx.html --json reports/archive/json/xxx.json`
+   （**或单入口 `scripts/gate.py <html> <json> [--png 目录]`**：calc → check_html --json →
+   check_render 一条命令串完，统一退出码，省编排防漏跑）。
    校验占位符是否漏填、裸数字（置信度徽章覆盖）、数据来源标注、模板硬规则、必备要素
    （下期跟踪清单/免责声明）、锚点完整性、s8 阈值形态、回看归因。
    **数字回验（T8，`--json` 时启用）**：①级 HTML 数字 ↔ data.json 笔误检测（仅对数值上
@@ -369,4 +400,5 @@ Roll-forward（应收/存货/在建工程/商誉）+ C 组周期联动（CCC/DPO
 | 0.0.9 | 2026-09-17 | 呈现层门禁轮（lieflat-cards 交叉审核借鉴 + 渲染设计评审，L1–L5 一次升版）：**L1 单一色源**（JS 绘图色全读 `:root` CSS 变量、新增 `--der`，换色只改一处）+ 趋势图线标签改数据点正上方居中 + 白描边 halo（修标签压柱不可读），与柱顶数字相交区间移到点下方、dupont 末点标签纵向避让；**L2 新增 `scripts/check_render.py` 渲染测量门禁**（headless Chrome/Edge 真渲染测 SVG 文本重叠/溢出 .sheet/横向裁剪；可选门禁——无浏览器声明跳过 exit 0；本机 Edge `--dump-dom` stdout 空，结果改 localhost HTTP 回传 + screenshot 探针终止）；**L3 check_html 新增 slot-length WARN**（s1 四维表评价列 ≤15 字契约 +5 容忍）；**L4 `--png` 按章分片截图 + Phase 8 视觉验收步骤**（交付语含「已视觉验收」）；**L5 s8 真仪表盘化**（卡组 `.wv` 读数大字+徽章 / `.wb` 阈值带小字，check_s8_shape 重写为卡组判据、旧表兜底 compat 存量）+ review 兑现率 KPI 卡 + s0 分歧锚表格卡回收。首测即抓出恒瑞旧版瀑布图标签黑带 9 处重叠（人肉目检曾漏检）。回归 19→20 断言（渲染冒烟 Chrome 可用时计入） |
 | 0.0.10 | 2026-09-21 | 宁德时代报告评审轮（HANDOFF 二·十六节）：**平均余额口径定案**（第一性原理——平均余额窗口必须与收入期间匹配，期初一律取该期上一年 12-31；半年报绝不用上年 6-30 当期初）：balance 四科目（ar/inventory/payable/total_assets）新增 `hist_ye`（各年 12-31 序列，末位=prev），calc.py 期初分支优先取 hist_ye（年报退化 hist 前一期、行为字节级不变）+ hist_ye 末位=prev 结构校验 + 修期初判空误伤流量科目的 SKIP bug；frameworks.md 写入口径规则。宁德 json 回填 10 时点的 hist/hist_ye，dso/dio/dpo/ccc/asset_turnover 5 期序列落地（prev 修正：宁德 DSO 上期 124.4→130.5、改善 15.8→22.0 天——原两期对比混用两套期初规则），calc 实测 ratio-hist 58 期全过。**「下钻」→「追查」**（异常线索追查/追查路径/排雷与勾稽表末列，模板 8 处 + check_html 2 处文案，CSS 类名不动）。**读法层两条新硬规则**：归因类图表（杜邦/因素桥）figtitle 四段式（变化方向→靠什么→经营含义→盯什么，禁止只报归因）；缩写纪律（正文首次全称+一句白话，徽章/刻度豁免）。**L4 改机器优先**：check_render 新增字体回退检测（朱雀仿宋缺失 🟡 WARN 不计 exit 1），人眼截图验收只在两个触发条件下执行（门禁 WARN / 模板改动后首份报告）。回归 20/20 全绿 |
 | 0.0.11 | 2026-09-22 | 移动端可读性轮（HANDOFF 二·十七节，用户定调「PC 为主、移动尽量可读」，存量不重出）：模板骨架流式化（`body` 去 flex、`.sheet` width:100%+max-width:1040+margin 居中，PC 像素级零变化）、`.card` overflow-x:auto 宽表格卡片内横滑、640 断点字号/内边距微调；图表 SVG 维持整图等比缩小不重绘。check_render.py **桌面 1100+窄屏 390 双视口测量**：新增 pageclip 页面级横向溢出判据（仅含 .sheet 报告页）、clipped 判据修正（auto/scroll 有意滚动不算裁剪）、spill 豁免滚动容器内元素；ISOLATE_JS 补 .sheet margin 居中（修分片截图左偏移——v0.0.9 L4 以来截图一直左偏 30px 未被发现）。桌面版式像素级零变化验证（9/12 分片逐像素一致，masthead 为 fade 动画帧非确定）。回归 20/20 全绿 |
+| 0.0.13 | 2026-09-24 | 云铝首测验证轮：S1 趋势列块字符改**内嵌 SVG 迷你折线**（64×16 polyline+末点圆、SPARK 槽、线色按方向语义表——块字符跌年不可辨被首测评审否决）；杜邦变迁表行首补推算徽章（消每份报告的固定 bare-number WARN）；**效率修订**：Phase 0 后一次性并行派 5 子代理（提取×2/MD&A/产能股东/期后同业，只依赖 md 可与主线并行）+ ts_fetch 批量取数约定（云铝 1 小时复盘，P5/6/7 串行约 15 分钟可隐藏）；**md_clean.py 财报 md 确定性清洗**（拼回拆碎逻辑表行/删重复分隔行与页眉页脚，实测 −15~21% 行数、九份存量 md 双不变量全过，clean md 为唯一工作副本 + 章节索引 sidecar，回归 +4 金标准断言）；**calc.py --fill 预填模式**（derived 机械字段脚本写入 + fillsheet 填充速查表，模型禁手算公式；纯计算函数 compute_* 与薄校验 check_* 分层）+ **gate.py 三道门禁单入口**；fill 语义「hist 只补不缩、note/src 保留」。回归 25→32 断言全绿（+fill 幂等×2 +gate 可运行） |
 | 0.0.12 | 2026-09-24 | TradingAgents-CN 借鉴 + 中免报告评审合并轮（HANDOFF 二·十八节）：**方法层**——frameworks.md 新增「〇、口径总则」（存量不年化/流量中期年化/平均余额窗口/同口径同比拒算）、第三节破产风险双模型并列（Altman Z 市值单位写死亿元防 TradingAgents 亿元当元坑、留存收益真值不顶替；+ Ohlson O 简化六因子，禁止综合分）、第五节现金时序读数（净现比/FCF 5 期）、第九节流动性压力情景（DOL/DFL 传导三档，p=10% 受压净利<0 只进 watchlist 不直接🔴）；redflags.md severity 试点（#4/#5，禁总分聚合）。**schema 1.2**：balance +流动资产/流动负债合计、meta +market_cap_cur、derived +dupont 连环替代块/risk_models/stress/cash_ts、signals +severity。**calc.py 四新检查**（dupont 闭合/risk-models 含年化口径卡口/stress/cash-ts）+ signals severity 校验，反例三测全命中。**报告层**——S1 重排：四维卡全宽+近5期趋势列、杜邦独立成行（归因卡+五年驱动变迁表，主驱动染色）、废 dupont5 归一化折线图；s7 三项检验改名「健康检验」+ 判定列、期后健康+判定列、破产双模型与压力情景各一行。**check_html 四新 WARN 检查**：缩写首现展开（中免 DFS/IR 实证漏检的规则补机检）、OCF 桥项数（≤8+其他桶30%）、归因 figtitle 前瞻词+复述检测（精确命中中免被批原句）、检验卡判定列。回归 20→25 断言全绿；存量报告不重出（纪律 7），中免留存作反面验证样本 |

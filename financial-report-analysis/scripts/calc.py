@@ -35,6 +35,7 @@ import sys
 import argparse
 import json
 import sys
+from pathlib import Path
 
 # Windows 控制台默认 GBK，emoji 与中文会触发 UnicodeEncodeError；强制 UTF-8 输出。
 for _s in (sys.stdout, sys.stderr):
@@ -46,8 +47,10 @@ for _s in (sys.stdout, sys.stderr):
 
 from calc_common import (FAIL, WARN, OK, SKIP, Report, num, leaf, val, rel_dev,
                          tol_bridge, safe_div, avg, series_of, series_of_ye,
-                         RATIO_HIST_SPECS, ratio_hist_expect, build_ratio_calcs)
-from calc_models import check_dupont, check_risk_models, check_stress, check_cash_ts
+                         RATIO_HIST_SPECS, ratio_hist_expect, build_ratio_calcs,
+                         ratio_hist_series)
+from calc_models import (check_dupont, check_risk_models, check_stress, check_cash_ts,
+                         fill_derived, write_fillsheet)
 
 # recon 偏差阈值：闭合型 = |lhs-rhs|/|rhs| 上限；水平型 = lhs 超过 rhs 即异常
 RECON_RULES = {
@@ -356,8 +359,8 @@ def check_ratios(data, rep):
 # 平均余额口径首期无期初余额，从第 2 期起算（与 build_ratio_calcs 公式完全一致）
 
 def check_ratio_hist(data, rep):
-    """趋势比率逐期复算：对 derived.ratios 中带 hist 的比率，用 statements 的 hist
-    序列逐期重算（公式与 build_ratio_calcs 完全一致），容差与 check_ratios 相同。"""
+    """趋势比率逐期复算：逐期对齐逻辑委托 calc_common.ratio_hist_series（唯一定义处，
+    与 --fill 预填共用），容差与 check_ratios 相同。"""
     ratios = ((data.get("derived") or {}).get("ratios")) or {}
     n_ok = n_fail = n_skip = 0
     missing_hist = []
@@ -370,39 +373,14 @@ def check_ratio_hist(data, rep):
             if name in RATIO_HIST_SPECS:
                 missing_hist.append(name)
             continue
-        spec = RATIO_HIST_SPECS.get(name)
-        if spec is None:
+        if RATIO_HIST_SPECS.get(name) is None:
             continue  # 单期专用比率不序列化，无 hist 可查
-        fields, avg_based = spec
-        ss = [series_of(data, sec, f) for sec, f in fields]
-        # 平均余额口径的期初（上一期余额）：半年报取 hist_ye（该期上年 12-31，平均余额
-        # 窗口与收入期间匹配），与科目序列尾部对齐（hist_ye 末位=prev=cur 期的期初）；
-        # 无 hist_ye 或短于科目序列时整科目退化为 hist 前一期（年报形态，期初=上年末
-        # 天然正确）。期初只在存量（balance）科目上取，流量科目不读 _prev
-        yes = ([series_of_ye(data, sec, f) for sec, f in fields]
-               if avg_based else [[] for _ in fields])
-        prev_fields = [f for sec, f in fields if sec == "balance"] if avg_based else []
-        # hist 旧→新且以 cur 收尾，比率与科目序列按尾部对齐逐期比对
-        L = min([len(rh)] + [len(s) for s in ss])
-        for j in range(L):
-            v = {}
-            for (sec, f), s, ye in zip(fields, ss, yes):
-                i = len(s) - L + j
-                v[(sec, f)] = s[i]
-                # 平均余额口径还需上一期余额（期初），一并取入取值字典
-                if not avg_based or sec != "balance":
-                    continue
-                use_ye = bool(ye) and len(ye) >= len(s)
-                v[f"{f}_prev"] = (ye[i + len(ye) - len(s)] if use_ye
-                                  else (s[i - 1] if i > 0 else None))
-            if prev_fields and any(v.get(f"{f}_prev") is None for f in prev_fields):
-                rep.add(SKIP, "ratio-hist", f"{name} 首期无期初余额，跳过（平均余额口径从第 2 期起算）")
-                n_skip += 1
-                continue
-            expect = ratio_hist_expect(name, v)
-            got = rh[len(rh) - L + j]
+        series = ratio_hist_series(data, name)
+        for k in range(min(len(rh), len(series))):
+            got = rh[len(rh) - 1 - k]
+            expect = series[len(series) - 1 - k]
             if expect is None:
-                rep.add(SKIP, "ratio-hist", f"{name} 该期科目序列不全，无法复算")
+                rep.add(SKIP, "ratio-hist", f"{name} 首期无期初余额/科目序列不全，跳过复算")
                 n_skip += 1
                 continue
             if abs(got - expect) <= max(0.02 * abs(expect), 0.005):
@@ -424,7 +402,6 @@ def check_ratio_hist(data, rep):
             parts.append(f"{len(missing_hist)} 个比率缺 hist（口径断裂等），趋势降级两期："
                          f"{', '.join(missing_hist)}")
         rep.add(FAIL if n_fail else (OK if n_ok else SKIP), "ratio-hist", "；".join(parts))
-
 
 
 # ─────────────────────────── 5. recon 三态一致性 ───────────────────────────
@@ -638,6 +615,9 @@ def main():
     ap = argparse.ArgumentParser(description="financial-report-analysis 计算自检门禁")
     ap.add_argument("json_path", help="data.json 路径")
     ap.add_argument("--strict", action="store_true", help="警告也判失败")
+    ap.add_argument("--fill", action="store_true",
+                    help="预填 derived 机械字段（ratios/dupont/risk_models/stress/cash_ts/单期六项）"
+                         "并产出 {stem}.fillsheet.md 填充速查表；判断字段（桥/rev_factors/recon/notes）不动")
     args = ap.parse_args()
 
     try:
@@ -649,6 +629,14 @@ def main():
     except json.JSONDecodeError as e:
         print(f"🔴 JSON 解析失败：{e}")
         return 1
+
+    if args.fill:
+        n_filled = fill_derived(data)
+        src = Path(args.json_path)
+        src.write_text(json.dumps(data, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+        sheet_path = src.parent / (src.stem + ".fillsheet.md")
+        write_fillsheet(data, sheet_path)
+        print(f"✍️ --fill：预填 {n_filled} 个机械字段 → {src.name}；速查表 → {sheet_path.name}")
 
     rep = Report()
     check_structure(data, rep)

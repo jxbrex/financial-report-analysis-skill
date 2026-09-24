@@ -39,6 +39,7 @@ import os
 import re
 import subprocess
 import sys
+import tempfile
 from pathlib import Path
 
 # Windows 控制台默认 GBK，中文/emoji 会触发 UnicodeEncodeError；强制 UTF-8 输出。
@@ -299,6 +300,75 @@ def main():
         if not render_ok:
             print("❌ 回归未通过：渲染测量冒烟未绿，看上方 check_render 输出。")
             return 1
+
+    # ── --fill 幂等金标准（v0.0.13）：预填不改变已正确的 derived（5e-4 容差）──
+    def _leaves(node, pre=""):
+        out = {}
+        if isinstance(node, dict):
+            for k, v in node.items():
+                if k in ("note", "src"):
+                    continue
+                out.update(_leaves(v, pre + k + "."))
+        elif isinstance(node, list):
+            for i, v in enumerate(node):
+                out.update(_leaves(v, pre + str(i) + "."))
+        elif isinstance(node, (int, float)) and not isinstance(node, bool):
+            out[pre[:-1]] = node
+        return out
+
+    fill_checks = []
+    with tempfile.TemporaryDirectory() as td2:
+        for fx in ("moutai_2025.json", "kangdexin_2018.json"):
+            src = HERE / fx
+            dst = Path(td2) / fx
+            dst.write_text(src.read_text(encoding="utf-8"), encoding="utf-8")
+            r = subprocess.run([sys.executable, str(SKILL / "scripts" / "calc.py"),
+                                str(dst), "--fill"],
+                               capture_output=True, text=True, encoding="utf-8", errors="replace")
+            a = _leaves(json.loads(src.read_text(encoding="utf-8"))["derived"])
+            b = _leaves(json.loads(dst.read_text(encoding="utf-8"))["derived"])
+            bad = [k for k in set(a) | set(b)
+                   if abs((a.get(k) or 0) - (b.get(k) or 0)) > 5e-4]
+            fill_checks.append((r.returncode == 0 and not bad,
+                                f"--fill 幂等 {fx[:4]}…：exit 0 且 derived 不变（差异键 {bad[:3]}）"))
+    print("\n【--fill 幂等金标准（v0.0.13）】")
+    for ok, desc in fill_checks:
+        print(f"  {'✅' if ok else '❌'} {desc}")
+        total += 1
+        passed += ok
+    gate_help = subprocess.run([sys.executable, str(SKILL / "scripts" / "gate.py"), "--help"],
+                               capture_output=True, text=True, encoding="utf-8", errors="replace")
+    print(f"  {'✅' if gate_help.returncode == 0 else '❌'} gate.py 单入口可运行（--help exit 0）")
+    total += 1
+    passed += gate_help.returncode == 0
+    if not all(ok for ok, _ in fill_checks) or gate_help.returncode != 0:
+        print("❌ 回归未通过：--fill 幂等或 gate.py 断言失败。")
+        return 1
+
+    # ── md_clean 金标准（v0.0.13）：双不变量 + 索引产出，防清洗脚本改坏 ──
+    md_checks = []
+    with tempfile.TemporaryDirectory() as td:
+        for md_name, min_sections in (("贵州茅台2025年年度报告.md", 50),
+                                      ("康得新2018年年度报告.md", 50)):
+            md_src = SKILL.parent / "reports" / "archive" / "原始报告" / md_name
+            r = subprocess.run([sys.executable, str(SKILL / "scripts" / "md_clean.py"),
+                                str(md_src), "--out-dir", td],
+                               capture_output=True, text=True, encoding="utf-8", errors="replace")
+            out = r.stdout or ""
+            md_checks.append((r.returncode == 0 and "不变量违反" not in out,
+                              f"md_clean {md_name[:4]}…：exit 0 且双不变量通过"))
+            idx = Path(td) / (md_src.stem + ".index.json")
+            n_sec = len(json.loads(idx.read_text(encoding="utf-8"))["sections"]) if idx.exists() else 0
+            md_checks.append((n_sec >= min_sections,
+                              f"md_clean 索引产出：{md_name[:4]}… sections={n_sec} ≥ {min_sections}"))
+    print("\n【md_clean 金标准（v0.0.13）】")
+    for ok, desc in md_checks:
+        print(f"  {'✅' if ok else '❌'} {desc}")
+        total += 1
+        passed += ok
+    if not all(ok for ok, _ in md_checks):
+        print("❌ 回归未通过：md_clean 金标准断言失败。")
+        return 1
 
     failed = total - passed
     print(f"\n--- 汇总：通过 {passed} · 失败 {failed} ---")

@@ -290,28 +290,49 @@
   "derived": {
     "ratios": {
       "roe": {
-        "cur": 0.0155
+        "cur": 0.0155,
+        "hist": [
+          0.0155
+        ]
       },
       "gross_margin": {
-        "cur": 0.4002
+        "cur": 0.4002,
+        "hist": [
+          0.4002
+        ]
       },
       "net_margin": {
-        "cur": 0.0307
+        "cur": 0.0307,
+        "hist": [
+          0.0307
+        ]
       },
       "net_cash_ratio": {
-        "cur": 4.6682
+        "cur": 4.6682,
+        "hist": [
+          4.6682
+        ]
       },
       "cash_to_sales": {
-        "cur": 0.8815
+        "cur": 0.8815,
+        "hist": [
+          0.8815
+        ]
       },
       "debt_to_assets": {
-        "cur": 0.47
+        "cur": 0.47,
+        "hist": [
+          0.47
+        ]
       },
       "asset_turnover": {
         "cur": 0.2671
       },
       "equity_multiplier": {
-        "cur": 1.8889
+        "cur": 1.8889,
+        "hist": [
+          1.8889
+        ]
       },
       "dso": {
         "cur": 184.9696
@@ -336,11 +357,17 @@
       },
       "dfl": {
         "cur": 2.3053,
-        "note": "calc.py 同公式复算（X72）；hist 缺=重述口径断裂（血泪清单 7）"
+        "note": "calc.py 同公式复算（X72）；hist 缺=重述口径断裂（血泪清单 7）",
+        "hist": [
+          2.3053
+        ]
       },
       "dol": {
         "cur": 1.3995,
-        "note": "calc.py 同公式复算（X71）；hist 缺同上"
+        "note": "calc.py 同公式复算（X71）；hist 缺同上",
+        "hist": [
+          1.3995
+        ]
       },
       "non_main_rev_share": {
         "cur": 0.0068,
@@ -406,15 +433,34 @@
       "note": "上期周转率缺同口径期初余额（2019 追溯重述口径断裂，血泪清单 7），连环替代不执行——合法 null"
     },
     "risk_models": {
-      "altman_z": { "cur": 2.0286, "zone": "灰色", "annualized": false },
-      "ohlson_o": { "cur": -0.842, "prob": 0.3011, "level": "中" },
-      "note": "Altman 灰色区 + Ohlson 概率 0.30（中）：两模型同向指向「非安全」，与事后爆雷一致"
+      "altman_z": {
+        "cur": 2.0286,
+        "zone": "灰色",
+        "annualized": false
+      },
+      "ohlson_o": {
+        "cur": -0.842,
+        "prob": 0.3011,
+        "level": "中"
+      }
     },
     "stress": {
       "scenarios": [
-        { "p": 0.1, "np_stressed": 1.9217, "cover_stressed": 2.6275 },
-        { "p": 0.2, "np_stressed": 1.0066, "cover_stressed": 2.6066 },
-        { "p": 0.3, "np_stressed": 0.0914, "cover_stressed": 2.5858 }
+        {
+          "p": 0.1,
+          "np_stressed": 1.9218,
+          "cover_stressed": 2.6275
+        },
+        {
+          "p": 0.2,
+          "np_stressed": 1.0065,
+          "cover_stressed": 2.6066
+        },
+        {
+          "p": 0.3,
+          "np_stressed": 0.0912,
+          "cover_stressed": 2.5857
+        }
       ],
       "note": "DOL=1.3995 传导：收入 -30% 情景下净利润≈0（0.09 亿），盈亏平衡已被压穿边缘"
     },
