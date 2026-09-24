@@ -40,7 +40,8 @@
     "company": "贵州茅台", "code": "600519.SH", "market": "A股",
     "period": "20251231", "report_type": "年报", "disclose_date": "2026-04-16",
     "unit": "亿元", "source_md": "reports/xxx.md", "analyst_date": "2026-09-10",
-    "schema_version": "1.1",
+    "market_cap_cur": null,
+    "schema_version": "1.2",
     "currency": "CNY",
     "accounting_standard": "CAS",
     "industry_profile": "通用",
@@ -100,7 +101,9 @@
       "dividend_paid":    { "cur": null, "prev": null, "src": "", "note": "本年实际分配现金股利" },
       "prepayment":       { "cur": null, "prev": null, "src": "", "note": "预付款项（采购侧资产；A4 收入-收现闭环不用此项，相关的是预收/合同负债）" },
       "fin_assets":       { "cur": null, "prev": null, "src": "", "note": "交易性金融资产+长期股权投资+其他非流动金融资产（A8 用）" },
-      "payable_construction": { "cur": null, "prev": null, "src": "", "note": "应付工程设备款（A6 用，常未单列，可 null）" }
+      "payable_construction": { "cur": null, "prev": null, "src": "", "note": "应付工程设备款（A6 用，常未单列，可 null）" },
+      "total_cur_assets": { "cur": null, "prev": null, "src": "", "note": "流动资产合计（Altman X1 / Ohlson 营运资金用；v1.2）" },
+      "total_cur_liab":   { "cur": null, "prev": null, "src": "", "note": "流动负债合计（Altman X1 / Ohlson 用；v1.2）" }
     },
     "cashflow": {
       "ocf":         { "cur": null, "prev": null, "hist": [], "src": "" },
@@ -168,7 +171,19 @@
       "non_main_rev_share": { "cur": null, "note": "(营业外收入+其他业务收入+投资收益+公允价值变动)÷营业收入（X33 收入结构口径；与 nonrecurring_share 的利润调整口径不同源，勿混）" },
       "ocf_to_liab": { "cur": null, "note": "OCF÷平均总负债（X6）；人话：照现在的造血能力，还清全部负债 ≈ 1/x 年" }
     },
-    "dupont": { "driver": "净利率|周转率|杠杆", "src": "" },
+    "dupont": { "driver": "净利率|周转率|杠杆", "margin_effect": null, "turnover_effect": null,
+                "leverage_effect": null, "roe_product_cur": null, "roe_product_prev": null,
+                "closure_gap": null, "src": "",
+                "note": "连环替代（定序：净利率→周转率→权益乘数），三效应加和恒等于三因子积的 Δ；closure_gap = ΔROE摊薄 − Δ三因子积（周转率平均余额口径 vs ROE 期末口径之差），报告 srcline 如实标注；缺同口径上期（口径断裂）整块 null" },
+    "risk_models": { "altman_z": { "cur": null, "zone": null, "annualized": null },
+                     "ohlson_o": { "cur": null, "prob": null, "level": null },
+                     "note": "v1.2 破产风险双模型并列（frameworks.md 第三节，谨慎使用、金融/地产跳过置 null）；市值取 meta.market_cap_cur（亿元），缺失时 altman_z 整块 null——宁可空值不给错值；interim 报告 annualized=true（流量项按〇口径总则年化）" },
+    "stress": { "scenarios": [ { "p": 0.1, "np_stressed": null, "cover_stressed": null },
+                               { "p": 0.2, "np_stressed": null, "cover_stressed": null },
+                               { "p": 0.3, "np_stressed": null, "cover_stressed": null } ],
+                "note": "v1.2 流动性压力情景（frameworks.md 第九节）：受压EBIT=EBIT×(1−p×DOL)，受压税前=受压EBIT−fin_exp，受压净利=受压税前×(1−有效税率)，受压短债覆盖=(cash+ocf×(1−p))÷(st_debt+noncur_due_1y)；est 估算口径，不进 T8①" },
+    "cash_ts": { "ncr_mean5": null, "ncr_neg_years": null, "fcf_to_np_mean5": null, "fcf_neg_years": null,
+                 "note": "v1.2 现金验证时序读数（frameworks.md 第五节）：净现比与 FCF=OCF−capex 的 5 期均值/负值年数，分母用归母净利 np_at；hist <3 期整块 null（口径断裂合法）" },
     "q4": { "rev": null, "np": null, "rev_share": null, "gm_q4": null, "gm_q1q3": null,
             "impair_share": null, "exp_ratio_q4": null, "exp_ratio_q1q3": null, "src": "" },
     "rev_factors": { "volume": null, "price": null, "mix": null, "src": "",
@@ -253,6 +268,9 @@
 - `concern`（v0.0.7，**选填不 FAIL**，calc.py 不校验）：一句话「担心什么」——三问①
   （这信号若是真雷，经营上意味着什么），供报告 s2「担心 → 本案」列的「担心」半行；
   `evidence` 对应「本案」半行。观察/命中条目应填
+- `severity`（v1.2，**选填，试点期仅 #4 应收/#5 存货两条信号填**）：0~1 连续严重度，
+  `min(1, (实际超幅 − 阈值) ÷ 参考窗)`（参考窗 40pct，见 redflags.md 〇节）；只用于
+  观察行排序 / 汇总行措辞 / watchlist 优先级，**禁止加总总分**；calc.py 校验 ∈[0,1]
 - `type ∈ signal/assertion`（`signal` = 财务信号；`assertion` = MD&A 断言不实，
   见 text-mining.md 第七节）
 - ⚠️ redflags.md 使用纪律第 2 条「红色信号 ≥2 条即提示财务真实性风险聚集」**只统计
@@ -341,6 +359,9 @@ verdict 由分析师按 articulation.md D 组判读规则综合给出；命中�
 | other_biz_income | `营业收入`附注内`其他业务收入` | 无直接对照——附注口径 |
 | parent_statements.* | `母公司资产负债表`/`母公司利润表`/`母公司现金流量表` | 无——只能来自原文 |
 | kam | `关键审计事项` | 无——只能来自原文 |
+| total_cur_assets | `流动资产合计`（合并资产负债表） | `balancesheet.total_cur_assets` |
+| total_cur_liab | `流动负债合计`（合并资产负债表） | `balancesheet.total_cur_liab` |
+| market_cap_cur | 无——行情数据 | `daily_basic.total_mv`（万元，**÷1e4 转亿元**后填入） |
 
 ## 六、常见坑（血泪清单）
 
@@ -358,3 +379,7 @@ verdict 由分析师按 articulation.md D 组判读规则综合给出；命中�
    invest_income/fv_change_income）逐字段 null 按 0 计（利润表未单列=不重大），
    全 null 才算「未提取」；note 必须标注哪个字段是按 0 计。禁止把「未提取」当 0 填报后
    又在 note 里隐身
+9. **市值单位陷阱**（v1.2，TradingAgents-CN 实证坑）：tushare `daily_basic.total_mv` 单位是
+   **万元**，`market_cap_cur` 入库前必须 ÷1e4 转**亿元**（与全局 unit 一致）——TradingAgents
+   曾把亿元当元直接算 Altman X4，X4 被压低 1 亿倍；本契约单位写死亿元，calc.py 复算
+   拦截

@@ -94,6 +94,9 @@ table.data tr.total td{font-weight:800;border-top:1.5px solid var(--ink);border-
 
 /* ── 读法层（v0.0.7）：复杂表/图的一句话读法，位于表格之后、srcline 之前 ── */
 .takeaway{font-size:12.5px;font-weight:700;margin-top:8px}
+/* 迷你走势字符（v0.0.12 趋势列）：八档块字符拼五期形状；强制 sans 字体栈——
+   朱雀仿宋不保证有块字符字形，缺字形会出豆腐块 */
+.spark{font-family:"Segoe UI",system-ui,sans-serif;letter-spacing:1px;font-size:12px}
 /* OCF 调节桥端点行：净利润 →（调节净额）→ 经营现金流净额（水平值不画柱） */
 .brends{font-size:12.5px;font-weight:800;margin:2px 0 8px}
 
@@ -249,49 +252,66 @@ table.data tr.total td{font-weight:800;border-top:1.5px solid var(--ink);border-
       <div class="kpi"><div class="v">{{经营现金流}}</div><div class="r">净现比 {{x}} <span class="badge der">推算</span></div><div class="l">经营现金流净额（亿元）</div></div>
       <div class="kpi"><div class="v">{{ROE}}</div><div class="r {{up|dn}}">较上期 {{±x.x}}pct <span class="badge der">推算</span></div><div class="l">ROE（加权）</div></div>
     </div>
+    <div class="card">
+      <div class="figtitle">{{结论式：四维比率总判一句话，如「营运三维全面改善，负债率升系预收非恶化」}}</div>
+      <!-- ◆ v0.0.12：四维表全宽化——它是 S1 信息密度最高的表，半宽挤压「评价」列；
+           「近5期趋势」列填**迷你走势字符**（▁▂▃▄▅▆▇█ 八档块字符，一期一格，
+           值映射 = (值−5期最小)÷(5期最大−最小)×7 取整，五期同值全 ▄；缺 hist 填「—」），
+           外层套 <span class="spark"> 并按方向语义表染色（利好 .up / 利空 .dn / 中性不染）。
+           禁填五格数字链（14.2→10.8→…→11.2 形态阅读效果差，评审否决）；数字明细在
+           本期/上期列、杜邦变迁表与 trend 大图承担 -->
+      <table class="data">
+        <tr><th>指标</th><th>本期</th><th>上期</th><th class="txt">较上期</th><th class="txt">近5期趋势</th><th class="txt">评价</th></tr>
+        <tr><td>毛利率 <span class="badge der">推算</span></td><td>{{}}</td><td>{{}}</td><td class="txt">{{▲|▼|→ +Δ值；好坏语义色：利好用 <span class="up">、利空用 <span class="dn">、语境中性不染色——语义判据见 references/frameworks.md 方向语义表}}</td><td class="txt"><span class="spark">{{▁▂▃▄▅}}</span></td><td class="txt">{{≤15字注脚}}</td></tr>
+        <tr><td>净利率</td><td>{{}}</td><td>{{}}</td><td class="txt">{{▲|▼ + Δ值}}</td><td class="txt"><span class="spark">{{▁▂▃▄▅}}</span></td><td class="txt">{{≤15字注脚}}</td></tr>
+        <tr><td>资产负债率</td><td>{{}}</td><td>{{}}</td><td class="txt">{{▲|▼ + Δ值}}</td><td class="txt"><span class="spark">{{▁▂▃▄▅}}</span></td><td class="txt">{{≤15字注脚}}</td></tr>
+        <tr><td>存货周转天数</td><td>{{}}</td><td>{{}}</td><td class="txt">{{▲|▼ + Δ值}}</td><td class="txt"><span class="spark">{{▁▂▃▄▅}}</span></td><td class="txt">{{≤15字注脚}}</td></tr>
+        <tr><td>应收周转天数</td><td>{{}}</td><td>{{}}</td><td class="txt">{{▲|▼ + Δ值}}</td><td class="txt"><span class="spark">{{▁▂▃▄▅}}</span></td><td class="txt">{{≤15字注脚}}</td></tr>
+        <tr><td>收现比</td><td>{{}}</td><td>{{}}</td><td class="txt">{{▲|▼ + Δ值}}</td><td class="txt"><span class="spark">{{▁▂▃▄▅}}</span></td><td class="txt">{{≤15字注脚}}</td></tr>
+        <tr><td>现金转换周期 CCC（应收周转天数 DSO＋存货周转天数 DIO−应付周转天数 DPO，天）</td><td>{{}}</td><td>{{}}</td><td class="txt">{{▲|▼ + Δ值}}</td><td class="txt"><span class="spark">{{▁▂▃▄▅}}</span></td><td class="txt">{{≤15字注脚}}</td></tr>
+        <tr><td>经营杠杆 DOL <span class="badge der">推算</span></td><td>{{}}</td><td>{{}}</td><td class="txt">{{▲|▼ + Δ值；方向须落到周期定位后定性，语境中性不染色——见 frameworks.md 第九节}}</td><td class="txt"><span class="spark">{{▁▂▃▄▅}}</span></td><td class="txt">{{≤15字注脚}}</td></tr>
+        <tr><td>财务杠杆 DFL <span class="badge der">推算</span></td><td>{{}}</td><td>{{}}</td><td class="txt">{{▲|▼ + Δ值；接近 1 = 利息负担轻，语境中性不染色}}</td><td class="txt"><span class="spark">{{▁▂▃▄▅}}</span></td><td class="txt">{{≤15字注脚}}</td></tr>
+        <tr><td>非主营业务收入占比 <span class="badge der">推算</span></td><td>{{}}</td><td>{{}}</td><td class="txt">{{▲|▼ + Δ值；升 = 需拆解构成（投资/公允/营业外）再定性，语境中性不染色}}</td><td class="txt">—（单期专用，不序列化）</td><td class="txt">{{≤15字注脚}}</td></tr>
+      </table>
+      <div class="takeaway">读法：{{一句话总判——哪几项在改善、哪几项承压、最大的一项怎么定性}}</div>
+      <div class="srcline">数据来源：公司{{报告期}}{{报告类型}}、Tushare；比率口径见 frameworks.md；CCC/平均余额口径期初取上年末 12-31；净现比与 FCF 的 5 期时序读数（均值/负值年数）见 data.json derived.cash_ts（frameworks.md 第五节）</div>
+      <div class="srcline">证据等级：<span class="badge disc">披露</span> 主表/附注直接披露 · <span class="badge der">推算</span> 两数运算（毛利率/净现比/周转天数）· <span class="badge est">估算</span> 含假设（情景测算）</div>
+    </div>
+    <!-- ◆ v0.0.12：杜邦独立成行。左卡=当期归因（连环替代闭合值），右卡=五年驱动变迁表；
+         废 dupont5 归一化折线（丢绝对量感、与 trend 大图重复） -->
     <div class="grid2">
       <div class="card">
-        <div class="figtitle">{{结论式：四维比率总判一句话，如「营运三维全面改善，负债率升系预收非恶化」}}</div>
-        <table class="data">
-          <tr><th>指标</th><th>本期</th><th>上期</th><th class="txt">较上期</th><th class="txt">评价</th></tr>
-          <tr><td>毛利率 <span class="badge der">推算</span></td><td>{{}}</td><td>{{}}</td><td class="txt">{{▲|▼|→ +Δ值；好坏语义色：利好用 <span class="up">、利空用 <span class="dn">、语境中性不染色——语义判据见 references/frameworks.md 方向语义表}}</td><td class="txt">{{≤15字注脚}}</td></tr>
-          <tr><td>净利率</td><td>{{}}</td><td>{{}}</td><td class="txt">{{▲|▼ + Δ值}}</td><td class="txt">{{≤15字注脚}}</td></tr>
-          <tr><td>资产负债率</td><td>{{}}</td><td>{{}}</td><td class="txt">{{▲|▼ + Δ值}}</td><td class="txt">{{≤15字注脚}}</td></tr>
-          <tr><td>存货周转天数</td><td>{{}}</td><td>{{}}</td><td class="txt">{{▲|▼ + Δ值}}</td><td class="txt">{{≤15字注脚}}</td></tr>
-          <tr><td>应收周转天数</td><td>{{}}</td><td>{{}}</td><td class="txt">{{▲|▼ + Δ值}}</td><td class="txt">{{≤15字注脚}}</td></tr>
-          <tr><td>收现比</td><td>{{}}</td><td>{{}}</td><td class="txt">{{▲|▼ + Δ值}}</td><td class="txt">{{≤15字注脚}}</td></tr>
-          <tr><td>CCC（DSO+DIO−DPO，天）</td><td>{{}}</td><td>{{}}</td><td class="txt">{{▲|▼ + Δ值}}</td><td class="txt">{{≤15字注脚}}</td></tr>
-          <tr><td>经营杠杆 DOL <span class="badge der">推算</span></td><td>{{}}</td><td>{{}}</td><td class="txt">{{▲|▼ + Δ值；方向须落到周期定位后定性，语境中性不染色——见 frameworks.md 第九节}}</td><td class="txt">{{≤15字注脚}}</td></tr>
-          <tr><td>财务杠杆 DFL <span class="badge der">推算</span></td><td>{{}}</td><td>{{}}</td><td class="txt">{{▲|▼ + Δ值；接近 1 = 利息负担轻，语境中性不染色}}</td><td class="txt">{{≤15字注脚}}</td></tr>
-          <tr><td>非主营业务收入占比 <span class="badge der">推算</span></td><td>{{}}</td><td>{{}}</td><td class="txt">{{▲|▼ + Δ值；升 = 需拆解构成（投资/公允/营业外）再定性，语境中性不染色}}</td><td class="txt">{{≤15字注脚}}</td></tr>
-        </table>
-        <div class="takeaway">读法：{{一句话总判——哪几项在改善、哪几项承压、最大的一项怎么定性}}</div>
-        <div class="srcline">数据来源：公司{{报告期}}{{报告类型}}、Tushare；比率口径见 frameworks.md</div>
-        <div class="srcline">证据等级：<span class="badge disc">披露</span> 主表/附注直接披露 · <span class="badge der">推算</span> 两数运算（毛利率/净现比/周转天数）· <span class="badge est">估算</span> 含假设（情景测算）</div>
-      </div>
-      <div class="card">
-        <div class="figtitle">{{结论式：ROE 变动归因一句话，如「ROE -1.3pct：净利率升被募资摊薄对冲」}}</div>
+        <div class="figtitle">{{裁决句：ROE 变动能不能信 + 主驱动 + 盯什么，如「ROE 修复成色打折——净利率修复是真改善、杠杆是并购被动抬升；周转率不停止跌则修复难持续」（数字只许在表格里，标题不复述分解值）}}</div>
         <!-- ◆ 方向列语义色规则 = 该因子变动对 ROE 的影响方向与质量（修旧示例「权益乘数 ↑ 却包 dn
              红样式」的 bug）：↑ 且抬升 ROE 用 <span class="up">；↑ 但属被动抬升/风险堆积
-             （如靠加杠杆撑 ROE）用 <span class="dn"> 并在归因里注明；↓ 拖累 ROE 用 <span class="dn"> -->
+             （如靠加杠杆撑 ROE）用 <span class="dn"> 并在归因里注明；↓ 拖累 ROE 用 <span class="dn">
+             ◆ 贡献归因 = derived.dupont 的连环替代闭合值（calc.py 复算卡口），三效应加和恒等于
+             三因子积的 Δ——禁止自由手算（中免 2026H1 加和不闭合教训） -->
         <table class="data">
           <tr><th>因子</th><th>本期</th><th>上期</th><th class="txt">方向 · 贡献归因</th></tr>
-          <tr><td>净利率</td><td>{{}}</td><td>{{}}</td><td class="txt">{{▲|▼ + 当期 ΔROE 三因素归因（净利率效应/周转效应/杠杆效应，pct 量级，量化到小数点后一位）}}</td></tr>
-          <tr><td>总资产周转率</td><td>{{}}</td><td>{{}}</td><td class="txt">{{▲|▼ + 归因（pct，一位小数）}}</td></tr>
-          <tr><td>权益乘数</td><td>{{}}</td><td>{{}}</td><td class="txt">{{▲|▼ + 归因（pct，一位小数）}}</td></tr>
-          <tr class="total"><td>ROE</td><td>{{}}</td><td>{{}}</td><td class="txt">{{主驱动一句话}}</td></tr>
+          <tr><td>净利率</td><td>{{}}</td><td>{{}}</td><td class="txt">{{▲|▼ + margin_effect（pct，一位小数）+ 归因一句}}</td></tr>
+          <tr><td>总资产周转率</td><td>{{}}</td><td>{{}}</td><td class="txt">{{▲|▼ + turnover_effect + 归因一句}}</td></tr>
+          <tr><td>权益乘数</td><td>{{}}</td><td>{{}}</td><td class="txt">{{▲|▼ + leverage_effect + 归因一句}}</td></tr>
+          <tr class="total"><td>ROE（摊薄）</td><td>{{}}</td><td>{{}}</td><td class="txt">{{主驱动=dupont.driver 一句话}}</td></tr>
         </table>
-        <div class="srcline">质量排序：净利率驱动 &gt; 周转率驱动 &gt; 杠杆驱动</div>
-        <div class="figtitle">{{结论式：杜邦五年走向一句话，如「净利率趋势性抬升 vs 周转率下行，ROE 被两者拉锯」}}</div>
-        <!-- ◆ SLOT：杜邦三因子 5 期归一化折线（v0.0.7，替代表格形态）——同类型滚动
-             （年报对 FY、半年报对 H1），数据填 JS 区 DUPONT5（原始值，绘图函数归一化：
-             首点=100）；末点标原始值，指数刻度只表达相对走向 -->
-        <svg id="dupont5" viewBox="0 0 460 250" preserveAspectRatio="xMidYMid meet"></svg>
-        <div class="srcline">指数化（基期=100），末点标原始值 · 数据来源：data.json derived.ratios hist（net_margin / asset_turnover / equity_multiplier / roe）· calc.py ratio-hist 逐期复算</div>
+        <div class="srcline">质量排序：净利率驱动 &gt; 周转率驱动 &gt; 杠杆驱动 · 连环替代（定序净利率→周转率→权益乘数）三效应加和恒等于三因子积的 Δ；口径差 {{±x.x}}pct = 周转率平均余额口径 vs ROE 期末口径（derived.dupont.closure_gap，如实标注）</div>
+        <div class="takeaway">修复路径：{{若主拖累因子回到五年最佳（其他因子不变）→ ROE≈x.x% <span class="badge est">估算</span>；三因子均处五年高位时降级写「维持条件 = 净利率不跌破 x%」}}</div>
+      </div>
+      <div class="card">
+        <div class="figtitle">{{结论式：五年驱动变迁一句话，如「早期靠净利率 → 中期被周转率接管（变差）→ 本期净利率重新接管」}}</div>
+        <table class="data">
+          <tr><th>期间</th><th>净利率</th><th>周转率</th><th>权益乘数</th><th>ROE</th><th class="txt">主驱动</th></tr>
+          <tr><td>{{期间1}}</td><td>{{}}</td><td>{{}}</td><td>{{}}</td><td>{{}}</td><td class="txt">{{净利率|周转率|杠杆——连环替代 |贡献| 最大者；净利率驱动用 <span class="up">、杠杆驱动用 <span class="dn">、周转率驱动不染色}}</td></tr>
+          <tr><td>{{期间2}}</td><td>{{}}</td><td>{{}}</td><td>{{}}</td><td>{{}}</td><td class="txt">{{}}</td></tr>
+          <tr><td>{{期间3}}</td><td>{{}}</td><td>{{}}</td><td>{{}}</td><td>{{}}</td><td class="txt">{{}}</td></tr>
+          <tr><td>{{期间4}}</td><td>{{}}</td><td>{{}}</td><td>{{}}</td><td>{{}}</td><td class="txt">{{}}</td></tr>
+          <tr><td>{{期间5}}</td><td>{{}}</td><td>{{}}</td><td>{{}}</td><td>{{}}</td><td class="txt">{{}}</td></tr>
+        </table>
+        <div class="srcline">数据来源：data.json derived.ratios hist（同类型滚动：年报对 FY、半年报对 H1）· calc.py ratio-hist 逐期复算 · 缺 hist（口径断裂）时整卡降级为两期归因并在标题注明</div>
       </div>
     </div>
     <div class="fig">
-      <div class="figtitle">{{结论式：五年趋势一句话，如「收入创新高、毛利率抬升、ROE 被摊薄」}}</div>
+      <div class="figtitle">{{结论式：五年趋势一句话，如「收入创新高、毛利率抬升、ROE 被摊薄——下期盯摊薄是否见底」}}</div>
       <svg id="trend" viewBox="0 0 960 300" preserveAspectRatio="xMidYMid meet"></svg>
       <div class="srcline">数据来源：{{…}} · 左面板=收入柱+毛利率线 · 右面板=归母净利+扣非净利柱、ROE 线（扣非/ROE 缺数据时右板降级为归母净利单柱、ROE 线跳过）</div>
     </div>
@@ -341,7 +361,7 @@ table.data tr.total td{font-weight:800;border-top:1.5px solid var(--ink);border-
     <p class="lede">{{一句话：本期利润变化的第一驱动是……}}</p>
     <div class="grid2">
       <div class="card">
-        <div class="figtitle">{{结论式：Δ收入归因一句话，如「增长第一贡献来自高毛利的 XX 线，结构升级是真实的」}}</div>
+        <div class="figtitle">{{结论式：Δ收入归因一句话，如「增长第一贡献来自高毛利的 XX 线，结构升级是真实的——盯下期 XX 线放量兑现」}}</div>
         <!-- ◆ 分组轴规则（v0.0.7）：优先与商业模式叙事同构的轴（industry-profiles.md 该模式
              声明的收入轴，如医药=创新药/仿制药/license-out），不机械照搬附注分产品表；
              分产品毛利表作为结构升级证据保留为注记。多产品公司能拆量价必拆量/价/结构
@@ -357,7 +377,7 @@ table.data tr.total td{font-weight:800;border-top:1.5px solid var(--ink);border-
         <div class="srcline">数据来源：{{报告 MD&A 产销量表 / 分产品收入}}；三效应之和 = Δ收入（calc.py bridge.rev 已校验）；方法：factor-analysis.md 第一节（三行桥式表为必选形态，无量价降级见同文件第二节）</div>
       </div>
       <div class="card">
-        <div class="figtitle">{{结论式：归母净利归因一句话，如「毛利是第一驱动、期间费用是最大拖累」}}</div>
+        <div class="figtitle">{{结论式：归母净利归因一句话，如「毛利是第一驱动、期间费用是最大拖累——下期盯费用率走向」}}</div>
         <table class="data bridge">
           <tr><th>环节</th><th>本期</th><th>上期</th><th>贡献额</th><th class="txt">备注</th></tr>
           <tr><td>毛利</td><td>{{}}</td><td>{{}}</td><td class="up">{{}}</td><td class="txt">{{毛利率变化解释}}</td></tr>
@@ -375,13 +395,13 @@ table.data tr.total td{font-weight:800;border-top:1.5px solid var(--ink);border-
     <!-- ◆ SLOT：第二座桥（净利→经营现金流，间接法）+ Q4 单季透视 -->
     <div class="grid2">
       <div class="fig">
-        <div class="figtitle">{{结论式：OCF 与净利润的关系一句话，如「OCF 反超净利润：应付预收放大是主因」或「OCF 远低于净利润：营运资本吞噬在应收」}}</div>
+        <div class="figtitle">{{结论式：经营现金流净额（OCF）与净利润的关系一句话，如「OCF 反超净利润：应付预收放大是主因」或「OCF 远低于净利润：营运资本吞噬在应收」}}</div>
         <!-- ◆ 端点行 + delta 条形图（v0.0.7，替代瀑布图）：水平值（净利润/OCF）与调整项量级
              悬殊时瀑布图会把调整项压成细线——水平值不画柱，以文字端点呈现；SVG 只画调整项
              delta 条（按 |delta| 降序，零轴居中、右绿左红）。viewBox 高度按 30+26×行数调整 -->
         <div class="brends">净利润 {{X}} 亿 →（调节净额 {{±Y}} 亿）→ 经营现金流净额 {{Z}} 亿</div>
         <svg id="ocfbridge" viewBox="0 0 460 240" preserveAspectRatio="xMidYMid meet"></svg>
-        <div class="srcline">营运资本吞噬额 {{X}} 亿（占净利润 {{Y}}%，负值=净释放）· 主吞噬/释放项：{{应收/存货/应付}} · 数据来源：现金流量表补充资料 · calc.py bridge.ocf 已校验</div>
+        <div class="srcline">OCF（经营活动现金流量净额）调节桥 · 营运资本吞噬额 {{X}} 亿（占净利润 {{Y}}%，负值=净释放）· 主吞噬/释放项：{{应收/存货/应付}} · 数据来源：现金流量表补充资料 · calc.py bridge.ocf 已校验</div>
       </div>
       <div class="card">
         <div class="figtitle">{{结论式：Q4 五项检验总判一句话，如「五项全过、无年末调节痕迹」或「减值占比超标，洗澡嫌疑待解释」}}</div>
@@ -403,7 +423,7 @@ table.data tr.total td{font-weight:800;border-top:1.5px solid var(--ink);border-
 
   <!-- ══ S4 文字部分分析 ◆ SLOT ══ -->
   <div class="sect">
-    <div class="secthead" id="s4"><span class="no">04</span><span class="t">管理层在说什么</span><span class="line"></span><span class="tag">MD&A · 措辞 · 赛道重合度</span></div>
+    <div class="secthead" id="s4"><span class="no">04</span><span class="t">管理层在说什么</span><span class="line"></span><span class="tag">管理层讨论与分析（MD&A） · 措辞 · 赛道重合度</span></div>
     <div class="grid2">
       <div class="card">
         <div class="figtitle">{{结论式：管理层叙事主线一句话，如「三条主线都有钱跟上」或「口号响但资本开支没跟上」}}</div>
@@ -509,26 +529,30 @@ table.data tr.total td{font-weight:800;border-top:1.5px solid var(--ink);border-
       </div>
     </div>
     <div class="card">
-      <div class="figtitle">{{结论式：三项检验总判一句话，如「增收更增利、费用效率改善、偿付无虞」}}</div>
+      <div class="figtitle">{{结论式：健康检验汇总，如「8 项：6 过 2 注意——税率与汇率是本期利润的隐形放大器」}}</div>
+      <!-- ◆ v0.0.12：检验类卡片必须有判定列（扫颜色即知结果，治「全文字缺重点」）；
+           ✅ 通过 / ⚠️ 注意 / ❌ 异常；纯披露项（税率汇率等无检验性质的）填「—」，不许硬凑 ✅ -->
       <table class="data">
-        <tr><th>检验项</th><th>读数</th><th class="txt">结论</th></tr>
-        <tr><td>收入增速 vs 净利增速</td><td>{{x%}} vs {{y%}}</td><td class="txt">{{是否存在剪刀差 + 原因}}</td></tr>
-        <tr><td>研发费用（费率 / 资本化率）</td><td>{{亿元}}（{{%}} / {{%}}）</td><td class="txt">{{同业位置 + 合理性}}</td></tr>
-        <tr><td>短债覆盖倍数</td><td>{{x}} 倍</td><td class="txt">{{(货币资金+OCF)÷(短借+一年内到期)}}</td></tr>
-        <tr><td>现金流偿债口径（X6）</td><td>{{x}}（≈ {{y}} 年）</td><td class="txt">{{OCF÷平均总负债；人话：照现在的造血能力还清全部负债要几年——与上行短债覆盖并列看，不替代}}</td></tr>
-        <tr><td>大宗/税率/汇率敏感性</td><td class="txt" colspan="2">{{原材料占成本比 + 对应品种价格趋势 + 所得税率变化；数据来源：mx_macro_data}}</td></tr>
-        <tr><td>增量费用效率（Δ毛利÷Δ期间费用）</td><td>{{x}}</td><td class="txt">{{&gt;1 费用换来更多毛利 / &lt;0.5 且费用率上升=效率恶化}}</td></tr>
-        <tr><td>销售费用获客效率（Δ收入÷Δ销售费用）</td><td>{{x}}</td><td class="txt">{{趋势下降=增长越来越贵，增收不增利前兆}}</td></tr>
-        <tr><td>费用率上升归因</td><td class="txt" colspan="2">{{扩张驱动（中性）/ 效率下降（计负面）/ 结构变化（需 MD&A 佐证）——只惩罚第二种}}</td></tr>
+        <tr><th>检验项</th><th>读数</th><th class="txt">判定</th><th class="txt">结论（≤30字，长解释挪 srcline）</th></tr>
+        <tr><td>收入增速 vs 净利增速</td><td>{{x%}} vs {{y%}}</td><td class="txt"><span class="badge {{g|y|r}}">{{✅|⚠️|❌}}</span></td><td class="txt">{{是否存在剪刀差 + 原因}}</td></tr>
+        <tr><td>研发费用（费率 / 资本化率）</td><td>{{亿元}}（{{%}} / {{%}}）</td><td class="txt"><span class="badge {{g|y|r}}">{{✅|⚠️}}</span></td><td class="txt">{{同业位置 + 合理性}}</td></tr>
+        <tr><td>短债覆盖倍数</td><td>{{x}} 倍</td><td class="txt"><span class="badge {{g|y}}">{{✅|⚠️}}</span></td><td class="txt">{{(货币资金+OCF)÷(短借+一年内到期)}}</td></tr>
+        <tr><td>现金流偿债口径（X6）</td><td>{{x}}（≈ {{y}} 年）</td><td class="txt"><span class="badge {{g|y}}">{{✅|⚠️}}</span></td><td class="txt">{{OCF÷平均总负债——与上行短债覆盖并列看，不替代}}</td></tr>
+        <tr><td>破产风险双模型 <span class="badge der">推算</span></td><td>Altman Z={{x}}（{{安全|灰色|危险}}区）· Ohlson P={{y}}（{{低|中|高}}）</td><td class="txt"><span class="badge {{g|y|r}}">{{✅|⚠️|❌}}</span></td><td class="txt">{{同向→按强度下措辞；分歧→「模型分歧，均作辅助参考」；美国样本系数仅辅助参考，金融/地产跳过本行并注明}}</td></tr>
+        <tr><td>流动性压力情景 <span class="badge est">估算</span></td><td>收入-10/20/30% → 净利 {{x}}/{{y}}/{{z}} 亿</td><td class="txt"><span class="badge {{g|y}}">{{✅|⚠️}}</span></td><td class="txt">{{p=10% 受压净利<0 不直接🔴，进 watchlist「安全垫薄」；结论挂周期定位解读（frameworks.md 第九节）}}</td></tr>
+        <tr><td>大宗/税率/汇率敏感性</td><td>—</td><td class="txt">—（披露项）</td><td class="txt">{{原材料占成本比 + 对应品种价格趋势 + 所得税率变化；数据来源：mx_macro_data}}</td></tr>
+        <tr><td>增量费用效率（Δ毛利÷Δ期间费用）</td><td>{{x}}</td><td class="txt"><span class="badge {{g|y|r}}">{{✅|⚠️|❌}}</span></td><td class="txt">{{&gt;1 费用换来更多毛利 / &lt;0.5 且费用率上升=效率恶化}}</td></tr>
+        <tr><td>销售费用获客效率（Δ收入÷Δ销售费用）</td><td>{{x}}</td><td class="txt"><span class="badge {{g|y}}">{{✅|⚠️}}</span></td><td class="txt">{{趋势下降=增长越来越贵，增收不增利前兆}}</td></tr>
+        <tr><td>费用率上升归因</td><td>—</td><td class="txt">—（披露项）</td><td class="txt">{{扩张驱动（中性）/ 效率下降（计负面）/ 结构变化（需 MD&A 佐证）——只惩罚第二种}}</td></tr>
       </table>
-      <div class="srcline">费用 ROI 规则：frameworks.md 第七节 · 诊断经营效率，不进排雷清单</div>
+      <div class="srcline">费用 ROI 规则：frameworks.md 第七节 · 诊断经营效率，不进排雷清单 · 判定列规则：✅ 过 / ⚠️ 注意 / ❌ 异常 / — 披露项（不硬凑判定）</div>
     </div>
     <!-- ◆ SLOT：期后事项（P1-11，核验期末余额真实性） -->
     <div class="card">
-      <div class="figtitle">{{结论式：期后健康/风险一句话，如「期后健康：负面项均为经营性而非财务真实性风险」}}</div>
+      <div class="figtitle">{{结论式：期后健康汇总，如「3 项验证 0 负面：分红如期兑付、零质押零诉讼」}}</div>
       <table class="data">
-        <tr><th>日期</th><th class="txt">事件</th><th class="txt">验证了什么</th></tr>
-        <tr><td>{{YYYY-MM-DD}}</td><td class="txt">{{期后大额收款/退货/质押/减持/诉讼/违约}}</td><td class="txt">{{验证期末应收真实性 / 收入确认激进 / 偿债能力}}</td></tr>
+        <tr><th>日期</th><th class="txt">事件</th><th class="txt">判定</th><th class="txt">验证了什么</th></tr>
+        <tr><td>{{YYYY-MM-DD}}</td><td class="txt">{{期后大额收款/退货/质押/减持/诉讼/违约}}</td><td class="txt"><span class="badge {{g|y}}">{{✅|⚠️}}</span></td><td class="txt">{{验证期末应收真实性 / 收入确认激进 / 偿债能力}}</td></tr>
         <!-- ◆ 无期后事项时写「已检查，无重大期后事项」——不悄悄缺席 -->
       </table>
       <div class="srcline">数据来源：mx_finance_search_notice 期后公告时间线 · 与 B1 应收 roll-forward 联动</div>
@@ -625,13 +649,12 @@ function niceStep(raw){const p=Math.pow(10,Math.floor(Math.log10(raw)));const n=
 const TREND={labels:['2022','2023','2024'],rev:[0,0,0],np:[0,0,0],np_dt:[],roe:[],gm:[0,0,0]};
 /* ocfbridge：净利→经营现金流调节桥（间接法，亿元）——首项「净利润」为水平值（不画柱，
    与 OCF_END 一起填上方 .brends 端点行），其余为调节项，Σ=OCF；
-   OCF_END = 经营活动现金流量净额（水平值，来自 data.json statements.cashflow.ocf.cur） */
+   OCF_END = 经营活动现金流量净额（水平值，来自 data.json statements.cashflow.ocf.cur）
+   ◆ v0.0.12 项数纪律（check_html ocf-bridge-shape 机检）：调节柱 ≤6 根——单列门槛
+   |Δ|≥调节净额 10% 或 ≥3 亿，其余并入「其他」；「其他」桶 |Δ| 超 Σ|Δ|×30% 时须把桶内
+   最大项拆出单列。图只讲「吞噬结构」（前两大吞噬+第一大回补进 figtitle），细节进表格 */
 const OCF_BRIDGE=[['净利润',0],['折旧摊销',0],['减值',0],['递延税',0],['Δ应收',0],['Δ存货',0],['Δ应付',0],['其他',0]];
 const OCF_END=0;
-/* dupont5：杜邦三因子 + ROE 的 5 期原始值（同类型滚动：年报对 FY、半年报对 H1，旧→新）——
-   净利率/ROE 填百分数（如 24.4 表示 24.4%），周转率/权益乘数填原值（如 0.53 / 1.14）；
-   绘图函数归一化（首点=100），末点标原始值。数据来自 data.json derived.ratios hist（末位=cur） */
-const DUPONT5={labels:[],net_margin:[],asset_turn:[],equity_mult:[],roe:[]};
 /* holders：股东户数（万户，柱）+ 区间涨跌幅(%,线，可留空) */
 const HOLDERS={labels:[],num:[],px:[]};
 
@@ -825,66 +848,8 @@ function deltaBars(id,steps){
   });
 }
 
-/* 杜邦三因子 5 期归一化折线（v0.0.7，替代表格）：四因子量纲悬殊（净利率 17~24% vs
-   周转率 0.5~0.7），同轴原始值折线会把小量纲压成底部平线。归一化（首点=100）后同坐标系
-   可比，走向即故事；末点标原始值，tooltip 给「原值 + 指数」。末条 series 视为结果线（ROE）加粗。
-   series = [[name, values, color, unit], …]；values 允许 null（断点不硬连）。 */
-function dupontNorm(id,labels,series){
-  const s=document.getElementById(id);if(!s||!labels.length||!series.length)return;
-  const W=+s.viewBox.baseVal.width,H=+s.viewBox.baseVal.height,L=40,R=64,B=30,T=26;
-  const n=labels.length;
-  const idx=series.map(([nm,vals])=>vals.map(v=>v==null?null:v/vals[0]*100));
-  const all=idx.flat().filter(v=>v!=null);
-  let lo=Math.min(...all),hi=Math.max(...all);
-  const pad=(hi-lo)*.12||1;hi+=pad;lo-=pad;
-  const x=i=>L+(W-L-R)*(n===1?.5:i/(n-1));
-  const y=v=>T+(H-T-B)*(1-(v-lo)/(hi-lo));
-  const step=niceStep((hi-lo)/4);
-  for(let v=Math.ceil(lo/step)*step;v<hi;v+=step){
-    el(s,'line',{x1:L,y1:y(v),x2:W-R,y2:y(v),stroke:FAINT,'stroke-width':.7,'stroke-dasharray':'3 3'});
-    txt(s,{x:L-6,y:y(v)+3,'font-size':8.5,'font-weight':600,fill:MUT,'text-anchor':'end'},Math.round(v));
-  }
-  /* 基期 100 参考线 */
-  el(s,'line',{x1:L,y1:y(100),x2:W-R,y2:y(100),stroke:GRID,'stroke-width':1,'stroke-dasharray':'4 3'});
-  series.forEach(([nm,vals,color,unit],si)=>{
-    const last=si===series.length-1;
-    const pts=idx[si].map((v,i)=>v==null?null:[x(i),y(v)]);
-    let run=[];
-    const flush=()=>{
-      if(run.length>1)el(s,'path',{d:'M'+run.map(p=>p.join(' ')).join(' L '),fill:'none',stroke:color,'stroke-width':last?2.2:1.5});
-      run=[];
-    };
-    pts.forEach(p=>{if(!p){flush();return;}run.push(p)});
-    flush();
-    pts.forEach((p,i)=>{
-      if(!p)return;
-      const c=el(s,'circle',{cx:p[0],cy:p[1],r:last?3:2.4,fill:color,stroke:'#fff','stroke-width':1.2});
-      tip(c,`${labels[i]} ${nm}：${vals[i]}${unit}（指数 ${idx[si][i].toFixed(0)}）`);
-    });
-  });
-  /* 末点原始值标签：多序列末点纵向接近时依次下移避让（相邻间距 ≥12px） */
-  const li=labels.length-1;
-  const ends=[];
-  series.forEach(([nm,vals,color,unit],si)=>{
-    if(idx[si][li]!=null)ends.push({y:y(idx[si][li])+3,text:`${vals[li]}${unit}`,color});
-  });
-  ends.sort((a,b)=>a.y-b.y);
-  for(let i=1;i<ends.length;i++)if(ends[i].y-ends[i-1].y<12)ends[i].y=ends[i-1].y+12;
-  ends.forEach(e=>txt(s,{x:x(li)+7,y:e.y,'font-size':9,'font-weight':700,fill:e.color,'text-anchor':'start'},e.text));
-  labels.forEach((lb,i)=>txt(s,{x:x(i),y:H-B+16,'font-size':9.5,'font-weight':600,fill:MUT,'text-anchor':'middle'},lb));
-  series.forEach(([nm,,color],i)=>{
-    el(s,'rect',{x:L+i*104,y:6,width:10,height:10,fill:color,rx:2});
-    txt(s,{x:L+i*104+14,y:15,'font-size':9,'font-weight':600,fill:MUT},nm);
-  });
-}
-
 trendDual('trend',TREND.labels,TREND.rev,TREND.np,TREND.gm,TREND.np_dt,TREND.roe);
 deltaBars('ocfbridge',OCF_BRIDGE.slice(1));
-dupontNorm('dupont5',DUPONT5.labels,[
-  ['净利率',DUPONT5.net_margin,C1,'%'],
-  ['总资产周转率',DUPONT5.asset_turn,v('--der'),''],
-  ['权益乘数',DUPONT5.equity_mult,MUT,''],
-  ['ROE',DUPONT5.roe,INK,'%']]);
 combo('holders',HOLDERS.labels,HOLDERS.num,[],HOLDERS.px,'区间涨跌幅','股东户数(万户)','');
 </script>
 </body>

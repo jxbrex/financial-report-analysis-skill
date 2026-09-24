@@ -7,9 +7,11 @@
     "report_type": "年报",
     "disclose_date": "2026-04-16",
     "unit": "亿元",
+    "market_cap_cur": 17246.0149,
+    "market_cap_src": "tushare daily_basic 20251231 total_mv=172,460,149.47 万元 ÷1e4",
     "source_md": "reports/archive/原始报告/贵州茅台2025年年度报告.md",
     "analyst_date": "2026-09-10",
-    "schema_version": "1.1"
+    "schema_version": "1.2"
   },
   "statements": {
     "income": {
@@ -295,6 +297,16 @@
           40.0731
         ],
         "src": "L2678 合并资产负债表 应付账款"
+      },
+      "total_cur_assets": {
+        "cur": 2525.1866,
+        "prev": 2517.2667,
+        "src": "L2637 合并资产负债表 流动资产合计"
+      },
+      "total_cur_liab": {
+        "cur": 496.1048,
+        "prev": 565.1599,
+        "src": "L2700 合并资产负债表 流动负债合计"
       }
     },
     "cashflow": {
@@ -317,10 +329,17 @@
         "note": "测试样本未提取（现金流量表含财务公司金融业务行，需单列）"
       },
       "capex": {
-        "cur": null,
-        "prev": null,
-        "src": null,
-        "note": "测试样本未提取"
+        "cur": 31.2759,
+        "prev": 46.7871,
+        "hist": [
+          34.0879,
+          53.0655,
+          26.1976,
+          46.7871,
+          31.2759
+        ],
+        "src": "L3184 购建固定资产、无形资产和其他长期资产支付的现金",
+        "note": "hist 2021-2024 取自 tushare cashflow.c_pay_acq_const_fiolta（2025 报告提取值与 tushare 口径一致）"
       },
       "dep_amort": {
         "cur": 22.5939,
@@ -560,6 +579,36 @@
       "amount": 248.74,
       "share_of_np": 0.2916,
       "note": "吞噬额=−(Δ应收+Δ存货−Δ应付−Δ其他)=248.74亿；分母用净利润(含少数股东)853.10亿，占29.2%，<50%不警示"
+    },
+    "dupont": {
+      "driver": "周转率",
+      "margin_effect": -0.013,
+      "turnover_effect": -0.0236,
+      "leverage_effect": -0.0111,
+      "roe_product_cur": 0.3393,
+      "roe_product_prev": 0.3869,
+      "closure_gap": 0.0142,
+      "src": "连环替代（净利率→周转率→权益乘数），calc.py 复算",
+      "note": "ROE 修复缺席期：三因子全降，主拖累周转率（资产周转放缓）；口径差 +1.42pct = 周转率平均余额口径 vs ROE 期末口径"
+    },
+    "risk_models": {
+      "altman_z": { "cur": 24.4586, "zone": "安全", "annualized": false },
+      "ohlson_o": { "cur": -4.522, "prob": 0.0108, "level": "低" }
+    },
+    "stress": {
+      "scenarios": [
+        { "p": 0.1, "np_stressed": 766.73, "cover_stressed": 2421.64 },
+        { "p": 0.2, "np_stressed": 680.36, "cover_stressed": 2282.48 },
+        { "p": 0.3, "np_stressed": 593.98, "cover_stressed": 2143.32 }
+      ],
+      "note": "DOL 传导：受压EBIT=EBIT×(1−p×DOL=1.0198)；有效税率 25.66%；零有息负债下短债覆盖对压力不敏感"
+    },
+    "cash_ts": {
+      "ncr_mean5": 0.9033,
+      "ncr_neg_years": 0,
+      "fcf_to_np_mean5": 0.8479,
+      "fcf_neg_years": 0,
+      "note": "净现比 5 期均值 0.90、无负值年；FCF=OCF−capex 5 期均为正、覆盖归母净利 0.85"
     }
   },
   "recon": {},

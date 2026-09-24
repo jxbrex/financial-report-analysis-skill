@@ -35,8 +35,8 @@
 body{background:var(--bg);color:#000;
   font-family:"Zhuque Fangsong","朱雀仿宋","FangSong","仿宋","STFangsong",serif;
   -webkit-font-smoothing:antialiased;font-variant-numeric:tabular-nums lining-nums;
-  display:flex;justify-content:center;padding:40px 20px}
-.sheet{width:1040px;max-width:1040px}
+  padding:40px 20px}
+.sheet{width:100%;max-width:1040px;margin:0 auto}
 
 /* ── 页眉 ── */
 .masthead{border-bottom:3px double var(--ink);padding-bottom:18px;margin-bottom:8px}
@@ -59,7 +59,7 @@ body{background:var(--bg);color:#000;
 /* 排雷四态之「反向未触发」：信号反向成立且含信息量，用主数据色（赭石）与 g/y/r 风险色区分 */
 .badge.rev{background:rgba(171,94,38,.12);color:var(--data)}
 
-/* ── 下钻链接（P2-25）── */
+/* ── 追查链接（P2-25）── */
 a{color:var(--data);text-decoration:none}
 a:hover{text-decoration:underline}
 .drill{font-size:11.5px;font-weight:700;white-space:nowrap}
@@ -78,7 +78,7 @@ a:hover{text-decoration:underline}
 
 /* ── 卡片与表格 ── */
 .card{background:var(--card);border:1px solid var(--grid);border-radius:10px;
-  padding:18px 22px;margin:14px 0}
+  padding:18px 22px;margin:14px 0;overflow-x:auto}
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:18px}
 .grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
 @media(max-width:860px){.grid2,.grid3{grid-template-columns:1fr}}
@@ -135,7 +135,21 @@ table.data tr.total td{font-weight:800;border-top:1.5px solid var(--ink);border-
 .fade{animation:fade .7s ease both}
 @keyframes fade{from{opacity:0;transform:translateY(6px)}}
 @media (prefers-reduced-motion:reduce){.fade{animation:none}}
-@media(max-width:640px){body{padding:20px 8px}.masthead h1{font-size:24px}}
+/* ── 窄屏（手机）适配（v0.0.11）：骨架流式 + 宽表格卡片内横滑 + 字号内边距微调。
+   图表 SVG 不重绘，整图等比缩小——PC 为主、移动尽量可读的取舍 ── */
+@media(max-width:640px){
+  body{padding:20px 12px}
+  .masthead h1{font-size:24px}
+  .masthead .sub{font-size:13px}
+  .card{padding:14px}
+  table.data{font-size:12.5px}
+  table.data th,table.data td{padding:7px 8px}
+  .lede{font-size:14px}
+  .flaglist li{font-size:13.5px}
+  .drill{white-space:normal}
+  .kpi .v{font-size:22px}
+  .sect{margin-top:34px}
+}
 </style>
 </head>
 <body>
@@ -179,7 +193,7 @@ table.data tr.total td{font-weight:800;border-top:1.5px solid var(--ink);border-
       <div class="srcline">分歧锚不做倾向性裁决；两种读法的验证条件列入 <a href="#s8">08 下期跟踪清单</a></div>
     </div>
     <div class="card">
-      <div class="figtitle">异常下钻地图：异常指标 → 结构定位 → 驱动因素</div>
+      <div class="figtitle">异常线索追查地图：异常指标 → 结构定位 → 驱动因素</div>
       <table class="data">
         <tr><th>异常指标</th><th class="txt">结构定位</th><th class="txt">驱动因素</th></tr>
         <tr><td>毛利率 −1.09pct / 净利率 −1.41pct</td><td class="txt"><a href="#s3">因素分析 · 净利润桥</a></td><td class="txt">碳酸锂 +127% 成本冲击 + 汇兑损失 28.10亿</td></tr>
@@ -190,7 +204,7 @@ table.data tr.total td{font-weight:800;border-top:1.5px solid var(--ink);border-
         <tr><td>少数股东损益 +99.3% 未解释</td><td class="txt"><a href="#s4">管理层在说什么 · 解释缺口</a></td><td class="txt">储能/回收合资放量（已立案观察 Y6）</td></tr>
         <tr><td>在建产能 764GWh vs 现有 525</td><td class="txt"><a href="#s5">产能与在建工程</a></td><td class="txt">供需赌注：上行扩张 vs 产能过剩前瞻</td></tr>
       </table>
-      <div class="srcline">下钻路径：异常指标 → 结构定位（哪张表 / 哪条等式）→ 驱动因素（谁造成的）· 锚点 id 见各章 secthead</div>
+      <div class="srcline">追查路径：异常指标 → 结构定位（哪张表 / 哪条等式）→ 驱动因素（谁造成的）· 锚点 id 见各章 secthead</div>
     </div>
   </div>
 
@@ -201,7 +215,7 @@ table.data tr.total td{font-weight:800;border-top:1.5px solid var(--ink);border-
       <div class="kpi"><div class="v">2,769.17</div><div class="r up">+54.8% 同比 <span class="badge disc">披露</span></div><div class="l">营业收入（亿元）</div></div>
       <div class="kpi"><div class="v">432.84</div><div class="r up">+42.0% 同比 <span class="badge disc">披露</span></div><div class="l">归母净利润（亿元）</div></div>
       <div class="kpi"><div class="v">602.17</div><div class="r">净现比 1.39 <span class="badge der">推算</span></div><div class="l">经营现金流净额（亿元）</div></div>
-      <div class="kpi"><div class="v">12.08%</div><div class="r up">+0.45pct 同比 <span class="badge disc">披露</span></div><div class="l">ROE（加权平均）</div></div>
+      <div class="kpi"><div class="v">12.08%</div><div class="r up">+0.45pct 同比 <span class="badge disc">披露</span></div><div class="l">净资产收益率（ROE，加权平均）</div></div>
     </div>
     <div class="grid2">
       <div class="card">
@@ -211,28 +225,28 @@ table.data tr.total td{font-weight:800;border-top:1.5px solid var(--ink);border-
           <tr><td>毛利率 <span class="badge der">推算</span></td><td>23.93%</td><td>25.02%</td><td class="txt"><span class="dn">▼ 1.09pct</span></td><td class="txt">碳酸锂成本冲击</td></tr>
           <tr><td>净利率（归母）</td><td>15.63%</td><td>17.04%</td><td class="txt"><span class="dn">▼ 1.41pct</span></td><td class="txt">汇兑+少数股东拖累</td></tr>
           <tr><td>资产负债率</td><td>63.65%</td><td>62.59%</td><td class="txt"><span class="dn">▲ 1.06pct</span></td><td class="txt">有息占比仅 13.1%</td></tr>
-          <tr><td>存货周转天数</td><td>195.2</td><td>163.8</td><td class="txt"><span class="dn">▲ 31.4 天</span></td><td class="txt">满产主动备货</td></tr>
-          <tr><td>应收周转天数</td><td>108.6</td><td>124.4</td><td class="txt"><span class="up">▼ 15.8 天</span></td><td class="txt">回款持续改善</td></tr>
+          <tr><td>存货周转天数</td><td>195.2</td><td>179.8</td><td class="txt"><span class="dn">▲ 15.5 天</span></td><td class="txt">满产主动备货</td></tr>
+          <tr><td>应收周转天数</td><td>108.6</td><td>130.5</td><td class="txt"><span class="up">▼ 21.9 天</span></td><td class="txt">回款持续改善</td></tr>
           <tr><td>收现比</td><td>0.95</td><td>1.25</td><td class="txt"><span class="dn">▼ 0.30</span></td><td class="txt">票据+出口占比升</td></tr>
-          <tr><td>CCC（DSO+DIO−DPO，天）</td><td>−232.5</td><td>−247.4</td><td class="txt"><span class="dn">▲ 14.9 天</span></td><td class="txt">持续深度为负</td></tr>
+          <tr><td>现金转换周期（CCC，天）＝应收＋存货−应付周转天数</td><td>−232.5</td><td>−245.9</td><td class="txt"><span class="dn">▲ 13.4 天</span></td><td class="txt">持续深度为负</td></tr>
           <tr><td>经营杠杆 DOL <span class="badge der">推算</span></td><td>1.29</td><td>1.38</td><td class="txt">▼ 0.09（中性）</td><td class="txt">趋降仍具弹性</td></tr>
           <tr><td>财务杠杆 DFL <span class="badge der">推算</span></td><td>0.99</td><td>0.85</td><td class="txt">▲（中性，≈1）</td><td class="txt">利息为净收益</td></tr>
           <tr><td>非主营业务收入占比 <span class="badge der">推算</span></td><td>2.74%</td><td>1.80%</td><td class="txt">▲ 0.94pct（中性）</td><td class="txt">联营收益 +92% 所致</td></tr>
         </table>
         <div class="takeaway">读法：营运三维（DSO/应收/CCC）与杠杆结构全面改善或稳健；承压集中在毛利率与收现比——前者是碳酸锂成本、后者是票据与出口结算占比上升的口径性回落，两者均非收入质量恶化。</div>
-        <div class="srcline">数据来源：公司 2026H1 半年报、Tushare/东方财富双源核对；比率口径见 frameworks.md；均值类比率本期=平均(年初,期末)，同比列=去年同期末均额口径</div>
+        <div class="srcline">数据来源：公司 2026H1 半年报、Tushare/东方财富双源核对；比率口径见 frameworks.md；均值类比率期初一律取该期上一年 12-31（半年报不与上年同期末混口径）</div>
         <div class="srcline">证据等级：<span class="badge disc">披露</span> 主表/附注直接披露 · <span class="badge der">推算</span> 两数运算（毛利率/净现比/周转天数）· <span class="badge est">估算</span> 含假设（情景测算）</div>
       </div>
       <div class="card">
-        <div class="figtitle">ROE +1.06pct：总资产周转率独扛（+2.3pct），净利率五年来首次回落（−0.9pct）</div>
+        <div class="figtitle">ROE +1.06pct：总资产周转率独扛（+2.1pct），净利率五年来首次回落（−0.9pct）——收入 +54.8% 摊薄资产是高质量驱动，盯 H2 碳酸锂成本与汇兑的净利率修复</div>
         <table class="data">
           <tr><th>因子</th><th>本期</th><th>上期</th><th class="txt">方向 · 贡献归因</th></tr>
           <tr><td>净利率</td><td>15.63%</td><td>17.04%</td><td class="txt"><span class="dn">▼</span> 贡献 −0.9pct（碳酸锂+汇兑）</td></tr>
-          <tr><td>总资产周转率</td><td>0.262</td><td>0.226</td><td class="txt"><span class="up">▲</span> 贡献 +2.3pct（收入 +54.8% 摊薄资产）</td></tr>
-          <tr><td>权益乘数</td><td>3.00</td><td>2.94</td><td class="txt"><span class="up">▲</span> 贡献 +0.3pct（H股配售后被动微升）</td></tr>
+          <tr><td>总资产周转率</td><td>0.262</td><td>0.216</td><td class="txt"><span class="up">▲</span> 贡献 +2.1pct（收入 +54.8% 摊薄资产）</td></tr>
+          <tr><td>权益乘数</td><td>3.00</td><td>2.94</td><td class="txt"><span class="up">▲</span> 贡献 +0.2pct（H股配售后被动微升）</td></tr>
           <tr class="total"><td>ROE（摊薄）</td><td>11.41%</td><td>10.34%</td><td class="txt">主驱动：总资产周转率</td></tr>
         </table>
-        <div class="srcline">质量排序：净利率驱动 &gt; 周转率驱动 &gt; 杠杆驱动——本期为「周转率驱动」，质量次于净利率驱动但远好于杠杆驱动；连环替代贡献之和与 ROE 实际变动差 0.6pct 为口径差（乘积闭合容差 1~2pct，frameworks.md 第二节）</div>
+        <div class="srcline">质量排序：净利率驱动 &gt; 周转率驱动 &gt; 杠杆驱动——本期为「周转率驱动」，质量次于净利率驱动但远好于杠杆驱动；连环替代贡献之和与 ROE 实际变动差 0.4pct 为口径差（乘积闭合容差 1~2pct，frameworks.md 第二节）</div>
         <div class="figtitle">五年 H1 走向：净利率冲高回落，周转率 V 型反转，ROE 爬坡未止</div>
         <svg id="dupont5" viewBox="0 0 460 250" preserveAspectRatio="xMidYMid meet"></svg>
         <div class="srcline">指数化（基期=100），末点标原始值 · 数据来源：data.json derived.ratios hist（net_margin / asset_turnover / equity_multiplier / roe）· calc.py ratio-hist 逐期复算</div>
@@ -250,7 +264,7 @@ table.data tr.total td{font-weight:800;border-top:1.5px solid var(--ink);border-
     <div class="secthead" id="s2"><span class="no">02</span><span class="t">排雷扫描</span><span class="line"></span><span class="tag">经营背离与需解释项 · 信号库逐条对照</span></div>
     <div class="card">
       <table class="data">
-        <tr><th>信号（读数）</th><th class="txt">判定</th><th class="txt">担心 → 本案</th><th class="txt">下钻</th></tr>
+        <tr><th>信号（读数）</th><th class="txt">判定</th><th class="txt">担心 → 本案</th><th class="txt">追查</th></tr>
         <tr><td>合同负债较年初 −25.9%（同比 −0.4%）、预收覆盖倍率 34.8%→13.2% <span class="badge der">推算</span></td><td class="txt"><span class="badge y">🟡 观察</span></td><td class="txt"><b>担心</b>：收入 +55% 背景下预收大降，若是需求走弱先行信号，下季度收入增速将失速<br><b>本案</b>：上年末储能抢单高基数+交付周期缩短（合同履约成本 −45.2%）+锂价回落期客户不愿提前锁价；区分证据：利用率 94.86% 满产、Q2 环比 +14.5%、期后 3Q 排产环比 +15-20%；下期看 Q3 合同负债同比</td><td class="txt"><a class="drill" href="#s3">因素分析</a></td></tr>
         <tr><td>库存商品账面 476.39亿（同比 +110.6%）<span class="badge disc">披露</span></td><td class="txt"><span class="badge y">🟡 观察</span></td><td class="txt"><b>担心</b>：库存商品翻倍若系滞销，将伴随跌价风险与收入失速<br><b>本案</b>：原材料 +26.7%/半成品 +50.4%/委托加工 +58.8% 全形态同步扩张，指向交付前置的主动备货；自保充分（跌价准备 81.28亿、本期计提 66.91亿&gt;转销 62.59亿）；下期看 Q3 库存商品与 DIO</td><td class="txt"><a class="drill" href="#s3">因素分析</a></td></tr>
         <tr><td>毛利率 23.93%，高于同业 8.6~9.6pct <span class="badge der">推算</span></td><td class="txt"><span class="badge y">🟡 观察</span></td><td class="txt"><b>担心</b>：价差若无硬解释，可能隐含口径差异或补贴性定价<br><b>本案</b>：硬解释链完整——规模为三家同业合计 2.3 倍、垂直一体化（材料回收毛利率 27.04% 且 +5.81pct）、境外占比 31.5%（境外毛利率 29.97%）、研发 100% 费用化无美化；价差系结构性</td><td class="txt"><a class="drill" href="#s7">外部校验</a></td></tr>
@@ -264,7 +278,7 @@ table.data tr.total td{font-weight:800;border-top:1.5px solid var(--ink);border-
     <div class="card">
       <div class="figtitle">16 条等式 13 闭合、3 可解释、0 无法解释——偏差全部指向口径与业务结构，无粉饰指向</div>
       <table class="data">
-        <tr><th>等式</th><th class="txt">三态</th><th>偏差额 / 偏差率</th><th class="txt">解释或追问</th><th class="txt">下钻</th></tr>
+        <tr><th>等式</th><th class="txt">三态</th><th>偏差额 / 偏差率</th><th class="txt">解释或追问</th><th class="txt">追查</th></tr>
         <tr><td>A6 Capex 勾稽</td><td class="txt"><span class="badge y">⚠️ 可解释偏差</span></td><td>−170.40亿 / 40.5%</td><td class="txt">①rhs 缺 Δ应付工程设备款（期末 336.41亿、期初未单列）②本期转固 406.37亿 主要来自以前年度已付现投入 ③capex 含无形/长期待摊 12.6亿——三因素叠加，非体外循环；交叉验证 Σ重要在建投入 60.90亿 ≤ capex 250.73亿 ✓</td><td class="txt"><a class="drill" href="#s5">产能与在建</a></td></tr>
         <tr><td>B1 应收 roll-forward</td><td class="txt"><span class="badge y">⚠️ 可解释偏差</span></td><td>+175.75亿 / 12.5%</td><td class="txt">票据背书/贴现终止确认 841.42亿 使收现与应收不同步（附注 L8272）+ 应收款项融资 519.23亿 票据池未入 rhs + 出口零税率口径；无保理/证券化出表，无「应收凭空多出」通道</td><td class="txt"><a class="drill" href="#s1">财务总览</a></td></tr>
         <tr><td>D3 母公司其他应收款</td><td class="txt"><span class="badge y">⚠️ 可解释偏差</span></td><td>母公司占合并 50.96 倍</td><td class="txt">集团资金池向下放款（合并抵销后仅 26.19亿）——方向与康得新相反：母公司是归集方，自身货币资金 2,153.77亿、零质押、分红覆盖 22 倍</td><td class="txt"><a class="drill" href="#s1">财务总览</a></td></tr>
@@ -279,7 +293,7 @@ table.data tr.total td{font-weight:800;border-top:1.5px solid var(--ink);border-
     <p class="lede">本期利润变化第一驱动是<b>毛利 +215.0亿</b>（量增对冲碳酸锂涨价）；最大单项拖累是<b>汇兑——财务费用同比恶化 51.91亿</b>。增收不增利的剪刀差（收入 +54.8% vs 归母 +42.0%）可全额归因于汇兑、所得税、少数股东三项，主业毛利方向为正、质量未坏。</p>
     <div class="grid2">
       <div class="card">
-        <div class="figtitle">Δ收入 980.30亿：动力贡献 62% 是基本盘，储能+材料以 33% 增量收入贡献 38% 增量毛利</div>
+        <div class="figtitle">Δ收入 980.30亿：动力贡献 62% 是基本盘，储能+材料以 33% 增量收入贡献 38% 增量毛利——增量结构在变好（新品毛利更厚），盯动力电池占比守住六成</div>
         <table class="data bridge">
           <tr><th>因素</th><th>贡献额（亿元）</th><th>占比</th></tr>
           <tr><td>基期收入（2025H1）</td><td>1,788.86</td><td>—</td></tr>
@@ -300,7 +314,7 @@ table.data tr.total td{font-weight:800;border-top:1.5px solid var(--ink);border-
         <div class="srcline">数据来源：报告 MD&amp;A 分产品表 L447-477（prev 由披露同比反推）；双排名与象限归属按 factor-analysis.md 第六节（动力=现金牛转以量换价、储能/材料=明星象限）；分部合计占收入 95.4%，其余为未列示的其他业务</div>
       </div>
       <div class="card">
-        <div class="figtitle">毛利 +215.0亿 是第一驱动；汇兑 −51.9亿 是最大拖累；归母 +128.0亿 全额可桥</div>
+        <div class="figtitle">毛利 +215.0亿 是第一驱动，汇兑 −51.9亿 是最大拖累，归母 +128.0亿 全额可桥——利润增长真实可解释、无一笔去向不明，盯 H2 汇兑与碳酸锂成本的对冲节奏</div>
         <table class="data bridge">
           <tr><th>环节</th><th>本期</th><th>上期</th><th>贡献额</th><th class="txt">备注</th></tr>
           <tr><td>毛利</td><td>662.62</td><td>447.63</td><td class="up">+214.99</td><td class="txt">收入 +54.8% 对冲锂价，毛利率 −1.09pct</td></tr>
@@ -317,7 +331,7 @@ table.data tr.total td{font-weight:800;border-top:1.5px solid var(--ink);border-
     </div>
     <div class="grid2">
       <div class="fig">
-        <div class="figtitle">OCF 602.17亿 &gt; 净利润 470.31亿：应付释放 716.90亿 覆盖备货吞噬 708.85亿</div>
+        <div class="figtitle">经营现金流净额（OCF，做生意实际收到的现金）602.17亿 &gt; 净利润 470.31亿：应付释放 716.90亿 覆盖备货吞噬 708.85亿——造血含占款成分，盯应付增速放缓时 OCF 是否仍高于净利</div>
         <div class="brends">净利润 470.31 亿 →（调节净额 +131.86 亿）→ 经营现金流净额 602.17 亿</div>
         <svg id="ocfbridge" viewBox="0 0 460 300" preserveAspectRatio="xMidYMid meet"></svg>
         <div class="srcline">营运资本吞噬额 −11.59 亿（占净利润 −2.5%，负值=净释放）· 应收吞 330.27 + 存货吞 378.59 − 应付释放 716.90 − 其他 3.55 · 数据来源：现金流量表补充资料 · calc.py bridge.ocf 已校验</div>
@@ -581,7 +595,7 @@ const OCF_END=602.17;
 /* dupont5：杜邦三因子 + ROE 的 5 期原始值（2022H1-2026H1，旧→新） */
 const DUPONT5={labels:['2022H1','2023H1','2024H1','2025H1','2026H1'],
   net_margin:[7.23,10.95,13.71,17.04,15.63],
-  asset_turn:[0.3279,0.3373,0.2459,0.2261,0.2620],
+  asset_turn:[0.2864,0.3048,0.2328,0.2163,0.2620],
   equity_mult:[3.4456,3.4113,2.8966,2.9404,3.0022],
   roe:[5.85,11.03,9.26,10.34,11.41]};
 /* holders：股东户数（万户，柱）——区间涨跌幅线缺省（未取股价序列） */

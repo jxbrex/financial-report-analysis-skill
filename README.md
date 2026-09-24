@@ -89,8 +89,9 @@ Financial Report Analysis/          本仓库（技能唯一真源）
 │       └── json/                   data.json 底稿（入库）
 ├── deploy.cmd                      部署：robocopy 镜像技能源到用户级 skills 目录
 ├── AGENTS.md                       工作区纪律 + 发布流程（一条链：回归→commit→tag→push→release→deploy）
-├── HANDOFF.md                      交接文档：本轮工作、已知局限、下一步计划
-└── 修订计划-*.md                    各轮修订的设计定案
+└── handoff/
+    ├── HANDOFF.md                  交接文档（最新版）：本轮工作、已知局限、下一步计划、运维速查
+    └── supersede/                  已发布轮次归档（按版本区间一文件；子目录外只留最新版）
 ```
 
 用户级目录 `C:/Users/rexji/.agents/skills/financial-report-analysis/` 只是 `deploy.cmd` 的镜像副本，**绝不直接修改**。

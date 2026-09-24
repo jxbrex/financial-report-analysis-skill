@@ -7,9 +7,11 @@
     "report_type": "年报",
     "disclose_date": "2019-04-30",
     "unit": "亿元",
+    "market_cap_cur": 270.5248,
+    "market_cap_src": "tushare daily_basic 20181228 total_mv=2,705,247.82 万元 ÷1e4",
     "source_md": "reports/archive/原始报告/康得新2018年年度报告.md",
     "analyst_date": "2026-09-10",
-    "schema_version": "1.1"
+    "schema_version": "1.2"
   },
   "statements": {
     "income": {
@@ -222,6 +224,16 @@
         "prev": 0.5849,
         "src": "L4076 合并资产负债表 其他应收款",
         "note": "D3 分母；母公司其他应收款 29.07 亿在合并时抵销后仅余 1.14 亿"
+      },
+      "total_cur_assets": {
+        "cur": 218.3799,
+        "prev": 251.3419,
+        "src": "康得新2018年年度报告.md L4084 合并资产负债表 流动资产合计"
+      },
+      "total_cur_liab": {
+        "cur": 114.3968,
+        "prev": 117.3445,
+        "src": "康得新2018年年度报告.md L4139 合并资产负债表 流动负债合计"
       }
     },
     "cashflow": {
@@ -382,6 +394,37 @@
       "share_of_np": 3.83,
       "note": "−（Δ应收+Δ存货−Δ应付）=10.87亿=净利润的383%"
     },
+    "dupont": {
+      "driver": null,
+      "margin_effect": null,
+      "turnover_effect": null,
+      "leverage_effect": null,
+      "roe_product_cur": null,
+      "roe_product_prev": null,
+      "closure_gap": null,
+      "src": "",
+      "note": "上期周转率缺同口径期初余额（2019 追溯重述口径断裂，血泪清单 7），连环替代不执行——合法 null"
+    },
+    "risk_models": {
+      "altman_z": { "cur": 2.0286, "zone": "灰色", "annualized": false },
+      "ohlson_o": { "cur": -0.842, "prob": 0.3011, "level": "中" },
+      "note": "Altman 灰色区 + Ohlson 概率 0.30（中）：两模型同向指向「非安全」，与事后爆雷一致"
+    },
+    "stress": {
+      "scenarios": [
+        { "p": 0.1, "np_stressed": 1.9217, "cover_stressed": 2.6275 },
+        { "p": 0.2, "np_stressed": 1.0066, "cover_stressed": 2.6066 },
+        { "p": 0.3, "np_stressed": 0.0914, "cover_stressed": 2.5858 }
+      ],
+      "note": "DOL=1.3995 传导：收入 -30% 情景下净利润≈0（0.09 亿），盈亏平衡已被压穿边缘"
+    },
+    "cash_ts": {
+      "ncr_mean5": null,
+      "ncr_neg_years": null,
+      "fcf_to_np_mean5": null,
+      "fcf_neg_years": null,
+      "note": "hist 缺（口径断裂），时序读数不可用——合法 null"
+    },
     "rev_factors": {},
     "np_bridge": [
       {
@@ -540,8 +583,10 @@
     {
       "id": "R3",
       "level": "r",
+      "severity": 1.0,
       "title": "应收账款异常三维命中",
       "data": "应收60.94亿(+38.2%) vs 收入91.50亿(-22.38%),增速差60.6pct(>20pct);坏账准备12.28亿占20.2%;独董称『全额或大部分收回可能性不大』",
+      "note": "severity 试点（redflags #4）：min(1, (60.6−20)/40)=1.00，封顶",
       "evidence": "减值14.52亿中主要为应收相关",
       "source": "康得新2018年年度报告.md L6281 + 361 + 8231"
     },

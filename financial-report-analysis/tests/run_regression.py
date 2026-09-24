@@ -11,9 +11,10 @@ run_regression.py — financial-report-analysis 的金标准回归测试
 
 断言清单
   [共同] calc.py exit code == 0（FAIL 清零），汇总 FAIL == 0
-  [茅台] WARN == 0；recon 中 verdict 为「无法解释/可解释」的条目 == 0
+  [茅台] WARN == 0；recon 中 verdict 为「无法解释/可解释」的条目 == 0；
+         v0.0.12 四项新检查（dupont/risk-models/stress/cash-ts）输出行存在
   [康得新] signals >= 11 条；其中 level=='r' 的红色信号 >= 6 条；
-           recon 命中（verdict != 闭合）>= 3 条
+           recon 命中（verdict != 闭合）>= 3 条；Altman 复算被执行
 门禁改钝（干净样本冒出 WARN、造假样本不再报警）都会让本脚本 exit 1。
 
 【怎么跑】
@@ -131,6 +132,10 @@ def check_moutai(case, proc, data):
     # 断言对象是 calc.py 输出中 ratio-hist 行的存在（检查被执行），不是 OK/SKIP 计数
     case.expect("ratio-hist" in (proc.stdout or ""),
                 "新检查生效：calc.py 输出含 ratio-hist 行（比率历史复算被执行）")
+    # v0.0.12：杜邦连环替代/破产双模型/压力情景/现金时序四项检查必须被执行
+    for code in ("dupont", "risk-models", "stress", "cash-ts"):
+        case.expect(code in (proc.stdout or ""),
+                    f"新检查生效：calc.py 输出含 {code} 行（v0.0.12 检查被执行）")
 
 
 def check_kangdexin(case, proc, data):
@@ -160,6 +165,9 @@ def check_kangdexin(case, proc, data):
     # v0.0.6 T9：D 组母公司单体勾稽（manual 型结构校验）必须真的被执行到
     case.expect("D1_parent_cash" in (proc.stdout or ""),
                 "新检查生效：calc.py 输出含 D1_parent_cash 行（D 组母公司勾稽被执行）")
+    # v0.0.12：造假样本的破产双模型必须真的算出来（非 SKIP）——失真时应 FAIL 而非静默
+    case.expect("Altman" in (proc.stdout or ""),
+                "新检查生效：康得新 Altman/Ohlson 复算被执行（v0.0.12）")
     asserts = data.get("assertions") or []
     case.expect(len(asserts) >= 1, f"断言表已落库（assertions >= 1，实际 {len(asserts)}）")
     bad = [a for a in asserts if isinstance(a, dict) and a.get("verdict") == "不成立"]
@@ -233,12 +241,16 @@ def main():
     smoke_s8 = "s8-shape" in (smoke.stdout or "")
     # v0.0.7：figtitle-style（结论式标题）新检查必须真的被执行到
     smoke_fig = "figtitle-style" in (smoke.stdout or "")
+    # v0.0.12：缩写展开 / 桥图项数 / 归因标题 / 检验判定列 四个新检查必须真的被执行到
+    smoke_v12 = all(c in (smoke.stdout or "") for c in
+                    ("abbrev", "ocf-bridge-shape", "figtitle-attribution", "inspection-verdict"))
     print(f"\n【报告机检冒烟】check_html.py 跑模板："
           f"{'✅' if smoke_run else '❌'} 可运行（exit {smoke.returncode}）· "
           f"{'✅' if smoke_s8 else '❌'} s8-shape 检查存活 · "
-          f"{'✅' if smoke_fig else '❌'} figtitle-style 检查存活")
-    if not (smoke_run and smoke_s8 and smoke_fig):
-        print("❌ 回归未通过：check_html.py 无法正常运行或 s8-shape / figtitle-style 检查缺失。")
+          f"{'✅' if smoke_fig else '❌'} figtitle-style 检查存活 · "
+          f"{'✅' if smoke_v12 else '❌'} v0.0.12 四检查存活")
+    if not (smoke_run and smoke_s8 and smoke_fig and smoke_v12):
+        print("❌ 回归未通过：check_html.py 无法正常运行或 s8-shape / figtitle-style / v0.0.12 四检查缺失。")
         return 1
 
     # ── T8 数字回验三断言（v0.0.6）──

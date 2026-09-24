@@ -3,13 +3,17 @@
 本仓库是「financial-report-analysis」技能的**唯一真源**，用户级目录
 `C:/Users/rexji/.agents/skills/financial-report-analysis/` 只是部署副本。
 
-> **接手第一步请读 `HANDOFF.md`** —— 含本轮工作、已知局限与未验证项、下一步工作计划。
+> **接手第一步请读 `handoff/HANDOFF.md`** —— 含本轮工作、已知局限与未验证项、下一步工作计划；
+> 已发布轮次的历史记录在 `handoff/supersede/`（子目录外只留最新版，2026-09-24 用户定案）。
 
 ## 结构
 
 - `financial-report-analysis/` — 技能源（SKILL.md + references/×9 + assets/ + scripts/ + tests/ + examples/），**只改这里**
-  - `scripts/calc.py` — Phase 7.5 计算自检门禁（桥闭合/比率复算/勾稽三态/分部自洽/断言结构），exit 0 才允许写报告
-  - `scripts/check_html.py` — Phase 8 报告机检（占位符/裸数字启发式/数据来源/模板硬规则/必备要素/锚点/s8 阈值形态/回看归因；`--json` 启用 T8 数字回验：①级 HTML↔data.json 笔误检测（独特值 0.5% 窗口 FAIL）+ ②级 data.json↔原文 md 行号回核），exit 0 才允许交付
+  - `scripts/calc.py` — Phase 7.5 计算自检门禁（桥闭合/比率复算/勾稽三态/分部自洽/断言结构），exit 0 才允许写报告；
+    模块布局（v0.0.12 热核审计 1k 红线整改）：`calc_common.py`（共享助手 + 比率公式唯一定义处）+
+    `calc_models.py`（杜邦连环替代/破产双模型含中期年化与市值单位卡口/压力情景/现金时序），入口仍是 calc.py
+  - `scripts/check_html.py` — Phase 8 报告机检（占位符/裸数字启发式/数据来源/模板硬规则/必备要素/锚点/s8 阈值形态/回看归因 + v0.0.12 起缩写首现展开/OCF 桥项数/归因 figtitle 前瞻与复述/检验卡判定列四条 WARN）；exit 0 才允许交付；
+    模块布局：`check_html_common.py`（共享助手）+ `check_html_t8.py`（T8 数字回验：`--json` 启用，①级 HTML↔data.json 笔误检测（独特值 0.5% 窗口 FAIL）+ ②级 data.json↔原文 md 行号回核），入口仍是 check_html.py
 - `scripts/check_render.py` — 渲染测量门禁（可选但默认执行）：headless Chrome/Edge 真渲染后测量 SVG 文本重叠/HTML 溢出 .sheet/横向裁剪；`--png` 按章分片截图供 Phase 8 视觉验收；找不到浏览器声明跳过 exit 0，发现问题 exit 1
   - `tests/` — 金标准 fixtures + 回归入口：`moutai_2025.json`（干净样本，应零误报）、
     `kangdexin_2018.json`（造假样本，应命中）；`run_regression.py` 是唯一回归入口（含 check_html 冒烟）
@@ -34,17 +38,21 @@
    数据做临时验证，不替换顶层成品（v0.0.7 用户定案）
 8. 工作区文件及时清理：阶段性文档（修订计划 / 临时脚本 / 一次性验证产物）在其对应
    版本落地后即删除——git 历史可查，不另建存档；工作区根目录只留长期文件
-   （AGENTS.md / README.md / HANDOFF.md / deploy.cmd / 技能源 / reports/）。
-   修订的定案结论以 HANDOFF.md 为唯一真源，修订计划文档本身不作长期留存
-   （2026-09-17 用户定案；v0.0.3 / v0.0.5 / v0.0.7 三份旧修订计划已按此条清理）
+   （AGENTS.md / README.md / deploy.cmd / 技能源 / reports/ / handoff/）。
+   修订的定案结论以 handoff/HANDOFF.md 为唯一真源，修订计划文档本身不作长期留存
+   （2026-09-17 用户定案；v0.0.3 / v0.0.5 / v0.0.7 三份旧修订计划已按此条清理）。
+   **HANDOFF 归档制（2026-09-24 用户定案，长期执行）**：`handoff/HANDOFF.md` 只留
+   最新版（长期节 + 当前未发布轮 + 运维速查），轮次记录**落地发布后**整节移入
+   `handoff/supersede/`（按版本区间一个文件），其中仍具操作价值的「维护者注意」
+   提炼进活文档「运维速查」节后再移；子目录外永不堆积历史轮
 
 ## 发布流程（版本定稿时一条链做完，不拆散等提示）
 
-技能源改动验收通过（回归 exit 0 + check_html 全绿 + 版本号与 HANDOFF.md 已同步）后，
+技能源改动验收通过（回归 exit 0 + check_html 全绿 + 版本号与 handoff/HANDOFF.md 已同步）后，
 用户说「commit / 发布 / 上线 / 定稿 / 部署」任一词语，默认按序一次做完：
 
 1. **回归**：`python financial-report-analysis/tests/run_regression.py` 须 exit 0
-2. **提交**：相关改动一个 commit——技能源 + HANDOFF.md + reports 产物（html/json）+
+2. **提交**：相关改动一个 commit——技能源 + handoff/ + reports 产物（html/json）+
    计划/修订文档；PDF/md 按 .gitignore 不入库。提交信息写清「做了什么 + 为什么 + 怎么验证的」
 3. **打 tag**：annotated tag，版本号与 SKILL.md 的 `version` 一致，附变更摘要
 4. **推送**：`git push origin main --tags`（remote：私密仓库 jxbrex/financial-report-analysis-skill）
