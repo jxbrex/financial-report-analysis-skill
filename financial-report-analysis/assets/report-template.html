@@ -532,7 +532,9 @@ table.data tr.total td{font-weight:800;border-top:1.5px solid var(--ink);border-
     <div class="card">
       <div class="figtitle">{{结论式：健康检验汇总，如「8 项：6 过 2 注意——税率与汇率是本期利润的隐形放大器」}}</div>
       <!-- ◆ v0.0.12：检验类卡片必须有判定列（扫颜色即知结果，治「全文字缺重点」）；
-           ✅ 通过 / ⚠️ 注意 / ❌ 异常；纯披露项（税率汇率等无检验性质的）填「—」，不许硬凑 ✅ -->
+           ✅ 通过 / ⚠️ 注意 / ❌ 异常；纯披露项（税率汇率等无检验性质的）填「—」，不许硬凑 ✅
+           ◆ 行序规则（v0.0.14）：❌⚠️ 问题项置顶（❌ 先于 ⚠️），✅ 与 — 披露项殿后；
+           同判定内保持下方默认主题序——读者先看到雷（比亚迪轮 10 项即兴混排的教训） -->
       <table class="data">
         <tr><th>检验项</th><th>读数</th><th class="txt">判定</th><th class="txt">结论（≤30字，长解释挪 srcline）</th></tr>
         <tr><td>收入增速 vs 净利增速</td><td>{{x%}} vs {{y%}}</td><td class="txt"><span class="badge {{g|y|r}}">{{✅|⚠️|❌}}</span></td><td class="txt">{{是否存在剪刀差 + 原因}}</td></tr>
@@ -860,7 +862,10 @@ function deltaBars(id,steps){
     const r=el(s,'rect',{x:x,y:y,width:w,height:h,fill:pos?GOOD:BAD,rx:Math.min(h/2,7)});
     tip(r,`${nm}：${v>0?'+':''}${v}`);
     txt(s,{x:L-8,y:y+h/2+3.5,'font-size':9.5,'font-weight':600,fill:MUT,'text-anchor':'end'},nm);
-    txt(s,{x:pos?x+w+5:x-5,y:y+h/2+3.5,'font-size':9.5,'font-weight':800,fill:pos?GOOD:BAD,'text-anchor':pos?'start':'end'},(v>0?'+':'')+v);
+    /* 负值条左端逼近类目标签区（x < L+42）时，数值标签改画条内白字，避免与类目标签重叠 */
+    const inBar=!pos&&x<L+42;
+    txt(s,{x:inBar?x+5:(pos?x+w+5:x-5),y:y+h/2+3.5,'font-size':9.5,'font-weight':800,
+      fill:inBar?'#fff':(pos?GOOD:BAD),'text-anchor':(pos||inBar)?'start':'end'},(v>0?'+':'')+v);
   });
 }
 

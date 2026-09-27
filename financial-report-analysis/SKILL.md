@@ -8,7 +8,7 @@ description: >
 metadata:
   clawdbot:
     emoji: "📑"
-    version: "0.0.13"
+    version: "0.0.14"
     requires:
       anyBins: ["python"]
     os: ["win32", "darwin", "linux"]
@@ -87,6 +87,10 @@ metadata:
    P5/6/7 原先串行排在 P4 后，约 15 分钟被白白串行）：
    ① 三表+母公司提取（P1）② 附注明细提取（P1）③ MD&A 断言与语气（P5）
    ④ 产能/在建/股东/户数（P6）⑤ 期后事项/同业/机构预期（P7）。
+   **派单 prompt 一律按 `references/subagent-prompts.md` 的模板填空**（v0.0.14）——
+   禁止现场全文手写（比亚迪轮实测手写 5 份花 105s），并按公司特点加一条专属任务。
+   **派发后主线立刻在窗内执行 Phase 1 批量取数**，取数完成仍有余量则做不依赖 ①② 的
+   准备工作（回看检查/读模板），禁止空等回包。
    **提取类子代理（①②）读 clean md + index sidecar 切片**（见 Phase 0 第 2 条）。
    主线等 ①② 回传组装 data.json 后串行走 P2→P2.5→P3→P4；③④⑤ 产出以结构化表
    暂存、Phase 8 填充时合并。**字段归属边界按 schema 块划分、互不重叠**
@@ -129,7 +133,8 @@ metadata:
    `TUSHARE_TOKEN` 未配置时 A 股降级为妙想单源核对，数字加 `[单源]` 标注）。
    **批量取数约定（v0.0.13）**：核对所需接口在**一次 shell 命令内串联多次 ts_fetch**
    （或单进程循环）一把取回再比对，禁止逐接口串行往返——串行调用是首测里可观测的
-   纯等待时间；
+   纯等待时间；`--out` 落盘一律用工作区相对路径，**禁止 `/tmp`**——它是 Git Bash
+   虚拟路径，Windows Python 不可见（比亚迪轮实测 FileNotFoundError 重试）；
    港股/美股用妙想 `mx_hk_finance_data` / `mx_us_finance_data`（tushare 港股财报接口
    本环境无权限，实测 40203）。字段速查见 `references/data-sources.md`。
 3. **不一致处理**：以报告原文为准，在报告中显式标注「原文 X / 数据库 Y」。
@@ -154,6 +159,8 @@ metadata:
    连环替代、risk_models、stress、cash_ts、单期六项由脚本按唯一公式定义处写入并产出
    `{stem}.fillsheet.md` 填充速查表；**模型只补判断字段**（verdict/解释/notes/rev_factors/
    桥/recon）并照速查表抄机械槽——模型手算公式是错误源与回炉循环，**禁止**。
+   **fill 会重排 JSON 格式**（单行→多行）：fill 之后再 Edit data.json 必须先重新 Read
+   目标段，禁止凭 fill 前的记忆拼 old_string（比亚迪轮两次 Edit 失败的共同根因）。
    盈利能力（ROE/毛利率/净利率/ROIC + 非主营业务收入占比 X33）、营运能力（应收/存货/总资产周转 + CCC）、
    偿债能力（资产负债率/流动比率/速动比率/利息保障）、成长能力（收入/利润增速）；
    **杠杆结构**（经营杠杆 DOL / 财务杠杆 DFL，frameworks.md 第九节——方向须落到周期定位后定性，
@@ -325,7 +332,8 @@ Roll-forward（应收/存货/在建工程/商誉）+ C 组周期联动（CCC/DPO
    dupont5 归一化折线图已废（丢绝对量感）。
    **v0.0.12 机检兜底四条**（check_html，WARN 级）：缩写首现展开（白名单首现判定）、
    OCF 桥调节柱项数（≤8 + 其他桶 ≤30%）、归因类 figtitle（前瞻词 + 表格复述检测）、
-   检验/期后表判定列（✅/⚠️/❌ 或 — 披露项）
+   检验/期后表判定列（✅/⚠️/❌ 或 — 披露项）；**健康检验行序 ❌⚠️ 置顶**（v0.0.14，
+   规则见模板 s7 注释——判定列是文本规则不入机检）
 2. 报告类型差异（哪些模块可裁剪）见 `references/report-types.md`：
    - 年报 = 全模块；半年报 = 同比为主 + 注明未经审计；季报 = 仅 P2/P4/P7 精简版；
      招股书 = 三年一期趋势 + 募投项目 + 发行前后股权 + 风险提示专章（权重上调），
@@ -341,13 +349,17 @@ Roll-forward（应收/存货/在建工程/商誉）+ C 组周期联动（CCC/DPO
    无法数字化阈值的指标允许只保留 if-then 句式。
    **冻结纪律（T6）**：产出后 watchlist 原字段只读不回改，回看只追加 `review` 子块。
 4. **报告机检**：`python "<技能目录>/scripts/check_html.py" reports/xxx.html --json reports/archive/json/xxx.json`
-   （**或单入口 `scripts/gate.py <html> <json> [--png 目录]`**：calc → check_html --json →
-   check_render 一条命令串完，统一退出码，省编排防漏跑）。
+   （**或单入口 `scripts/gate.py <html> <json> [--png 目录] [--verbose]`**：calc → check_html --json →
+   check_render 一条命令串完，统一退出码，省编排防漏跑；明细截断/排障时加 `--verbose`，
+   明细全打且 gate 透传——比亚迪轮排障读 278 行源码的教训）。
    校验占位符是否漏填、裸数字（置信度徽章覆盖）、数据来源标注、模板硬规则、必备要素
    （下期跟踪清单/免责声明）、锚点完整性、s8 阈值形态、回看归因。
    **数字回验（T8，`--json` 时启用）**：①级 HTML 数字 ↔ data.json 笔误检测（仅对数值上
    可唯一归因的「独特值」，0.5% 窗口，FAIL 级）；②级 data.json ↔ 原文 md 按 src 行号
-   回核（5% 容差 + 元/万/亿单位换算 + 行号窗 ±2，md 缺失跳过并声明）。FAIL 未清零不得交付
+   回核（5% 容差 + 元/万/亿/千元单位换算 + 行号窗 ±2，md 缺失跳过并声明）。FAIL 未清零不得交付。
+   **门禁暴露技能缺陷时（v0.0.14）**：阻碍交付判定的当场修（修完重跑回归）；不阻碍交付的
+   （WARN 可人工确认闭环）先记入待办、交付后统一修+回归——不把技能修订混进报告交付节奏，
+   改动随下一次发布链提交（比亚迪轮边交付边改技能源，改动差点漏提交）。
 5. **渲染门禁（可选但默认执行，v0.0.9 L2，v0.0.11 起双视口）**：`python "<技能目录>/scripts/check_render.py" reports/xxx.html`
    headless Chrome/Edge 真渲染后测量呈现问题（**桌面 1100px + 窄屏 390px 双视口**各一轮）：
    SVG 文本重叠（两轴相交 >1px）、HTML 元素溢出 .sheet（滚动容器内元素豁免）、
@@ -400,5 +412,6 @@ Roll-forward（应收/存货/在建工程/商誉）+ C 组周期联动（CCC/DPO
 | 0.0.9 | 2026-09-17 | 呈现层门禁轮（lieflat-cards 交叉审核借鉴 + 渲染设计评审，L1–L5 一次升版）：**L1 单一色源**（JS 绘图色全读 `:root` CSS 变量、新增 `--der`，换色只改一处）+ 趋势图线标签改数据点正上方居中 + 白描边 halo（修标签压柱不可读），与柱顶数字相交区间移到点下方、dupont 末点标签纵向避让；**L2 新增 `scripts/check_render.py` 渲染测量门禁**（headless Chrome/Edge 真渲染测 SVG 文本重叠/溢出 .sheet/横向裁剪；可选门禁——无浏览器声明跳过 exit 0；本机 Edge `--dump-dom` stdout 空，结果改 localhost HTTP 回传 + screenshot 探针终止）；**L3 check_html 新增 slot-length WARN**（s1 四维表评价列 ≤15 字契约 +5 容忍）；**L4 `--png` 按章分片截图 + Phase 8 视觉验收步骤**（交付语含「已视觉验收」）；**L5 s8 真仪表盘化**（卡组 `.wv` 读数大字+徽章 / `.wb` 阈值带小字，check_s8_shape 重写为卡组判据、旧表兜底 compat 存量）+ review 兑现率 KPI 卡 + s0 分歧锚表格卡回收。首测即抓出恒瑞旧版瀑布图标签黑带 9 处重叠（人肉目检曾漏检）。回归 19→20 断言（渲染冒烟 Chrome 可用时计入） |
 | 0.0.10 | 2026-09-21 | 宁德时代报告评审轮（HANDOFF 二·十六节）：**平均余额口径定案**（第一性原理——平均余额窗口必须与收入期间匹配，期初一律取该期上一年 12-31；半年报绝不用上年 6-30 当期初）：balance 四科目（ar/inventory/payable/total_assets）新增 `hist_ye`（各年 12-31 序列，末位=prev），calc.py 期初分支优先取 hist_ye（年报退化 hist 前一期、行为字节级不变）+ hist_ye 末位=prev 结构校验 + 修期初判空误伤流量科目的 SKIP bug；frameworks.md 写入口径规则。宁德 json 回填 10 时点的 hist/hist_ye，dso/dio/dpo/ccc/asset_turnover 5 期序列落地（prev 修正：宁德 DSO 上期 124.4→130.5、改善 15.8→22.0 天——原两期对比混用两套期初规则），calc 实测 ratio-hist 58 期全过。**「下钻」→「追查」**（异常线索追查/追查路径/排雷与勾稽表末列，模板 8 处 + check_html 2 处文案，CSS 类名不动）。**读法层两条新硬规则**：归因类图表（杜邦/因素桥）figtitle 四段式（变化方向→靠什么→经营含义→盯什么，禁止只报归因）；缩写纪律（正文首次全称+一句白话，徽章/刻度豁免）。**L4 改机器优先**：check_render 新增字体回退检测（朱雀仿宋缺失 🟡 WARN 不计 exit 1），人眼截图验收只在两个触发条件下执行（门禁 WARN / 模板改动后首份报告）。回归 20/20 全绿 |
 | 0.0.11 | 2026-09-22 | 移动端可读性轮（HANDOFF 二·十七节，用户定调「PC 为主、移动尽量可读」，存量不重出）：模板骨架流式化（`body` 去 flex、`.sheet` width:100%+max-width:1040+margin 居中，PC 像素级零变化）、`.card` overflow-x:auto 宽表格卡片内横滑、640 断点字号/内边距微调；图表 SVG 维持整图等比缩小不重绘。check_render.py **桌面 1100+窄屏 390 双视口测量**：新增 pageclip 页面级横向溢出判据（仅含 .sheet 报告页）、clipped 判据修正（auto/scroll 有意滚动不算裁剪）、spill 豁免滚动容器内元素；ISOLATE_JS 补 .sheet margin 居中（修分片截图左偏移——v0.0.9 L4 以来截图一直左偏 30px 未被发现）。桌面版式像素级零变化验证（9/12 分片逐像素一致，masthead 为 fade 动画帧非确定）。回归 20/20 全绿 |
+| 0.0.14 | 2026-09-27 | 比亚迪报告复盘效率轮（会话日志逐事件解剖，41.1min 全流程）：**T8 明细修复**——check_html_t8 ①级/②级原本硬编码 `[:DETAIL_CAP]` 无视 `--verbose`、gate.py 又过滤明细行，排障只能读源码；现两级均支持 `--verbose` 全量明细（截断时提示「用 --verbose 查看全部」），gate.py 新增 `--verbose` 透传并打印明细行。**SKILL.md 三句效率纪律**：`--out` 落盘禁 `/tmp`（Git Bash 虚拟路径，Windows Python 不可见，比亚迪轮实测报错重试）；`--fill` 重排 JSON 后 Edit 前必须重新 Read 目标段（两次 Edit 失败根因）；门禁暴露技能缺陷时「阻碍交付的当场修+回归、不阻碍的记账后修」（边交付边修技能源占 ~2min 且改动差点漏提交）。**派发窗升级**：派单 prompt 模板化（新增 `references/subagent-prompts.md`，5 模板填空 + 按公司特点加一条专属任务，比亚迪轮现场手写 5 份花 105s）+ 派发后主线立刻在窗内做 Phase 1 批量取数（禁空等回包）。**s7 健康检验行序规则**：❌⚠️ 问题项置顶、✅/披露项殿后（比亚迪轮 10 项即兴混排的真空区补规，文本规则不入机检）。回归 32 断言不变全绿 |
 | 0.0.13 | 2026-09-24 | 云铝首测验证轮：S1 趋势列块字符改**内嵌 SVG 迷你折线**（64×16 polyline+末点圆、SPARK 槽、线色按方向语义表——块字符跌年不可辨被首测评审否决）；杜邦变迁表行首补推算徽章（消每份报告的固定 bare-number WARN）；**效率修订**：Phase 0 后一次性并行派 5 子代理（提取×2/MD&A/产能股东/期后同业，只依赖 md 可与主线并行）+ ts_fetch 批量取数约定（云铝 1 小时复盘，P5/6/7 串行约 15 分钟可隐藏）；**md_clean.py 财报 md 确定性清洗**（拼回拆碎逻辑表行/删重复分隔行与页眉页脚，实测 −15~21% 行数、九份存量 md 双不变量全过，clean md 为唯一工作副本 + 章节索引 sidecar，回归 +4 金标准断言）；**calc.py --fill 预填模式**（derived 机械字段脚本写入 + fillsheet 填充速查表，模型禁手算公式；纯计算函数 compute_* 与薄校验 check_* 分层）+ **gate.py 三道门禁单入口**；fill 语义「hist 只补不缩、note/src 保留」。回归 25→32 断言全绿（+fill 幂等×2 +gate 可运行） |
 | 0.0.12 | 2026-09-24 | TradingAgents-CN 借鉴 + 中免报告评审合并轮（HANDOFF 二·十八节）：**方法层**——frameworks.md 新增「〇、口径总则」（存量不年化/流量中期年化/平均余额窗口/同口径同比拒算）、第三节破产风险双模型并列（Altman Z 市值单位写死亿元防 TradingAgents 亿元当元坑、留存收益真值不顶替；+ Ohlson O 简化六因子，禁止综合分）、第五节现金时序读数（净现比/FCF 5 期）、第九节流动性压力情景（DOL/DFL 传导三档，p=10% 受压净利<0 只进 watchlist 不直接🔴）；redflags.md severity 试点（#4/#5，禁总分聚合）。**schema 1.2**：balance +流动资产/流动负债合计、meta +market_cap_cur、derived +dupont 连环替代块/risk_models/stress/cash_ts、signals +severity。**calc.py 四新检查**（dupont 闭合/risk-models 含年化口径卡口/stress/cash-ts）+ signals severity 校验，反例三测全命中。**报告层**——S1 重排：四维卡全宽+近5期趋势列、杜邦独立成行（归因卡+五年驱动变迁表，主驱动染色）、废 dupont5 归一化折线图；s7 三项检验改名「健康检验」+ 判定列、期后健康+判定列、破产双模型与压力情景各一行。**check_html 四新 WARN 检查**：缩写首现展开（中免 DFS/IR 实证漏检的规则补机检）、OCF 桥项数（≤8+其他桶30%）、归因 figtitle 前瞻词+复述检测（精确命中中免被批原句）、检验卡判定列。回归 20→25 断言全绿；存量报告不重出（纪律 7），中免留存作反面验证样本 |

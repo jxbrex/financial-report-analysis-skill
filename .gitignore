@@ -1,6 +1,7 @@
 # 大文件与中间产物不入库（可用 deploy 前的技能随时再生成）
 reports/**/*.pdf
 reports/**/*.md
+reports/**/*.index.json
 
 __pycache__/
 *.pyc

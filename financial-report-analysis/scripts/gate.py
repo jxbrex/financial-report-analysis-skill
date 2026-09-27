@@ -34,6 +34,8 @@ def main():
     ap.add_argument("html")
     ap.add_argument("json")
     ap.add_argument("--png", default=None, help="check_render 按章分片截图目录（视觉验收用）")
+    ap.add_argument("--verbose", action="store_true",
+                    help="透传 check_html --verbose（T8 等明细不截断）并打印明细行——排障用")
     a = ap.parse_args()
 
     fails = []
@@ -43,9 +45,11 @@ def main():
     if r.returncode != 0:
         fails.append("calc 存在 FAIL（禁止写报告/交付）")
 
-    r = run("check_html.py", a.html, "--json", a.json)
+    cmd = ["check_html.py", a.html, "--json", a.json] + (["--verbose"] if a.verbose else [])
+    r = run(*cmd)
     for line in (r.stdout or "").splitlines():
-        if line.startswith(("🔴", "🟡", "---", "✅ 通过", "❌", "===")):
+        if line.startswith(("🔴", "🟡", "---", "✅ 通过", "❌", "===")) \
+                or (a.verbose and line.lstrip().startswith("·")):
             print(line)
     if r.returncode != 0:
         fails.append("check_html 未通过（FAIL 未清零）")

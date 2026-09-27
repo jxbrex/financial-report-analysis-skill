@@ -71,7 +71,7 @@ def build_authority(data):
     return plain, pct, uniq_of(plain), uniq_of(pct)
 
 
-def check_numbers_vs_json(body, raw, data, rep):
+def check_numbers_vs_json(body, raw, data, rep, verbose=False):
     """①级：HTML 数字 ↔ data.json。
     先把 HTML 标签等长屏蔽（viewBox/属性数字不是正文主张，替换保行号）；
     % 语境分离：带 % 后缀的数字只与 derived.ratios ×100 变体比，不带 % 只与字段原值比
@@ -122,9 +122,12 @@ def check_numbers_vs_json(body, raw, data, rep):
             suspects.append(f"L{line_of(raw, m.start())} 数字 {txt} 与 data.json {bp}={bv:g} "
                             f"相近但不等（差 {dev:.2%}）——疑似笔误，请核对")
     if suspects:
+        details = suspects
+        if not verbose and len(details) > DETAIL_CAP:
+            details = details[:DETAIL_CAP] + [f"…另有 {len(suspects) - DETAIL_CAP} 处，用 --verbose 查看全部"]
         rep.add(FAIL, "num-vs-json",
                 f"①级 HTML↔data.json：{len(suspects)} 处数字与独特值相近但不等（疑似笔误；已匹配 {matched} 处）",
-                suspects[:DETAIL_CAP])
+                details)
     else:
         rep.add(OK, "num-vs-json",
                 f"①级 HTML↔data.json：{matched} 处数字匹配，未见疑似笔误"
@@ -153,19 +156,21 @@ def _resolve_md(md_rel, json_path):
 
 
 def _value_in_text(v, text):
-    """v 的三档单位换算（×1e8 元 / ×1e4 万 / ×1 亿）在文本数字中是否有 5% 内容差命中（同号比较）。"""
+    """v 的四档单位换算（×1e8 元 / ×1e5 千元 / ×1e4 万 / ×1 亿）在文本数字中是否有 5% 内容差命中。
+    千元档覆盖报表主体以千元列示的公司（如比亚迪：财务报表及附注单位为千元）；
+    比较取绝对值——A 股报表以括号表示负数（如「(3,247,033 )」），符号由 src 语境与①级负责。"""
     for m in PLAIN_NUM_RE.finditer(text):
         try:
-            d = float(m.group(0))
+            d = abs(float(m.group(0)))
         except ValueError:
             continue
-        for cand in (v, v * 1e4, v * 1e8):
-            if cand and d * cand > 0 and abs(d - cand) / abs(cand) <= 0.05:
+        for cand in (abs(v), abs(v) * 1e4, abs(v) * 1e5, abs(v) * 1e8):
+            if cand and abs(d - cand) / abs(cand) <= 0.05:
                 return True
     return False
 
 
-def check_json_vs_md(data, json_path, rep):
+def check_json_vs_md(data, json_path, rep, verbose=False):
     """②级：data.json ↔ 原文 md（5% 容差 + 单位换算 + 行号窗 ±2）。
     src 无 L 行号 → 跳过计数；md 缺失 → 声明并整体跳过（HANDOFF T8 定案）。"""
     md_rel = (data.get("meta") or {}).get("source_md")
@@ -206,10 +211,13 @@ def check_json_vs_md(data, json_path, rep):
             else:
                 exact += 1
     if misses:
+        details = misses
+        if not verbose and len(details) > DETAIL_CAP:
+            details = details[:DETAIL_CAP] + [f"…另有 {len(misses) - DETAIL_CAP} 处，用 --verbose 查看全部"]
         rep.add(WARN, "json-md",
                 f"②级 data.json↔md：{len(misses)} 处 src 行内未找到值"
                 f"（checked {checked} · 精确命中 {exact} · 偏移命中 {shifted} · 无行号跳过 {no_src}）",
-                misses[:DETAIL_CAP])
+                details)
     else:
         rep.add(OK, "json-md",
                 f"②级 data.json↔md：{checked} 处全部命中"

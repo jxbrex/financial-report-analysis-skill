@@ -690,8 +690,8 @@ def main():
     check_figtitle_attribution(body, rep, secs)
     check_inspection_verdict(body, rep)
     if data is not None:
-        check_numbers_vs_json(body, raw, data, rep)
-        check_json_vs_md(data, Path(args.json_path).resolve(), rep)
+        check_numbers_vs_json(body, raw, data, rep, args.verbose)
+        check_json_vs_md(data, Path(args.json_path).resolve(), rep, args.verbose)
 
     print(f"\n=== check_html.py 报告机检 · {path.name} ===\n")
     order = {FAIL: 0, WARN: 1, OK: 2}
