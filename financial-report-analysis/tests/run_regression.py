@@ -4,10 +4,12 @@
 run_regression.py — financial-report-analysis 的金标准回归测试
 
 【它在测什么】
-两个冻结样本（fixture）经 Phase 7.5 门禁 scripts/calc.py 后，必须同时满足门禁结论
+三个冻结样本（fixture）经 Phase 7.5 门禁 scripts/calc.py 后，必须同时满足门禁结论
 与样本语义，用来抓「改坏门禁」这一类回归：
   · tests/moutai_2025.json     贵州茅台 2025 年报 —— 干净样本，抓**误报**（假阳性）
   · tests/kangdexin_2018.json  康得新 2018 年报   —— 造假样本，抓**漏报**（假阴性）
+  · tests/vanke_2026h1.json    万科A 2026 半年报  —— 连亏地产样本（v0.0.17 固化）：
+                               扣非双版/双驱动护栏的真实触发锚点 + fill 块级 note 保留
 
 断言清单
   [共同] calc.py exit code == 0（FAIL 清零），汇总 FAIL == 0
@@ -15,6 +17,9 @@ run_regression.py — financial-report-analysis 的金标准回归测试
          v0.0.12 四项新检查（dupont/risk-models/stress/cash-ts）输出行存在
   [康得新] signals >= 11 条；其中 level=='r' 的红色信号 >= 6 条；
            recon 命中（verdict != 闭合）>= 3 条；Altman 复算被执行
+  [万科] WARN == 2（interest_arrears + recon-coverage 两条合法 WARN）；
+         dupont_dt.triggered（扣非双版）与 dupont.driver_fragile（双驱动）真实命中；
+         Altman 危险区 + Ohlson 中；risk_models 块级 note 存活
 门禁改钝（干净样本冒出 WARN、造假样本不再报警）都会让本脚本 exit 1。
 
 【怎么跑】
@@ -55,6 +60,7 @@ CALC = SKILL / "scripts" / "calc.py"
 
 MOUTAI = HERE / "moutai_2025.json"
 KANGDEXIN = HERE / "kangdexin_2018.json"
+VANKE = HERE / "vanke_2026h1.json"
 
 # calc.py 的汇总行（唯一机器可读摘要）
 SUMMARY_RE = re.compile(
@@ -79,12 +85,12 @@ class Case:
         return [d for ok, d in self.results if not ok]
 
 
-def run_calc(fixture):
-    """在技能根目录下用当前解释器跑 calc.py，返回 CompletedProcess。"""
+def run_calc(fixture, *extra):
+    """在技能根目录下用当前解释器跑 calc.py（可带额外参数），返回 CompletedProcess。"""
     env = dict(os.environ, PYTHONIOENCODING="utf-8")
     python = sys.executable
     return subprocess.run(
-        [python, str(CALC), str(fixture)],
+        [python, str(CALC), str(fixture), *extra],
         cwd=str(SKILL),
         capture_output=True,
         text=True,
@@ -142,8 +148,8 @@ def check_moutai(case, proc, data):
     for code in ("dupont-dt", "dupont5y", "cycle-evidence", "threshold-check", "peers"):
         case.expect(code in (proc.stdout or ""),
                     f"新检查生效：calc.py 输出含 {code} 行（v0.0.15 检查被执行）")
-    case.expect((data.get("meta") or {}).get("schema_version") == "1.3",
-                f"schema_version == 1.3（实际 {((data.get('meta') or {}).get('schema_version'))}）")
+    case.expect((data.get("meta") or {}).get("schema_version") == "1.4",
+                f"schema_version == 1.4（实际 {((data.get('meta') or {}).get('schema_version'))}）")
 
     # v0.0.15：五年累计归因闭合 + 分位边界 + 杠杆拆解（茅台特征值）
     d5 = (data.get("derived") or {}).get("dupont5y") or {}
@@ -163,6 +169,15 @@ def check_moutai(case, proc, data):
     ld = ((data.get("derived") or {}).get("dupont") or {}).get("leverage_drill") or {}
     case.expect(isinstance(ld.get("ni_share"), (int, float)) and ld["ni_share"] > 0.9,
                 f"茅台无息占款占总杠杆 >90%（实际 {ld.get('ni_share')}）——话语权型杠杆特征值")
+
+    # v0.0.17（schema 1.4）：ROIC 与内生增长率落库——茅台特征值锚定
+    rr = ((data.get("derived") or {}).get("ratios")) or {}
+    roic = (rr.get("roic") or {}).get("cur")
+    case.expect(isinstance(roic, (int, float)) and roic > 0.3,
+                f"茅台 ROIC >30%（实际 {roic}）——去杠杆口径下仍是高回报（N1 落地）")
+    sgr = (rr.get("sustainable_growth") or {}).get("cur")
+    case.expect(isinstance(sgr, (int, float)) and 0 < sgr < 0.15,
+                f"茅台内生增长率 ∈(0,15%)（实际 {sgr}，留存率×ROE）——N2 落地")
 
 
 def check_kangdexin(case, proc, data):
@@ -201,14 +216,55 @@ def check_kangdexin(case, proc, data):
     case.expect(all(a.get("evidence") for a in bad),
                 f"判「不成立」的断言均带反证（{len(bad)} 条）")
     # v0.0.15（schema 1.3）：口径断裂样本的五年归因必须合法降级（整块缺失/null + SKIP 行）
-    case.expect((data.get("meta") or {}).get("schema_version") == "1.3",
-                f"schema_version == 1.3（实际 {((data.get('meta') or {}).get('schema_version'))}）")
+    case.expect((data.get("meta") or {}).get("schema_version") == "1.4",
+                f"schema_version == 1.4（实际 {((data.get('meta') or {}).get('schema_version'))}）")
     d5 = (data.get("derived") or {}).get("dupont5y") or {}
     case.expect(all(d5.get(k) is None for k in
                     ("margin_effect", "turnover_effect", "leverage_effect")),
                 "康得新 dupont5y 三效应全 null（2019 追溯重述口径断裂，合法降级）")
     case.expect("dupont5y" in (proc.stdout or ""),
                 "新检查生效：calc.py 输出含 dupont5y 行（降级路径被执行）")
+
+
+def check_vanke(case, proc, data):
+    """万科 2026H1 半年报（连亏地产）：扣非双版/双驱动护栏的真实触发样本（v0.0.17 固化）。"""
+    case.expect(proc.returncode == 0,
+                f"calc.py exit 0（实际 {proc.returncode}）")
+    summary = parse_summary(proc.stdout)
+    if not case.expect(summary is not None, "汇总行可解析（calc.py 输出格式未变）"):
+        return
+    case.expect(summary["FAIL"] == 0, f"FAIL == 0（实际 {summary['FAIL']}）")
+    # 已知合法 WARN 恰好 2 条：interest_arrears（单期付息错期）+ recon-coverage（B2/B3 附注未披露）
+    case.expect(summary["WARN"] == 2,
+                f"WARN == 2（interest_arrears + recon-coverage 合法两条，实际 {summary['WARN']}）")
+    case.expect((data.get("meta") or {}).get("schema_version") == "1.4",
+                f"schema_version == 1.4（实际 {((data.get('meta') or {}).get('schema_version'))}）")
+    dd = data.get("derived") or {}
+    case.expect((dd.get("dupont_dt") or {}).get("triggered") is True,
+                "扣非双版真实触发（净利率口径差 1.59pct>1pct 路径；非经仅 7.4%）")
+    dp = dd.get("dupont") or {}
+    case.expect(dp.get("driver_fragile") is True and (dp.get("effects_ratio") or 9) < 1.5,
+                f"双驱动护栏真实命中（effects_ratio={dp.get('effects_ratio')}）")
+    rm = dd.get("risk_models") or {}
+    case.expect((rm.get("altman_z") or {}).get("zone") == "危险"
+                and (rm.get("ohlson_o") or {}).get("level") == "中",
+                "破产双模型：Altman zone=危险 + Ohlson level=中（连亏地产特征值）")
+    p5 = (dd.get("dupont5y") or {}).get("percentile") or {}
+    case.expect(p5.get("equity_multiplier") == 1.0 and p5.get("net_margin") == 0.0,
+                f"五年分位：杠杆满分位 1.0 + 净利率 0 分位（实际 {p5}）")
+    for code in ("cycle-evidence", "threshold-check", "peers", "cash-ts"):
+        case.expect(code in (proc.stdout or ""),
+                    f"检查被执行：calc.py 输出含 {code} 行")
+    # 块级 note 是判断字段（万科轮手写地产适用性声明）：fill 不得吞掉——v0.0.17 修掉的真缺陷
+    case.expect(bool((rm.get("note") or "").strip()),
+                "risk_models 块级 note（适用性声明）在 fill 后存活")
+    # v0.0.17（schema 1.4）：连亏期 ROIC 为负、内生增长率按规则置 null（np_at≤0）
+    rv = ((data.get("derived") or {}).get("ratios")) or {}
+    case.expect(isinstance((rv.get("roic") or {}).get("cur"), (int, float))
+                and rv["roic"]["cur"] < 0,
+                f"万科 ROIC 为负（实际 {(rv.get('roic') or {}).get('cur')}）——连亏期去杠杆口径")
+    case.expect((rv.get("sustainable_growth") or {}).get("cur") is None,
+                "万科内生增长率 null（亏损期不计算，规则正确置空）")
 
 
 def report_case(case, proc, verbose):
@@ -230,11 +286,11 @@ def main():
     ap.add_argument("--verbose", action="store_true", help="附带 calc.py 的完整原始输出")
     args = ap.parse_args()
 
-    print("=== financial-report-analysis 金标准回归 · calc.py 双例 ===")
+    print("=== financial-report-analysis 金标准回归 · calc.py 三例 ===")
     print(f"技能根：{SKILL}")
     print(f"门禁：  {CALC}")
 
-    missing = [p for p in (CALC, MOUTAI, KANGDEXIN) if not p.exists()]
+    missing = [p for p in (CALC, MOUTAI, KANGDEXIN, VANKE) if not p.exists()]
     if missing:
         for p in missing:
             print(f"❌ 缺少文件：{p}")
@@ -246,6 +302,7 @@ def main():
     for title, fixture, checker in (
         ("贵州茅台 2025 年报 · 干净样本（抓误报）", MOUTAI, check_moutai),
         ("康得新 2018 年报 · 造假样本（抓漏报）", KANGDEXIN, check_kangdexin),
+        ("万科A 2026 半年报 · 连亏地产样本（扣非双版/双驱动真实触发）", VANKE, check_vanke),
     ):
         proc = run_calc(fixture)
         case = Case(title, fixture)
@@ -341,24 +398,26 @@ def main():
             print("❌ 回归未通过：渲染测量冒烟未绿，看上方 check_render 输出。")
             return 1
 
-    # ── --fill 幂等金标准（v0.0.13）：预填不改变已正确的 derived（5e-4 容差）──
+    # ── --fill 幂等金标准（v0.0.13；v0.0.17 起字符串叶含 note/src 纳入精确比对）──
+    # 数值容差 5e-4；字符串叶（driver/zone/note/src 等）必须逐字不变——万科轮实证：
+    # fill 吞掉 risk_models 块级 note，旧比对跳过 note/src 所以这一类缺陷不可见
     def _leaves(node, pre=""):
         out = {}
         if isinstance(node, dict):
             for k, v in node.items():
-                if k in ("note", "src"):
-                    continue
                 out.update(_leaves(v, pre + k + "."))
         elif isinstance(node, list):
             for i, v in enumerate(node):
                 out.update(_leaves(v, pre + str(i) + "."))
         elif isinstance(node, (int, float)) and not isinstance(node, bool):
             out[pre[:-1]] = node
+        elif isinstance(node, str):
+            out[pre[:-1]] = node
         return out
 
     fill_checks = []
     with tempfile.TemporaryDirectory() as td2:
-        for fx in ("moutai_2025.json", "kangdexin_2018.json"):
+        for fx in ("moutai_2025.json", "kangdexin_2018.json", "vanke_2026h1.json"):
             src = HERE / fx
             dst = Path(td2) / fx
             dst.write_text(src.read_text(encoding="utf-8"), encoding="utf-8")
@@ -367,8 +426,14 @@ def main():
                                capture_output=True, text=True, encoding="utf-8", errors="replace")
             a = _leaves(json.loads(src.read_text(encoding="utf-8"))["derived"])
             b = _leaves(json.loads(dst.read_text(encoding="utf-8"))["derived"])
-            bad = [k for k in set(a) | set(b)
-                   if abs((a.get(k) or 0) - (b.get(k) or 0)) > 5e-4]
+            bad = []
+            for k in sorted(set(a) | set(b)):
+                x, y = a.get(k), b.get(k)
+                if isinstance(x, str) or isinstance(y, str):
+                    if x != y:
+                        bad.append(k)
+                elif abs((x or 0) - (y or 0)) > 5e-4:
+                    bad.append(k)
             fill_checks.append((r.returncode == 0 and not bad,
                                 f"--fill 幂等 {fx[:4]}…：exit 0 且 derived 不变（差异键 {bad[:3]}）"))
     print("\n【--fill 幂等金标准（v0.0.13）】")
@@ -381,27 +446,85 @@ def main():
     print(f"  {'✅' if gate_help.returncode == 0 else '❌'} gate.py 单入口可运行（--help exit 0）")
     total += 1
     passed += gate_help.returncode == 0
-    if not all(ok for ok, _ in fill_checks) or gate_help.returncode != 0:
-        print("❌ 回归未通过：--fill 幂等或 gate.py 断言失败。")
+    # v0.0.17：ts_fetch 冒烟——零测试短板补齐（只验可运行与用法文本，不触网）
+    ts_help = subprocess.run([sys.executable, str(SKILL / "scripts" / "ts_fetch.py"), "--help"],
+                             capture_output=True, text=True, encoding="utf-8", errors="replace")
+    ts_ok = ts_help.returncode == 0 and "api_name" in (ts_help.stdout or "")
+    print(f"  {'✅' if ts_ok else '❌'} ts_fetch.py 取数通道可运行（--help exit 0 且含 api_name）")
+    total += 1
+    passed += ts_ok
+    if not all(ok for ok, _ in fill_checks) or gate_help.returncode != 0 or not ts_ok:
+        print("❌ 回归未通过：--fill 幂等或 gate.py / ts_fetch.py 断言失败。")
         return 1
 
-    # ── md_clean 金标准（v0.0.13）：双不变量 + 索引产出，防清洗脚本改坏 ──
+    # ── --min-recon 硬门禁（v0.0.17，任务 5）：康得新 14/17——阈值 15 必 FAIL、14 通过 ──
+    mr15 = run_calc(KANGDEXIN, "--min-recon", "15")
+    mr14 = run_calc(KANGDEXIN, "--min-recon", "14")
+    mr_checks = [
+        (mr15.returncode == 1 and "未达 --min-recon 15" in (mr15.stdout or ""),
+         f"--min-recon 15：康得新 14/17 未达标 exit 1（实际 exit {mr15.returncode}）"),
+        (mr14.returncode == 0,
+         f"--min-recon 14：康得新 14/17 达标 exit 0（实际 exit {mr14.returncode}）"),
+        (parse_summary(mr15.stdout or "") is not None
+         and parse_summary(mr15.stdout)["FAIL"] >= 1,
+         "--min-recon 15：FAIL 计入汇总行（recon-coverage 升 FAIL）"),
+    ]
+    print("\n【--min-recon 硬门禁（v0.0.17）】")
+    for ok, desc in mr_checks:
+        print(f"  {'✅' if ok else '❌'} {desc}")
+        total += 1
+        passed += ok
+    if not all(ok for ok, _ in mr_checks):
+        print("❌ 回归未通过：--min-recon 硬门禁断言失败。")
+        return 1
+
+    # ── md_clean 金标准（v0.0.17 自包含化）：合成样本 tests/md_clean_synth.md ──
+    # 覆盖全部四类历史病理：pre/post 碎行拼回、重复分隔行去重、页眉页脚删除、
+    # 空单元格行保留、pending_pre 顶替不丢文本、编号小标题不并行。
+    # 不再依赖被 .gitignore 排除的真实报告 md（新机器 clone 后回归必红的 🔴 项已修）；
+    # 本机存量真实 md 改为「存在才跑」的加成校验，打印 INFO、不计断言（断言数跨环境确定）。
+    synth = HERE / "md_clean_synth.md"
     md_checks = []
     with tempfile.TemporaryDirectory() as td:
-        for md_name, min_sections in (("贵州茅台2025年年度报告.md", 50),
-                                      ("康得新2018年年度报告.md", 50)):
+        r = subprocess.run([sys.executable, str(SKILL / "scripts" / "md_clean.py"),
+                            str(synth), "--out-dir", td],
+                           capture_output=True, text=True, encoding="utf-8", errors="replace")
+        out = r.stdout or ""
+        clean_path = Path(td) / (synth.stem + ".clean.md")
+        text = clean_path.read_text(encoding="utf-8") if clean_path.exists() else ""
+        idx_path = Path(td) / (synth.stem + ".index.json")
+        idx = json.loads(idx_path.read_text(encoding="utf-8")) if idx_path.exists() else {}
+        n_sep = sum(1 for l in text.splitlines()
+                    if re.match(r"^\s*\|[\s:|-]*-[\s:|-]*\|\s*$", l))
+        md_checks = [
+            (r.returncode == 0 and "不变量违反" not in out,
+             "md_clean 合成样本：exit 0 且双不变量通过"),
+            ("| 销售商品、提供劳务收到的现 金 | 2,345.67" in text,
+             "pre 碎行拼回（断字结尾的标签并入下一表行）"),
+            ("| 管理费用 | 88.88" in text,
+             "post 碎行拼回（首格为空的行向后取标签）"),
+            ("已计提未支付的利息费用" in text,
+             "pending_pre 被顶替时落独立行保文本（不静默丢）"),
+            ("公告编号" not in text and "测试股份有限公司 2026 年半年度报告" not in text,
+             "页眉页脚删除（公告字样/纯页码/重复报告标题行）"),
+            (n_sep == 3, f"重复分隔行去重（3 张表各留首条，实际 {n_sep}）"),
+            ("| | |" in text, "空单元格行保留（不被当分隔行误删）"),
+            ("一、 主要会计数据" in text, "编号小标题不并入表行（散文豁免）"),
+            (len(idx.get("sections") or []) >= 5 and len(idx.get("blocks") or {}) >= 2,
+             f"索引产出：sections={len(idx.get('sections') or [])} ≥5 / "
+             f"blocks={len(idx.get('blocks') or {})} ≥2"),
+        ]
+        # 加成校验：本机若存有真实报告 md（不入库），跑一遍双不变量作参考
+        for md_name in ("贵州茅台2025年年度报告.md", "康得新2018年年度报告.md"):
             md_src = SKILL.parent / "reports" / "archive" / "原始报告" / md_name
-            r = subprocess.run([sys.executable, str(SKILL / "scripts" / "md_clean.py"),
-                                str(md_src), "--out-dir", td],
-                               capture_output=True, text=True, encoding="utf-8", errors="replace")
-            out = r.stdout or ""
-            md_checks.append((r.returncode == 0 and "不变量违反" not in out,
-                              f"md_clean {md_name[:4]}…：exit 0 且双不变量通过"))
-            idx = Path(td) / (md_src.stem + ".index.json")
-            n_sec = len(json.loads(idx.read_text(encoding="utf-8"))["sections"]) if idx.exists() else 0
-            md_checks.append((n_sec >= min_sections,
-                              f"md_clean 索引产出：{md_name[:4]}… sections={n_sec} ≥ {min_sections}"))
-    print("\n【md_clean 金标准（v0.0.13）】")
+            if not md_src.exists():
+                continue
+            rr = subprocess.run([sys.executable, str(SKILL / "scripts" / "md_clean.py"),
+                                 str(md_src), "--out-dir", td],
+                                capture_output=True, text=True, encoding="utf-8", errors="replace")
+            print(f"  ℹ️ 加成（不计断言）：md_clean {md_name[:4]}… "
+                  f"exit {rr.returncode}（本机存量真实 md）")
+    print("\n【md_clean 金标准（v0.0.17 合成样本，自包含）】")
     for ok, desc in md_checks:
         print(f"  {'✅' if ok else '❌'} {desc}")
         total += 1
@@ -462,7 +585,7 @@ def main():
         print("❌ 回归未通过：逐条核对上方 ❌；先确认是 calc.py 改坏了还是样本期望值需调整，"
               "禁止为了让测试变绿而改 fixture 数值。")
         return 1
-    print("✅ 双例全绿：门禁既未误报干净样本，也未漏报造假样本。")
+    print("✅ 三例全绿：门禁既未误报干净样本、未漏报造假样本，也未错伤连亏样本。")
     return 0
 
 

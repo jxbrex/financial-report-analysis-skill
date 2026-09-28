@@ -1,0 +1,16 @@
+name: regression
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  regression:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+      - name: 金标准回归（calc 三例 + check_html/T8 冒烟 + md_clean 合成样本 + 构造用例）
+        run: python financial-report-analysis/tests/run_regression.py

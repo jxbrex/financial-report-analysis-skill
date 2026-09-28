@@ -20,8 +20,10 @@
 - `scripts/gate.py` — 三道门禁单入口（v0.0.13）：calc → check_html --json → check_render 一条命令，统一退出码
 - `scripts/md_clean.py` — 财报 md 一次性确定性清洗（v0.0.13）：拼回 PDF 拆碎的逻辑表行、删重复分隔行与页眉页脚，产出 clean md 唯一工作副本 + 章节索引 sidecar；内置数字/文字双不变量，违反 exit 1
   - `tests/` — 金标准 fixtures + 回归入口：`moutai_2025.json`（干净样本，应零误报）、
-    `kangdexin_2018.json`（造假样本，应命中）；`run_regression.py` 是唯一回归入口（含 check_html 冒烟）
-  - `examples/` — 标杆样本报告（few-shot 参考；早期版本，结构以当前模板为准）
+    `kangdexin_2018.json`（造假样本，应命中）、`vanke_2026h1.json`（连亏地产样本，
+    扣非双版/双驱动真实触发）、`md_clean_synth.md`（md_clean 合成金标准，自包含）；
+    `run_regression.py` 是唯一回归入口（77 断言，含 check_html/T8/渲染冒烟与构造用例）
+  - `examples/` — 标杆样本报告（few-shot：万科A 2026H1，现行模板全槽位真实报告）+ lookback-demo/
 - `reports/` — 产出目录。顶层只放成品 HTML（每公司只留最新版；`贵州茅台-600519-年报-2025FY-20260904.html`
   是黄金样本，改流程/模板后用它做回归对比）；原始报告（PDF/md）存 `reports/archive/原始报告/`，
   data.json 底稿存 `reports/archive/json/`
@@ -31,7 +33,8 @@
 
 1. 改完技能 → 跑 `deploy.cmd` → 新会话才生效（技能列表在会话启动时加载）
 2. **任何改动后先跑回归**：`python financial-report-analysis/tests/run_regression.py` 须 exit 0
-   （它内含 calc.py 双例 + 断言：茅台零 WARN、康得新 signals≥11 且红色≥6、recon 命中≥3）
+   （它内含 calc.py 三例 + 断言：茅台零 WARN、康得新 signals≥11 且红色≥6、recon 命中≥3、
+   万科 WARN==2 且扣非双版/双驱动真实触发）
 3. 改 `calc.py` / `extraction-schema.md` / 任一 fixture 后，回归是强制的，不许跳过
 4. 结构性改动（流程/模板/阈值）先拿黄金样本与回归双绿，再提交
 5. 全程中文（代码关键字除外）

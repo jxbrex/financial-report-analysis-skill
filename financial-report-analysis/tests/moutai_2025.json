@@ -11,7 +11,7 @@
     "market_cap_src": "tushare daily_basic 20251231 total_mv=172,460,149.47 万元 ÷1e4",
     "source_md": "reports/archive/原始报告/贵州茅台2025年年度报告.md",
     "analyst_date": "2026-09-10",
-    "schema_version": "1.3"
+    "schema_version": "1.4"
   },
   "statements": {
     "income": {
@@ -353,6 +353,13 @@
           22.5939
         ],
         "note": "hist 2021-2024 取自 tushare cashflow（depr_fa_coga_dpba+amort_intang_assets+lt_amort_deferred_exp 三项合计），2025=报告补充资料提取值"
+      },
+      "dividend_paid": {
+        "cur": 646.718,
+        "prev": 687.8688,
+        "level": "der",
+        "src": "L3215-L3221 合并现金流量表",
+        "note": "分配股利、利润或偿付利息支付的现金 672.4173 − 子公司付少数股东股利 25.6993 − 利息≈0（财务费用为净利息收入）；prev=709.5103−21.6415"
       }
     }
   },
@@ -531,6 +538,12 @@
       "ocf_to_liab": {
         "cur": 1.152,
         "note": "calc.py 同口径复算（X6：OCF÷平均总负债）；人话：照现在造血能力还清全部负债 ≈ 0.87 年"
+      },
+      "roic": {
+        "cur": 0.3545
+      },
+      "sustainable_growth": {
+        "cur": 0.0721
       }
     },
     "ocf_bridge": [

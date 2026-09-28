@@ -36,11 +36,13 @@ def main():
     ap.add_argument("--png", default=None, help="check_render 按章分片截图目录（视觉验收用）")
     ap.add_argument("--verbose", action="store_true",
                     help="透传 check_html --verbose（T8 等明细不截断）并打印明细行——排障用")
+    ap.add_argument("--min-recon", type=int, default=None, metavar="N",
+                    help="透传 calc.py --min-recon：recon 覆盖不足即 FAIL（年报 15/半年报 13/季报 8）")
     a = ap.parse_args()
 
     fails = []
 
-    r = run("calc.py", a.json)
+    r = run("calc.py", a.json, *(["--min-recon", str(a.min_recon)] if a.min_recon is not None else []))
     print(r.stdout, end="")
     if r.returncode != 0:
         fails.append("calc 存在 FAIL（禁止写报告/交付）")

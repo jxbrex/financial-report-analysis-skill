@@ -5,7 +5,8 @@
 方法论与判读规则见 references/frameworks.md 第二节。
 """
 
-from calc_common import (FAIL, OK, SKIP, num, val, safe_div, hist_periods, cmp_fields)
+from calc_common import (FAIL, OK, SKIP, num, val, safe_div, hist_periods, cmp_fields,
+                         parts_sum)
 
 # ─────────────────────────── 纯计算函数（公式唯一定义处） ───────────────────────────
 
@@ -121,10 +122,7 @@ def compute_leverage_drill(data, dupont=None):
     quality_upgrade：杠杆为主驱动且 ni_share>0.7 且 |ΔDFL|<0.1 → True（经验阈值，
     v0.0.15 设定待校准，报告只作提醒级呈现）；杠杆非主驱动 → None（不适用）。"""
     B = lambda f, key="cur": val(data, "statements", "balance", f, key=key)
-
-    def parts(fields, key):
-        vs = [B(f, key=key) for f in fields]
-        return None if all(v is None for v in vs) else sum(v or 0.0 for v in vs)
+    parts = lambda fields, key: parts_sum(data, fields, key)  # 口径唯一定义处在 calc_common
 
     ib1, ib0 = parts(("st_debt", "noncur_due_1y", "lt_debt"), "cur"), \
                parts(("st_debt", "noncur_due_1y", "lt_debt"), "prev")

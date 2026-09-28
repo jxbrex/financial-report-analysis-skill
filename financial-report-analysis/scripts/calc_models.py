@@ -34,7 +34,8 @@ ROW_LABEL = {"gross_margin": "毛利率", "net_margin": "净利率", "debt_to_as
 
 
 _SINGLE_ITEMS = ("short_debt_cover", "incr_expense_eff", "incr_sales_eff",
-                 "nonrecurring_share", "non_main_rev_share", "ocf_to_liab")
+                 "nonrecurring_share", "non_main_rev_share", "ocf_to_liab",
+                 "roic", "sustainable_growth")
 
 
 def _filled(new, old, *keep):
@@ -95,11 +96,13 @@ def fill_derived(data):
     if alt or ohl:
         old = der.get("risk_models") or {}
         old_alt = old.get("altman_z") if isinstance(old.get("altman_z"), dict) else {}
+        old_ohl = old.get("ohlson_o") if isinstance(old.get("ohlson_o"), dict) else {}
         rm = {"altman_z": (_filled({k: R4(v) if isinstance(v, float) else v for k, v in alt.items()},
                                    old_alt, "note") if alt else None),
-              "ohlson_o": ({k: R4(v) if isinstance(v, float) else v for k, v in ohl.items()}
-                           if ohl else None)}
-        der["risk_models"] = rm
+              "ohlson_o": (_filled({k: R4(v) if isinstance(v, float) else v for k, v in ohl.items()},
+                                   old_ohl, "note") if ohl else None)}
+        # 块级 note 也是判断字段（万科轮实证：地产适用性声明被 fill 吞掉）——保留不覆盖
+        der["risk_models"] = _filled(rm, old, "note")
         n += 1
     st = compute_stress(data)
     if st:
@@ -220,4 +223,6 @@ def write_fillsheet(data, path):
     L.append(f"- 压力情景 {st.get('scenarios') or 'null'}")
     L.append(f"- 增量费用效率 {ratios.get('incr_expense_eff', {}).get('cur')} · "
              f"获客效率 {ratios.get('incr_sales_eff', {}).get('cur')}")
+    L.append(f"- ROIC（去杠杆，vs ROE 看杠杆撑多少） {ratios.get('roic', {}).get('cur')} · "
+             f"内生增长率（亏损期 null） {ratios.get('sustainable_growth', {}).get('cur')}")
     pathlib.Path(path).write_text("\n".join(L) + "\n", encoding="utf-8")

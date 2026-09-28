@@ -259,16 +259,18 @@ table.data tr.total td{font-weight:800;border-top:1.5px solid var(--ink);border-
     </div>
     <div class="card">
       <div class="figtitle">{{结论式：四维比率总判一句话，如「营运三维全面改善，负债率升系预收非恶化」}}</div>
-      <!-- ◆ v0.0.12 全宽化、v0.0.13 趋势列改内嵌 SVG 迷你折线：四维表是 S1 信息密度最高的表，
-           半宽挤压「评价」列；「近5期趋势」列每格一个 64×16 SVG（JS spark() 画 polyline+末点圆，
-           数据填 JS 区 SPARK 槽=ratios 五期 hist 同类型滚动），**线色由填充者按 frameworks.md
-           方向语义表对「本期 vs 上期」的好坏选 GOOD/BAD/INK**——年度涨跌靠折线斜率直接可辨
-           （v0.0.12 块字符只编码水平、跌年不可辨，云铝首测评审否决）；禁填数字链；
-           数字明细由本期/上期列、杜邦变迁表与 trend 大图承担 -->
+      <!-- ◆ 四维表全宽（v0.0.12+）：「近5期趋势」列每格一个 64×16 SVG（JS spark() 画 polyline
+           +末点圆，数据填 JS 区 SPARK 槽=ratios 五期 hist 同类型滚动），**线色由填充者按
+           frameworks.md 方向语义表对「本期 vs 上期」的好坏选 GOOD/BAD/INK**；禁填数字链——
+           数字明细由本期/上期列、杜邦右卡与 trend 大图承担 -->
       <table class="data">
         <tr><th>指标</th><th>本期</th><th>上期</th><th class="txt">较上期</th><th class="txt">近5期趋势</th><th class="txt">评价</th></tr>
         <tr><td>毛利率 <span class="badge der">推算</span></td><td>{{}}</td><td>{{}}</td><td class="txt">{{▲|▼|→ +Δ值；好坏语义色：利好用 <span class="up">、利空用 <span class="dn">、语境中性不染色——语义判据见 references/frameworks.md 方向语义表}}</td><td class="txt"><svg class="spark" id="spark-gm" viewBox="0 0 64 16" preserveAspectRatio="none"></svg></td><td class="txt">{{≤15字注脚}}</td></tr>
         <tr><td>净利率</td><td>{{}}</td><td>{{}}</td><td class="txt">{{▲|▼ + Δ值}}</td><td class="txt"><svg class="spark" id="spark-nm" viewBox="0 0 64 16" preserveAspectRatio="none"></svg></td><td class="txt">{{≤15字注脚}}</td></tr>
+        <!-- ◆ v0.0.17 N1/N2 单期指标行：较上期/趋势列填「—」（ROIC 上期需 T-2 不可得；
+             SGR 亏损期不算）；口径与判读见 frameworks.md 第一节 -->
+        <tr><td>ROIC 投入资本回报率 <span class="badge der">推算</span></td><td>{{}}</td><td>—</td><td class="txt">—（单期指标）</td><td class="txt">—（不序列化）</td><td class="txt">{{≤15字注脚}}</td></tr>
+        <tr><td>内生增长率（留存率×ROE） <span class="badge der">推算</span></td><td>{{亏损期或分红未披露填「—（不适用）」}}</td><td>—</td><td class="txt">—（单期指标）</td><td class="txt">—（不序列化）</td><td class="txt">{{≤15字注脚}}</td></tr>
         <tr><td>资产负债率</td><td>{{}}</td><td>{{}}</td><td class="txt">{{▲|▼ + Δ值}}</td><td class="txt"><svg class="spark" id="spark-da" viewBox="0 0 64 16" preserveAspectRatio="none"></svg></td><td class="txt">{{≤15字注脚}}</td></tr>
         <tr><td>存货周转天数</td><td>{{}}</td><td>{{}}</td><td class="txt">{{▲|▼ + Δ值}}</td><td class="txt"><svg class="spark" id="spark-dio" viewBox="0 0 64 16" preserveAspectRatio="none"></svg></td><td class="txt">{{≤15字注脚}}</td></tr>
         <tr><td>应收周转天数</td><td>{{}}</td><td>{{}}</td><td class="txt">{{▲|▼ + Δ值}}</td><td class="txt"><svg class="spark" id="spark-dso" viewBox="0 0 64 16" preserveAspectRatio="none"></svg></td><td class="txt">{{≤15字注脚}}</td></tr>
@@ -282,8 +284,7 @@ table.data tr.total td{font-weight:800;border-top:1.5px solid var(--ink);border-
       <div class="srcline">数据来源：公司{{报告期}}{{报告类型}}、Tushare；比率口径见 frameworks.md；CCC/平均余额口径期初取上年末 12-31</div>
       <div class="srcline">证据等级：<span class="badge disc">披露</span> 主表/附注直接披露 · <span class="badge der">推算</span> 两数运算（毛利率/净现比/周转天数）· <span class="badge est">估算</span> 含假设（情景测算）</div>
     </div>
-    <!-- ◆ v0.0.15 F-06/F-07：现金时序 + 周期定位证据双卡（原现金时序只在 srcline 提一句、
-         周期定位为无证据声明）——五层质量观「现金含量」层核心证据与阶段判定前提落表 -->
+    <!-- ◆ v0.0.15 现金时序 + 周期定位证据双卡：「现金含量」层证据与阶段判定前提落表 -->
     <div class="grid2">
       <div class="card">
         <div class="figtitle">{{结论式：现金含量一句话，如「五年净现比均值 0.90、无负值年——造血稳定」或「忽高忽低，负值 2 年」}}</div>
@@ -313,11 +314,9 @@ table.data tr.total td{font-weight:800;border-top:1.5px solid var(--ink);border-
         <div class="srcline">数据来源：data.json derived.cycle_evidence（calc.py 复算）· 阶段判定规则：frameworks.md 第六节 · 非周期行业本卡写「非周期行业，仅留存证据」并说明理由 · hist&lt;2 期本卡降级缺省</div>
       </div>
     </div>
-    <!-- ◆ v0.0.15：杜邦双卡改造。左卡=当期归因+因子下钻+ΔROE 堆叠条；
-         右卡=五年累计归因（方案A）+因子分位（方案D），废五年驱动变迁表
-         （逐年主驱动=5 个孤立噪声点，割裂路径、不可证伪）。
-         子行纪律：每因子 ≤1 行浅灰子行、只放证据，判断只在 figtitle/takeaway；
-         下钻锚点把杜邦变成全报告交叉引用枢纽（净利率→#s3 净利桥 / 周转率→#s1 四维表 / 杠杆→#s7 健康检验） -->
+    <!-- ◆ v0.0.15 杜邦双卡：左卡=当期归因+因子下钻+ΔROE 堆叠条；右卡=五年累计归因（方案A）
+         +因子分位（方案D）。子行纪律：每因子 ≤1 行浅灰子行、只放证据，判断只在 figtitle/takeaway；
+         下钻锚点把杜邦变成全报告交叉引用枢纽（净利率→#s3 / 周转率→#s1 / 杠杆→#s7） -->
     <div class="grid2">
       <div class="card">
         <div class="figtitle">{{裁决句：ROE 变动能不能信 + 主驱动 + 盯什么，如「ROE 修复成色打折——净利率修复是真改善、杠杆是并购被动抬升；周转率不停止跌则修复难持续」（数字只许在表格里，标题不复述分解值）}}</div>
@@ -347,9 +346,8 @@ table.data tr.total td{font-weight:800;border-top:1.5px solid var(--ink);border-
       </div>
       <div class="card">
         <div class="figtitle">{{结论式：五年模式叙事一句话，如「五年 ROE {{x}}%→{{y}}%，模式从低毛利高周转滑向高毛利低周转，杠杆全程仅 {{±z}}pct——本轮抬升是盈利质量升级」；净利率与周转率效应反向且合计为正=模式迁移（五年表唯一值得说的叙事形态）}}</div>
-        <!-- ◆ 方案A 五年累计归因（v0.0.15，替代逐年主驱动表）：hist 首末两期端点间一次连环替代，
-             数据=data.json derived.dupont5y（calc.py 复算卡口，加和恒等式与当期版同源）；
-             hist<3 期（口径断裂）整卡降级为两期归因并在标题注明 -->
+        <!-- ◆ 方案A 五年累计归因（v0.0.15）：hist 首末端点一次连环替代，数据=derived.dupont5y
+             （calc 复算卡口）；hist<3 期（口径断裂）整卡降级两期归因并在标题注明 -->
         <table class="data">
           <tr><th>因子</th><th>{{period_start}}</th><th>{{period_end}}</th><th>五年累计</th><th class="txt">读法</th></tr>
           <tr><td>净利率</td><td>{{hist 首}}</td><td>{{hist 末}}</td><td class="{{up|dn}}">{{±x.xpct}}</td><td class="txt">{{单因子 |贡献|>总Δ 60% → 主叙事点名；其余写次要/拖累}}</td></tr>

@@ -1,0 +1,884 @@
+<!doctype html>
+<html lang="zh-Hans">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>万科A（000002.SZ）2026H1半年报分析 — financial-report-analysis</title>
+<style>
+/* ═══════════════════════════════════════════════════════════════
+   财报分析报告 · financial-report-analysis · 模板 v0.0.15
+   视觉基底：暖墨赭石色系（去蓝）+ 浅色卡片
+   ═══════════════════════════════════════════════════════════════ */
+:root{
+  --bg:rgb(247,242,235); --ink:rgb(58,42,28); --muted:rgba(58,42,28,.60);
+  --faint:rgba(58,42,28,.32); --grid:rgba(58,42,28,.16); --card:#fff;
+  --data:rgb(171,94,38); --data2:rgb(203,158,108); --faintdata:rgb(233,213,187);
+  --good:#0F7B4F; --warn:#B8860B; --bad:#C0392B; --der:rgb(122,84,52);
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:#000;
+  font-family:"Zhuque Fangsong","朱雀仿宋","FangSong","仿宋","STFangsong",serif;
+  -webkit-font-smoothing:antialiased;font-variant-numeric:tabular-nums lining-nums;
+  padding:40px 20px}
+.sheet{width:100%;max-width:1040px;margin:0 auto}
+
+/* ── 页眉 ── */
+.masthead{border-bottom:3px double var(--ink);padding-bottom:18px;margin-bottom:8px}
+.masthead .kicker{font-size:11px;font-weight:700;letter-spacing:.22em;color:var(--muted)}
+.masthead h1{font-size:34px;font-weight:900;letter-spacing:.02em;margin:6px 0 4px}
+.masthead .sub{font-size:14px;color:var(--muted)}
+.masthead .sub b{color:var(--ink)}
+
+/* ── 徽章 ── */
+.badge{display:inline-block;padding:2px 10px;border-radius:999px;font-size:11px;font-weight:800}
+.badge.g{background:rgba(15,123,79,.12);color:var(--good)}
+.badge.y{background:rgba(184,134,11,.14);color:var(--warn)}
+.badge.r{background:rgba(192,57,43,.12);color:var(--bad)}
+.dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px;vertical-align:1px}
+.dot.g{background:var(--good)}.dot.y{background:var(--warn)}.dot.r{background:var(--bad)}
+.badge.disc{background:rgba(58,42,28,.09);color:rgba(58,42,28,.82)}
+.badge.der{background:rgba(122,84,52,.13);color:var(--der)}
+.badge.est{background:rgba(58,42,28,.04);color:var(--muted);border:1px dashed rgba(58,42,28,.28)}
+.badge.rev{background:rgba(171,94,38,.12);color:var(--data)}
+
+/* ── 追查链接 ── */
+a{color:var(--data);text-decoration:none}
+a:hover{text-decoration:underline}
+.drill{font-size:11.5px;font-weight:700;white-space:nowrap}
+
+/* ── 章节 ── */
+.sect{margin-top:46px}
+.secthead{display:flex;align-items:baseline;gap:14px;margin-bottom:6px;
+  border-radius:6px;scroll-margin-top:24px}
+.secthead:target{background:rgba(171,94,38,.07)}
+.secthead .no{font-size:13px;font-weight:800;color:var(--data)}
+.secthead .t{font-size:19px;font-weight:800;letter-spacing:.06em}
+.secthead .line{flex:1;border-top:1px solid var(--ink)}
+.secthead .tag{font-size:11px;font-weight:700;letter-spacing:.1em;color:var(--faint)}
+.lede{font-size:14.5px;line-height:1.85;margin:10px 0 16px;max-width:980px}
+.lede b{font-weight:800}
+
+/* ── 卡片与表格 ── */
+.card{background:var(--card);border:1px solid var(--grid);border-radius:10px;
+  padding:18px 22px;margin:14px 0;overflow-x:auto}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+@media(max-width:860px){.grid2,.grid3{grid-template-columns:1fr}}
+table.data{width:100%;border-collapse:collapse;font-size:13.5px;margin:6px 0}
+table.data th{font-size:12px;font-weight:700;letter-spacing:.08em;color:var(--muted);
+  text-align:left;padding:8px 10px;border-bottom:1.5px solid var(--ink)}
+table.data td{padding:7px 10px;border-bottom:1px dotted var(--faint);line-height:1.5}
+table.data td:not(:first-child):not(.txt),table.data th:not(:first-child):not(.txt){text-align:right}
+table.data tr:last-child td{border-bottom:0}
+table.data tr.total td{font-weight:800;border-top:1.5px solid var(--ink);border-bottom:0}
+.up{color:var(--good);font-weight:700}.dn{color:var(--bad);font-weight:700}
+.srcline{font-size:10.5px;font-weight:600;letter-spacing:.1em;color:var(--faint);margin-top:8px}
+
+/* ── 读法层 ── */
+.takeaway{font-size:12.5px;font-weight:700;margin-top:8px}
+.drillrow td{background:rgba(58,42,28,.03);font-size:12px;color:var(--muted);
+  padding:4px 10px 8px;line-height:1.6}
+.spark{width:64px;height:16px;vertical-align:middle}
+.brends{font-size:12.5px;font-weight:800;margin:2px 0 8px}
+
+/* ── s8 仪表盘 ── */
+.wv{font-size:22px;font-weight:800;line-height:1.25;margin:6px 0 4px}
+.wb{font-size:11.5px;line-height:1.7;color:var(--muted);margin-bottom:6px}
+
+/* ── 亮点/风险清单 ── */
+.flaglist{list-style:none}
+.flaglist li{display:flex;gap:10px;padding:10px 2px;border-bottom:1px dotted var(--faint);
+  font-size:14px;line-height:1.7}
+.flaglist li:last-child{border-bottom:0}
+.flaglist .body{flex:1}
+.flaglist .src{display:block;font-size:11.5px;color:var(--muted);margin-top:3px}
+
+/* ── KPI 行 ── */
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin:14px 0}
+@media(max-width:860px){.kpis{grid-template-columns:repeat(2,1fr)}}
+.kpi{background:var(--card);border:1px solid var(--grid);border-radius:10px;padding:14px 16px}
+.kpi .v{font-size:26px;font-weight:800;line-height:1.1}
+.kpi .r{font-size:12px;font-weight:700;margin-top:3px}
+.kpi .l{font-size:11px;font-weight:600;letter-spacing:.12em;color:var(--faint);margin-top:3px}
+
+/* ── 图 ── */
+.fig{background:var(--card);border:1px solid var(--grid);border-radius:10px;padding:16px}
+.fig svg{width:100%;height:auto;display:block}
+.card>svg{width:100%;height:auto;display:block}
+.figtitle{font-size:13.5px;font-weight:800;margin-bottom:4px}
+
+/* ── 桥式表强调 ── */
+.bridge td:first-child{font-weight:700}
+
+/* ── 页脚 ── */
+.foot{margin-top:52px;border-top:3px double var(--ink);padding-top:14px;
+  font-size:11px;font-weight:600;letter-spacing:.1em;color:var(--muted);
+  display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap;line-height:1.8}
+
+/* ── 动效 ── */
+.fade{animation:fade .7s ease both}
+@keyframes fade{from{opacity:0;transform:translateY(6px)}}
+@media (prefers-reduced-motion:reduce){.fade{animation:none}}
+@media(max-width:640px){
+  body{padding:20px 12px}
+  .masthead h1{font-size:24px}
+  .masthead .sub{font-size:13px}
+  .card{padding:14px}
+  table.data{font-size:12.5px}
+  table.data th,table.data td{padding:7px 8px}
+  .lede{font-size:14px}
+  .flaglist li{font-size:13.5px}
+  .drill{white-space:normal}
+  .kpi .v{font-size:22px}
+  .sect{margin-top:34px}
+}
+</style>
+</head>
+<body>
+<div class="sheet">
+
+  <!-- ══ 页眉 ══ -->
+  <div class="masthead fade">
+    <div class="kicker">FINANCIAL REPORT ANALYSIS · A股（深主板+H股）</div>
+    <h1>万科A（000002.SZ）</h1>
+    <div class="sub"><b>2026H1 半年报</b> 分析报告 · 报告发布于 2026-08-28 · 分析生成于 2026-09-28</div>
+  </div>
+
+  <!-- ══ 核心结论 ══ -->
+  <div class="sect">
+    <div class="secthead" id="s0"><span class="no">00</span><span class="t">核心结论</span><span class="line"></span><span class="tag">EXECUTIVE SUMMARY</span></div>
+    <div class="grid2">
+      <div class="card">
+        <div class="figtitle" style="color:var(--good)">亮点 TOP 3</div>
+        <ul class="flaglist">
+          <li><span><span class="dot g"></span></span><div class="body">经营现金流净额（OCF，公司做生意实际收到的现金）自 2024H1 以来首次转正：<b>+4.95 亿</b>（上期 -30.39 亿）——收缩中守住了现金基本盘。<span class="src">出处：合并现金流量表 L3348、现金流量表补充资料 L8129-L8147 <span class="badge disc">披露</span></span></div></li>
+          <li><span><span class="dot g"></span></span><div class="body">债务缓释机制持续运转：10 只公开债券 <b>181 亿</b>完成「40% 兑付+60% 展期」，期后 7 月又有 3 只按同一模式执行；深铁集团年内累计股东借款约 45.2 亿、存量融资成本降至 2.86%。<span class="src">出处：MD&amp;A L230-L235、附注(五)32 L7526-L7571、附注(十三)2 <span class="badge disc">披露</span></span></div></li>
+          <li><span><span class="dot g"></span></span><div class="body">经营服务业务（物业/租赁/商业/物流）全口径收入 <b>288.5 亿（+1.6%）</b>逆势微增——泊寓出租率 94.3%、万物云收入 +5.6%，第二曲线没有断。<span class="src">出处：MD&amp;A L227、L499-L581 <span class="badge disc">披露</span></span></div></li>
+        </ul>
+      </div>
+      <div class="card">
+        <div class="figtitle" style="color:var(--bad)">风险 TOP 3</div>
+        <ul class="flaglist">
+          <li><span><span class="dot r"></span></span><div class="body">流动性缺口硬性存在：短期有息负债+股东借款 <b>1,788.6 亿</b> vs 现金及现金等价物 <b>530.8 亿</b>，短债覆盖仅 0.33 倍；德勤审阅报告出具<b>持续经营重大不确定性强调事项段</b>，且 2025 年报审计意见为<b>保留意见</b>。<span class="src">出处：审阅报告 L2940-L2947、L1273 <span class="badge disc">披露</span></span></div></li>
+          <li><span><span class="dot r"></span></span><div class="body">资产端最大暗区：其他应收款净值 <b>1,706 亿</b>（占总资产 17.8%），账龄 2 年以上占 81.6%、已累计计提坏账 618.8 亿；母公司口径 3,561 亿为合并口径的 2.09 倍。<span class="src">出处：附注(五)5 L5476-L5569、母公司资产负债表 L3104 <span class="badge disc">披露</span></span></div></li>
+          <li><span><span class="dot y"></span></span><div class="body">收入蓄水池与结算同步萎缩：合同负债 <b>-16.7%</b>、已售未结金额 <b>-19.4%</b>、上半年销售金额 <b>-48.2%</b>——未来 12 个月结算收入仍将下行，存货跌价计提（本期 39.4 亿）难言出清。<span class="src">出处：L3042、L409-L411、L223/L356 <span class="badge disc">披露</span></span></div></li>
+        </ul>
+      </div>
+    </div>
+    <p class="lede">万科 2026 年上半年的主线是「化险推进、经营继续探底」：营业收入 701.7 亿（-33.4%）<span class="badge disc">披露</span>，归母净亏损 149.5 亿（同比多亏 25.2%）<span class="badge disc">披露</span>，亏损第一驱动是开发结算毛利坍塌（贡献 -49.3 亿）<span class="badge der">推算</span>；债务端靠「部分兑付+展期」与深铁输血维持运转，OCF 止血式转正。最大隐忧不在利润表——在 1,706 亿其他应收款（联营/合营与合作方往来款）的回收性，与 1,788.6 亿短期刚性债务的接续性。</p>
+    <div class="card">
+      <div class="figtitle">分歧锚：同一事实的两种解读，不做倾向裁决</div>
+      <table class="data">
+        <tr><th>事实</th><th class="txt">读法 A</th><th class="txt">读法 B</th></tr>
+        <tr><td>OCF 转正 +4.95 亿，但毛利率仍在探底（7.94%，结算口径仅 5.1%）<span class="badge disc">披露</span></td><td class="txt">收缩管理见效：存货去化+应付压降让现金先于利润修复，若销售企稳则转正可持续</td><td class="txt">止血式转正：存货去化和应付压降都是不可再生的收缩动作，销售 -48% 之下转正难以接续</td></tr>
+      </table>
+      <div class="srcline">分歧锚不做倾向性裁决；两种读法的验证条件列入 <a href="#s8">08 下期跟踪清单</a>（销售金额与合同负债两条触发线）</div>
+    </div>
+    <div class="card">
+      <div class="figtitle">异常线索追查：异常指标 → 结构定位 → 驱动因素</div>
+      <table class="data">
+        <tr><th>异常指标</th><th class="txt">结构定位</th><th class="txt">驱动因素</th></tr>
+        <tr><td>归母亏损同比扩大 25.2% <span class="badge disc">披露</span></td><td class="txt"><a href="#s3">因素分析 · 净利润桥</a></td><td class="txt">毛利坍塌 -49.3 亿 + 投资收益转亏 -28.1 亿</td></tr>
+        <tr><td>短债覆盖仅 0.33 倍 <span class="badge der">推算</span></td><td class="txt"><a href="#s7">外部校验 · 健康检验</a></td><td class="txt">一年内到期有息占 50.9%，依赖展期与股东借款接续</td></tr>
+        <tr><td>其他应收款 1,706 亿、账龄恶化 <span class="badge disc">披露</span></td><td class="txt"><a href="#s2">排雷扫描 · 信号 R6</a></td><td class="txt">联营/合营企业款 1,323.7 亿+合作方往来 783.5 亿沉淀</td></tr>
+        <tr><td>少数股东损益与归母背离 <span class="badge disc">披露</span></td><td class="txt"><a href="#s2">排雷扫描 · 信号 R14</a></td><td class="txt">并表项目损益分配结构（往期盈利项目少数股东分走）</td></tr>
+        <tr><td>管理层解释与数字 <span class="badge disc">披露</span></td><td class="txt"><a href="#s4">管理层在说什么 · 断言验证</a></td><td class="txt">4 条通过、3 条无法验证、0 条不成立</td></tr>
+        <tr><td>股东户数两月降 8.5% <span class="badge disc">披露</span></td><td class="txt"><a href="#s6">股东结构</a></td><td class="txt">筹码集中+期后股价异动（9-22 异常波动公告）</td></tr>
+      </table>
+      <div class="srcline">追查路径：异常指标 → 结构定位（哪张表/哪条等式）→ 驱动因素（谁造成的）· 锚点 id 见各章 secthead</div>
+    </div>
+  </div>
+
+  <!-- ══ S1 财务总览 ══ -->
+  <div class="sect">
+    <div class="secthead" id="s1"><span class="no">01</span><span class="t">财务总览</span><span class="line"></span><span class="tag">四维比率 · 杜邦</span></div>
+    <div class="kpis">
+      <div class="kpi"><div class="v">701.69</div><div class="r dn">同比 -33.4% <span class="badge disc">披露</span></div><div class="l">营业收入（亿元）</div></div>
+      <div class="kpi"><div class="v">-149.51</div><div class="r dn">亏损扩大 25.2% <span class="badge disc">披露</span></div><div class="l">归母净利润（亿元）</div></div>
+      <div class="kpi"><div class="v">+4.95</div><div class="r">净现比 -0.03 <span class="badge der">推算</span></div><div class="l">经营现金流净额（亿元）· 2024H1 以来首次转正</div></div>
+      <div class="kpi"><div class="v">-13.65%</div><div class="r dn">较上期降 7.58pct <span class="badge disc">披露</span></div><div class="l">ROE（加权）· 扣非摊薄 -13.54%<span class="dn">（差 1.09pct，非经为加重项）</span></div></div>
+    </div>
+    <div class="card">
+      <div class="figtitle">四维比率全数承压：毛利率探底、亏损率扩大、杠杆被动抬升——唯一改善是收现比与 OCF 止血</div>
+      <table class="data">
+        <tr><th>指标</th><th>本期</th><th>上期</th><th class="txt">较上期</th><th class="txt">近5期趋势</th><th class="txt">评价</th></tr>
+        <tr><td>毛利率 <span class="badge der">推算</span></td><td>7.9%</td><td>10.0%</td><td class="txt"><span class="dn">▼ 2.0pct</span></td><td class="txt"><svg class="spark" id="spark-gm" viewBox="0 0 64 16" preserveAspectRatio="none"></svg></td><td class="txt">结算毛利率仅 5.1%</td></tr>
+        <tr><td>净利率（归母） <span class="badge der">推算</span></td><td>-21.3%</td><td>-11.3%</td><td class="txt"><span class="dn">▼ 10.0pct</span></td><td class="txt"><svg class="spark" id="spark-nm" viewBox="0 0 64 16" preserveAspectRatio="none"></svg></td><td class="txt">亏损率再扩大</td></tr>
+        <tr><td>资产负债率 <span class="badge der">推算</span></td><td>77.5%</td><td>73.1%</td><td class="txt"><span class="dn">▲ 4.4pct</span></td><td class="txt"><svg class="spark" id="spark-da" viewBox="0 0 64 16" preserveAspectRatio="none"></svg></td><td class="txt">净资产侵蚀所致</td></tr>
+        <tr><td>存货周转天数 <span class="badge der">推算</span></td><td>2,033 天</td><td>1,889 天</td><td class="txt"><span class="dn">▲ 144 天</span></td><td class="txt"><svg class="spark" id="spark-dio" viewBox="0 0 64 16" preserveAspectRatio="none"></svg></td><td class="txt">房企属性，去化放慢</td></tr>
+        <tr><td>应收周转天数 <span class="badge der">推算</span></td><td>53.5 天</td><td>30.2 天</td><td class="txt"><span class="dn">▲ 23.4 天</span></td><td class="txt"><svg class="spark" id="spark-dso" viewBox="0 0 64 16" preserveAspectRatio="none"></svg></td><td class="txt">应收逆势 +16%</td></tr>
+        <tr><td>收现比 <span class="badge der">推算</span></td><td>0.68</td><td>0.59</td><td class="txt"><span class="up">▲ 0.10</span></td><td class="txt"><svg class="spark" id="spark-c2s" viewBox="0 0 64 16" preserveAspectRatio="none"></svg></td><td class="txt">本期唯一改善项</td></tr>
+        <tr><td>现金转换周期 CCC（应收周转天数 DSO＋存货周转天数 DIO−应付周转天数 DPO，天） <span class="badge der">推算</span></td><td>1,389 天</td><td>1,349 天</td><td class="txt"><span class="dn">▲ 40 天</span></td><td class="txt"><svg class="spark" id="spark-ccc" viewBox="0 0 64 16" preserveAspectRatio="none"></svg></td><td class="txt">房企超长周期属性</td></tr>
+        <tr><td>经营杠杆 DOL（息税折旧摊销前利润 EBITDA÷息税前利润 EBIT） <span class="badge der">推算</span></td><td>0.52</td><td>—</td><td class="txt">—</td><td class="txt"><svg class="spark" id="spark-dol" viewBox="0 0 64 16" preserveAspectRatio="none"></svg></td><td class="txt">EBIT 为负，读数失真</td></tr>
+        <tr><td>财务杠杆 DFL（息税前利润 EBIT÷税前利润） <span class="badge der">推算</span></td><td>0.70</td><td>0.62</td><td class="txt">▲ 0.07</td><td class="txt"><svg class="spark" id="spark-dfl" viewBox="0 0 64 16" preserveAspectRatio="none"></svg></td><td class="txt">亏损期读数失真</td></tr>
+        <tr><td>非主营业务收入占比 <span class="badge der">推算</span></td><td>-0.3%</td><td>—</td><td class="txt">—</td><td class="txt">—（单期专用，不序列化）</td><td class="txt">无粉饰空间</td></tr>
+      </table>
+      <div class="takeaway">读法：十项中九项承压或失真，唯一真改善是收现比（0.59→0.68）——它改善的原因不是销售回暖，而是结算收入降得比收现更快；DOL/DFL 因 EBIT 转负失去判读意义，杠杆问题直接看 <a href="#s7">健康检验</a> 的短债覆盖。</div>
+      <div class="srcline">数据来源：公司 2026H1 半年报、Tushare 双源核对；比率口径见 frameworks.md；CCC/平均余额口径期初取上年末 12-31</div>
+      <div class="srcline">证据等级：<span class="badge disc">披露</span> 主表/附注直接披露 · <span class="badge der">推算</span> 两数运算 · <span class="badge est">估算</span> 含假设（情景测算）</div>
+    </div>
+    <div class="grid2">
+      <div class="card">
+        <div class="figtitle">现金含量：盈利期净现比 0.68→0.19，亏损期读数失真——FCF 口径五年仅一年为负，「失血」发生在利润表不在现金流</div>
+        <table class="data">
+          <tr><th>期间</th><th>净现比</th><th>FCF÷归母净利</th></tr>
+          <tr><td>2022H1</td><td>0.68</td><td>0.26</td></tr>
+          <tr><td>2023H1</td><td>0.19</td><td>-0.11</td></tr>
+          <tr><td>2024H1</td><td>0.53</td><td>0.78</td></tr>
+          <tr><td>2025H1</td><td>0.25</td><td>0.36</td></tr>
+          <tr><td>2026H1</td><td>-0.03</td><td>0.00</td></tr>
+          <tr class="total"><td>均值 / 负值年数</td><td>0.32 / 1 年</td><td>0.26 / 1 年</td></tr>
+        </table>
+        <div class="takeaway">判定：⚠️ 忽高忽低（均值 0.32<0.5）——盈利年份净现比就不足 0.7，预收模式下利润与现金天然错位；亏损期 OCF 反而转正（+4.95 亿），失血主体是减值与毛利，不是回款。</div>
+        <div class="srcline">数据来源：data.json derived.cash_ts 逐期数组（calc.py 复算）· 净现比=OCF÷归母净利；FCF=OCF−Capex <span class="badge der">推算</span> · 净现比负值年数按读数为负计（2026H1）</div>
+      </div>
+      <div class="card">
+        <div class="figtitle">周期定位：收入连降四年、Capex 五折缩水、毛利率深跌后低位徘徊——下行后期特征，全部信号按下行期解读</div>
+        <table class="data">
+          <tr><th>证据线</th><th class="txt">近五期读数（旧→新）</th><th class="txt">指向</th></tr>
+          <tr><td>收入增速</td><td class="txt">— → -2.9% → -28.9% → -26.2% → -33.4%</td><td class="txt">持续收缩且未见底</td></tr>
+          <tr><td>毛利率</td><td class="txt">20.5% → 18.9% → 8.1% → 10.0% → 7.9%</td><td class="txt">断崖后低位磨底</td></tr>
+          <tr><td>Capex 增速</td><td class="txt">— → -42.8% → -16.1% → -50.9% → -57.9%</td><td class="txt">扩张意愿归零</td></tr>
+          <tr class="total"><td>阶段判定</td><td colspan="2" class="txt">下行（行业深度调整期 + 公司个体化险期）——判定与三线特征一致</td></tr>
+        </table>
+        <div class="takeaway">读法：下行期存货下降、OCF 改善是「收缩红利」而非复苏证据；杠杆信号（权益乘数 9.4 倍处五年最高位）按风险堆积解读，不按模式优势解读。</div>
+        <div class="srcline">数据来源：data.json derived.cycle_evidence（calc.py 复算）· 阶段判定规则：frameworks.md 第六节 · 2022H1 增速缺 2021H1 基数合法留空</div>
+      </div>
+    </div>
+    <!-- ══ 杜邦双卡 ══ -->
+    <div class="grid2">
+      <div class="card">
+        <div class="figtitle">ROE 再降 8.4pct 至 -14.6%：净利率与杠杆双主驱动各拖 5pct 级，周转率的小幅改善无力回天——盯结算毛利率能否止跌与归母净资产是否继续缩水</div>
+        <svg id="dupontstack" viewBox="0 0 460 78" preserveAspectRatio="xMidYMid meet"></svg>
+        <table class="data">
+          <tr><th>因子</th><th>本期</th><th>上期</th><th class="txt">方向 · 贡献归因</th></tr>
+          <tr><td>净利率 <span class="badge der">推算</span></td><td>-21.3%</td><td>-11.3%</td><td class="txt"><span class="dn">▼ -5.3pct</span> 结算毛利坍塌+投资转亏 <a class="drill" href="#s3">净利桥</a></td></tr>
+          <tr class="drillrow"><td class="txt" colspan="4">└ 经营 <span class="dn">-8.0pct</span> · 税负 <span class="dn">-2.0</span> · 利息 <span class="dn">-2.5</span> · 少数股东 <span class="up">+2.6</span> <span class="badge der">推算</span>（恒等分解，加和=Δ净利率；→ <a href="#s3">净利桥</a>）</td></tr>
+          <tr><td>总资产周转率 <span class="badge der">推算</span></td><td>0.071</td><td>0.085</td><td class="txt"><span class="up">▲ +1.9pct</span> 资产缩表快于收入下滑 <a class="drill" href="#s1">四维表</a></td></tr>
+          <tr class="drillrow"><td class="txt" colspan="4">└ Δ总资产前二：存货 <span class="dn">-277.8 亿</span> / 货币资金 <span class="dn">-81.9 亿</span>；应收存货类 51.0% · 产能类 1.4% <span class="badge der">推算</span>（存货去化接 <a href="#s2">排雷 R13</a>，在建转固接 <a href="#s5">投产时点</a>）</td></tr>
+          <tr><td>权益乘数 <span class="badge der">推算</span></td><td>9.39</td><td>6.24</td><td class="txt"><span class="dn">▲ -4.8pct</span> 分母（归母净资产）被亏损侵蚀 <a class="drill" href="#s7">健康检验</a></td></tr>
+          <tr class="drillrow"><td class="txt" colspan="4">└ 有息/权益 3.27（上期 3.46）· 无息/权益 1.90 <span class="badge der">推算</span>；无息占比 36.7% + ΔDFL 0.07 → 有息主导，维持质量最低档，强制交叉 <a href="#s7">短债覆盖</a></td></tr>
+          <tr class="total"><td>ROE（摊薄）</td><td>-14.6%</td><td>-6.2%</td><td class="txt">双驱动（净利率/杠杆），效应比 1.11&lt;1.5；扣非双版触发：扣非口径净利率 -19.7%，三效应 -4.6/+1.7/-4.4，结论同向</td></tr>
+        </table>
+        <div class="srcline">连环替代（定序净利率→周转率→权益乘数）三效应加和恒等于三因子积的 Δ；口径差 -0.2pct = 周转率平均余额口径 vs ROE 期末口径（derived.dupont.closure_gap）· 无息口径=应付账款及票据+合同负债（不含其他应付款）· 扣非双版触发：非经占比 7.4% 且 |净利率−扣非净利率|=1.6pct&gt;1pct</div>
+        <div class="takeaway">修复路径：净利率与周转率同处五年下限区（0 分位），是合法修复方向——若净利率回到五年中位（+4.9%）而其他因子不动，ROE≈-2% <span class="badge est">估算</span>；权益乘数处五年上限区（100 分位），剔除假设方向，其回落只有两条路：净资产修复（好）或资产继续缩表（坏），进 <a href="#s8">跟踪清单</a>。</div>
+      </div>
+      <div class="card">
+        <div class="figtitle">五年累计归因：净利率坠落是全部故事、模式没有迁移——修复只能自下限区的净利率开始，盯结算毛利率何时止跌</div>
+        <table class="data">
+          <tr><th>因子</th><th>2022H1</th><th>2026H1</th><th>五年累计</th><th class="txt">读法</th></tr>
+          <tr><td>净利率 <span class="badge der">推算</span></td><td>5.9%</td><td>-21.3%</td><td class="dn">-23.7pct</td><td class="txt">主叙事：|贡献|&gt;总Δ的 60%</td></tr>
+          <tr><td>总资产周转率 <span class="badge der">推算</span></td><td>0.108</td><td>0.071</td><td class="up">+6.4pct</td><td class="txt">次要（与净利率的交互项为正）</td></tr>
+          <tr><td>权益乘数 <span class="badge der">推算</span></td><td>8.02</td><td>9.39</td><td class="dn">-2.1pct</td><td class="txt">拆解见左卡（分母收缩所致）</td></tr>
+          <tr class="total"><td>ROE（摊薄）</td><td>5.2%</td><td>-14.6%</td><td class="dn">-19.9pct</td><td class="txt">口径差 -0.5pct 如实标注</td></tr>
+        </table>
+        <div class="srcline">五年累计归因=data.json derived.dupont5y（calc.py 复算，加和恒等与当期版同源）；下表因子分位同源自 derived.dupont5y.percentile</div>
+        <table class="data">
+          <tr><th>因子</th><th>当前值</th><th>五年位置</th><th class="txt">判读</th></tr>
+          <tr><td>净利率</td><td>-21.3%</td><td>0 分位</td><td class="txt"><span class="badge rev">下限区</span>下行期下限=修复空间而非顶部特征</td></tr>
+          <tr><td>总资产周转率</td><td>0.071</td><td>0 分位</td><td class="txt"><span class="badge rev">下限区</span>缩表中的低位，非效率改善</td></tr>
+          <tr><td>权益乘数</td><td>9.39</td><td>100 分位</td><td class="txt"><span class="badge y">上限区</span>风险堆积高位，盯回落路径</td></tr>
+        </table>
+        <div class="takeaway">读法：下限区双因子（净利率+周转率）是合法修复假设方向；上限区权益乘数只盯回落——回落的「好版本」需要净利率先转正，进 <a href="#s8">跟踪清单</a>。</div>
+        <div class="srcline">数据来源：data.json derived.dupont5y（ratios hist 首末端点，calc.py 复算）· 分位=位置读数非统计分位（n=5 离散步长 25%）</div>
+      </div>
+    </div>
+    <div class="fig">
+      <div class="figtitle">五年趋势：收入腰斩再腰斩、2024H1 起连亏五个半年度且逐期扩大——ROE 线 2024H1 起跌入零轴下且逐期走低，盯 2027 年结算毛利能否随高价地出清而修复</div>
+      <svg id="trend" viewBox="0 0 960 300" preserveAspectRatio="xMidYMid meet"></svg>
+      <div class="srcline">数据来源：公司 2022H1-2026H1 半年报（2022-2024 期经 Tushare 双源核对）· 左面板=收入柱+毛利率线 · 右面板=归母净利+扣非净利柱、ROE 线（扣非 2022-2024 未披露降级为近两期有柱）</div>
+    </div>
+  </div>
+
+  <!-- ══ S2 排雷扫描 ══ -->
+  <div class="sect">
+    <div class="secthead" id="s2"><span class="no">02</span><span class="t">排雷扫描</span><span class="line"></span><span class="tag">经营背离与需解释项 · 信号库逐条对照</span></div>
+    <div class="card">
+      <div class="figtitle">3 条命中全部落在「活下去」的核心命题：流动性接续、审计背书、资产可回收性；4 条观察提示压力正向上下游与表外扩散</div>
+      <table class="data">
+        <tr><th>信号（读数）</th><th class="txt">判定</th><th class="txt">担心 → 本案</th><th class="txt">追查</th></tr>
+        <tr><td>R11 债务覆盖不足：短债+股东借款 1,788.6 亿 vs 现金等价物 530.8 亿，覆盖 0.33 倍 <span class="badge der">推算</span></td><td class="txt"><span class="badge r">🔴 命中</span></td><td class="txt"><b>担心</b>：短期刚性债务是可用现金 3 倍以上，自身造血无法覆盖，实质依赖借新还旧、展期与大股东输血——任何一环断裂即违约。<br><b>本案</b>：到期高峰确已到来（一年内到期有息占 50.9%），但缓释机制在运转：期后 7 月 3 只公开债按「40% 兑付+60% 展期」执行、深铁年内借款约 40 亿、审阅报告口径 1788.6 亿与报表精确复算一致——缺口是真的，秩序也是真的。</td><td class="txt"><a class="drill" href="#s7">健康检验</a></td></tr>
+        <tr><td>R12 审计非标：2025 年报保留意见（附持续经营段落）+ 2026H1 审阅强调事项段 <span class="badge disc">披露</span></td><td class="txt"><span class="badge r">🔴 命中</span></td><td class="txt"><b>担心</b>：看门人对报表投「有保留」票——数字存在说不通之处，且持续经营本身存疑。<br><b>本案</b>：审阅报告原文「表明存在可能导致对万科持续经营能力产生重大疑虑的重大不确定性」，指向短债缺口而非具体科目错报；半年报仅审阅（有限保证），保证程度本就低于审计——数字的「内部自洽」已由 15 条勾稽支持，但「科目真实」的背书强度天然弱于审计年报。</td><td class="txt"><a class="drill" href="#s7">期后健康</a></td></tr>
+        <tr><td>R6 其他应收款高企且账龄恶化：1,706 亿=总资产 17.8%，2 年以上账龄占 81.6% <span class="badge disc">披露</span></td><td class="txt"><span class="badge r">🔴 命中</span></td><td class="txt"><b>担心</b>：约 2,100 亿资金以「往来款」名义沉淀在联营/合营企业与合作方，回收周期与可回收金额高度不确定——资产端最大的暗区，继续计提将直接吞噬归母净资产。<br><b>本案</b>：附注对象明细为经营性成因（联营/合营企业款 1,323.7 亿+合作方经营往来 783.5 亿），非大股东占用；已单项计提 605.9 亿（计提比例 26.8%）说明历年已在消化；D1（母公司现金占比 1.45%）+D3（母公司其他应收款 3,561 亿=合并 2.09 倍）同向——资金沉淀在项目公司层面是房企架构常态，但在母公司现金枯竭背景下，上收偿债能力是流动性关键。</td><td class="txt"><a class="drill" href="#s5">产能与在建</a></td></tr>
+        <tr><td>R13 合同负债收缩：-16.7%，已售未结 -19.4% <span class="badge disc">披露</span></td><td class="txt"><span class="badge y">🟡 观察</span></td><td class="txt"><b>担心</b>：预收是开发商未来收入的蓄水池——两位数缩水意味着未来 12 个月结算收入继续萎缩。<br><b>本案</b>：收缩主因是结转大于新预售（H1 销售 358 亿、-48.2%，新增预收来源近乎枯竭），属行业性去化困难而非收入确认激进；剩余履约义务 798.5 亿（上年末 998.7 亿）同向佐证。</td><td class="txt"><a class="drill" href="#s3">因素分析</a></td></tr>
+        <tr><td>R14 少数股东损益与归母利润背离：往期少数股东 +10.8 亿 vs 归母 -119.5 亿 <span class="badge disc">披露</span></td><td class="txt"><span class="badge y">🟡 观察</span></td><td class="txt"><b>担心</b>：并表项目亏损由上市公司独扛、盈利项目少数股东分走——非全资子公司层面可能存在明股实债或利益输送结构。<br><b>本案</b>：本期少数股东转为分担亏损 -10.7 亿，边际改善；少数股东权益 1,136.3 亿（占净资产合计 52.7%）对应合作项目资本金，方向背离主要发生在 2025H1——需跟踪项目公司层面少数股东资金性质（真股权 vs 带回购条款的「债」）。</td><td class="txt"><a class="drill" href="#s3">净利润桥</a></td></tr>
+        <tr><td>R15 对外担保 936.4 亿=归母净资产 80.1%（期后公告）<span class="badge disc">披露</span></td><td class="txt"><span class="badge y">🟡 观察</span></td><td class="txt"><b>担心</b>：担保是开发商的第二张表——被担保项目公司现金流断裂将直接吞噬归母净资产。<br><b>本案</b>：910.7 亿为体系内担保（母公司对项目公司，属融资常规结构）；对外部信用主体的联营/合营担保 16.6 亿+其他公司 9.1 亿需逐笔盯；期内新增诉讼仲裁 120.4 亿（占净资产 10.3%）显示施工/合作方纠纷在加速。</td><td class="txt"><a class="drill" href="#s7">期后健康</a></td></tr>
+        <tr><td>R16 营业外支出中滞纳金大增：12.1 亿（+75.8%）<span class="badge disc">披露</span></td><td class="txt"><span class="badge y">🟡 观察</span></td><td class="txt"><b>担心</b>：滞纳金是「该付的钱没按时付」的财务证据，与拖欠供应商/工程款同向。<br><b>本案</b>：C2 联合判定——DPO 拉长叠加短债覆盖 0.33 远低于 1.5，属拖欠型而非议价型；OCF 调节桥显示经营性应付减少 327.4 亿（偿还与拖欠消化并存），滞纳金增加是资金调度紧张的旁证而非利润调节。</td><td class="txt"><a class="drill" href="#s3">OCF 调节桥</a></td></tr>
+        <tr class="total"><td colspan="4" class="txt">未触发汇总：已检 11 项——命中 3 · 观察 4 · 反向 2 组 · 未触发 2，逐条读数与出处见 data.json <code>signals</code> 块（反向组：非经未撑利润、亏损期 OCF 转正；未触发：存贷双高、商誉堰塞湖）</td></tr>
+      </table>
+      <div class="srcline">判定规则：references/redflags.md 四态标准；红色信号 3 条（type=signal）均为「化险期」结构特征而非造假指征——财务真实性风险聚集提示不成立，但持续经营风险为实质存在</div>
+    </div>
+    <div class="card">
+      <div class="figtitle">勾稽验算：15 条中 10 条闭合、5 条可解释、0 条无法解释——偏差全部指向行业口径（结算滞后/项目公司架构），无粉饰指向</div>
+      <table class="data">
+        <tr><th>等式</th><th class="txt">三态</th><th>偏差额 / 偏差率</th><th class="txt">解释或追问</th><th class="txt">追查</th></tr>
+        <tr><td>A4 收入-收现闭环</td><td class="txt"><span class="badge y">⚠️ 可解释偏差</span></td><td>-115.41 亿 / 19.4%</td><td class="txt">开发商结算滞后：本期确认收入主要来自以前年度预售（收现已在上年），含税系数取 1.09（非 1.13）；收现比 0.59→0.68 方向改善</td><td class="txt"><a class="drill" href="#s3">因素分析</a></td></tr>
+        <tr><td>A6 Capex 勾稽</td><td class="txt"><span class="badge y">⚠️ 可解释偏差</span></td><td>-31.21 亿 / 85.9%</td><td class="txt">rhs 折旧含投资性房地产折旧（对应 1,229 亿投资性房地产，不在固定资产+在建内）；万科开发投入走存货/应付款，capex 仅 5.1 亿</td><td class="txt"><a class="drill" href="#s5">产能与在建</a></td></tr>
+        <tr><td>B1 应收 roll-forward</td><td class="txt"><span class="badge y">⚠️ 可解释偏差</span></td><td>+115.41 亿 / 104.3%</td><td class="txt">净额法「收入≈当期赊销」假设对开发商不成立；应收自身仅占总资产 1.2%、账龄 1 年内计提比例 3.5% 正常</td><td class="txt"><a class="drill" href="#s1">财务总览</a></td></tr>
+        <tr><td>D1 母公司货币资金占比</td><td class="txt"><span class="badge y">⚠️ 可解释偏差</span></td><td>1.45% vs 基准 10%</td><td class="txt">资金沉淀项目公司+母公司现金仅 8.5 亿——偿债依赖子公司归集/再融资/股东借款</td><td class="txt"><a class="drill" href="#s7">健康检验</a></td></tr>
+        <tr><td>D3 母公司其他应收款占比</td><td class="txt"><span class="badge y">⚠️ 可解释偏差</span></td><td>208.7% vs 基准 50%</td><td class="txt">合并抵销后对子公司往来为主，房企项目公司制属正常架构；叠加 D1 构成 R6 的暗区证据</td><td class="txt"><a class="drill" href="#s2">排雷 R6</a></td></tr>
+      </table>
+      <div class="srcline">等式清单见 references/articulation.md；共核对 15 条（A 组 8 + B 组 2 + D 组 5；B2/B3 附注未披露合法跳过）：其余 10 条闭合——闭合项明细见 data.json <code>recon</code> 块 · A1 现金勾稽分毫不差：货币资金 590.49 - 受限 59.66 = 现金等价物 530.83 <span class="badge disc">披露</span></div>
+    </div>
+    <div class="card">
+      <div class="figtitle">四线考核：ROE -14.6% 远离一切达标线，无盈余管理动机痕迹——下期无需盯贴线，只需盯亏损是否收敛</div>
+      <table class="data">
+        <tr><th>检测线</th><th>读数</th><th>目标</th><th>距离</th><th class="txt">判定</th></tr>
+        <tr><td>保壳线</td><td>ROE -14.6% · 净利率 -21.3% <span class="badge der">推算</span></td><td>ROE 6.5%</td><td>-21.1pct</td><td class="txt"><span class="badge g">✅ 远离</span></td></tr>
+        <tr><td>再融资线</td><td>ROE -14.6% <span class="badge der">推算</span></td><td>ROE 10%</td><td>-24.6pct</td><td class="txt"><span class="badge g">✅ 远离</span></td></tr>
+        <tr><td>股权激励考核线</td><td>—</td><td>—</td><td>—</td><td class="txt"><span class="badge disc">—（无股权激励计划）</span></td></tr>
+        <tr><td>Q4 集中度</td><td>—</td><td>≤40%</td><td>—</td><td class="txt"><span class="badge disc">—（半年报无 Q4 透视）</span></td></tr>
+      </table>
+      <div class="srcline">数据来源：data.json derived.threshold_check（calc.py 复算）· 报告期内未实施股权激励/员工持股计划（L1082，仅下属业务项目跟投机制）</div>
+    </div>
+  </div>
+
+  <!-- ══ S3 因素分析 ══ -->
+  <div class="sect">
+    <div class="secthead" id="s3"><span class="no">03</span><span class="t">因素分析</span><span class="line"></span><span class="tag">收入 · 成本 · 净利润桥</span></div>
+    <p class="lede">本期利润变化的第一驱动是<b>开发结算毛利坍塌</b>（-49.3 亿）<span class="badge der">推算</span>：减值少提（+11.8 亿）与费用压降（+28.8 亿）给了对冲，但投资收益转亏（-28.1 亿）与所得税（-8.0 亿）把对冲吃了回去，归母净亏损同比再扩 30.0 亿。</p>
+    <div class="grid2">
+      <div class="card">
+        <div class="figtitle">收入 -351.5 亿全部来自开发结算萎缩（-357.4 亿、占缺口 102%）：物业 +13.7 亿是唯一稳定器——盯开发结算规模何时见底、物业能否补上第二梯队</div>
+        <table class="data bridge">
+          <tr><th>因素（分部桥：无量价数据，按报告分组轴降级）</th><th>贡献额（亿元）</th><th>占比</th></tr>
+          <tr><td>基期收入（2025H1）</td><td>1,053.23 <span class="badge disc">披露</span></td><td>—</td></tr>
+          <tr><td>房地产开发及相关资产经营（结算口径）</td><td class="dn">-357.39</td><td>102%</td></tr>
+          <tr><td>其中：房地产销售（狭义）</td><td class="dn">-339.86</td><td>—</td></tr>
+          <tr><td>物业服务（+8.0%）</td><td class="up">+13.69</td><td>抵补 4%</td></tr>
+          <tr><td>其他业务（养殖等）</td><td class="dn">-7.84</td><td>2%</td></tr>
+          <tr class="total"><td>本期收入（2026H1）</td><td>701.69 <span class="badge disc">披露</span></td><td>—</td></tr>
+        </table>
+        <div class="takeaway">读法：开发业务结算收入 486.97 亿（-42.3%）——本期结的多是 2021-2022 年高价地项目，售价与成本倒挂，结算毛利率仅 5.1%；物业收入 184.59 亿已占 26.3% 且毛利率 12.7% 为各板块最高，「去开发化」在进行中。</div>
+        <div class="srcline">数据来源：营业收入附注 L7714-L7736（分部桥三项之和=-351.54 亿=Δ收入，calc.py 校验）；结算口径非当年销售（当年销售 358 亿尚未结转）</div>
+      </div>
+      <div class="card">
+        <div class="figtitle">净利桥：毛利 -49.3 亿是第一驱动（占净变动 164%）；少数股东转为分担亏损 +21.5 亿是最大单项对冲——盯毛利率而非费用，费用已连续 8 季度压降</div>
+        <table class="data bridge">
+          <tr><th>环节</th><th>本期</th><th>上期</th><th>贡献额</th><th class="txt">备注</th></tr>
+          <tr><td>毛利</td><td>55.69</td><td>104.99</td><td class="dn">-49.30</td><td class="txt">结算毛利率 5.1%（-2.6pct）<span class="badge der">推算</span></td></tr>
+          <tr><td>税金及附加</td><td>18.42</td><td>35.61</td><td class="up">+17.20</td><td class="txt">随结算收入下降 <span class="badge disc">披露</span></td></tr>
+          <tr><td>期间费用合计</td><td>85.17</td><td>96.81</td><td class="up">+11.64</td><td class="txt">销售-14.2/管理-3.7/研发-0.02；财务费用 +6.3 唯一恶化 <span class="badge disc">披露</span></td></tr>
+          <tr><td>减值损失</td><td>-42.63</td><td>-54.47</td><td class="up">+11.84</td><td class="txt">存货跌价 39.4+信用减值 3.3（少提非转回）<span class="badge disc">披露</span></td></tr>
+          <tr><td>投资/公允</td><td>-34.49</td><td>-6.41</td><td class="dn">-28.08</td><td class="txt">联营/合营权益法亏损 -31.7 <span class="badge disc">披露</span></td></tr>
+          <tr><td>非经（含资产处置）</td><td>-9.89</td><td>-3.06</td><td class="dn">-6.82</td><td class="txt">营业外支出含滞纳金 12.1 亿 <span class="badge disc">披露</span></td></tr>
+          <tr><td>所得税</td><td>25.31</td><td>17.27</td><td class="dn">-8.05</td><td class="txt">应税子公司盈利与递延税影响 <span class="badge disc">披露</span></td></tr>
+          <tr><td>少数股东损益</td><td>-10.70</td><td>10.82</td><td class="up">+21.52</td><td class="txt">少数股东转为分担亏损 <span class="badge disc">披露</span></td></tr>
+          <tr class="total"><td>归母净利润</td><td>-149.51</td><td>-119.47</td><td class="dn">-30.05</td><td class="txt">第一驱动：毛利</td></tr>
+        </table>
+        <div class="srcline">正贡献记 + / 负贡献记 − · 单位：亿元 <span class="badge der">推算</span> · 八项之和=-30.05 亿=Δ归母（calc.py 校验）· 数据来源：合并利润表、Tushare 交叉核对</div>
+      </div>
+    </div>
+    <div class="grid2">
+      <div class="fig">
+        <div class="figtitle">OCF +4.95 亿转正：存货去化 +279.6 亿与应付压降 -327.4 亿对撞出来的止血——释放项都是收缩动作，盯存货去化放缓后 OCF 是否重回负值</div>
+        <div class="brends">净利润 -160.21 亿 →（调节净额 +165.16 亿）→ 经营现金流净额 +4.95 亿</div>
+        <svg id="ocfbridge" viewBox="0 0 460 240" preserveAspectRatio="xMidYMid meet"></svg>
+        <div class="srcline">OCF（经营活动现金流量净额）调节桥 · 营运资本净释放 66.8 亿（占净利润 42%）· 主吞噬项=经营性应付减少 327.4 亿（偿还上游欠款）· 数据来源：现金流量表补充资料 · calc.py bridge.ocf 已校验</div>
+      </div>
+      <div class="card">
+        <div class="figtitle">亏损构成解剖：开发经营分部亏 64.4 亿是最大出血点，物业分部仍赚 10.8 亿——减值与投资损失合计 76.0 亿占归母亏损一半</div>
+        <table class="data">
+          <tr><th>构成</th><th>金额（亿元）</th><th class="txt">判读</th></tr>
+          <tr><td>开发经营分部亏损 <span class="badge disc">披露</span></td><td class="dn">-64.39</td><td class="txt">结算毛利倒挂，最大出血点</td></tr>
+          <tr><td>未分配项目（总部/财务投资等）<span class="badge disc">披露</span></td><td class="dn">-37.19</td><td class="txt">含权益法投资亏损主体</td></tr>
+          <tr><td>存货跌价+信用减值 <span class="badge disc">披露</span></td><td class="dn">-42.63</td><td class="txt">占归母亏损 29%，难言出清</td></tr>
+          <tr><td>物业管理分部利润 <span class="badge disc">披露</span></td><td class="up">+10.78</td><td class="txt">唯一盈利分部</td></tr>
+          <tr><td>抵销及其他 <span class="badge der">推算</span></td><td>-15.77</td><td class="txt">分部亏损-90.5+投资-33.4+公允-1.1+处置-0.1+税及少数股东还原</td></tr>
+          <tr class="total"><td>归母净亏损</td><td class="dn">-149.51</td><td class="txt">五期连亏且逐期扩大</td></tr>
+        </table>
+        <div class="takeaway">读法：若减值节奏（本期 42.6 亿）回到「每期二三十亿」的常态，且开发结算毛利率维持在 5% 上下，下半年亏损收窄有限——扭亏的第一变量不是费用，是结算项目的地价成本出清进度。</div>
+        <div class="srcline">数据来源：分部信息附注 L9876-L9909、减值附注 L7886-L7900；抵销行为倒挤值 <span class="badge der">推算</span> · 半年报无 Q4 透视（Q4 检验仅年报执行）</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ S4 文字部分分析 ══ -->
+  <div class="sect">
+    <div class="secthead" id="s4"><span class="no">04</span><span class="t">管理层在说什么</span><span class="line"></span><span class="tag">管理层讨论与分析（MD&amp;A） · 措辞 · 赛道重合度</span></div>
+    <div class="grid2">
+      <div class="card">
+        <div class="figtitle">叙事主线两条都有数字支撑：化险进展（债券/借款/成本）逐项可验，经营基本盘（交付/销售/经营服务）如实披露收缩</div>
+        <ul class="flaglist">
+          <li><span><span class="dot g"></span></span><div class="body"><b>化险主线</b>：10 只债 181 亿缓释、累计 485 亿到期公开债完成处置、新增融资 40.8 亿、融资成本 2.86%、深铁借款 45.2 亿——全部有公告或报表科目可验。<span class="src">出处：MD&amp;A L230-L235；附注(五)32；关联交易节 L1419-L1422 <span class="badge disc">披露</span></span></div></li>
+          <li><span><span class="dot g"></span></span><div class="body"><b>经营主线</b>：交付 2.3 万套、销售 358 亿（-48.2% 如实披露）、经营服务全口径 288.5 亿（+1.6%）、管理费用 -13%——收缩数据没有美化。<span class="src">出处：MD&amp;A L223-L228、L356、L413 <span class="badge disc">披露</span></span></div></li>
+          <li><span><span class="dot y"></span></span><div class="body"><b>钱的流向</b>：宣称「聚焦重点城市、退出非主业」，但新增土储仅 27.1 亿权益地价（8 个项目）、开复工完成年初计划 31.5%——资源聚焦是被动缩表下的说法，投入证据 supporting「收缩」多于「聚焦」。<span class="src">出处：MD&amp;A L430-L439 <span class="badge disc">披露</span></span></div></li>
+        </ul>
+      </div>
+      <div class="card">
+        <div class="figtitle">措辞：乐观词与最高强度风险句同段并置——「十分严峻、化险任务仍然艰巨」与「阶段性进展」只隔两句；风险提示章节仅一句「与上年末无重大差异」</div>
+        <ul class="flaglist">
+          <li><span><span class="dot y"></span></span><div class="body">乐观侧词群：「阶段性进展」「边际修复迹象」「稳中有进」「平稳有序」；风险侧最高强度句：「当前经营形势依然十分严峻，化险任务仍然艰巨」（L235）——语气档位词表四档中属强档风险表述。<span class="src">出处：MD&amp;A L220-L235 <span class="badge disc">披露</span></span></div></li>
+          <li><span><span class="dot y"></span></span><div class="body">风险提示章节（L1005-L1007）仅一句「与上年末无重大差异」，整体引用 2025 年报——在化险关键期选择不重述风险清单，「省墨」本身是信息：管理层认为风险结构无新增量，或无暇重写。<span class="src">出处：第三节七、公司面临的风险 L1005-L1007 <span class="badge disc">披露</span></span></div></li>
+          <li><span><span class="dot g"></span></span><div class="body">治理面：董事会换届完成（徐恩利任董事长）、深铁 27.18% 持股不变、零质押；无实控人状态无新变化表述。<span class="src">出处：L2350、L2409-L2449、期后 7-31 股东会 <span class="badge disc">披露</span></span></div></li>
+        </ul>
+      </div>
+    </div>
+    <div class="card">
+      <div class="figtitle">赛道重合度：长租公寓/物流冷链/AIoT 物业/城市更新均有收入或规模证据——既有业务自然延伸，非蹭热点</div>
+      <table class="data">
+        <tr><th>宣称方向</th><th class="txt">对应热门概念</th><th class="txt">资本开支</th><th class="txt">产能/订单</th><th class="txt">收入贡献</th><th class="txt">判定</th></tr>
+        <tr><td>租赁住房（泊寓）</td><td class="txt">租购并举/保租房 REITs</td><td class="txt">未单列</td><td class="txt">22 万间在营、开业 17.4 万间</td><td class="txt">收入 14.6 亿、出租率 94.3%</td><td class="txt"><span class="badge g">真布局</span></td></tr>
+        <tr><td>物流仓储（万纬）</td><td class="txt">冷链/高标库</td><td class="txt">在建工程主体为物流冷库 6.6 亿</td><td class="txt">149 个项目、可租 1,053 万㎡</td><td class="txt">收入 21.9 亿（+6.9%），冷链 +23.6%</td><td class="txt"><span class="badge g">真布局</span></td></tr>
+        <tr><td>物业服务+AIoT（万物云）</td><td class="txt">AI+物业/智慧城市</td><td class="txt">—</td><td class="txt">蝶城底盘 708 个</td><td class="txt">收入 191.9 亿（+5.6%）</td><td class="txt"><span class="badge g">真布局</span></td></tr>
+        <tr><td>代建（城市聚焦）</td><td class="txt">城市更新/代建</td><td class="txt">—</td><td class="txt">在管 79 个/1,360 万㎡</td><td class="txt">未单列收入</td><td class="txt"><span class="badge y">观察</span></td></tr>
+      </table>
+      <div class="srcline">判定规则：text-mining.md 四问（资本开支/产能订单/研发/收入贡献）；重点数字行业坐标：万物云收入 191.9 亿在上市物企中属第一梯队（克而瑞口径 50 家上市物企 2025 在管合计 75.1 亿㎡）· 泊寓 17.4 万间在集中式长租公寓中居前</div>
+    </div>
+    <div class="card">
+      <div class="figtitle">断言验证：7 条——4 通过、3 无法验证、0 不成立；无法验证项均为「台账级」数据缺口，非数字矛盾</div>
+      <table class="data">
+        <tr><th>管理层断言</th><th class="txt">数据检验</th><th class="txt">三态</th><th class="txt">出处</th></tr>
+        <tr><td>亏损三因：结算下降+新增减值+经营性业务及投资亏损</td><td class="txt">收入 -33.4%、存货跌价 39.4 亿、投资亏损 33.4 亿——三因全部落数</td><td class="txt"><span class="badge g">✅ 通过</span></td><td class="txt">L347-L349</td></tr>
+        <tr><td>10 只公开债 181 亿完成缓释、累计 485 亿完成处置</td><td class="txt">附注列示 7 只展期安排+期后 3 只再执行；债券余额 293.6→238.0 亿</td><td class="txt"><span class="badge g">✅ 通过</span></td><td class="txt">L233-L235/附注(五)32</td></tr>
+        <tr><td>管理费用同比下降 13%（连续 8 季度下降）</td><td class="txt">25.0 亿 vs 28.7 亿=-12.9%，与宣称一致；「连续 8 季度」需季度序列，无法验证</td><td class="txt"><span class="badge g">✅ 通过</span></td><td class="txt">L228/L3177-L3178</td></tr>
+        <tr><td>有息负债 3,512.6 亿、一年内 1,788.6 亿（占 50.9%）</td><td class="txt">1,788.6 亿按审阅口径逐项复算=1,788.61 亿，精确一致</td><td class="txt"><span class="badge g">✅ 通过</span></td><td class="txt">L697-L709/L2940-L2944</td></tr>
+        <tr><td>存量融资综合成本 2.86%（-17bp）</td><td class="txt">缺分笔借款利率台账；隐含利率年化 2.59% 旁证不矛盾</td><td class="txt"><span class="badge y">❓ 无法验证</span></td><td class="txt">L230/L722</td></tr>
+        <tr><td>集中交付期收房率接近 9 成</td><td class="txt">第三方交付数据不可得，仅公司单方表述</td><td class="txt"><span class="badge y">❓ 无法验证</span></td><td class="txt">L420</td></tr>
+        <tr><td>过去 8 个季度费用连续下降（可比口径）</td><td class="txt">需 2023Q1 以来单季费用序列，本报告未提供</td><td class="txt"><span class="badge y">❓ 无法验证</span></td><td class="txt">L228</td></tr>
+      </table>
+      <div class="srcline">判定规则：text-mining.md 第七节 · 0 条不成立=管理层归因与数字无矛盾，叙事的可信度高于一般化险期公司</div>
+    </div>
+    <div class="card">
+      <div class="figtitle">解释缺口：少数股东损益由 +10.8 亿转为 -10.7 亿（变动超 21 亿）未见专门归因——盯下期报告是否补披露少数股东分担机制</div>
+      <table class="data">
+        <tr><th>变动 &gt;30% 的科目</th><th>变动幅度</th><th class="txt">MD&amp;A 是否解释</th></tr>
+        <tr><td>投资收益 <span class="badge disc">披露</span></td><td>-488%（-5.7→-33.4 亿）</td><td class="txt">已归因：经营性业务及非主业财务投资亏损（L347-349）</td></tr>
+        <tr><td>营业外支出 <span class="badge disc">披露</span></td><td>+75.8%</td><td class="txt">已归因：滞纳金增加（L772）</td></tr>
+        <tr><td>少数股东损益 <span class="badge disc">披露</span></td><td>由 +10.8 转 -10.7 亿</td><td class="txt">未专门解释——恰是 R14 观察项的信息缺口</td></tr>
+        <tr class="total"><td>上期量化指引 vs 本期实际</td><td colspan="2" class="txt">上期无本技能 watchlist（首次覆盖）——本期建立五条触发线基线，下期回看</td></tr>
+      </table>
+      <div class="srcline">数字大动而文字不解释，本身就是信号（「该写而没写」的数字侧镜像）</div>
+    </div>
+  </div>
+
+  <!-- ══ S5 产能与在建工程 ══ -->
+  <div class="sect">
+    <div class="secthead" id="s5"><span class="no">05</span><span class="t">产能与在建工程</span><span class="line"></span><span class="tag">钱押在哪条线</span></div>
+    <div class="card">
+      <div class="figtitle">在建工程仅 9.5 亿且以物流冷库为主——万科真正的「产能」在存货里的 2,472 万㎡在建项目，钱押在保交付而非新增扩张</div>
+      <table class="data">
+        <tr><th>项目</th><th>预算（亿元）</th><th>累计投入</th><th>进度</th><th>预计转固时点</th><th class="txt">判定</th></tr>
+        <tr><td>物流冷库 <span class="badge disc">披露</span></td><td>未披露</td><td>6.64</td><td>—</td><td>—</td><td class="txt"><span class="badge g">✅ 正常推进</span></td></tr>
+        <tr><td>租入经营性物业 <span class="badge disc">披露</span></td><td>未披露</td><td>0.26</td><td>—</td><td>—</td><td class="txt"><span class="badge g">✅ 正常推进</span></td></tr>
+        <tr><td>其他 <span class="badge disc">披露</span></td><td>未披露</td><td>2.61</td><td>—</td><td>—</td><td class="txt"><span class="badge g">✅ 正常推进</span></td></tr>
+        <tr class="total"><td>本期转固合计 3.19 亿</td><td colspan="5" class="txt">在建余额 9.50 亿仅占总资产 0.1%——对开发商而言在建工程不是资金去向的度量，存货与拟开发产品才是</td></tr>
+      </table>
+      <div class="srcline">数据来源：在建工程附注 L6811-L6826 · 判定依据：本期转固 3.19 亿&gt;新增投入节奏正常，无长期挂账项目</div>
+    </div>
+    <div class="card">
+      <div class="figtitle">「产能」等价物读数：交付按计划推进但新开工完成率仅 31.5%——销售-48% 的去化压力下，收缩是主动也是被动</div>
+      <table class="data">
+        <tr><th>产品线</th><th>本期读数</th><th>同比/进度</th><th class="txt">判定</th></tr>
+        <tr><td>开发：销售金额（亿元）<span class="badge disc">披露</span></td><td>358.0</td><td>-48.2%</td><td class="txt"><span class="badge y">⚠️ 深度收缩</span></td></tr>
+        <tr><td>开发：交付（万套/88 个项目）<span class="badge disc">披露</span></td><td>2.3</td><td>按期保质完成</td><td class="txt"><span class="badge g">✅</span></td></tr>
+        <tr><td>开发：开复工完成率 <span class="badge disc">披露</span></td><td>96.5 万㎡</td><td>完成年初计划 31.5%</td><td class="txt"><span class="badge y">⚠️ 放缓</span></td></tr>
+        <tr><td>开发：新增土储（8 个项目）<span class="badge disc">披露</span></td><td>权益地价 27.1 亿</td><td>计容 75.0 万㎡</td><td class="txt"><span class="badge y">⚠️ 仅核心城市</span></td></tr>
+        <tr><td>物业：万物云收入（亿元）<span class="badge disc">披露</span></td><td>191.9</td><td>+5.6%</td><td class="txt"><span class="badge g">✅</span></td></tr>
+        <tr><td>租赁：泊寓出租率 <span class="badge disc">披露</span></td><td>94.3%</td><td>+1.0pct</td><td class="txt"><span class="badge g">✅</span></td></tr>
+      </table>
+      <div class="srcline">数据来源：MD&amp;A L223-L581、data.json notes.capacity · 在建项目储备 2,472 万㎡（权益 1,636.5 万㎡）+规划中 2,841.1 万㎡</div>
+    </div>
+    <p class="lede">结论：钱押在「保交付+存量盘活」——累计盘活优化及新增产能 155.8 亿，新增土储仅 27.1 亿权益地价，开复工完成年初计划 31.5%。这不是扩张周期的产能布局，而是化险周期的存量防守；真正决定中期资产质量的是 3,459.6 亿存货（其中已完工开发产品 1,068.4 亿）的去化与减值节奏。</p>
+  </div>
+
+  <!-- ══ S6 股东结构 ══ -->
+  <div class="sect">
+    <div class="secthead" id="s6"><span class="no">06</span><span class="t">股东结构</span><span class="line"></span><span class="tag">户数 · 前十大 · 增减持</span></div>
+    <div class="grid2">
+      <div class="fig">
+        <div class="figtitle">户数五连降、两个月降 8.5%：筹码在集中，但集中方向是地产指数基金而非产业资本——期后股价异动（9-22 异常波动公告）提示博弈加剧</div>
+        <svg id="holders" viewBox="0 0 460 280" preserveAspectRatio="xMidYMid meet"></svg>
+        <div class="srcline">数据来源：Tushare stk_holdernumber+半年报 L2340（万户）· 2026-06-30 为 46.64 万户、2026-07-31 已降至 45.81 万户</div>
+      </div>
+      <div class="card">
+        <div class="figtitle">股东变化：深铁 27.18% 零质押不动，指数资金与个人大户接盘「国家队」退出——高管零增减持</div>
+        <table class="data">
+          <tr><th>股东</th><th>持股比例</th><th>质押率</th><th class="txt">变动</th></tr>
+          <tr><td>深铁集团（第一大股东）<span class="badge disc">披露</span></td><td>27.18%</td><td>零质押</td><td class="txt">不变（借款支持 340.96 亿余额）</td></tr>
+          <tr><td>香港中央结算（深股通）<span class="badge disc">披露</span></td><td>1.23%</td><td>—</td><td class="txt"><span class="up">+1,243 万股</span></td></tr>
+          <tr><td>招商沪深 300 地产等权基金 <span class="badge disc">披露</span></td><td>0.87%</td><td>—</td><td class="txt"><span class="up">+5,379 万股（大幅增持）</span></td></tr>
+          <tr><td>徐小雅/吕强（自然人）<span class="badge disc">披露</span></td><td>0.26%/0.25%</td><td>—</td><td class="txt"><span class="up">新进前十（合计 6,022 万股）</span></td></tr>
+          <tr><td>中央汇金/证金/招商财富资管 <span class="badge disc">披露</span></td><td>退出前十</td><td>—</td><td class="txt"><span class="dn">2025H1 前十大本期退出</span></td></tr>
+          <tr><td>高管增减持（合计）<span class="badge disc">披露</span></td><td>0.063%</td><td>—</td><td class="txt">期内变动为 0（郁亮到龄退休辞任，持股 739 万股转限售）</td></tr>
+        </table>
+        <div class="srcline">数据来源：半年报 L2350-L2447（前十大/高管持股）· 质押率&gt;70% 才会徽章化进风险清单——本案第一大股东零质押，风险点在借款而非股权</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ S7 外部校验 ══ -->
+  <div class="sect">
+    <div class="secthead" id="s7"><span class="no">07</span><span class="t">外部校验</span><span class="line"></span><span class="tag">预期 · 同业 · 宏观 · 债务</span></div>
+    <div class="grid2">
+      <div class="card">
+        <div class="figtitle">机构预期：半年亏损 149.5 亿已达全年一致预期（-252.6 亿）的 59%——覆盖稀疏无「买入」级，最乐观的观点也只是「持有」</div>
+        <table class="data">
+          <tr><th>指标</th><th>实际</th><th>一致预期</th><th>偏离度</th></tr>
+          <tr><td>归母净利（亿元，2026H1 实际 vs 2026 全年预期）</td><td class="dn">-149.51</td><td>-252.62</td><td class="txt">H1 占全年 59%（半年 vs 全年口径，仅作节奏参照）<span class="badge est">估算</span></td></tr>
+          <tr><td>近期评级动向</td><td colspan="3" class="txt">国泰海通 中性（-197 亿）· 华泰 持有/目标价 7.33 元（-53 亿）· 长江 增持（-250 亿）· 大摩 减持 2.25 港元 · 高盛 沽售（H 股 3 港元/A 股 3.9 元）</td></tr>
+        </table>
+        <div class="srcline">数据来源：富途一致预期 3 家（2026-09-11 更新）/同花顺机构评级/东方财富研报摘录（子代理网页取数，2026-09-28）；覆盖极稀疏=市场对万科的定价已脱离盈利框架，转向化险进展定价</div>
+      </div>
+      <div class="card">
+        <div class="figtitle">同业坐标：同业 ROE 中位数仍微正（+0.8%），万科的亏损失全部来自净利率——盯结算毛利率与同业收敛的节奏，而非杠杆结构</div>
+        <table class="data">
+          <tr><th>公司</th><th>毛利率</th><th>资产负债率</th><th>净利率</th><th>周转率</th><th>权益乘数</th><th>ROE</th></tr>
+          <tr><td><b>万科A</b> <span class="badge der">推算</span></td><td>7.9%</td><td>77.5%</td><td class="dn">-21.3%</td><td>0.071</td><td>9.39</td><td class="dn">-14.6%</td></tr>
+          <tr><td>保利发展 <span class="badge disc">披露</span></td><td>13.0%</td><td>71.8%</td><td>3.1%</td><td>0.087</td><td>3.55</td><td>1.0%</td></tr>
+          <tr><td>招商蛇口 <span class="badge disc">披露</span></td><td>13.3%</td><td>67.4%</td><td>1.4%</td><td>0.066</td><td>3.07</td><td>0.5%</td></tr>
+          <tr><td>金地集团 <span class="badge disc">披露</span></td><td>16.9%</td><td>64.2%</td><td class="dn">-27.0%</td><td>0.055</td><td>2.79</td><td class="dn">-6.2%</td></tr>
+          <tr><td>滨江集团 <span class="badge disc">披露</span></td><td>12.0%</td><td>72.4%</td><td>7.5%</td><td>0.160</td><td>3.62</td><td>5.1%</td></tr>
+          <tr class="total"><td>本公司 vs 中位数</td><td class="dn">-4.3pct</td><td class="dn">+5.5pct</td><td class="dn">-22.1pct</td><td class="dn">-0.006</td><td class="dn">+6.09</td><td class="dn">-15.4pct</td></tr>
+        </table>
+        <div class="takeaway">读法：万科权益乘数 9.39 倍远超同业（中位 3.3 倍）——但这是「分母塌了」（归母净资产一年缩水 47%）而非「分子扩了」，与 <a href="#s1">杜邦杠杆拆解</a> 交叉一致；行业共性是净利率中位仅 1.4%——开发商集体在盈亏平衡线上。</div>
+        <div class="srcline">数据来源：data.json peers 块（东方财富批量取数 2026-09-28，2026H1 同报告期）· 同业权益乘数=1/(1-资产负债率) 推算 <span class="badge der">推算</span>；万科周转率为杜邦口径（半年非年化），与同业同口径可比</div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="figtitle">健康检验：两项❌（短债覆盖、全口径偿债）两项⚠️（双模型、压力情景）置顶——流动性是唯一的真问题，且是存量债务问题不是经营情景问题</div>
+      <table class="data">
+        <tr><th>检验项</th><th>读数</th><th class="txt">判定</th><th class="txt">结论</th></tr>
+        <tr><td>短债覆盖倍数</td><td>0.33 倍 <span class="badge der">推算</span></td><td class="txt"><span class="badge r">❌ 异常</span></td><td class="txt">(货币资金+OCF)÷短期有息负债——缺口刚性</td></tr>
+        <tr><td>现金流偿债口径（X6）</td><td>0.0006（≈1,545 年）<span class="badge der">推算</span></td><td class="txt"><span class="badge r">❌ 异常</span></td><td class="txt">OCF÷平均总负债——靠经营还清负债不现实</td></tr>
+        <tr><td>破产风险双模型 <span class="badge der">推算</span></td><td>Altman Z=0.37（危险）· Ohlson P=0.41（中）</td><td class="txt"><span class="badge y">⚠️ 注意</span></td><td class="txt">地产适用性受限仅参考；与审阅报告持续经营段落同向</td></tr>
+        <tr><td>流动性压力情景 <span class="badge est">估算</span></td><td>收入-10/20/30% → 净利 -130.0/-125.1/-120.1 亿</td><td class="txt"><span class="badge y">⚠️ 注意</span></td><td class="txt">已深亏，收入再降 30% 仅多亏 10 亿——失血主体是存量债务</td></tr>
+        <tr><td>收入增速 vs 净利增速</td><td>-33.4% vs -25.2%（亏损扩大）<span class="badge disc">披露</span></td><td class="txt"><span class="badge y">⚠️ 注意</span></td><td class="txt">双降非剪刀差：收入结算萎缩+亏损扩大同向</td></tr>
+        <tr><td>增量费用效率（Δ毛利÷Δ期间费用）</td><td>4.24 <span class="badge der">推算</span></td><td class="txt"><span class="badge y">⚠️ 注意</span></td><td class="txt">Δ毛利与Δ费用同负，收缩期失真；费用压降已近极限</td></tr>
+        <tr><td>销售费用获客效率（Δ收入÷Δ销售费用）</td><td>24.71 <span class="badge der">推算</span></td><td class="txt">—（披露项）</td><td class="txt">收缩期无判读意义</td></tr>
+        <tr><td>研发费用（费率/资本化率）</td><td>2.13 亿（0.30% / 未资本化）<span class="badge disc">披露</span></td><td class="txt">—（披露项）</td><td class="txt">房企研发费率无同业对比意义</td></tr>
+        <tr><td>大宗/税率/汇率敏感性</td><td>—</td><td class="txt">—（披露项）</td><td class="txt">亏损期仍有所得税费用 25.3 亿（应税子公司盈利）；营业外滞纳金增加指向税费现金压力；美元债 23.95 亿美元存续</td></tr>
+      </table>
+      <div class="srcline">费用 ROI 规则：frameworks.md 第七节 · 判定列规则：✅ 过 / ⚠️ 注意 / ❌ 异常 / — 披露项 · 双模型对地产适用性受限（高杠杆行业常态），结论以审阅报告强调事项段+短债覆盖+期后展期执行为准</div>
+    </div>
+    <div class="card">
+      <div class="figtitle">期后健康：债券展期模式期后延续执行（✅3），深铁输血不停（✅1）；但司法压力与表外担保在累积（⚠️3）</div>
+      <table class="data">
+        <tr><th>日期</th><th class="txt">事件</th><th class="txt">判定</th><th class="txt">验证了什么</th></tr>
+        <tr><td>2026-07-07/24/26 <span class="badge disc">披露</span></td><td class="txt">MTN004、H3 万科 01、H1 万科 06 三只公开债：40% 兑付+60% 展期 1 年</td><td class="txt"><span class="badge g">✅</span></td><td class="txt">半年报展期口径的期后延续性</td></tr>
+        <tr><td>2026-07 <span class="badge disc">披露</span></td><td class="txt">深铁新增借款 9.27 亿（年内累计约 40 亿）</td><td class="txt"><span class="badge g">✅</span></td><td class="txt">大股东输血的持续承诺</td></tr>
+        <tr><td>2026-07-31 <span class="badge disc">披露</span></td><td class="txt">董事会换届完成（徐恩利任董事长）</td><td class="txt"><span class="badge g">✅</span></td><td class="txt">治理结构期后稳定</td></tr>
+        <tr><td>2026-08-28 <span class="badge disc">披露</span></td><td class="txt">累计诉讼仲裁公告：3-7 月新增未结案涉案 120.41 亿（占经审计净资产 10.30%）</td><td class="txt"><span class="badge y">⚠️</span></td><td class="txt">资金压力的司法维度在累积（多为施工/合作方纠纷）</td></tr>
+        <tr><td>2026-09-22 <span class="badge disc">披露</span></td><td class="txt">A 股股价异常波动公告（重申短债缺口 1,788.6 亿）</td><td class="txt"><span class="badge y">⚠️</span></td><td class="txt">二级市场流动性预期波动加剧</td></tr>
+        <tr><td>2026-09-24 <span class="badge disc">披露</span></td><td class="txt">担保进展公告：担保余额 936.36 亿=归母净资产 80.10%</td><td class="txt"><span class="badge y">⚠️</span></td><td class="txt">表外或有负债敞口（无逾期担保）</td></tr>
+      </table>
+      <div class="srcline">数据来源：mx_finance_search_notice 期后公告时间线（2026-06-30→2026-09-28，已检查无遗漏重大类别）· 2026 年 12 月 15/28 日 MTN004/005 余 60%（合计约 34 亿）为下一兑付节点</div>
+    </div>
+  </div>
+
+  <!-- ══ S8 下期跟踪清单 ══ -->
+  <div class="sect">
+    <div class="secthead" id="s8"><span class="no">08</span><span class="t">下期跟踪清单</span><span class="line"></span><span class="tag">先行指标仪表盘 · 下份报告之前可观察</span></div>
+    <p class="lede">下一期最先看<b>12 月两只中票（中期票据）的兑付</b>（合计约 34 亿余量）——它是「部分兑付+展期」模式能否继续复制的最近压力测试；报表内最先看<b>合同负债降幅</b>，它最早暴露 2027 年结算收入的底。</p>
+    <div class="grid2">
+      <div class="card">
+        <div class="figtitle">短期有息负债覆盖倍数</div>
+        <div class="wv">0.33 倍 <span class="badge der">推算</span></div>
+        <div class="wb">&gt; 1.0 回到 1 倍以上=自身现金+造血可覆盖到期债务，脱离续命模式 / 连续两期 &lt;1 且深铁借款增速放缓=流动性依赖展期的状态固化（触发线：若连续两期低于 1 且深铁借款余额增速放缓，则自主化债窗口关闭）</div>
+        <div class="srcline">数据来源：定期报告资产负债表+现金流量表；阈值依据=信号 #11 判定线（calc.py 复算）</div>
+      </div>
+      <div class="card">
+        <div class="figtitle">合同负债（收入蓄水池）</div>
+        <div class="wv">775.53 亿，较年初 -16.7% <span class="badge disc">披露</span></div>
+        <div class="wb">&gt; 降幅 -5%：新预售与结转重新平衡，去化企稳 / &lt; 降幅 -20%：需求走弱确认，结算收入下台阶（触发线：若连续两期降幅超 20%，则未来 12 个月结算收入继续萎缩成立）</div>
+        <div class="srcline">数据来源：定期报告资产负债表「合同负债」（L3042）；月度销售公告可先行观察</div>
+      </div>
+      <div class="card">
+        <div class="figtitle">存货跌价准备计提节奏</div>
+        <div class="wv">本期计提 39.4 亿 <span class="badge disc">披露</span></div>
+        <div class="wb">&lt; 20 亿/期：价格假设趋于企稳 / &gt; 40 亿/期连续两期：房价假设继续系统性下修，减值远未出清（触发线：若单期计提连续两期超 40 亿，则资产减值出清未完成）</div>
+        <div class="srcline">数据来源：存货附注跌价准备 roll-forward（L5663-L5671）；阈值依据=近两期实际计提区间 39-51 亿</div>
+      </div>
+      <div class="card">
+        <div class="figtitle">公开债兑付/展期执行</div>
+        <div class="wv">10 只 181 亿已缓释 <span class="badge disc">披露</span></div>
+        <div class="wb">下一节点：2026-12-15 MTN004 余 60%（约 12 亿）、12-28 MTN005 余 60%（约 22.2 亿）· 触发线：若任一期公开债未在到期后 30 日内完成兑付或展期，则「部分兑付+展期」模式破裂，流动性风险升级为实质违约状态</div>
+        <div class="srcline">数据来源：债券持有人会议决议公告/兑付公告（mx_finance_search_notice，早于定期报告）</div>
+      </div>
+      <div class="card">
+        <div class="figtitle">全口径销售金额</div>
+        <div class="wv">358.0 亿，同比 -48.2% <span class="badge disc">披露</span></div>
+        <div class="wb">&gt; 降幅 -30%：去化企稳信号 / &lt; 降幅 -50%：经营性现金流回正不可持续（触发线：若全年降幅扩大至 50% 以上，则新增预收无法接续、OCF 转正逆转）</div>
+        <div class="srcline">数据来源：月度经营公告（每月上旬披露，先于报表）；阈值依据=2026H1 实际降幅与 2025 年全年-26% 的落差</div>
+      </div>
+    </div>
+    <div class="srcline">watchlist 已写入 data.json（同目录同名 .json）——下期回看直接读该 JSON 块，tripwire 原文冻结不回改 · 五条触发线均为 if-then 可证伪形态，阈值依据见各卡</div>
+  </div>
+
+  <!-- ══ 页脚 ══ -->
+  <div class="foot">
+    <span>万科A（000002.SZ）2026H1 半年报分析 · 生成于 2026-09-28</span>
+    <span>数据：公司报告原文（双源核对：Tushare / 东方财富）· 本报告仅为信息分析，不构成投资建议</span>
+  </div>
+</div>
+
+<script>
+/* ── 内联绘图助手 ── */
+const NS='http://www.w3.org/2000/svg';
+const css=getComputedStyle(document.documentElement),v=n=>css.getPropertyValue(n).trim();
+const INK=v('--ink'),MUT=v('--muted'),GRID=v('--grid'),FAINT=v('--faint');
+const C1=v('--data'),C2=v('--faintdata'),GOOD=v('--good'),BAD=v('--bad');
+const HALO={'paint-order':'stroke',stroke:'#fff','stroke-width':2.5};
+const labelY=(py,barTop)=>(py>barTop-10&&py<barTop+13)?py+16:py-8;
+const el=(p,t,a)=>{const n=document.createElementNS(NS,t);for(const k in a)n.setAttribute(k,a[k]);p.appendChild(n);return n};
+const txt=(p,a,s)=>{const n=el(p,'text',a);n.textContent=s;return n};
+const tip=(n,s)=>{const t=document.createElementNS(NS,'title');t.textContent=s;n.appendChild(t)};
+
+function capsule(p,x,y,w,h,r,fill,dir,cls){
+  if(h<=0)return el(p,'rect',{x:x,y:y,width:w,height:0,fill:'none'});
+  const rr=Math.min(r,w/2,h/2);
+  const d=dir==='down'
+    ?`M${x},${y} V${y+h-rr} Q${x},${y+h} ${x+rr},${y+h} H${x+w-rr} Q${x+w},${y+h} ${x+w},${y+h-rr} V${y} Z`
+    :`M${x},${y+h} V${y+rr} Q${x},${y} ${x+rr},${y} H${x+w-rr} Q${x+w},${y} ${x+w},${y+rr} V${y+h} Z`;
+  return el(p,'path',{d:d,fill:fill,class:cls});
+}
+function niceStep(raw){const p=Math.pow(10,Math.floor(Math.log10(raw)));const n=raw/p;return (n<=1?1:n<=2?2:n<=5?5:10)*p;}
+
+/* ════ DATA ════ */
+const TREND={labels:['2022H1','2023H1','2024H1','2025H1','2026H1'],
+  rev:[2069.16,2008.93,1427.79,1053.23,701.69],
+  np:[122.23,98.70,-98.53,-119.47,-149.51],
+  np_dt:[null,null,null,-115.91,-138.40],
+  roe:[0.0522,0.0396,-0.0408,-0.0624,-0.1463],
+  gm:[20.46,18.87,8.12,9.97,7.94]};
+const SPARK={gm:[0.2046,0.1887,0.0812,0.0997,0.0794],
+  nm:[0.0591,0.0491,-0.069,-0.1134,-0.2131],
+  da:[0.7916,0.7609,0.7294,0.7311,0.7751],
+  dio:[2327.28,1952.84,1839.16,1889.06,2033.20],
+  dso:[9.94,15.09,21.53,30.19,53.54],
+  c2s:[0.6825],
+  ccc:[1626.27,1354.18,1283.46,1349.05,1389.12],
+  dol:[0.5216],
+  dfl:[1.0092,1.1162,0.7264,0.6246,0.6989]};
+function spark(id,vals,color){
+  const s=document.getElementById(id);
+  if(!s||!vals||vals.length<2)return;
+  const W=64,H=16,P=2.5;
+  const lo=Math.min(...vals),hi=Math.max(...vals),span=(hi-lo)||1;
+  const x=i=>P+(W-2*P)*i/(vals.length-1);
+  const y=v=>H-P-(H-2*P)*(v-lo)/span;
+  el(s,'polyline',{points:vals.map((v,i)=>x(i)+','+y(v)).join(' '),fill:'none',
+    stroke:color,'stroke-width':1.6,'stroke-linejoin':'round','stroke-linecap':'round'});
+  el(s,'circle',{cx:x(vals.length-1),cy:y(vals[vals.length-1]),r:1.9,fill:color});
+}
+const OCF_BRIDGE=[['净利润',-160.2125],['折旧摊销',45.1054],['减值',42.6298],['Δ应收',39.3991],['Δ存货',279.5609],['Δ应付',-327.3706],['其他',85.8356]];
+const OCF_END=4.9477;
+const HOLDERS={labels:['2026-02','2026-03','2026-06中','2026-06','2026-07'],num:[49.80,48.99,48.99,46.64,45.81],px:[]};
+const DUPONT_STACK={steps:[['净利率',-5.28],['周转率',1.86],['杠杆',-4.77]],gap:-0.2};
+
+function combo(id,labels,barA,barB,line,lineName,aName,bName){
+  const s=document.getElementById(id);if(!s||!labels.length)return;
+  barB=barB||[];line=line||[];
+  const W=+s.viewBox.baseVal.width,H=+s.viewBox.baseVal.height,L=54,R=54,B=44,T=30;
+  const max=Math.max(...barA,...barB)*1.15||1;
+  const lspan=line.length?Math.max(...line)-Math.min(...line)||1:1;
+  const lmax=line.length?Math.max(...line)+lspan*.5:1,lmin=line.length?Math.min(...line)-lspan*.5:0;
+  const bw=(W-L-R)/labels.length;
+  const step=niceStep(max/4);
+  for(let v=step;v<max;v+=step){
+    const gy=T+(H-B-T)*(1-v/max);
+    el(s,'line',{x1:L,y1:gy,x2:W-R,y2:gy,stroke:FAINT,'stroke-width':.7,'stroke-dasharray':'3 3'});
+    txt(s,{x:L-8,y:gy+3,'font-size':8.5,'font-weight':600,fill:MUT,'text-anchor':'end'},Math.round(v));
+  }
+  labels.forEach((lb,i)=>{
+    const w=bw*.24;
+    const x=barB.length?L+i*bw+bw*.18:L+i*bw+(bw-w)/2;
+    const ha=(H-B-T)*barA[i]/max;
+    const r1=capsule(s,x,H-B-ha,w,ha,w/2,C1);
+    tip(r1,`${lb} ${aName}：${barA[i]}`);
+    if(barB.length){
+      const hb=(H-B-T)*barB[i]/max;
+      const r2=capsule(s,x+w+3,H-B-hb,w,hb,w/2,C2);
+      tip(r2,`${lb} ${bName}：${barB[i]}`);
+    }
+    const tx=barB.length?x+w:x+w/2;
+    txt(s,{x:tx,y:H-B-ha-6,'font-size':10,'font-weight':800,fill:INK,'text-anchor':'middle'},barA[i]);
+    txt(s,{x:L+i*bw+bw/2,y:H-B+18,'font-size':10,'font-weight':600,fill:MUT,'text-anchor':'middle'},lb);
+  });
+  el(s,'line',{x1:L,y1:H-B,x2:W-R,y2:H-B,stroke:GRID,'stroke-width':1});
+  if(line.length){
+    const lT=T+18,lB=H-B-16;
+    const pts=line.map((v,i)=>{
+      const x=L+i*bw+bw/2,y=lT+(lB-lT)*(1-(v-lmin)/(lmax-lmin||1));
+      return [x,y];
+    });
+    el(s,'path',{d:'M'+pts.map(p=>p.join(' ')).join(' L '),fill:'none',stroke:INK,'stroke-width':1.8});
+    pts.forEach((p,i)=>{
+      const c=el(s,'circle',{cx:p[0],cy:p[1],r:3,fill:INK,stroke:'#fff','stroke-width':1.5});
+      tip(c,`${labels[i]} ${lineName}：${line[i]}%`);
+      const barTop=H-B-(H-B-T)*barA[i]/max;
+      const ly=labelY(p[1],barTop);
+      txt(s,{x:p[0],y:ly,'font-size':9,'font-weight':700,fill:MUT,'text-anchor':'middle',...HALO},line[i]+'%');
+    });
+  }
+  const lg=[[aName,C1],barB.length?[bName,C2]:null,line.length?[lineName,INK]:null].filter(Boolean);
+  lg.forEach(([n,c],i)=>{
+    el(s,'rect',{x:L+i*130,y:8,width:10,height:10,fill:c,rx:2});
+    txt(s,{x:L+i*130+15,y:17,'font-size':10,'font-weight':600,fill:MUT},n);
+  });
+}
+
+/* 趋势双面板：支持负值柱（零轴居中，负值柱向下+圆下端） */
+function trendDual(id,labels,rev,np,gm,np_dt,roe){
+  const s=document.getElementById(id);if(!s||!labels.length)return;
+  const W=+s.viewBox.baseVal.width,H=+s.viewBox.baseVal.height,B=44,T=52;
+  const L=54,R=16,GAP=52;
+  const pw=(W-L-R-GAP)/2;
+  const x2=L+pw+GAP,n=labels.length;
+  np_dt=np_dt||[];roe=roe||[];
+  const has_dt=np_dt.some(v=>v!=null);
+  const drawPanel=(px0,vals,color,vals2,color2)=>{
+    const has2=!!vals2&&vals2.some(v=>v!=null);
+    const pool=has2?vals.concat(vals2.filter(v=>v!=null)):vals;
+    const hi=Math.max(0,...pool)*1.15||1, lo=Math.min(0,...pool)*1.15;
+    const span=hi-lo, y0=H-B-(H-B-T)*(0-lo)/span;
+    const step=niceStep(span/5);
+    for(let gv=Math.ceil(lo/step)*step;gv<hi;gv+=step){
+      const gy=T+(H-B-T)*(1-(gv-lo)/span);
+      el(s,'line',{x1:px0,y1:gy,x2:px0+pw,y2:gy,stroke:FAINT,'stroke-width':.7,'stroke-dasharray':'3 3'});
+      txt(s,{x:px0-8,y:gy+3,'font-size':8.5,'font-weight':600,fill:MUT,'text-anchor':'end'},Math.round(gv));
+    }
+    el(s,'line',{x1:px0,y1:y0,x2:px0+pw,y2:y0,stroke:GRID,'stroke-width':1});
+    const bw=pw/n;
+    vals.forEach((v,i)=>{
+      const w=has2?bw*.24:bw*.4;
+      const x=has2?px0+i*bw+bw*.18:px0+i*bw+(bw-w)/2;
+      const yv=T+(H-B-T)*(1-(v-lo)/span);
+      const top=Math.min(yv,y0),hh=Math.abs(yv-y0);
+      const r=capsule(s,x,top,w,hh,w/2,color,v<0?'down':undefined);
+      tip(r,`${labels[i]}：${v}`);
+      txt(s,{x:x+w/2,y:v>=0?top-6:top+hh+13,'font-size':10,'font-weight':800,fill:INK,'text-anchor':'middle'},v);
+      if(has2&&vals2[i]!=null){
+        const yv2=T+(H-B-T)*(1-(vals2[i]-lo)/span);
+        const top2=Math.min(yv2,y0),hh2=Math.abs(yv2-y0);
+        const r2=capsule(s,x+w+3,top2,w,hh2,w/2,color2,vals2[i]<0?'down':undefined);
+        tip(r2,`${labels[i]} 扣非净利：${vals2[i]}`);
+      }
+    });
+    return {hi:hi,lo:lo};
+  };
+  /* 左面板：收入（柱，全正）+ 毛利率（线） */
+  drawPanel(L,rev,C1);
+  const lT=T+14,lB=H-B-16;
+  const lspan=Math.max(...gm)-Math.min(...gm)||1;
+  const lmax=Math.max(...gm)+lspan*.5,lmin=Math.min(...gm)-lspan*.5;
+  const pts=gm.map((v,i)=>{
+    const x=L+i*(pw/n)+pw/n/2,y=lT+(lB-lT)*(1-(v-lmin)/(lmax-lmin||1));
+    return [x,y];
+  });
+  el(s,'path',{d:'M'+pts.map(p=>p.join(' ')).join(' L '),fill:'none',stroke:INK,'stroke-width':1.8});
+  const lmaxBar=Math.max(...rev)*1.15||1;
+  pts.forEach((p,i)=>{
+    el(s,'circle',{cx:p[0],cy:p[1],r:3,fill:INK,stroke:'#fff','stroke-width':1.5});
+    const barTop=H-B-(H-B-T)*rev[i]/lmaxBar;
+    const ly=labelY(p[1],barTop);
+    txt(s,{x:p[0],y:ly,'font-size':9,'font-weight':700,fill:MUT,'text-anchor':'middle',...HALO},gm[i]+'%');
+  });
+  /* 右面板：归母净利柱（+扣非净利柱） */
+  const dom=drawPanel(x2,np,C1,has_dt?np_dt:null,C2);
+  const rv=roe.map(v=>v==null?null:v*100);
+  if(rv.some(v=>v!=null)){
+    const vals=rv.filter(v=>v!=null);
+    const span=Math.max(...vals)-Math.min(...vals)||1;
+    const rmax=Math.max(...vals)+span*.5,rmin=Math.min(...vals)-span*.5;
+    const cx=i=>has_dt?x2+i*(pw/n)+(pw/n)*.42+1.5:x2+i*(pw/n)+(pw/n)/2;
+    const ry=v=>lT+(lB-lT)*(1-(v-rmin)/(rmax-rmin||1));
+    const yOf=v=>T+(H-B-T)*(1-(v-dom.lo)/(dom.hi-dom.lo));
+    let run=[];
+    const flush=()=>{
+      if(run.length>1){
+        el(s,'path',{d:'M'+run.map(i=>[cx(i),ry(rv[i])]).map(p=>p.join(' ')).join(' L '),fill:'none',stroke:INK,'stroke-width':1.8});
+      }
+      run=[];
+    };
+    rv.forEach((v,i)=>{
+      if(v==null){flush();return;}
+      run.push(i);
+      el(s,'circle',{cx:cx(i),cy:ry(v),r:3,fill:INK,stroke:'#fff','stroke-width':1.5});
+      const barTop=yOf(np[i]);
+      const ly=labelY(ry(v),barTop);
+      txt(s,{x:cx(i),y:ly,'font-size':9,'font-weight':700,fill:MUT,'text-anchor':'middle',...HALO},v.toFixed(2)+'%');
+    });
+    flush();
+  }
+  el(s,'line',{x1:x2-GAP/2,y1:T-8,x2:x2-GAP/2,y2:H-B,stroke:FAINT,'stroke-width':.7,'stroke-dasharray':'2 3'});
+  txt(s,{x:L,y:T-22,'font-size':10,'font-weight':700,fill:MUT},'营业收入（亿元）· 线=毛利率(%)');
+  txt(s,{x:x2,y:T-22,'font-size':10,'font-weight':700,fill:MUT},'归母净利+扣非净利（亿元）· 线=ROE(%)');
+  const lg=[['归母净利',C1],has_dt?['扣非净利',C2]:null,rv.some(v=>v!=null)?['ROE',INK]:null].filter(Boolean);
+  let lx=W-R-lg.length*110;
+  lg.forEach(([nm,c])=>{
+    el(s,'rect',{x:lx,y:6,width:10,height:10,fill:c,rx:2});
+    txt(s,{x:lx+15,y:15,'font-size':10,'font-weight':600,fill:MUT},nm);
+    lx+=110;
+  });
+  labels.forEach((lb,i)=>{
+    txt(s,{x:L+i*(pw/n)+pw/n/2,y:H-B+18,'font-size':9.5,'font-weight':600,fill:MUT,'text-anchor':'middle'},lb);
+    txt(s,{x:x2+i*(pw/n)+pw/n/2,y:H-B+18,'font-size':9.5,'font-weight':600,fill:MUT,'text-anchor':'middle'},lb);
+  });
+}
+
+function deltaBars(id,steps){
+  const s=document.getElementById(id);if(!s||!steps.length)return;
+  const W=+s.viewBox.baseVal.width,H=+s.viewBox.baseVal.height,L=86,R=54,T=14,B=8;
+  const rows=[...steps].sort((a,b)=>Math.abs(b[1])-Math.abs(a[1]));
+  const n=rows.length,rh=(H-T-B)/n;
+  const vmax=Math.max(...rows.map(r=>Math.abs(r[1])))*1.12||1;
+  const x0=L+(W-L-R)/2;
+  const sx=v=>x0+(W-L-R)/2*v/vmax;
+  const step=niceStep(vmax/2);
+  for(let v=step;v<vmax;v+=step){
+    for(const sg of[-1,1]){
+      el(s,'line',{x1:sx(sg*v),y1:T,x2:sx(sg*v),y2:H-B,stroke:FAINT,'stroke-width':.7,'stroke-dasharray':'3 3'});
+    }
+  }
+  el(s,'line',{x1:x0,y1:T,x2:x0,y2:H-B,stroke:GRID,'stroke-width':1});
+  rows.forEach(([nm,v],i)=>{
+    const y=T+i*rh+rh*.18,h=rh*.64;
+    const pos=v>=0;
+    const x=pos?x0:sx(v),w=Math.abs(sx(v)-x0);
+    const r=el(s,'rect',{x:x,y:y,width:w,height:h,fill:pos?GOOD:BAD,rx:Math.min(h/2,7)});
+    tip(r,`${nm}：${v>0?'+':''}${v}`);
+    txt(s,{x:L-8,y:y+h/2+3.5,'font-size':9.5,'font-weight':600,fill:MUT,'text-anchor':'end'},nm);
+    const inBar=!pos&&x<L+42;
+    txt(s,{x:inBar?x+5:(pos?x+w+5:x-5),y:y+h/2+3.5,'font-size':9.5,'font-weight':800,
+      fill:inBar?'#fff':(pos?GOOD:BAD),'text-anchor':(pos||inBar)?'start':'end'},(v>0?'+':'')+v);
+  });
+}
+
+function stackH(id,steps,gap,unit){
+  const s=document.getElementById(id);if(!s||!steps.length)return;
+  const W=+s.viewBox.baseVal.width,H=+s.viewBox.baseVal.height,L=8,R=8,T=14,B=34;
+  const rows=steps.concat(Math.abs(gap||0)>1e-9?[['口径差',gap,true]]:[]);
+  let cum=0;const pts=[0];
+  rows.forEach(r=>{cum+=r[1];pts.push(cum)});
+  const lo=Math.min(0,...pts),hi=Math.max(0,...pts),span=(hi-lo)||1;
+  const x=v=>L+(W-L-R)*(v-lo)/span;
+  const y=T,h=H-T-B;
+  el(s,'line',{x1:x(0),y1:T-4,x2:x(0),y2:T+h+2,stroke:GRID,'stroke-width':1});
+  rows.forEach(([nm,v,isGap],i)=>{
+    const a=x(pts[i]),b=x(pts[i+1]);
+    const rx=Math.min(a,b),rw=Math.abs(b-a)||0.5;
+    const r=el(s,'rect',{x:rx,y:y,width:rw,height:h,rx:Math.min(h/2,6),
+      fill:isGap?FAINT:(v>=0?GOOD:BAD),...(isGap?{opacity:.6}:{})});
+    tip(r,`${nm}：${v>0?'+':''}${v}${unit||''}`);
+    const cx=(a+b)/2;
+    txt(s,{x:cx,y:T+h+13+(i%2)*13,'font-size':9.5,'font-weight':600,
+      fill:isGap?MUT:(v>=0?GOOD:BAD),'text-anchor':'middle',...HALO},
+      `${nm} ${v>0?'+':''}${v}`);
+  });
+  const xe=x(pts[pts.length-1]);
+  el(s,'line',{x1:xe,y1:T-4,x2:xe,y2:T+h+2,stroke:INK,'stroke-width':1.8});
+  txt(s,{x:Math.min(Math.max(xe,44),W-44),y:T-5,'font-size':9.5,'font-weight':800,fill:INK,
+    'text-anchor':'middle',...HALO},`ΔROE ${pts[pts.length-1]>0?'+':''}${Math.round(pts[pts.length-1]*10)/10}${unit||''}`);
+}
+
+trendDual('trend',TREND.labels,TREND.rev,TREND.np,TREND.gm,TREND.np_dt,TREND.roe);
+spark('spark-gm',SPARK.gm,BAD);spark('spark-nm',SPARK.nm,BAD);spark('spark-da',SPARK.da,BAD);
+spark('spark-dio',SPARK.dio,BAD);spark('spark-dso',SPARK.dso,BAD);spark('spark-c2s',SPARK.c2s,INK);
+spark('spark-ccc',SPARK.ccc,BAD);spark('spark-dol',SPARK.dol,INK);spark('spark-dfl',SPARK.dfl,INK);
+deltaBars('ocfbridge',OCF_BRIDGE.slice(1));
+stackH('dupontstack',DUPONT_STACK.steps,DUPONT_STACK.gap,'pct');
+combo('holders',HOLDERS.labels,HOLDERS.num,[],HOLDERS.px,'区间涨跌幅','股东户数(万户)','');
+</script>
+</body>
+</html>

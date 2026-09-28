@@ -578,8 +578,10 @@ def check_assertions(data, rep):
         rep.add(OK, "assertions", f"{len(arr)} 条断言结构合法（其中判「不成立」{n_bad} 条，应已进 signals）")
 
 
-def check_recon_coverage(data, rep):
-    """recon 覆盖率：非空时统计已执行的等式，提醒未做项（缺数合法，漏做不可）。"""
+def check_recon_coverage(data, rep, min_recon=None):
+    """recon 覆盖率：非空时统计已执行的等式，提醒未做项（缺数合法，漏做不可）。
+    min_recon（--min-recon）给定时未达标由 WARN 升 FAIL——建议阈值见 report-types.md
+    （年报 ≥15/17、半年报 ≥13、季报 ≥8）；recon 为空仍 SKIP（无法区分不适用与漏做）。"""
     recon = data.get("recon") or {}
     if not recon:
         rep.add(SKIP, "recon-coverage", "recon 为空，覆盖率不适用")
@@ -589,6 +591,9 @@ def check_recon_coverage(data, rep):
     missing = [k for k in RECON_RULES if k not in filled]
     if not missing:
         rep.add(OK, "recon-coverage", f"{total} 条等式全部给出判定（{len(filled)}/{total}）")
+    elif min_recon is not None and len(filled) < min_recon:
+        rep.add(FAIL, "recon-coverage", f"recon 覆盖 {len(filled)}/{total} 未达 --min-recon {min_recon}，"
+                                        f"未给判定：{', '.join(missing)}——逐条补判定或写明附注未披露")
     else:
         rep.add(WARN, "recon-coverage", f"recon 覆盖 {len(filled)}/{total}，未给判定：{', '.join(missing)}"
                                         f"——确认是附注未披露（合法）还是漏做（回 Phase 2.5 补）")
@@ -620,6 +625,9 @@ def main():
     ap.add_argument("--fill", action="store_true",
                     help="预填 derived 机械字段（ratios/dupont/risk_models/stress/cash_ts/单期六项）"
                          "并产出 {stem}.fillsheet.md 填充速查表；判断字段（桥/rev_factors/recon/notes）不动")
+    ap.add_argument("--min-recon", type=int, default=None, metavar="N",
+                    help="recon 已判定等式条数下限（建议：年报 15、半年报 13、季报 8，共 17 条）；"
+                         "未达标时 recon-coverage 由 WARN 升 FAIL（v0.0.17，任务 5）")
     args = ap.parse_args()
 
     try:
@@ -658,7 +666,7 @@ def main():
     check_stress(data, rep)
     check_cash_ts(data, rep)
     check_recon(data, rep)
-    check_recon_coverage(data, rep)
+    check_recon_coverage(data, rep, min_recon=args.min_recon)
     check_segments(data, rep)
     check_assertions(data, rep)
     check_interest_arrears(data, rep)

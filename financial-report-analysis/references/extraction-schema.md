@@ -98,7 +98,7 @@
       "minority_eq":      { "cur": null, "prev": null, "src": "" },
       "retained_cur":     { "cur": null, "prev": null, "src": "", "note": "未分配利润（A2 滚动勾稽）" },
       "surplus_reserve":  { "cur": null, "prev": null, "src": "", "note": "盈余公积（A2 用其本期提取额）" },
-      "dividend_paid":    { "cur": null, "prev": null, "src": "", "note": "本年实际分配现金股利" },
+      "dividend_paid":    { "cur": null, "prev": null, "src": "", "note": "本年实际分配现金股利（归母股东口径）=「分配股利、利润或偿付利息支付的现金」− 利息实付（interest_paid）− 子公司支付给少数股东的股利；拆分不可得时置 null 并在 note 声明（v1.4 起支撑内生增长率）" },
       "prepayment":       { "cur": null, "prev": null, "src": "", "note": "预付款项（采购侧资产；A4 收入-收现闭环不用此项，相关的是预收/合同负债）" },
       "fin_assets":       { "cur": null, "prev": null, "src": "", "note": "交易性金融资产+长期股权投资+其他非流动金融资产（A8 用）" },
       "payable_construction": { "cur": null, "prev": null, "src": "", "note": "应付工程设备款（A6 用，常未单列，可 null）" },
@@ -174,7 +174,9 @@
       "incr_sales_eff":   { "cur": null, "note": "Δ收入÷Δ销售费用" },
       "nonrecurring_share": { "cur": null, "note": "非经÷归母净利" },
       "non_main_rev_share": { "cur": null, "note": "(营业外收入+其他业务收入+投资收益+公允价值变动)÷营业收入（X33 收入结构口径；与 nonrecurring_share 的利润调整口径不同源，勿混）" },
-      "ocf_to_liab": { "cur": null, "note": "OCF÷平均总负债（X6）；人话：照现在的造血能力，还清全部负债 ≈ 1/x 年" }
+      "ocf_to_liab": { "cur": null, "note": "OCF÷平均总负债（X6）；人话：照现在的造血能力，还清全部负债 ≈ 1/x 年" },
+      "roic": { "cur": null, "note": "v1.4 投入资本回报率=NOPAT÷平均投入资本（有息负债+归母权益，期初取 prev；有息=null 按 0、全 null 才整块 null）：NOPAT=EBIT×(1−有效税率)，EBT≤0 时有效税率按 0（亏损期无税盾）；期间口径不年化（同 ROE 约定）；去杠杆口径——与含杠杆的 ROE 并列读，ROE−ROIC 差值大=回报靠杠杆撑；单期指标（上期需 T-2 投入资本，不可得）" },
+      "sustainable_growth": { "cur": null, "note": "v1.4 内生增长率=留存率×ROE（留存率=1−dividend_paid÷np_at）：成长质量的可持续性读数——不依赖外部融资时利润能支撑的增速；np_at≤0 或 dividend_paid 未提取时置 null（亏损期符号无解读意义）" }
     },
     "dupont": { "driver": "净利率|周转率|杠杆", "margin_effect": null, "turnover_effect": null,
                 "leverage_effect": null, "roe_product_cur": null, "roe_product_prev": null,

@@ -77,6 +77,13 @@ def avg(cur, prev):
     return (cur + prev) / 2.0
 
 
+def parts_sum(data, fields, key="cur"):
+    """balance 科目组合计：null 按 0 计、全 null 才 None（有息/无息负债口径唯一定义处，
+    calc_common ROIC 与 calc_dupont leverage_drill 共用——v0.0.17 热核审计整改）。"""
+    vs = [val(data, "statements", "balance", f, key=key) for f in fields]
+    return None if all(v is None for v in vs) else sum(v or 0.0 for v in vs)
+
+
 def build_ratio_calcs(data):
     S = lambda *p, key="cur": val(data, "statements", *p, key=key)
     rev, rev_p = S("income", "revenue"), S("income", "revenue", key="prev")
@@ -117,6 +124,24 @@ def build_ratio_calcs(data):
           S("income", "invest_income"), S("income", "fv_change_income")]
     non_main = None if all(x is None for x in nm) else safe_div(sum(x or 0 for x in nm), rev)
 
+    # N1 ROIC（去杠杆口径，v0.0.17）：NOPAT÷平均投入资本；NOPAT=EBIT×(1−有效税率)，
+    # EBT≤0 时有效税率按 0（亏损期无税盾可抵）；投入资本=有息负债+归母权益
+    # （有息=st_debt+noncur_due_1y+lt_debt，null 按 0、全 null 才 None——与 leverage_drill 同口径）；
+    # 期间口径不年化（与本体系 ROE 同约定）；ROIC 上期需 T-2 投入资本，不可得故只算当期
+    eq_p = S("balance", "equity_at", key="prev")
+    ebt = None if (np_total is None or income_tax is None) else np_total + income_tax
+    ebit = None if (ebt is None or fin is None) else ebt + fin
+    tax_rate = None if ebt is None else (income_tax / ebt if ebt > 0 else 0.0)
+    nopat = None if (ebit is None or tax_rate is None) else ebit * (1 - tax_rate)
+    ib = parts_sum(data, ("st_debt", "noncur_due_1y", "lt_debt"))
+    ib_p = parts_sum(data, ("st_debt", "noncur_due_1y", "lt_debt"), key="prev")
+    ic = None if (ib is None or eq is None) else ib + eq
+    ic_p = None if (ib_p is None or eq_p is None) else ib_p + eq_p
+    roic = None if (nopat is None or ic is None) else safe_div(nopat, avg(ic, ic_p))
+    # N2 内生增长率（v0.0.17）：留存率×ROE；np_at≤0（亏损期符号无解读意义）或分红未提取 → None；
+    # roe 取下方 out 的唯一定义处复算值（不另写公式），故 sgr 在 out 构建后计算并入
+    dv = S("cashflow", "dividend_paid")
+
     # 14 项趋势比率委托 ratio_hist_expect（当期取值字典含上期余额）——
     # 全脚本比率公式只此一份，杜绝双份维护漂移
     trend_v = {
@@ -132,8 +157,14 @@ def build_ratio_calcs(data):
         "inventory_prev": inv_p, "payable_prev": ap_p,
     }
     out = {name: ratio_hist_expect(name, trend_v) for name in RATIO_HIST_SPECS}
+    roe_cur = out.get("roe")
+    sgr = None
+    if dv is not None and np_at is not None and np_at > 0 and roe_cur is not None:
+        sgr = (1 - dv / np_at) * roe_cur
     out.update({
         "non_main_rev_share": non_main,
+        "roic": roic,
+        "sustainable_growth": sgr,
         "ocf_to_liab": safe_div(ocf, avg(tl, tl_p)),
         "short_debt_cover": cover,
         "incr_expense_eff": (None if (gross is None or gross_p is None or exp_cur is None or exp_prev is None

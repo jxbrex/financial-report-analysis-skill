@@ -24,9 +24,16 @@
 | ROE（摊薄/加权） | 归母净利润 ÷ 归母净资产 | `roe` / `roe_waa` | >15% 优，<8% 弱 |
 | 毛利率 | (收入−成本)÷收入 | `grossprofit_margin` | 看趋势与同业差 |
 | 净利率 | 净利润 ÷ 收入 | `netprofit_margin` | 看趋势 |
-| ROIC |  NOPAT ÷ 投入资本 | `roic` | >8% 及格 |
+| ROIC | NOPAT ÷ 平均投入资本 | `roic`（v1.4 起 calc 复算，口径见下） | >8% 及格 |
 | 期间费用率 | 三费+研发 ÷ 收入 | 销售/管理/财务费用 | 逐年对比 |
 | 非主营业务收入占比 | (营业外收入+其他业务收入+投资收益+公允价值变动) ÷ 营业收入（X33） | 手算（income 四字段） | 升 = 需解释：主业造血 vs 靠投资与公允撑利润，须拆解构成再定性 |
+
+**ROIC 口径（v1.4 落库 derived.ratios.roic，calc.py 复算卡口）**：NOPAT = EBIT×(1−有效税率)，
+EBT≤0 时有效税率按 0（亏损期无税盾可抵）；投入资本 = 有息负债（st_debt+noncur_due_1y+lt_debt，
+null 按 0）+ 归母权益，期初取 prev 期末；期间口径不年化（与本体系 ROE 同约定）。**与杜邦的
+关系**：ROIC 是去杠杆口径，杜邦拆的 ROE 含杠杆效应——两口径并列读，ROE−ROIC 差值大 = 回报
+靠杠杆撑（化险期地产等高杠杆模式尤其要看这个差）。单期指标：上期需 T-2 期投入资本，不可得，
+不做两期对比。
 
 ### 营运能力
 | 指标 | 公式 | tushare 字段 |
@@ -82,6 +89,12 @@ DPO = 平均应付 × 365 ÷ 营业成本   （应付 = 应付账款+应付票�
 | 营收同比 | `or_yoy` |
 | 归母净利同比 | `netprofit_yoy`（注意区分扣非 `dt_netprofit_yoy`） |
 | 单季度同比/环比 | `q_sales_yoy` / `q_sales_qoq` / `q_profit_yoy` |
+| 内生增长率（v1.4） | 留存率×ROE，留存率=1−dividend_paid÷np_at；calc 复算 |
+
+**内生增长率**（落库 derived.ratios.sustainable_growth）：不依赖外部融资时利润能支撑的
+增速——成长层的「可持续性」读数，与增速读数互补：高增速 + 低内生增长率 = 靠输血扩张。
+np_at≤0 或 dividend_paid 未提取时置 null（亏损期符号无解读意义）；分红口径见 schema
+cashflow.dividend_paid（归母股东实收 = 分配合计 − 利息 − 子公司付少数股东股利）。
 
 ### 方向语义表（较上期列与杜邦方向列的判定依据）
 
