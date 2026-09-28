@@ -11,7 +11,7 @@
     "market_cap_src": "tushare daily_basic 20251231 total_mv=172,460,149.47 万元 ÷1e4",
     "source_md": "reports/archive/原始报告/贵州茅台2025年年度报告.md",
     "analyst_date": "2026-09-10",
-    "schema_version": "1.2"
+    "schema_version": "1.3"
   },
   "statements": {
     "income": {
@@ -588,6 +588,34 @@
       "roe_product_prev": 0.3869,
       "closure_gap": 0.0142,
       "driver": "周转率",
+      "driver_fragile": false,
+      "effects_ratio": 1.8085,
+      "driver_second": "净利率",
+      "margin_drill": {
+        "op_effect": -0.0166,
+        "tax_effect": 0.0029,
+        "interest_effect": -0.0038,
+        "minority_effect": 0.0005
+      },
+      "turnover_drill": {
+        "top1_subject": "货币资金",
+        "top1_share": -1.5552,
+        "top2_subject": "存货",
+        "top2_share": 1.4486,
+        "wc_share": 1.4453,
+        "capex_share": 0.0659
+      },
+      "leverage_drill": {
+        "ib_cur": 0.4421,
+        "ib_prev": 1.1195,
+        "ni_cur": 120.1405,
+        "ni_prev": 131.0742,
+        "ib_to_equity_cur": 0.0002,
+        "ni_to_equity_cur": 0.0491,
+        "ni_share": 0.9963,
+        "dfl_delta": 0.0052,
+        "quality_upgrade": null
+      },
       "src": "连环替代（净利率→周转率→权益乘数），calc.py 复算",
       "note": "ROE 修复缺席期：三因子全降，主拖累周转率（资产周转放缓）；口径差 +1.42pct = 周转率平均余额口径 vs ROE 期末口径"
     },
@@ -628,7 +656,95 @@
       "ncr_neg_years": 0,
       "fcf_to_np_mean5": 0.8479,
       "fcf_neg_years": 0,
+      "ncr": [
+        1.2205,
+        0.5852,
+        0.8911,
+        1.0723,
+        0.7474
+      ],
+      "fcf_to_np": [
+        1.1555,
+        0.5005,
+        0.856,
+        1.0181,
+        0.7094
+      ],
+      "periods": [
+        "2021",
+        "2022",
+        "2023",
+        "2024",
+        "2025"
+      ],
       "note": "净现比 5 期均值 0.90、无负值年；FCF=OCF−capex 5 期均为正、覆盖归母净利 0.85"
+    },
+    "dupont_dt": {
+      "triggered": false
+    },
+    "dupont5y": {
+      "margin_effect": -0.0039,
+      "turnover_effect": 0.0702,
+      "leverage_effect": -0.0285,
+      "roe_product_cur": 0.3393,
+      "roe_product_prev": 0.3015,
+      "closure_gap": 0.0219,
+      "driver": "周转率",
+      "driver_fragile": false,
+      "effects_ratio": 2.4632,
+      "driver_second": "杠杆",
+      "period_start": "2021",
+      "period_end": "2025",
+      "roe_start": 0.2768,
+      "roe_end": 0.3365,
+      "percentile": {
+        "net_margin": 0.0,
+        "asset_turnover": 0.5,
+        "equity_multiplier": 0.0
+      }
+    },
+    "cycle_evidence": {
+      "rev_growth": [
+        null,
+        0.1687,
+        0.1901,
+        0.1571,
+        -0.0121
+      ],
+      "gross_margin": [
+        0.9154,
+        0.9187,
+        0.9196,
+        0.9193,
+        0.9118
+      ],
+      "capex_growth": [
+        null,
+        0.5567,
+        -0.5063,
+        0.7859,
+        -0.3315
+      ],
+      "periods": [
+        "2021",
+        "2022",
+        "2023",
+        "2024",
+        "2025"
+      ]
+    },
+    "threshold_check": {
+      "shell_line": {
+        "roe": 0.3365,
+        "target": 0.065,
+        "net_margin": 0.4876,
+        "hit": false
+      },
+      "refinance_line": {
+        "roe": 0.3365,
+        "target": 0.1,
+        "hit": false
+      }
     }
   },
   "recon": {},

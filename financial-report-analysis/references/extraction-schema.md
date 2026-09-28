@@ -41,7 +41,7 @@
     "period": "20251231", "report_type": "年报", "disclose_date": "2026-04-16",
     "unit": "亿元", "source_md": "reports/xxx.md", "analyst_date": "2026-09-10",
     "market_cap_cur": null,
-    "schema_version": "1.2",
+    "schema_version": "1.3",
     "currency": "CNY",
     "accounting_standard": "CAS",
     "industry_profile": "通用",
@@ -154,6 +154,11 @@
     "capacity": [ { "product": "", "capacity": null, "output": null, "utilization": null, "src": "" } ]
   },
 
+  "peers": [
+    { "name": "同业A", "code": "", "gross_margin": null, "rd_ratio": null, "debt_to_assets": null,
+      "net_margin": null, "asset_turnover": null, "equity_multiplier": null, "roe": null, "src": "" }
+  ],
+
   "derived": {
     "ratios": {
       "roe": { "cur": null, "prev": null, "hist": [] }, "gross_margin": { "cur": null, "prev": null, "hist": [] },
@@ -173,8 +178,56 @@
     },
     "dupont": { "driver": "净利率|周转率|杠杆", "margin_effect": null, "turnover_effect": null,
                 "leverage_effect": null, "roe_product_cur": null, "roe_product_prev": null,
-                "closure_gap": null, "src": "",
-                "note": "连环替代（定序：净利率→周转率→权益乘数），三效应加和恒等于三因子积的 Δ；closure_gap = ΔROE摊薄 − Δ三因子积（周转率平均余额口径 vs ROE 期末口径之差），报告 srcline 如实标注；缺同口径上期（口径断裂）整块 null" },
+                "closure_gap": null, "driver_fragile": null, "effects_ratio": null,
+                "driver_second": null,
+                "margin_drill": { "op_effect": null, "tax_effect": null,
+                                  "interest_effect": null, "minority_effect": null },
+                "turnover_drill": { "top1_subject": "", "top1_share": null,
+                                    "top2_subject": "", "top2_share": null,
+                                    "wc_share": null, "capex_share": null },
+                "leverage_drill": { "ib_cur": null, "ib_prev": null, "ni_cur": null, "ni_prev": null,
+                                    "ib_to_equity_cur": null, "ni_to_equity_cur": null,
+                                    "ni_share": null, "dfl_delta": null, "quality_upgrade": null },
+                "src": "",
+                "note": "连环替代（定序：净利率→周转率→权益乘数），三效应加和恒等于三因子积的 Δ；closure_gap = ΔROE摊薄 − Δ三因子积（周转率平均余额口径 vs ROE 期末口径之差），报告 srcline 如实标注；缺同口径上期（口径断裂）整块 null。"
+                        "v1.3 因子下钻（子行只放证据，判断在 figtitle/takeaway）："
+                        "margin_drill=净利率恒等四项分解 op/tax/interest/minority（ΔEBIT率 −Δ财务费用率 −Δ有效税负率 −Δ少数股东率，加和恒等于 Δ净利率）；"
+                        "turnover_drill=Δ总资产科目贡献前二 + 聚合份额（wc_share=Δ应收类+Δ存货 ÷ Δ总资产，capex_share=Δ在建+Δ固定资产 ÷ Δ总资产；|ΔTA|/TA<1% 时整块 null=总资产未动，定位无意义；不含其他应付款等未提取科目，口径声明在报告 srcline）；"
+                        "leverage_drill=有息 ib=st_debt+noncur_due_1y+lt_debt（null 按 0 计，三字段全 null 才整块 null）/ 无息 ni=payable+contract_liab（同规则；不含其他应付款）；"
+                        "quality_upgrade=话语权型杠杆升档判定：杠杆为主驱动且 ni_share>0.7 且 |dfl_delta|<0.1 → true，杠杆非主驱动时 null（不适用）——阈值为 v0.0.15 经验起点，随样本校准，只触发提醒级呈现；"
+                        "driver_fragile=双驱动护栏：第一、二大 |效应| 之比 effects_ratio<1.5 → true，报告标「双驱动（X/Y）」替代单一主驱动" },
+    "dupont_dt": { "driver": null, "margin_effect": null, "turnover_effect": null,
+                   "leverage_effect": null, "roe_product_cur": null, "roe_product_prev": null,
+                   "closure_gap": null, "triggered": null, "src": "",
+                   "note": "v1.3 扣非口径双版归因（F-04）：扣非净利率（np_dt÷revenue）替换净利率因子重跑连环替代；"
+                           "触发条件 nonrecurring_share>0.2 或 |净利率−扣非净利率|>0.01——未触发时 triggered=false 其余 null（不占版面）；"
+                           "触发时全字段机械可复算（roe 两版同口径摊薄值，closure_gap 同 dupont 语义）" },
+    "dupont5y": { "margin_effect": null, "turnover_effect": null, "leverage_effect": null,
+                  "roe_start": null, "roe_end": null, "closure_gap": null,
+                  "driver": null, "driver_fragile": null, "effects_ratio": null,
+                  "driver_second": null,
+                  "period_start": "", "period_end": "",
+                  "percentile": { "net_margin": null, "asset_turnover": null, "equity_multiplier": null },
+                  "src": "",
+                  "note": "v1.3 五年累计归因（方案A）+ 因子分位（方案D）：ratios hist 首末两期端点间一次连环替代，定序与 dupont 一致；"
+                          "period_start/end 由 meta.period 与 report_type 按同类型滚动倒推（年报对 FY、半年报对 H1）；"
+                          "percentile=(rank(cur,hist)−1)÷(len(hist)−1)，n=5 为位置读数（离散步长 25%），呈现禁用统计显著性措辞、周期股须挂周期定位解读；"
+                          "hist<3 期整块 null（口径断裂合法，报告降级两期归因）" },
+    "cycle_evidence": { "rev_growth": [], "gross_margin": [], "capex_growth": [], "periods": [],
+                        "src": "",
+                        "note": "v1.3 周期定位证据读数（frameworks.md 第六节）：收入增速/毛利率/Capex 增速逐期序列（旧→新，与 ratios hist 对齐），"
+                                "让 meta.cycle_stage 的阶段判定从「声明」变「可核验前提」；本块只供读数，stage 判定仍是分析师判断（填 meta.cycle_stage）；"
+                                "hist<2 期（增速不可算）整块 null" },
+    "threshold_check": {
+      "shell_line":     { "roe": null, "target": 0.065, "net_margin": null, "hit": null },
+      "refinance_line": { "roe": null, "target": 0.10, "hit": null },
+      "incentive_line": { "target_desc": "", "actual": null, "target": null, "ratio": null,
+                          "share_payment": null, "hit": null, "src": "" },
+      "note": "v1.3 四线考核贴线检测（frameworks.md 第八节）：保壳线=ROE 贴 6.5% 且净利率落 0~3% 收入区间；"
+              "再融资线=ROE 贴 10%；贴线=实际÷目标 ∈ [0.95,1.05]；incentive_line 的 target 取自股权激励公告"
+              "（src 必填，mx_finance_search_notice 查「股权激励计划/考核目标/行权条件」），share_payment=本期股份支付摊销"
+              "（激励压低当期利润的读数参考，未披露填 null）；无激励计划时 incentive_line 全 null。"
+              "Q4 集中度见 derived.q4，本块不重复" },
     "risk_models": { "altman_z": { "cur": null, "zone": null, "annualized": null },
                      "ohlson_o": { "cur": null, "prob": null, "level": null },
                      "note": "v1.2 破产风险双模型并列（frameworks.md 第三节，谨慎使用、金融/地产跳过置 null）；市值取 meta.market_cap_cur（亿元），缺失时 altman_z 整块 null——宁可空值不给错值；interim 报告 annualized=true（流量项按〇口径总则年化）" },
@@ -183,7 +236,11 @@
                                { "p": 0.3, "np_stressed": null, "cover_stressed": null } ],
                 "note": "v1.2 流动性压力情景（frameworks.md 第九节）：受压EBIT=EBIT×(1−p×DOL)，受压税前=受压EBIT−fin_exp，受压净利=受压税前×(1−有效税率)，受压短债覆盖=(cash+ocf×(1−p))÷(st_debt+noncur_due_1y)；est 估算口径，不进 T8①" },
     "cash_ts": { "ncr_mean5": null, "ncr_neg_years": null, "fcf_to_np_mean5": null, "fcf_neg_years": null,
-                 "note": "v1.2 现金验证时序读数（frameworks.md 第五节）：净现比与 FCF=OCF−capex 的 5 期均值/负值年数，分母用归母净利 np_at；hist <3 期整块 null（口径断裂合法）" },
+                 "ncr": [], "fcf_to_np": [], "periods": [],
+                 "note": "v1.2 现金验证时序读数（frameworks.md 第五节）：净现比与 FCF=OCF−capex 的 5 期均值/负值年数，分母用归母净利 np_at；"
+                         "v1.3 扩逐期数组 ncr/fcf_to_np/periods（S1 现金时序表数据源，旧→新与 ratios hist 对齐；"
+                         "fcf_to_np 需 capex hist ≥3 期，不足则整块为空数组——不足 3 期的逐期读数无趋势意义，不凑数）；"
+                         "hist <3 期整块 null（口径断裂合法）" },
     "q4": { "rev": null, "np": null, "rev_share": null, "gm_q4": null, "gm_q1q3": null,
             "impair_share": null, "exp_ratio_q4": null, "exp_ratio_q1q3": null, "src": "" },
     "rev_factors": { "volume": null, "price": null, "mix": null, "src": "",
@@ -262,6 +319,13 @@
 - 历史重述（如康得新 2019 追溯重述）致口径断裂时允许缺 hist 并在 note 说明，
   报告趋势降级两期呈现
 - 单期专用比率（short_debt_cover/incr_expense_eff/incr_sales_eff/nonrecurring_share/non_main_rev_share/ocf_to_liab）不序列化
+
+**`peers[]` 字段说明**（v1.3，S7 同业表数据源）：
+- 同业数字同样**禁止只进 HTML 不进 JSON**——T8① 数字回验覆盖 S7 表格
+- 取数：`mx_ashare_finance_data` 批量指标（3~5 家同业，SKILL.md 取数清单）；比率用小数，
+  口径尽量与本公司一致（净利率归母、ROE 摊薄），口径不可对齐的在报告 srcline 声明
+- `src` 必填（取数接口+日期）；calc.py 只做结构校验（src 非空 FAIL、比率超合理区间 WARN），
+  外部取数无公式可复算，真伪靠双源核对纪律
 
 **`signals[]` 字段说明**：
 - `verdict ∈ 命中/观察/未触发/反向未触发`（**呈现四态**，判定标准见 redflags.md 第一节课后「判定分类」）；

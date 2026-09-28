@@ -49,8 +49,10 @@ from calc_common import (FAIL, WARN, OK, SKIP, Report, num, leaf, val, rel_dev,
                          tol_bridge, safe_div, avg, series_of, series_of_ye,
                          RATIO_HIST_SPECS, ratio_hist_expect, build_ratio_calcs,
                          ratio_hist_series)
-from calc_models import (check_dupont, check_risk_models, check_stress, check_cash_ts,
-                         fill_derived, write_fillsheet)
+from calc_dupont import check_dupont, check_dupont_dt, check_dupont5y
+from calc_evidence import check_cycle_evidence, check_threshold_check, check_peers
+from calc_risk import check_risk_models, check_stress, check_cash_ts
+from calc_models import fill_derived, write_fillsheet
 
 # recon 偏差阈值：闭合型 = |lhs-rhs|/|rhs| 上限；水平型 = lhs 超过 rhs 即异常
 RECON_RULES = {
@@ -647,6 +649,11 @@ def main():
     check_ratios(data, rep)
     check_ratio_hist(data, rep)
     check_dupont(data, rep)
+    check_dupont_dt(data, rep)
+    check_dupont5y(data, rep)
+    check_cycle_evidence(data, rep)
+    check_threshold_check(data, rep)
+    check_peers(data, rep)
     check_risk_models(data, rep)
     check_stress(data, rep)
     check_cash_ts(data, rep)

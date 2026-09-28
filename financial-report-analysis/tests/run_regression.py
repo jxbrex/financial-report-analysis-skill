@@ -137,6 +137,32 @@ def check_moutai(case, proc, data):
     for code in ("dupont", "risk-models", "stress", "cash-ts"):
         case.expect(code in (proc.stdout or ""),
                     f"新检查生效：calc.py 输出含 {code} 行（v0.0.12 检查被执行）")
+    # v0.0.15（schema 1.3）：杜邦下钻五检查必须被执行（dupont-dt/dupont5y/cycle-evidence/
+    # threshold-check/peers；SKIP 也算执行——断言行的存在，不断言 OK/SKIP）
+    for code in ("dupont-dt", "dupont5y", "cycle-evidence", "threshold-check", "peers"):
+        case.expect(code in (proc.stdout or ""),
+                    f"新检查生效：calc.py 输出含 {code} 行（v0.0.15 检查被执行）")
+    case.expect((data.get("meta") or {}).get("schema_version") == "1.3",
+                f"schema_version == 1.3（实际 {((data.get('meta') or {}).get('schema_version'))}）")
+
+    # v0.0.15：五年累计归因闭合 + 分位边界 + 杠杆拆解（茅台特征值）
+    d5 = (data.get("derived") or {}).get("dupont5y") or {}
+    e = [d5.get(k) for k in ("margin_effect", "turnover_effect", "leverage_effect")]
+    if all(isinstance(x, (int, float)) for x in e):
+        prod_delta = d5.get("roe_product_cur", 0) - d5.get("roe_product_prev", 0)
+        case.expect(abs(sum(e) - prod_delta) <= 0.005,
+                    f"dupont5y 闭合：三效应加和 {sum(e):+.4f} ≈ Δ三因子积 {prod_delta:+.4f}")
+        pg = d5.get("percentile") or {}
+        pvals = [pg.get(k) for k in ("net_margin", "asset_turnover", "equity_multiplier")]
+        case.expect(all(isinstance(p, (int, float)) and 0 <= p <= 1 for p in pvals),
+                    f"因子分位 ∈[0,1]（实际 {pvals}）")
+        case.expect(pg.get("net_margin") == 0.0,
+                    f"茅台净利率处五年最低分位=0（实际 {pg.get('net_margin')}）——位置读数特征值")
+    else:
+        case.expect(False, f"dupont5y 三效应已填（实际 {e}）")
+    ld = ((data.get("derived") or {}).get("dupont") or {}).get("leverage_drill") or {}
+    case.expect(isinstance(ld.get("ni_share"), (int, float)) and ld["ni_share"] > 0.9,
+                f"茅台无息占款占总杠杆 >90%（实际 {ld.get('ni_share')}）——话语权型杠杆特征值")
 
 
 def check_kangdexin(case, proc, data):
@@ -174,6 +200,15 @@ def check_kangdexin(case, proc, data):
     bad = [a for a in asserts if isinstance(a, dict) and a.get("verdict") == "不成立"]
     case.expect(all(a.get("evidence") for a in bad),
                 f"判「不成立」的断言均带反证（{len(bad)} 条）")
+    # v0.0.15（schema 1.3）：口径断裂样本的五年归因必须合法降级（整块缺失/null + SKIP 行）
+    case.expect((data.get("meta") or {}).get("schema_version") == "1.3",
+                f"schema_version == 1.3（实际 {((data.get('meta') or {}).get('schema_version'))}）")
+    d5 = (data.get("derived") or {}).get("dupont5y") or {}
+    case.expect(all(d5.get(k) is None for k in
+                    ("margin_effect", "turnover_effect", "leverage_effect")),
+                "康得新 dupont5y 三效应全 null（2019 追溯重述口径断裂，合法降级）")
+    case.expect("dupont5y" in (proc.stdout or ""),
+                "新检查生效：calc.py 输出含 dupont5y 行（降级路径被执行）")
 
 
 def report_case(case, proc, verbose):
@@ -245,13 +280,16 @@ def main():
     # v0.0.12：缩写展开 / 桥图项数 / 归因标题 / 检验判定列 四个新检查必须真的被执行到
     smoke_v12 = all(c in (smoke.stdout or "") for c in
                     ("abbrev", "ocf-bridge-shape", "figtitle-attribution", "inspection-verdict"))
+    # v0.0.15：s1 杜邦双卡形态检查必须被执行；dupont-stack 在 T8（--json）路径断言
+    smoke_v15 = "s1-v15-shape" in (smoke.stdout or "")
     print(f"\n【报告机检冒烟】check_html.py 跑模板："
           f"{'✅' if smoke_run else '❌'} 可运行（exit {smoke.returncode}）· "
           f"{'✅' if smoke_s8 else '❌'} s8-shape 检查存活 · "
           f"{'✅' if smoke_fig else '❌'} figtitle-style 检查存活 · "
-          f"{'✅' if smoke_v12 else '❌'} v0.0.12 四检查存活")
-    if not (smoke_run and smoke_s8 and smoke_fig and smoke_v12):
-        print("❌ 回归未通过：check_html.py 无法正常运行或 s8-shape / figtitle-style / v0.0.12 四检查缺失。")
+          f"{'✅' if smoke_v12 else '❌'} v0.0.12 四检查存活 · "
+          f"{'✅' if smoke_v15 else '❌'} v0.0.15 s1-v15-shape 存活")
+    if not (smoke_run and smoke_s8 and smoke_fig and smoke_v12 and smoke_v15):
+        print("❌ 回归未通过：check_html.py 无法正常运行或 s8-shape / figtitle-style / v0.0.12 / v0.0.15 检查缺失。")
         return 1
 
     # ── T8 数字回验三断言（v0.0.6）──
@@ -271,6 +309,8 @@ def main():
          f"T8①级：改错样例必 FAIL 且报疑似笔误（实际 exit {t8_bad.returncode}）"),
         ("json-md" in (t8_ok.stdout or ""),
          "T8②级：data.json↔原文 md 核对被执行（输出含 json-md 行）"),
+        ("dupont-stack" in (t8_ok.stdout or ""),
+         "v0.0.15：dupont-stack 堆叠条数据槽校验被执行（--json 路径）"),
     ]
     print("\n【T8 数字回验（check_html --json）】")
     for ok, desc in t8_checks:
@@ -368,6 +408,52 @@ def main():
         passed += ok
     if not all(ok for ok, _ in md_checks):
         print("❌ 回归未通过：md_clean 金标准断言失败。")
+        return 1
+
+    # ── v0.0.15 构造用例（公式层直测，不动 fixture 文件）──
+    # 扣非双版触发 / 双驱动护栏 / 话语权型杠杆升档——两条规则无真实 fixture 覆盖
+    # （茅台非经 0.03% 不触发、杠杆非主驱动），用 deepcopy 构造临界场景验证
+    sys.path.insert(0, str(SKILL / "scripts"))
+    import copy
+    import calc_dupont
+
+    constructed = []
+    base = load_json(MOUTAI)
+
+    d1 = copy.deepcopy(base)
+    d1["statements"]["income"]["np_dt"]["cur"] = \
+        d1["statements"]["income"]["np_at"]["cur"] * 0.7   # 非经占比 30% → 触发双版
+    r1 = calc_dupont.compute_dupont_dt(d1)
+    closed1 = (r1.get("margin_effect") is not None
+               and abs(r1["margin_effect"] + r1["turnover_effect"] + r1["leverage_effect"]
+                       - (r1["roe_product_cur"] - r1["roe_product_prev"])) <= 0.005)
+    constructed.append((r1.get("triggered") is True and closed1,
+                        "构造·扣非双版：非经 30% → triggered=True 且三效应恒等闭合"))
+
+    d2 = copy.deepcopy(base)
+    d2["derived"]["ratios"]["net_margin"]["prev"] = 0.5085  # |净利率效应|≈|周转率效应|
+    r2 = calc_dupont.compute_dupont(d2)
+    ratio2 = (r2 or {}).get("effects_ratio")
+    constructed.append((bool(r2) and r2.get("driver_fragile") is True
+                        and ratio2 is not None and ratio2 < 1.5,
+                        f"构造·双驱动护栏：effects_ratio={ratio2:.2f} <1.5 → driver_fragile=True"
+                        if ratio2 else "构造·双驱动护栏：compute_dupont 返回 None（不应发生）"))
+
+    d3 = copy.deepcopy(base)
+    d3["derived"]["ratios"]["equity_multiplier"]["prev"] = 1.42  # 杠杆效应放大为主驱动
+    r3 = calc_dupont.compute_dupont(d3)
+    ld3 = (r3 or {}).get("leverage_drill") or {}
+    constructed.append((bool(r3) and r3.get("driver") == "杠杆"
+                        and ld3.get("quality_upgrade") is True,
+                        f"构造·话语权型杠杆升档：杠杆主驱动+无息占比 {ld3.get('ni_share')} "
+                        f"+ΔDFL {ld3.get('dfl_delta')} → quality_upgrade=True"))
+    print("\n【v0.0.15 构造用例（扣非双版/双驱动/升档）】")
+    for ok, desc in constructed:
+        print(f"  {'✅' if ok else '❌'} {desc}")
+        total += 1
+        passed += ok
+    if not all(ok for ok, _ in constructed):
+        print("❌ 回归未通过：v0.0.15 构造用例断言失败。")
         return 1
 
     failed = total - passed

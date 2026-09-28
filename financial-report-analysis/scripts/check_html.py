@@ -44,6 +44,12 @@ calc.py 只校验数据层（data.json）；报告 HTML 层此前没有任何机
   12. slot-length   [WARN] 槽位长度契约（v0.0.9 L3）：s1 四维表「评价」列（每行最后
                   一个 td.txt）注脚 ≤15 字，>20 字告警（15+5 容忍）；杜邦表（s1 内
                   第二张）末列是归因长文本，不在检查范围。
+  13. s1-v15-shape  [WARN] ★ v0.0.15 杜邦双卡形态：下钻子行 ≤3；因子分位表数据行
+                  带三档徽章（上限区/下限区/常态区）且禁用「显著」统计措辞；
+                  现金时序表/周期证据表存在（降级须有声明）。
+  14. dupont-stack  [FAIL]（仅 --json）ΔROE 堆叠条数据槽 ↔ derived.dupont 三效应
+                  与 closure_gap 一致性——口径差段不许视觉隐瞒。
+  （另：v0.0.12 起 inspection-verdict 覆盖 s7；v0.0.15 扩展 s5 在建/产能表判定列。）
 
 启发式检查的边界（诚实声明，改判据前先读这段）：
   · bare-number 的判据是：在 <td> / KPI 卡 .v / .figtitle 里出现「3 位以上数字
@@ -601,32 +607,134 @@ def check_figtitle_attribution(text, rep, secs):
 
 def check_inspection_verdict(text, rep):
     """检验类卡片判定列（v0.0.12）：s7 内 figtitle 含「检验/期后」的表，数据行须带
-    ✅/⚠️/❌ 判定徽标或「—（披露项）」——扫颜色即知结果，治「全文字缺重点」。"""
+    ✅/⚠️/❌ 判定徽标或「—（披露项）」——扫颜色即知结果，治「全文字缺重点」。
+    v0.0.15 扩展 s5（在建工程/产能表，补判定列纪律漏网点）。"""
+    bad = []
     seg = _section_seg(text, "s7")
     if seg is None:
         rep.add(WARN, "inspection-verdict", "未找到外部校验章（secthead id=\"s7\"），无法校验判定列")
-        return
-    bad = []
-    for m in re.finditer(r'<div class="figtitle"[^>]*>(.*?)</div>', seg, re.S):
-        plain = re.sub(r"<[^>]+>", "", m.group(1))
-        if not re.search(r"检验|期后", plain):
-            continue
-        tm = re.search(r"<table[^>]*>(.*?)</table>", seg[m.end():], re.S)
-        if not tm:
-            continue
-        rows = [r for r in re.findall(r"<tr>(.*?)</tr>", tm.group(1), re.S) if "<th" not in r]
-        for r in rows:
-            cell = re.sub(r"<[^>]+>", "", r)
-            if not re.search(r"✅|⚠️|❌|—（披露项）|—\(披露项\)", cell):
-                first = re.search(r"<td[^>]*>(.*?)</td>", r, re.S)
-                name = re.sub(r"<[^>]+>", "", first.group(1)).strip()[:16] if first else "?"
-                bad.append(f"「{plain[:14]}…」表行「{name}」无判定徽标")
+    else:
+        for m in re.finditer(r'<div class="figtitle"[^>]*>(.*?)</div>', seg, re.S):
+            plain = re.sub(r"<[^>]+>", "", m.group(1))
+            if not re.search(r"检验|期后", plain):
+                continue
+            tm = re.search(r"<table[^>]*>(.*?)</table>", seg[m.end():], re.S)
+            if not tm:
+                continue
+            rows = [r for r in re.findall(r"<tr>(.*?)</tr>", tm.group(1), re.S) if "<th" not in r]
+            for r in rows:
+                cell = re.sub(r"<[^>]+>", "", r)
+                if not re.search(r"✅|⚠️|❌|—（披露项）|—\(披露项\)", cell):
+                    first = re.search(r"<td[^>]*>(.*?)</td>", r, re.S)
+                    name = re.sub(r"<[^>]+>", "", first.group(1)).strip()[:16] if first else "?"
+                    bad.append(f"「{plain[:14]}…」表行「{name}」无判定徽标")
+    seg5 = _section_seg(text, "s5")
+    if seg5 is not None:
+        for tm in re.finditer(r'<table class="data"[^>]*>(.*?)</table>', seg5, re.S):
+            head = re.search(r'<tr>(.*?)</tr>', tm.group(1), re.S)
+            if not head or not re.search(r"判定", head.group(1)):
+                continue
+            rows = [r for r in re.findall(r"<tr>(.*?)</tr>", tm.group(1), re.S) if "<th" not in r]
+            for r in rows:
+                cell = re.sub(r"<[^>]+>", "", r)
+                if not re.search(r"✅|⚠️|❌", cell):
+                    first = re.search(r"<td[^>]*>(.*?)</td>", r, re.S)
+                    name = re.sub(r"<[^>]+>", "", first.group(1)).strip()[:16] if first else "?"
+                    bad.append(f"s5 表行「{name}」无判定徽标（在建/产能表判定列纪律 v0.0.15）")
     if bad:
         rep.add(WARN, "inspection-verdict",
-                f"{len(bad)} 行检验/期后表缺判定列（✅ 通过 / ⚠️ 注意 / ❌ 异常 / — 披露项）",
+                f"{len(bad)} 行检验/期后/在建表缺判定列（✅ 通过 / ⚠️ 注意 / ❌ 异常 / — 披露项）",
                 bad[:DETAIL_CAP])
     else:
-        rep.add(OK, "inspection-verdict", "检验/期后类表格数据行均带判定徽标")
+        rep.add(OK, "inspection-verdict", "检验/期后/在建类表格数据行均带判定徽标")
+
+
+# ─────────────────── v0.0.15：S1 杜邦双卡与证据表形态（WARN 启发式） ───────────────────
+
+def _table_containing(seg, kw):
+    """段内首个正文含关键词 kw 的 <table> 块（模板匹配用）。
+    假设：kw 在该段内只出现于目标表（当前 s1 内「五年位置」「净现比」唯一）——
+    未来版式让关键词出现在别的表时会错配，届时改结构锚点。"""
+    m = re.search(rf'<table[^>]*>(?:(?!</table>).)*{re.escape(kw)}(.*?)</table>', seg, re.S)
+    return m
+
+
+def check_s1_v15_shape(text, rep):
+    """S1 v0.0.15 形态：① 杜邦下钻子行 ≤3（每因子 ≤1 行密度纪律）；
+    ② 因子分位表（表头含「五年位置」）数据行必须带三档徽章（上限区/下限区/常态区），
+       且表内禁用「显著」统计措辞（n=5 位置读数非统计分位）；
+    ③ 现金时序表（净现比逐期）与周期证据表（阶段判定）存在——降级时须有声明。
+    注意：对 v0.0.15 前的存量旧版式报告重跑本检查必出 ②③ WARN——纪律 7 不重出旧报告，
+    该 WARN 属预期，勿追溯修旧报告。"""
+    seg = _section_seg(text, "s1")
+    if seg is None:
+        rep.add(WARN, "s1-v15-shape", "未找到财务总览章（secthead id=\"s1\"），无法校验 v0.0.15 形态")
+        return
+    bad = []
+    drills = re.findall(r'<tr class="drillrow">', seg)
+    if len(drills) > 3:
+        bad.append(f"杜邦下钻子行 {len(drills)} 行 >3——每因子 ≤1 行（判断只在 figtitle/takeaway）")
+    tm = _table_containing(seg, "五年位置")
+    if tm:
+        rows = [r for r in re.findall(r"<tr>(.*?)</tr>", tm.group(1), re.S) if "<th" not in r]
+        nob = sum(1 for r in rows if not re.search(r"上限区|下限区|常态区", r))
+        if nob:
+            bad.append(f"因子分位表 {nob}/{len(rows)} 行缺三档徽章（上限区/下限区/常态区）")
+        if re.search(r"显著", tm.group(0)):
+            bad.append("因子分位表内出现「显著」——n=5 位置读数（离散步长 25%）禁用统计措辞")
+    has_cash_table = _table_containing(seg, "净现比")
+    if not has_cash_table and "现金含量证据不足" not in seg:
+        bad.append("s1 未见现金时序表（净现比逐期），也无「现金含量证据不足」降级声明")
+    if "阶段判定" not in seg and "非周期" not in seg:
+        bad.append("s1 未见周期定位证据表（阶段判定行），也无「非周期行业」声明")
+    if bad:
+        rep.add(WARN, "s1-v15-shape", f"s1 杜邦双卡/证据表形态 {len(bad)} 处待确认", bad[:6])
+    else:
+        rep.add(OK, "s1-v15-shape",
+                "s1 v0.0.15 形态合规（下钻子行 ≤3、分位三档徽章、现金/周期证据表在位）")
+
+
+def check_dupont_stack(raw, data, rep):
+    """DUPONT_STACK 数据槽 ↔ derived.dupont 一致性（v0.0.15，仅 --json 模式）：
+    三效应×100（pct，呈现一位小数）与 json 比对；gap≠0 时槽内必须保留（视觉不许隐瞒加和缺口）。
+    槽语法解析失败只 WARN 不 FAIL——语法问题不该掩盖数据问题，且 WARN 已足够显眼。"""
+    m = re.search(r'DUPONT_STACK\s*=\s*\{\s*steps\s*:\s*(\[.*?\])\s*,\s*gap\s*:\s*([-0-9.eE]+)\s*\}',
+                  raw, re.S)
+    if not m:
+        rep.add(OK, "dupont-stack", "无 DUPONT_STACK 数据槽（杜邦降级缺省时正常）")
+        return
+    du = (data.get("derived") or {}).get("dupont") or {}
+    if all(du.get(k) is None for k in ("margin_effect", "turnover_effect", "leverage_effect")):
+        rep.add(OK, "dupont-stack", "derived.dupont 未填（口径断裂），堆叠条槽跳过比对")
+        return
+    try:
+        steps = ast.literal_eval(m.group(1))
+        gap = float(m.group(2))
+    except (ValueError, SyntaxError):
+        rep.add(WARN, "dupont-stack", "DUPONT_STACK 槽解析失败——检查 JS 数组字面量语法")
+        return
+    bad = []
+    expect = [du.get("margin_effect"), du.get("turnover_effect"), du.get("leverage_effect")]
+    names = ["净利率", "周转率", "杠杆"]
+    if len(steps) != 3:
+        bad.append(f"steps 应为 3 段效应（净利率/周转率/杠杆），实际 {len(steps)} 段")
+    else:
+        for i, (nm, v) in enumerate(steps):
+            e = expect[i]
+            if e is None:
+                continue
+            if abs(v - e * 100) > 0.15:
+                bad.append(f"堆叠条「{nm}」{v}pct ≠ derived.dupont 效应 {e * 100:.1f}pct"
+                           f"（×100 转 pct，容差 0.15）")
+            if nm != names[i]:
+                bad.append(f"堆叠条第 {i + 1} 段名「{nm}」应为「{names[i]}」（定序约定）")
+    g_e = du.get("closure_gap")
+    if g_e is not None and abs(gap - g_e * 100) > 0.15:
+        bad.append(f"堆叠条 gap={gap}pct ≠ closure_gap {g_e * 100:.1f}pct——口径差不许视觉隐瞒")
+    if bad:
+        rep.add(FAIL, "dupont-stack", "ΔROE 堆叠条数据槽与 derived.dupont 不符：" + "；".join(bad[:4]))
+    else:
+        rep.add(OK, "dupont-stack", "ΔROE 堆叠条数据槽与 derived.dupont 一致（含口径差段）")
 
 
 # ─────────────────────────── 主流程 ───────────────────────────
@@ -689,7 +797,9 @@ def main():
     check_ocf_bridge_shape(raw, rep)
     check_figtitle_attribution(body, rep, secs)
     check_inspection_verdict(body, rep)
+    check_s1_v15_shape(body, rep)
     if data is not None:
+        check_dupont_stack(raw, data, rep)
         check_numbers_vs_json(body, raw, data, rep, args.verbose)
         check_json_vs_md(data, Path(args.json_path).resolve(), rep, args.verbose)
 

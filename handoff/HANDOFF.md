@@ -1,6 +1,6 @@
 # HANDOFF · 交接文档
 
-> 版本 **0.0.14** · 截至 2026-09-27 · 本文档面向「下一个接手这个项目的人/AI 会话」
+> 版本 **0.0.15** · 截至 2026-09-28 · 本文档面向「下一个接手这个项目的人/AI 会话」
 > 仓库：https://github.com/jxbrex/financial-report-analysis-skill（**私密**）
 > 部署：`C:/Users/rexji/.agents/skills/financial-report-analysis/`（由 `deploy.cmd` 镜像）
 
@@ -22,7 +22,7 @@
 
 ---
 
-## 二、技能构成与两道门禁
+## 二、技能构成与三道门禁
 
 ### 技能现在的构成（19 个源文件）
 
@@ -40,18 +40,18 @@ financial-report-analysis/
 │   ├── data-sources.md         #   markitdown / tushare / 妙想 接口速查 + 港股路径 + OCR 降级
 │   └── report-types.md         #   年报/半年报/季报/招股书/港美股 差异
 ├── assets/report-template.html # 10 章单文件报告模板（4 个绘图函数、锚点 s0~s8 + review、置信度徽章）
-├── scripts/
-│   ├── calc.py                 #   数据层门禁（Phase 7.5）
-│   └── check_html.py           #   报告层门禁（Phase 8）
+├── scripts/                    #   calc.py 数据层门禁（Phase 7.5）+ check_html.py 报告层（Phase 8）
+│   │                           #   + check_render.py 渲染层 + gate.py 单入口 + md_clean.py 清洗
+│   │                           #   + ts_fetch.py 取数；calc 族：calc_common/calc_dupont/calc_evidence/calc_risk/calc_models(fill)
 ├── tests/                      # 金标准 fixtures + 回归入口
-│   ├── moutai_2025.json        #   干净样本（应零误报；schema 1.1，含 dfl/dol/ocf_to_liab）
-│   ├── kangdexin_2018.json     #   造假样本（应命中；含 parent_statements + D 组判定）
+│   ├── moutai_2025.json        #   干净样本（应零误报；schema 1.3，含 dupont5y/下钻/cash_ts 逐期）
+│   ├── kangdexin_2018.json     #   造假样本（应命中；含 parent_statements + D 组判定；dupont5y 口径断裂合法 null）
 │   ├── t8_demo.html / t8_demo_bad.html  # T8 数字回验验收样例（正确版 / 改错版）
-│   └── run_regression.py       #   唯一回归入口：19 条断言 + check_html 冒烟
+│   └── run_regression.py       #   唯一回归入口：49 条断言 + check_html 冒烟
 └── examples/                   # 标杆样本报告（few-shot）+ lookback-demo/（T6 回看机制示例）
 ```
 
-### 两道机器门禁 + 一条回归
+### 三道机器门禁 + 一条回归
 
 1. **`scripts/calc.py`（数据层，Phase 7.5，写报告前）**
    校验：结构/出处、核心科目覆盖度、资产=负债+权益、未分配利润滚动、三座桥闭合
@@ -63,8 +63,8 @@ financial-report-analysis/
    （下期清单/免责声明）、章节编号、锚点完整性、s2 瘦身形态、s8 阈值形态、回看归因；
    `--json` 启用 **T8 数字回验**：①级 HTML↔data.json 笔误检测（独特值 0.5% 窗口 FAIL）+
    ②级 data.json↔原文 md 行号回核。exit 0 才允许交付。
-3. **`python tests/run_regression.py`** —— 任何改动后必跑，**19 条断言**全绿才算没改坏
-   （含 calc 双例 16 条 + check_html 冒烟/s8-shape + T8 数字回验 3 条）。
+3. **`python tests/run_regression.py`** —— 任何改动后必跑，**49 条断言**全绿才算没改坏
+   （含 calc 双例 + check_html 冒烟 + T8 数字回验 + 构造用例）。
 
 ---
 
@@ -292,6 +292,7 @@ check_render 与 lieflat 框架相似均为部署独立约束下的有意保留�
 | 14 | ~~技能定性偏「排雷」~~ **已解决**（v0.0.6 T11：redflags 一节改名「经营背离信号」+ 三问范式，s2 章名保留加经营导向副标题） | — |
 | 15 | **T8 ①级对旧版式报告有固有噪音** | 存量四份 FAIL 15~28 处/份（与现行 json 的版本差 + 未覆盖科目撞脸），逐条定性非笔误；①级定位**新报告门禁**（json 当期底稿、版本同步时趋零，t8_demo 证 FAIL 0） |
 | 16 | **移动 json 的 src 行号与现行 md 不匹配**（T8②级 104/107 miss） | v0.0.4 底稿行号体系；下份移动报告重建底稿时按新 schema 修复；恒瑞 62 项 src 无行号同属旧形态 |
+| 17 | **v0.0.15 六项未验证**（周期股分位护栏/扣非真实触发/70% 升档阈值/激励线取数/peers 落库/堆叠条窄段形态） | 全部经构造用例或黄金样本临时验证，未经真实报告实战——首验场景见二·二十一节末表 |
 
 ---
 
@@ -307,6 +308,11 @@ check_render 与 lieflat 框架相似均为部署独立约束下的有意保留�
 ### P0（接着做，价值最高）
 
 **任务 0：~~新模板首份报告~~ 已完成（2026-09-15，见二·十一节）**
+
+**任务 0b：v0.0.15 新槽位真实首测（下一份报告即执行）**
+- 杜邦双卡（下钻子行/堆叠条/扣非触发）+ 三张证据表 + 判定列补齐 + S7 扩列全槽位填充
+- 优先选**周期股**（同时首验分位护栏）或**有激励计划的公司**（首验激励线取数）
+- 视觉验收按 L4 触发条件②执行（模板改动后首份，--png 逐章目检堆叠条与右卡）
 - 恒瑞医药 2025FY 已产出：两轮全部新槽位填充、calc FAIL 0、check_html --json FAIL 0 交付
 
 **任务 1：跑通港股/美股全流程（局限 1 的剩余部分）**
@@ -365,7 +371,7 @@ check_render 与 lieflat 框架相似均为部署独立约束下的有意保留�
 ```bash
 # 1. 确认环境
 cd "D:/KimiCodeProject/Financial Report Analysis"
-python financial-report-analysis/tests/run_regression.py   # 应 19/19 通过
+python financial-report-analysis/tests/run_regression.py   # 应 49/49 通过
 
 # 2. 部署（如需让技能在当前机器生效）
 cmd //c deploy.cmd
@@ -503,3 +509,117 @@ t8_demo_bad 冒烟（明细行两级均透出）；比亚迪报告在改动后 T
 + 本轮 v0.0.14 改动——下次发布链一个 commit，提交信息分段说明归属。
 二·十九遗留的 examples 标杆样本替换**已解锁**（比亚迪即首份 v0.0.13 模板真实报告），
 下轮执行。
+
+## 二·二十一、v0.0.15 轮：杜邦深化 + 全报告证据落表（2026-09-28，未发布）
+
+起因：外部评审报告（`财报分析skill评审工作报告-20260928.md`，12 项发现 P0×6/P1×4/P2×2）
++ 用户 grill 定案。评审三处事实错误经仓库核查修正：① F-11「S7 扩列零新增取数」不成立
+（schema 本无 peers 块，同业契约只取 3 指标——扩列实为取数流程改动）；② F-06 现金时序
+并非「已算完」——cash_ts 原只存 4 个汇总标量，逐期序列本轮补落库；③ F-08 四线考核只有
+Q4 有现成数据，激励线需公告取数。评审路线图漏 F-10/11/12 归属，本轮一并落地。
+
+### grill 收敛的关键决策（用户拍板）
+
+- **范围**：12 项一轮全做、一次发布 0.0.15（用户否决「分两版」建议——记录：单版风险是
+  改动面 10 文件，一项卡壳全部压住；本轮靠每阶段门禁全绿推进化解）
+- **方案 C（ROE 质量分层）否决**：主观「常态值」定义不可证伪；方案 D 因子分位已部分覆盖
+  「ROE 里周期撑了多少」（分位+周期定位组合给读者自判工具）
+- **LMDI 否决**：双驱动护栏（effects_ratio<1.5）已覆盖其检测场景；两套归因数字并置对
+  非专业读者是认知负担
+- **因子分位呈现**：表格+三档徽章（上限区/常态区/下限区），**否决精细刻度条**
+  （n=5 离散步长 25%，精细呈现=统计精度错觉）
+- **堆叠条做但带两硬条件**：closure_gap≠0 画第四段灰色口径差段（不许视觉隐瞒）；色按
+  方向（正/负）不按因子
+
+### 改动清单
+
+**schema 1.2→1.3**：dupont 扩（driver_fragile/effects_ratio/driver_second + margin_drill
+恒等四项 + turnover_drill 堆积定位 + leverage_drill 有息无息拆解与升档判定）；
++dupont_dt（扣非双版，触发式）/ +dupont5y（五年累计归因+分位）/ cash_ts 扩逐期数组 /
++cycle_evidence（周期三线读数）/ +threshold_check（四线贴线；激励线取数判断字段）/
++peers[]（同业落库块）。无息口径=应付账款及票据+合同负债，**不含其他应付款**
+（schema 无此字段，口径声明不假装完整）。
+
+**calc_models.py**：连环替代核心抽 `_chain`（当期/扣非/五年三处共用，公式只此一份）；
+compute_* 全为公式唯一定义处，check_* 同构复算；`--fill` 预填全部新块
+（threshold_check.incentive_line 为取数判断字段，fill 保留旧值不覆盖）。
+
+**模板**：左卡下钻子行（.drillrow 浅灰，每因子 ≤1 行，只放证据）+ `stackH` 堆叠条
+（新绘图函数）+ 锚点链接；右卡方案 A 表+方案 D 分位徽章表；S1 现金时序/周期证据双卡；
+S2 贴线检测表；S5 判定列+转固时点列+产能小表；S6 质押率列+高管增减持行；
+S7 同业表扩杜邦四列（vs 中位数差染色）；KPI ROE 卡扣非对照小字。
+
+**check_html**：`s1-v15-shape`（子行 ≤3/分位三档徽章/禁「显著」/双证据表在位）+
+`dupont-stack`（--json 比对数据槽↔derived.dupont，FAIL 级）；inspection-verdict 扩 s5。
+
+**frameworks.md**：第二节扩（下钻判读/质量排序条件化/双驱动护栏/扣非双版/五年归因+
+分位判读）；第六节阶段判定可核验化；第八节四线落表细则。SKILL.md Phase 2/7/7.5 同步。
+
+### 验证
+
+- 回归 **32→49 断言**全绿：茅台 +10（五新检查存活/schema 1.3/dupont5y 闭合/分位边界与
+  净利率 0 分位特征值/无息占比>0.9 特征值），康得新 +3（schema 1.3/dupont5y 合法降级
+  两断言），冒烟 +2（s1-v15-shape 存活/dupont-stack T8 路径），构造用例 +3
+- **构造用例**（两 fixture 均不覆盖触发路径，deepcopy 公式层直测）：扣非双版触发
+  （非经 30% 构造）/ 双驱动护栏（effects_ratio=1.47 构造）/ 话语权型杠杆升档
+  （杠杆主驱动构造，quality_upgrade=True）
+- 黄金样本临时验证（茅台数据填充模板副本，验毕即删、不重出成品）：check_html --json
+  的 dupont-stack/s1-v15-shape 全 OK；check_render 实测抓到真缺陷并修复——堆叠条相邻
+  窄段（杠杆/口径差共享边界）标签重叠 11px，改奇偶错层+名称数值合并单行后双视口 0 问题
+- 茅台五年归因手算对拍：净利率 −0.4/周转率 +7.0/杠杆 −2.8pct，分位 0/50/0，
+  与 fill 产出一致
+
+### 未验证项（下轮必读）
+
+| # | 项 | 首验场景 |
+|---|---|---|
+| 1 | 周期股因子分位护栏（分位挂周期定位解读） | 首份周期股报告（云铝/特变类） |
+| 2 | 扣非双版真实触发（构造已过，无真实样本） | 首份非经占比>20% 或口径差>1pct 的公司 |
+| 3 | 无息占比 70% / ΔDFL 0.1 升档阈值为经验起点 | 随样本校准（茅台 99.6% 命中为特征验证而非阈值验证） |
+| 4 | 激励线取数流程（mx_finance_search_notice 查考核目标） | 首份有股权激励计划的公司 |
+| 5 | peers[] 块填数与 S7 八列表呈现 | 下一份报告（取数清单已扩） |
+| 6 | 堆叠条窄段极端形态（单段 <5% 量程） | 首份实际产出的视觉验收（L4 触发条件②） |
+
+### 发布状态
+
+未发布。工作区遗留 = 本轮全部改动 + 热核审计整改（见下节）。
+~~历史欠账~~ 已证伪并更正：热核审计核实 tag/release 实际已到 v0.0.14（git tag 完整列表），
+我先前「tag 停在 v0.0.9」的记录是错的——被 `git tag | tail -5` 的字符串排序误导
+（v0.0.10 按字母序排在 v0.0.5 前）。教训：查 tag 用 `git tag | sort -V`，别用 tail。
+真实瑕疵只剩 tag 命名：`0.0.11` 缺 v 前缀、v0.0.5 的 commit message 误写「0.2.0 收尾」。
+
+### 热核审计整改（2026-09-28，用户触发热核审计 skill，v0.0.15 落地后当轮整改）
+
+推定阻断项成立并整改：**calc_models.py 1017 行跨过 1k 红线**（v0.0.12 审计曾以「无文件
+跨 1k」为通过标志）——纵向按模型族拆四文件：calc_dupont.py（386 行）/ calc_evidence.py /
+calc_risk.py / calc_models.py 降为 fill 编排层（235 行，不含公式）；hist_periods 与新增
+cmp_fields/cmp_series 批量比对助手上移 calc_common（330 行）。import 方向严格无环：
+calc_common ← 三族 ← calc_models(fill) ← calc.py。拆分后回归 49/49 绿，行为兼容。
+
+六项功能缺陷修复（全部来自审计实证，非自查）：① check_dupont_dt 假 OK（np_dt 缺失时
+「无法判定」被说成「未触发」——改 SKIP 前置分支）；② compute_cycle_evidence 期间标签错位
+（三条线长度不一时 periods 与数组错配——改前置补 null 右对齐）；③ cash_ts 注释承诺
+「缺则逐期 null」但 m∈{1,2} 时整块空——言行统一为「capex<3 期整块不填」；④ 激励线
+「部分填」门不完备 + share_payment 无类型卡口——补全；⑤ _chain 三效应全零时 driver
+恒落「净利率」无中生有——改 None；⑥ 周转率份额超 ±150%（ΔTA 对冲构成）无提示——
+fillsheet 加提示行（不进门禁，茅台特征值会触发 WARN，金标准不许）。
+
+顺手整改：fill「保留旧 src/note」8 处 4 种写法 → _filled 助手统一；9 处同构比对循环
+→ cmp_fields/cmp_series（字段型 7 + 序列型 2）；check_html 两处 tempered-dot 正则 →
+_table_containing 助手；回归构造用例 1 补恒等闭合断言（原只断非 None，为绿而绿）。
+模板 1009 行逼近 1k——单文件自包含是交付约束不拆文件，下轮若再加槽位须先精简注释。
+
+### 工程化评估（同轮，审计 B 报告；短板记入下版重点修订，本轮不展开做）
+
+| 维度 | 状态 | 要点 |
+|---|---|---|
+| 测试体系 | 🟡 | 断言设计质量高；ts_fetch.py 零测试、gate.py 仅 --help 冒烟、无浏览器环境渲染零覆盖 |
+| 门禁链 | 🟡 | references/*.md 方法库改动零机检，与 calc_common 无双源一致性核对，漂移无检测 |
+| 发布工程 | 🟡 | tag/release 已到 v0.0.14 ✅；无 CI（任务 6 挂起多轮）；deploy.cmd 不排除 __pycache__、部署后无验证 |
+| 文档同步 | 🔴 | 根 README.md 停在 v0.0.4（徽章/断言数/脚本清单/版本表四项全过时）；HANDOFF 构成图只列 2 脚本（实际 10）、references ×9→×10 漂移；v0.0.12/13/14 三轮已发布但轮节未归档（归档制滞后） |
+| 依赖环境 | ✅ | 零第三方依赖、Windows 耦合低 |
+| 可恢复性 | 🔴 | **回归不自包含**：md_clean 金标准依赖两份被 .gitignore 排除的原始报告 md——新机器 clone 后回归必红，快速上手未声明此依赖 |
+
+下版（v0.0.16）重点修订候选（按用户指示记录）：① 回归自包含化（两份原始 md 收进
+tests/fixtures/ 或改合成输入）；② 文档刷新轮（README 重写 + HANDOFF 构成图勘误 +
+已发布轮归档）；③ CI 落地（push 自动跑回归）+ ts_fetch/gate 冒烟断言。

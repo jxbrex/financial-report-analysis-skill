@@ -8,11 +8,13 @@
 
 ## 结构
 
-- `financial-report-analysis/` — 技能源（SKILL.md + references/×9 + assets/ + scripts/ + tests/ + examples/），**只改这里**
+- `financial-report-analysis/` — 技能源（SKILL.md + references/×10 + assets/ + scripts/ + tests/ + examples/），**只改这里**
   - `scripts/calc.py` — Phase 7.5 计算自检门禁（桥闭合/比率复算/勾稽三态/分部自洽/断言结构），exit 0 才允许写报告；
-    模块布局（v0.0.12 热核审计 1k 红线整改）：`calc_common.py`（共享助手 + 比率公式唯一定义处）+
-    `calc_models.py`（杜邦连环替代/破产双模型含中期年化与市值单位卡口/压力情景/现金时序），入口仍是 calc.py
-  - `scripts/check_html.py` — Phase 8 报告机检（占位符/裸数字启发式/数据来源/模板硬规则/必备要素/锚点/s8 阈值形态/回看归因 + v0.0.12 起缩写首现展开/OCF 桥项数/归因 figtitle 前瞻与复述/检验卡判定列四条 WARN）；exit 0 才允许交付；
+    模块布局（v0.0.12 起 1k 红线整改、v0.0.15 再拆）：`calc_common.py`（共享助手 + 比率公式唯一定义处 +
+    hist_periods/批量比对助手）+ `calc_dupont.py`（杜邦族：连环替代三口径/因子下钻/五年归因与分位）+
+    `calc_evidence.py`（周期证据/四线贴线/peers 结构）+ `calc_risk.py`（破产双模型/压力情景/现金时序）+
+    `calc_models.py`（fill 编排层，不含公式），入口仍是 calc.py
+  - `scripts/check_html.py` — Phase 8 报告机检（占位符/裸数字启发式/数据来源/模板硬规则/必备要素/锚点/s8 阈值形态/回看归因 + v0.0.12 起缩写首现展开/OCF 桥项数/归因 figtitle 前瞻与复述/检验卡判定列四条 WARN + v0.0.15 起 s1 杜邦双卡形态/ΔROE 堆叠条数据槽比对）；exit 0 才允许交付；
     模块布局：`check_html_common.py`（共享助手）+ `check_html_t8.py`（T8 数字回验：`--json` 启用，①级 HTML↔data.json 笔误检测（独特值 0.5% 窗口 FAIL）+ ②级 data.json↔原文 md 行号回核），入口仍是 check_html.py
 - `scripts/check_render.py` — 渲染测量门禁（可选但默认执行）：headless Chrome/Edge 真渲染后测量 SVG 文本重叠/HTML 溢出 .sheet/横向裁剪；`--png` 按章分片截图供 Phase 8 视觉验收；找不到浏览器声明跳过 exit 0，发现问题 exit 1
 - `scripts/gate.py` — 三道门禁单入口（v0.0.13）：calc → check_html --json → check_render 一条命令，统一退出码

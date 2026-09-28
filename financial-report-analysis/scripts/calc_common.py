@@ -273,3 +273,58 @@ def ratio_hist_series(data, name):
             continue
         out.append(ratio_hist_expect(name, v))
     return out
+
+
+# ─── 期间标签与批量比对助手（v0.0.15，被杜邦/证据/风险三族共用） ───
+
+# 期间标签倒推：同类型滚动（年报对 FY、半年报对 H1……），period 的 MMDD 与 report_type 必须一致
+_PERIOD_SUFFIX = {"年报": ("1231", ""), "半年报": ("0630", "H1"),
+                  "一季报": ("0331", "Q1"), "三季报": ("0930", "Q3")}
+
+
+def hist_periods(meta, n):
+    """从 meta.period/report_type 倒推 n 期同类型期间标签（旧→新）。无法推导返回 None。"""
+    period = str(meta.get("period") or "")
+    rt = meta.get("report_type")
+    if rt not in _PERIOD_SUFFIX or len(period) != 8 or not period.isdigit():
+        return None
+    md, suffix = _PERIOD_SUFFIX[rt]
+    if period[4:8] != md:
+        return None
+    y = int(period[:4])
+    return [f"{y - (n - 1 - i)}{suffix}" for i in range(n)]
+
+
+def cmp_fields(bad, label, node, exp, keys, tol=0.005, skip_none=False):
+    """扁平数值字段批量比对（derived vs 复算值）——各族 check_* 复用的唯一比对助手。
+    e=None（无法复算）时 skip_none=True 跳过、否则记「无法复算」；got=None（未填）记「未填」；
+    tol 为数值或 callable(expected→容差)。返回 bad（追加式）。"""
+    for k in keys:
+        got, e = num(node.get(k)), exp.get(k)
+        if e is None:
+            if not skip_none:
+                bad.append(f"{label}.{k} 无法复算")
+            continue
+        t = tol(e) if callable(tol) else tol
+        if got is None:
+            bad.append(f"{label}.{k} 未填")
+        elif abs(got - e) > t:
+            bad.append(f"{label}.{k} 不符：derived={got} vs 重算={e:.4f}")
+    return bad
+
+
+def cmp_series(bad, label, got, exp, tol=0.005):
+    """逐期数组比对（长度一致 + 逐元素，双 None 跳过，首处不符即停）——
+    cycle_evidence / cash_ts 等时序块复用。"""
+    got, exp = got or [], exp or []
+    if len(got) != len(exp):
+        bad.append(f"{label} 长度 {len(got)} ≠ 重算 {len(exp)}（须与 periods 对齐）")
+        return bad
+    for i, (g, x) in enumerate(zip(got, exp)):
+        gn = num(g)
+        if gn is None and x is None:
+            continue
+        if gn is None or x is None or abs(gn - x) > tol:
+            bad.append(f"{label}[{i}] 不符：derived={g} vs 重算={x}")
+            break
+    return bad
