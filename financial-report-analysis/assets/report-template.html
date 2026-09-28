@@ -830,7 +830,9 @@ function combo(id,labels,barA,barB,line,lineName,aName,bName){
    两面板等宽、各自独立缩放。收入与净利量级悬殊时同轴双柱会把矮柱压扁看不出趋势，
    而断轴违反「柱=长度」契约；双面板让每个面板各自保持柱=长度，量级悬殊不再吞掉副序列的趋势。
    右板可缺省设计（schema 未强制 np_dt hist）：np_dt 整列留空或某期为 null 时该期不画扣非柱、
-   图例不列扣非（降级为单柱）；roe 整列留空则整线跳过。roe 存小数，呈现时 ×100 显示 %。 */
+   图例不列扣非（降级为单柱）；roe 整列留空则整线跳过。roe 存小数，呈现时 ×100 显示 %。
+   支持负值柱（v0.0.16，万科五期连亏首触发）：值域强制含 0、零轴为基线，负值柱向下、圆端朝下、
+   标签随柱向（正上负下）；全正数据时 lo=0、y0=H-B，渲染与旧版逐像素一致。 */
 function trendDual(id,labels,rev,np,gm,np_dt,roe){
   const s=document.getElementById(id);if(!s||!labels.length)return;
   const W=+s.viewBox.baseVal.width,H=+s.viewBox.baseVal.height,B=44,T=52;
@@ -840,31 +842,36 @@ function trendDual(id,labels,rev,np,gm,np_dt,roe){
   np_dt=np_dt||[];roe=roe||[];
   const has_dt=np_dt.some(v=>v!=null);
   /* drawPanel：单柱或双柱（vals2 传 null 即单柱）；双柱成组仿 combo 几何（w=bw*.24），
-     有副序列时布局按双柱统一（某期缺数只跳画扣非柱，柱位不漂移），柱顶数字只标主序列 */
+     有副序列时布局按双柱统一（缺数只跳画扣非柱，柱位不漂移），标签只标主序列；返回 {hi,lo} 供 ROE 线标签避让取柱端点 */
   const drawPanel=(px0,vals,color,vals2,color2)=>{
     const has2=!!vals2&&vals2.some(v=>v!=null);
     const pool=has2?vals.concat(vals2.filter(v=>v!=null)):vals;
-    const max=Math.max(...pool)*1.15||1,bw=pw/n;
-    const step=niceStep(max/5);
-    for(let v=step;v<max;v+=step){
-      const gy=T+(H-B-T)*(1-v/max);
+    const hi=Math.max(0,...pool)*1.15||1, lo=Math.min(0,...pool)*1.15;
+    const span=hi-lo, y0=H-B-(H-B-T)*(0-lo)/span;
+    const step=niceStep(span/5);
+    for(let gv=Math.ceil(lo/step)*step;gv<hi;gv+=step){
+      const gy=T+(H-B-T)*(1-(gv-lo)/span);
       el(s,'line',{x1:px0,y1:gy,x2:px0+pw,y2:gy,stroke:FAINT,'stroke-width':.7,'stroke-dasharray':'3 3'});
-      txt(s,{x:px0-8,y:gy+3,'font-size':8.5,'font-weight':600,fill:MUT,'text-anchor':'end'},Math.round(v));
+      txt(s,{x:px0-8,y:gy+3,'font-size':8.5,'font-weight':600,fill:MUT,'text-anchor':'end'},Math.round(gv));
     }
-    el(s,'line',{x1:px0,y1:H-B,x2:px0+pw,y2:H-B,stroke:GRID,'stroke-width':1});
+    el(s,'line',{x1:px0,y1:y0,x2:px0+pw,y2:y0,stroke:GRID,'stroke-width':1});
+    const bw=pw/n;
     vals.forEach((v,i)=>{
       const w=has2?bw*.24:bw*.4;
       const x=has2?px0+i*bw+bw*.18:px0+i*bw+(bw-w)/2;
-      const h=(H-B-T)*v/max;
-      const r=capsule(s,x,H-B-h,w,h,w/2,color);
+      const yv=T+(H-B-T)*(1-(v-lo)/span);
+      const top=Math.min(yv,y0),hh=Math.abs(yv-y0);
+      const r=capsule(s,x,top,w,hh,w/2,color,v<0?'down':undefined);
       tip(r,`${labels[i]}：${v}`);
-      txt(s,{x:x+w/2,y:H-B-h-6,'font-size':10,'font-weight':800,fill:INK,'text-anchor':'middle'},v);
+      txt(s,{x:x+w/2,y:v>=0?top-6:top+hh+13,'font-size':10,'font-weight':800,fill:INK,'text-anchor':'middle'},v);
       if(has2&&vals2[i]!=null){
-        const h2=(H-B-T)*vals2[i]/max;
-        const r2=capsule(s,x+w+3,H-B-h2,w,h2,w/2,color2);
+        const yv2=T+(H-B-T)*(1-(vals2[i]-lo)/span);
+        const top2=Math.min(yv2,y0),hh2=Math.abs(yv2-y0);
+        const r2=capsule(s,x+w+3,top2,w,hh2,w/2,color2,vals2[i]<0?'down':undefined);
         tip(r2,`${labels[i]} 扣非净利：${vals2[i]}`);
       }
     });
+    return {hi:hi,lo:lo};
   };
   /* 左面板：收入（柱）+ 毛利率（线，独立缩放） */
   drawPanel(L,rev,C1);
@@ -876,25 +883,25 @@ function trendDual(id,labels,rev,np,gm,np_dt,roe){
     return [x,y];
   });
   el(s,'path',{d:'M'+pts.map(p=>p.join(' ')).join(' L '),fill:'none',stroke:INK,'stroke-width':1.8});
-  const lmaxBar=Math.max(...rev)*1.15||1; /* 与 drawPanel 单柱量程同式，供线标签避让柱顶数字 */
+  const lmaxBar=Math.max(...rev)*1.15||1; /* 与 drawPanel 全正形态量程同式，供线标签避让柱顶数字 */
   pts.forEach((p,i)=>{
     el(s,'circle',{cx:p[0],cy:p[1],r:3,fill:INK,stroke:'#fff','stroke-width':1.5});
     const barTop=H-B-(H-B-T)*rev[i]/lmaxBar;
     const ly=labelY(p[1],barTop);
     txt(s,{x:p[0],y:ly,'font-size':9,'font-weight':700,fill:MUT,'text-anchor':'middle',...HALO},gm[i]+'%');
   });
-  /* 右面板：归母净利柱（+扣非净利柱，可缺省） */
-  drawPanel(x2,np,C1,has_dt?np_dt:null,C2);
-  /* 右面板 ROE 线：小数 ×100 呈现 %，独立缩放，样式与左板毛利率线一致；
-     null 期跳点不画，只连连续非空段（断点不硬连，避免误读为连续趋势） */
+  /* 右面板：归母净利柱（+扣非净利柱，可缺省）；dom=柱值域，供 ROE 线标签避让 */
+  const dom=drawPanel(x2,np,C1,has_dt?np_dt:null,C2);
+  /* 右面板 ROE 线：小数 ×100 呈现 %，独立缩放（[min−span/2, max+span/2] 映射到线区），
+     样式与左板毛利率线一致；null 期跳点不画，只连连续非空段（断点不硬连，避免误读为连续趋势） */
   const rv=roe.map(v=>v==null?null:v*100);
   if(rv.some(v=>v!=null)){
     const vals=rv.filter(v=>v!=null);
     const span=Math.max(...vals)-Math.min(...vals)||1;
-    const lmax=Math.max(...vals)+span*.5,lmin=Math.min(...vals)-span*.5;
+    const rmax=Math.max(...vals)+span*.5,rmin=Math.min(...vals)-span*.5;
     const cx=i=>has_dt?x2+i*(pw/n)+(pw/n)*.42+1.5:x2+i*(pw/n)+(pw/n)/2; /* 双柱时锚柱组中心 */
-    const ry=v=>lT+(lB-lT)*(1-(v-lmin)/(lmax-lmin||1));
-    const rmaxBar=Math.max(...(has_dt?np.concat(np_dt.filter(v=>v!=null)):np))*1.15||1;
+    const ry=v=>lT+(lB-lT)*(1-(v-rmin)/(rmax-rmin||1)); /* 分母必须=rmax−rmin（=2×span）：除以 span 会把上半区点顶出 SVG */
+    const yOf=v=>T+(H-B-T)*(1-(v-dom.lo)/(dom.hi-dom.lo)); /* 柱端点 y（负值柱为底端） */
     let run=[];
     const flush=()=>{
       if(run.length>1){
@@ -906,7 +913,7 @@ function trendDual(id,labels,rev,np,gm,np_dt,roe){
       if(v==null){flush();return;}
       run.push(i);
       el(s,'circle',{cx:cx(i),cy:ry(v),r:3,fill:INK,stroke:'#fff','stroke-width':1.5});
-      const barTop=H-B-(H-B-T)*np[i]/rmaxBar;
+      const barTop=yOf(np[i]);
       const ly=labelY(ry(v),barTop);
       txt(s,{x:cx(i),y:ly,'font-size':9,'font-weight':700,fill:MUT,'text-anchor':'middle',...HALO},v.toFixed(2)+'%');
     });

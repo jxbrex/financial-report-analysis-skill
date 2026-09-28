@@ -1,0 +1,1728 @@
+{
+  "meta": {
+    "company": "万科A",
+    "code": "000002.SZ",
+    "market": "A股",
+    "period": "20260630",
+    "report_type": "半年报",
+    "disclose_date": "2026-08-28",
+    "unit": "亿元",
+    "source_md": "reports/archive/原始报告/万科A-000002-半年报-2026H1.clean.md",
+    "analyst_date": "2026-09-28",
+    "market_cap_cur": 467.68,
+    "schema_version": "1.3",
+    "currency": "CNY",
+    "accounting_standard": "CAS",
+    "industry_profile": "通用",
+    "cycle_stage": "下行",
+    "note": "房地产开发企业不在 industry-profiles 八类画像内，按通用框架执行并人工调焦（合同负债/存货/短债覆盖为核心勾稽项）；行业自2021年下半年进入深度调整，公司为个体化险期，阶段判定=下行后期"
+  },
+  "statements": {
+    "income": {
+      "revenue": {
+        "cur": 701.6911,
+        "prev": 1053.233,
+        "hist": [
+          2069.1629,
+          2008.9259,
+          1427.7876,
+          1053.233,
+          701.6911
+        ],
+        "level": "disc",
+        "src": "L3170 合并利润表；hist 双源核对 tushare income（2022H1-2025H1 与公开披露一致）",
+        "note": "原文：70,169,108,549.07 元"
+      },
+      "cost": {
+        "cur": 645.9993,
+        "prev": 948.2454,
+        "hist": [
+          1645.7107,
+          1629.9117,
+          1311.9204,
+          948.2454,
+          645.9993
+        ],
+        "level": "disc",
+        "src": "L3173 合并利润表；hist 源 tushare income",
+        "note": "原文：64,599,926,734.44 元"
+      },
+      "gross_profit": {
+        "cur": 55.6918,
+        "prev": 104.9876,
+        "level": "der",
+        "src": "L3170-L3173 推算",
+        "note": "收入-成本"
+      },
+      "tax_surcharge": {
+        "cur": 18.4153,
+        "prev": 35.6123,
+        "level": "disc",
+        "src": "L3174 合并利润表"
+      },
+      "sell_exp": {
+        "cur": 17.4159,
+        "prev": 31.641,
+        "level": "disc",
+        "src": "L3176 合并利润表"
+      },
+      "admin_exp": {
+        "cur": 25.0012,
+        "prev": 28.7071,
+        "level": "disc",
+        "src": "L3177-L3178 合并利润表"
+      },
+      "rd_exp": {
+        "cur": 2.1326,
+        "prev": 2.1556,
+        "level": "disc",
+        "src": "L3180 合并利润表"
+      },
+      "fin_exp": {
+        "cur": 40.6225,
+        "prev": 34.3038,
+        "hist": [
+          2.2372,
+          24.0689,
+          22.0476,
+          34.3038,
+          40.6225
+        ],
+        "level": "disc",
+        "src": "L3181-L3182 合并利润表；hist 源 tushare income fin_exp",
+        "note": "2022H1 财务费用仅 2.24 亿系利息收入高、汇兑收益抵减所致（tushare 口径）"
+      },
+      "interest_exp": {
+        "cur": 42.34,
+        "prev": 40.4274,
+        "level": "disc",
+        "src": "L3184 财务费用附注（其中：利息费用）",
+        "note": "原文：4,233,999,876.04 元"
+      },
+      "interest_inc": {
+        "cur": 8.4354,
+        "prev": null,
+        "level": "disc",
+        "src": "L3186/L7844 财务费用附注（利息收入）",
+        "note": "上期利息收入未在 clean md 中完整列示，填 null 不估"
+      },
+      "impair_loss": {
+        "cur": -42.6298,
+        "prev": -54.4695,
+        "level": "der",
+        "src": "L3194-L3197 合并利润表",
+        "note": "资产减值损失-39.3699（全部为存货跌价 L7898）+信用减值损失-3.2599（L3195）；上期 -51.4518-3.0177"
+      },
+      "invest_income": {
+        "cur": -33.4049,
+        "prev": -5.6798,
+        "level": "disc",
+        "src": "L3188 合并利润表",
+        "note": "其中对联营/合营企业投资收益 -31.6611 亿（L3189-3191）"
+      },
+      "fv_change_income": {
+        "cur": -1.0828,
+        "prev": -0.7304,
+        "level": "disc",
+        "src": "L3193 合并利润表"
+      },
+      "non_op_income": {
+        "cur": 2.363,
+        "prev": 3.7564,
+        "level": "disc",
+        "src": "L3202 合并利润表"
+      },
+      "other_biz_income": {
+        "cur": 30.1289,
+        "prev": 37.9708,
+        "level": "disc",
+        "src": "L7715 营业收入和营业成本附注",
+        "note": "其他业务收入；其中养殖业务 24.2178 亿（上期 28.8785 亿，L7718）"
+      },
+      "non_op_net": {
+        "cur": -9.7696,
+        "prev": -3.1434,
+        "level": "der",
+        "src": "L771/L3202-3205 推算",
+        "note": "营业外收入2.3630-营业外支出12.1326；上期 3.7564-6.9000；营业外支出本期含滞纳金增加（L772）"
+      },
+      "np_total": {
+        "cur": -160.2125,
+        "prev": -108.6498,
+        "hist": [
+          181.0275,
+          151.7822,
+          -85.2074,
+          -108.6498,
+          -160.2125
+        ],
+        "level": "der",
+        "src": "L3211 合并利润表；hist=归母+少数股东（tushare 双源）",
+        "note": "原文：-16,021,252,516.15 元"
+      },
+      "np_at": {
+        "cur": -149.5127,
+        "prev": -119.4657,
+        "hist": [
+          122.2266,
+          98.7047,
+          -98.525,
+          -119.4657,
+          -149.5127
+        ],
+        "level": "disc",
+        "src": "L3218/L161 合并利润表；hist 源 tushare income n_income_attr_p"
+      },
+      "np_dt": {
+        "cur": -138.4044,
+        "prev": -115.9102,
+        "level": "disc",
+        "src": "L162 主要会计数据摘要",
+        "note": "扣非归母仅摘要表披露，利润表无此行"
+      },
+      "minority_np": {
+        "cur": -10.6998,
+        "prev": 10.8159,
+        "hist": [
+          58.8008,
+          52.9774,
+          13.3175,
+          10.8159,
+          -10.6998
+        ],
+        "level": "disc",
+        "src": "L3219 合并利润表；hist 源 tushare income minority_gain"
+      },
+      "income_tax": {
+        "cur": 25.3126,
+        "prev": 17.2663,
+        "hist": [
+          62.5646,
+          55.3447,
+          4.6373,
+          17.2663,
+          25.3126
+        ],
+        "level": "disc",
+        "src": "L3208-L3209 合并利润表；hist 源 tushare income income_tax",
+        "note": "亏损仍有所得税费用系应税子公司盈利与递延税影响"
+      },
+      "by_segment": [
+        {
+          "name": "房地产开发及相关资产经营",
+          "basis": "industry",
+          "rev_cur": 486.9715,
+          "rev_prev": 844.3605,
+          "cost_cur": 457.4638,
+          "cost_prev": 770.8754,
+          "vol_cur": null,
+          "vol_prev": null,
+          "price_cur": null,
+          "price_prev": null,
+          "price_unit": null,
+          "intercompany_eliminated": null,
+          "src": "L7731-L7733 主营业务分行业表",
+          "note": "其中房地产销售收入 400.6360 亿（上期 740.4922 亿，L7738）"
+        },
+        {
+          "name": "物业服务",
+          "basis": "industry",
+          "rev_cur": 184.5907,
+          "rev_prev": 170.9017,
+          "cost_cur": 161.2076,
+          "cost_prev": 147.0831,
+          "vol_cur": null,
+          "vol_prev": null,
+          "price_cur": null,
+          "price_prev": null,
+          "price_unit": null,
+          "intercompany_eliminated": null,
+          "src": "L7734 主营业务分行业表"
+        },
+        {
+          "name": "其他业务(养殖等)",
+          "basis": "product",
+          "rev_cur": 30.1289,
+          "rev_prev": 37.9708,
+          "cost_cur": 27.328,
+          "cost_prev": 30.2869,
+          "vol_cur": null,
+          "vol_prev": null,
+          "price_cur": null,
+          "price_prev": null,
+          "price_unit": null,
+          "intercompany_eliminated": null,
+          "src": "L7715 营业收入附注其他业务"
+        }
+      ]
+    },
+    "balance": {
+      "cash": {
+        "cur": 590.4929,
+        "prev": 672.4095,
+        "level": "disc",
+        "src": "L2975 合并资产负债表",
+        "note": "原文：59,049,286,XXX 见 L2975；现金及现金等价物口径 530.8294 亿（L8150）"
+      },
+      "restricted_cash": {
+        "cur": 59.6635,
+        "prev": null,
+        "level": "disc",
+        "src": "L8224/L5334 货币资金附注",
+        "note": "使用受限或账户冻结的货币资金"
+      },
+      "ar": {
+        "cur": 110.6781,
+        "prev": 95.1908,
+        "hist": [
+          65.2242,
+          91.0101,
+          95.4971,
+          93.1216,
+          110.6781
+        ],
+        "hist_ye": [
+          47.436,
+          75.0469,
+          72.9363,
+          81.1076,
+          95.1908
+        ],
+        "level": "disc",
+        "src": "L2980 合并资产负债表；hist/hist_ye 源 tushare balancesheet accounts_receiv 双源一致"
+      },
+      "ar_notes": {
+        "cur": null,
+        "prev": null,
+        "src": "L2976-L2980 合并资产负债表",
+        "note": "无应收票据及应收款项融资科目（按 0 参与 A4/B1 复算）"
+      },
+      "other_ar": {
+        "cur": 1705.9571,
+        "prev": 1754.1418,
+        "level": "disc",
+        "src": "L2982-L2983 合并资产负债表"
+      },
+      "inventory": {
+        "cur": 3459.5789,
+        "prev": 3737.381,
+        "hist": [
+          10230.2687,
+          8370.2742,
+          6204.0469,
+          4625.1854,
+          3459.5789
+        ],
+        "hist_ye": [
+          10756.1704,
+          9070.5693,
+          7016.9579,
+          5190.0944,
+          3737.381
+        ],
+        "level": "disc",
+        "src": "L2987 合并资产负债表；hist/hist_ye 源 tushare inventories 双源一致"
+      },
+      "contract_liab": {
+        "cur": 775.5317,
+        "prev": 930.5738,
+        "level": "disc",
+        "src": "L3042 合并资产负债表"
+      },
+      "payable": {
+        "cur": 1163.0662,
+        "prev": 1306.3184,
+        "hist": [
+          3106.8995,
+          2589.2265,
+          1932.5774,
+          1362.3161,
+          1163.0662
+        ],
+        "hist_ye": [
+          3304.1114,
+          2892.1643,
+          2216.881,
+          1600.3304,
+          1306.3184
+        ],
+        "level": "disc",
+        "src": "L3038-L3039 合并资产负债表（本期值 spill 于 L3038）；hist/hist_ye 源 tushare acct_payable",
+        "note": "应付账款口径，无应付票据"
+      },
+      "fixed_assets": {
+        "cur": 181.1977,
+        "prev": 190.1578,
+        "level": "disc",
+        "src": "L3002 合并资产负债表"
+      },
+      "cip": {
+        "cur": 9.5023,
+        "prev": 9.3263,
+        "level": "disc",
+        "src": "L3003-L3004 合并资产负债表"
+      },
+      "goodwill": {
+        "cur": 56.9812,
+        "prev": 57.0366,
+        "level": "disc",
+        "src": "L3009-L3010 合并资产负债表"
+      },
+      "st_debt": {
+        "cur": 288.9202,
+        "prev": 263.3138,
+        "level": "disc",
+        "src": "L3036 合并资产负债表"
+      },
+      "noncur_due_1y": {
+        "cur": 1540.1233,
+        "prev": 1366.5028,
+        "level": "disc",
+        "src": "L3050 合并资产负债表"
+      },
+      "lt_debt": {
+        "cur": 1510.5973,
+        "prev": 1828.7751,
+        "level": "der",
+        "src": "L3055/L3057/L3059 推算",
+        "note": "长期借款1300.0219+应付债券95.0406+租赁负债(非流动)115.5348；上期1571.8581+112.9535+143.9635"
+      },
+      "total_assets": {
+        "cur": 9597.6148,
+        "prev": 10206.2283,
+        "hist": [
+          18792.0224,
+          16841.9641,
+          14228.1902,
+          11941.4887,
+          9597.6148
+        ],
+        "hist_ye": [
+          19386.3813,
+          17571.2444,
+          15048.5017,
+          12862.599,
+          10206.2283
+        ],
+        "level": "disc",
+        "src": "L3018 合并资产负债表；hist/hist_ye 源 tushare total_assets 双源一致"
+      },
+      "total_liab": {
+        "cur": 7439.5525,
+        "prev": 7847.6277,
+        "hist": [
+          14874.9368,
+          12815.5193,
+          10377.6182,
+          8729.8833,
+          7439.5525
+        ],
+        "level": "disc",
+        "src": "L3066 合并资产负债表；hist 源 tushare total_liab"
+      },
+      "equity_at": {
+        "cur": 1021.812,
+        "prev": 1169.0522,
+        "hist": [
+          2342.3488,
+          2493.2667,
+          2416.7856,
+          1914.4082,
+          1021.812
+        ],
+        "level": "disc",
+        "src": "L3077 合并资产负债表；hist 源 tushare total_hldr_eqy_exc_min_int",
+        "note": "2025 全年亏损 885.56 亿（tushare income 20251231 双源）致归母净资产由 2024 年末 2026.66 亿降至 1169.05 亿"
+      },
+      "minority_eq": {
+        "cur": 1136.2503,
+        "prev": 1189.5483,
+        "level": "disc",
+        "src": "L3079 合并资产负债表"
+      },
+      "retained_cur": {
+        "cur": -593.6987,
+        "prev": -444.186,
+        "level": "disc",
+        "src": "L3076 合并资产负债表",
+        "note": "未分配利润(累计亏损)"
+      },
+      "surplus_reserve": {
+        "cur": 1262.2754,
+        "prev": 1262.2754,
+        "level": "disc",
+        "src": "L3074 合并资产负债表",
+        "note": "本期无提取（亏损期）"
+      },
+      "dividend_paid": {
+        "cur": 0.0,
+        "prev": 0.0,
+        "level": "disc",
+        "src": "L350 重要提示",
+        "note": "2026 中期不派现不送股不转增；2024/2025 年度亦未分红"
+      },
+      "prepayment": {
+        "cur": 180.6097,
+        "prev": 181.0175,
+        "level": "disc",
+        "src": "L2981 合并资产负债表"
+      },
+      "fin_assets": {
+        "cur": 1029.3865,
+        "prev": 1079.7514,
+        "level": "der",
+        "src": "L2976/L2996/L2999 推算",
+        "note": "交易性金融资产0.1797+长期股权投资1029.2068+其他非流动金融资产0（上期0.6802+1069.1196+9.9516）"
+      },
+      "payable_construction": {
+        "cur": null,
+        "prev": null,
+        "src": "未单独披露",
+        "note": "按 0 参与 A6 复算"
+      },
+      "total_cur_assets": {
+        "cur": 6530.2465,
+        "prev": 6973.7385,
+        "level": "disc",
+        "src": "L2992 合并资产负债表"
+      },
+      "total_cur_liab": {
+        "cur": 5534.2983,
+        "prev": 5651.9795,
+        "level": "disc",
+        "src": "L3052-L3053 合并资产负债表"
+      }
+    },
+    "cashflow": {
+      "ocf": {
+        "cur": 4.9477,
+        "prev": -30.387,
+        "hist": [
+          82.8802,
+          18.645,
+          -51.7633,
+          -30.387,
+          4.9477
+        ],
+        "level": "disc",
+        "src": "L3348/L163 合并现金流量表；hist 源 tushare n_cashflow_act 双源一致"
+      },
+      "sales_cash": {
+        "cur": 478.9086,
+        "prev": 616.5427,
+        "level": "disc",
+        "src": "L3337 合并现金流量表"
+      },
+      "capex": {
+        "cur": 5.1124,
+        "prev": 12.1314,
+        "hist": [
+          51.4621,
+          29.4288,
+          24.68,
+          12.1314,
+          5.1124
+        ],
+        "level": "disc",
+        "src": "L3361 合并现金流量表；hist 源 tushare c_pay_acq_const_fiolta"
+      },
+      "dep_amort": {
+        "cur": 45.1054,
+        "prev": 53.0644,
+        "level": "der",
+        "src": "L8134-L8136 现金流量表补充资料",
+        "note": "固定资产及投资性房地产折旧27.1774+无形及长期待摊费用摊销11.7862+使用权资产折旧6.1418；上期30.2075+11.6222+11.2347"
+      },
+      "wage_cash": {
+        "cur": 95.0686,
+        "prev": 96.0726,
+        "level": "disc",
+        "src": "L3342 合并现金流量表"
+      },
+      "interest_paid": {
+        "cur": 33.5458,
+        "prev": 82.2339,
+        "level": "disc",
+        "src": "L3394 合并现金流量表",
+        "note": "分配股利、利润或偿付利息支付的现金（本期无分红，全部为付息及子公司付少数股东股利）"
+      }
+    }
+  },
+  "parent_statements": {
+    "cash": {
+      "cur": 8.5446,
+      "prev": 8.4879,
+      "level": "disc",
+      "src": "L3103 母公司资产负债表"
+    },
+    "retained_cur": {
+      "cur": -628.7827,
+      "prev": -482.7341,
+      "level": "disc",
+      "src": "L3147 母公司资产负债表"
+    },
+    "other_ar": {
+      "cur": 3560.7437,
+      "prev": 3729.2757,
+      "level": "disc",
+      "src": "L3104 母公司资产负债表"
+    },
+    "invest_income": {
+      "cur": 5.8119,
+      "prev": 153.2707,
+      "level": "disc",
+      "src": "L3289 母公司利润表"
+    },
+    "ocf": {
+      "cur": 35.6724,
+      "prev": 34.3446,
+      "level": "disc",
+      "src": "L3434 母公司现金流量表"
+    },
+    "np_total": {
+      "cur": -146.0486,
+      "prev": 140.8457,
+      "level": "disc",
+      "src": "L3309 母公司利润表",
+      "note": "母公司持续经营净利润；本期母公司财务费用 21.0206 亿经营业利润公式闭合验证"
+    }
+  },
+  "notes": {
+    "ar_aging": [
+      {
+        "bucket": "1年以内",
+        "cur": 91.4559,
+        "prev": null,
+        "prov_rate_cur": 0.035,
+        "prov_rate_prev": null,
+        "src": "L5370 应收账款附注"
+      },
+      {
+        "bucket": "1-3年",
+        "cur": 18.6863,
+        "prev": null,
+        "prov_rate_cur": 0.1665,
+        "prov_rate_prev": null,
+        "src": "L5371 应收账款附注"
+      },
+      {
+        "bucket": "3年以上",
+        "cur": 15.5076,
+        "prev": null,
+        "prov_rate_cur": 0.5584,
+        "prov_rate_prev": null,
+        "src": "L5372 应收账款附注"
+      }
+    ],
+    "ar_writeoff": {
+      "cur": null,
+      "src": "未披露本期核销额",
+      "note": "坏账准备 roll-forward 未单列核销行"
+    },
+    "ar_provision": {
+      "cur": 14.9716,
+      "prev": null,
+      "charged": 1.6749,
+      "reversed": 0.0924,
+      "src": "L5355-L5357/L5408 应收账款附注",
+      "note": "账面余额125.6498亿-坏账准备14.9716亿=净值110.6781亿；本期计提1.6749、收回或转回0.0924"
+    },
+    "ar_factoring": {
+      "cur": null,
+      "src": "未披露保理/证券化出表"
+    },
+    "inventory_mix": [
+      {
+        "name": "已完工开发产品",
+        "cur": 1068.37,
+        "prev": null,
+        "src": "L5643 存货附注",
+        "note": "净额（余额1143.1054-跌价准备74.7354）"
+      },
+      {
+        "name": "在建开发产品",
+        "cur": 1576.1817,
+        "prev": null,
+        "src": "L5644 存货附注",
+        "note": "净额（余额1739.6110-跌价准备163.4293）"
+      },
+      {
+        "name": "拟开发产品",
+        "cur": 788.1729,
+        "prev": null,
+        "src": "L5645 存货附注",
+        "note": "净额（余额835.0621-跌价准备46.8892）"
+      },
+      {
+        "name": "其他",
+        "cur": 26.8544,
+        "prev": null,
+        "src": "L5646 存货附注"
+      }
+    ],
+    "inventory_provision": {
+      "cur": 285.0539,
+      "prev": 266.4177,
+      "cur_reversed": 20.7337,
+      "src": "L5663-L5666 存货跌价准备 roll-forward",
+      "note": "期初266.4177+本期计提39.3699-转回或转销20.7337=期末285.0539；附注列示为合并行未拆分转回/转销"
+    },
+    "cip_projects": [
+      {
+        "name": "物流冷库",
+        "budget": null,
+        "invested_cur": 6.6382,
+        "progress": null,
+        "transferred": null,
+        "src": "L6815 在建工程附注"
+      },
+      {
+        "name": "租入经营性物业",
+        "budget": null,
+        "invested_cur": 0.2559,
+        "progress": null,
+        "transferred": null,
+        "src": "L6816 在建工程附注"
+      },
+      {
+        "name": "其他",
+        "budget": null,
+        "invested_cur": 2.6082,
+        "progress": null,
+        "transferred": null,
+        "src": "L6817 在建工程附注",
+        "note": "本期转入固定资产及长期待摊费用合计 3.1939 亿（L6820）"
+      }
+    ],
+    "goodwill_test": {
+      "growth_assumption": null,
+      "discount_rate": null,
+      "src": "半年报未披露减值测试假设"
+    },
+    "audit": {
+      "opinion": "审阅（有限保证）+持续经营重大不确定性强调事项段；上年度（2025年报）为保留意见（附持续经营重大不确定性段落）",
+      "kam": [],
+      "fee_cur": null,
+      "fee_prev": null,
+      "auditor_changed": false,
+      "src": "L2916-L2958 审阅报告；L1269-L1273 董事会对上年度非标意见说明"
+    },
+    "employees": {
+      "headcount_cur": null,
+      "headcount_prev": null,
+      "src": "半年报未披露员工人数",
+      "note": "人效三维无法执行（缺人数线），仅收入/职工现金两线：收入-33.4% vs 支付职工现金-1.0%"
+    },
+    "subsequent_events": [
+      {
+        "date": "2026-07-07",
+        "event": "23万科MTN004：回售部分40%本金（约8亿）兑付+60%（约12亿）展期至2027-07-07",
+        "verifies": "半年报『公开债部分兑付+展期』模式在期后延续执行",
+        "src": "半年报附注(十三)2（mx_finance_search_notice AN202608271828553837_38）"
+      },
+      {
+        "date": "2026-07-24",
+        "event": "H3万科01（原23万科01）：40%兑付+60%展期至2027-07-24",
+        "verifies": "同上",
+        "src": "半年报附注(十三)2"
+      },
+      {
+        "date": "2026-07-26",
+        "event": "H1万科06（原21万科06）：40%兑付+60%展期至2027-07-26",
+        "verifies": "同上",
+        "src": "半年报附注(十三)2"
+      },
+      {
+        "date": "2026-07",
+        "event": "深铁集团新增股东借款 9.27 亿元（2026年内累计约 40 亿）",
+        "verifies": "大股东输血节奏持续",
+        "src": "半年报附注(十三)1（mx AN202608271828553837_38）"
+      },
+      {
+        "date": "2026-08-28",
+        "event": "累计诉讼仲裁公告：2026-03-01至07-31新增未披露未结案诉讼仲裁涉案 120.41 亿元（占最近一期经审计净资产 10.30%）",
+        "verifies": "流动性压力的司法维度在累积",
+        "src": "mx_finance_search_notice AN202608271828553935"
+      },
+      {
+        "date": "2026-09-22",
+        "event": "A股股票交易异常波动公告；重申短债+股东借款1788.6亿 vs 现金等价物530.8亿",
+        "verifies": "二级市场对公司流动性预期的波动",
+        "src": "mx_finance_search_notice AN202609221829765424"
+      },
+      {
+        "date": "2026-09-24",
+        "event": "担保进展公告：公司及控股子公司担保余额 936.36 亿元=2025年末经审计归母净资产的 80.10%，无逾期担保",
+        "verifies": "表外或有负债敞口",
+        "src": "mx_finance_search_notice AN202609271829937143"
+      }
+    ],
+    "shareholders": {
+      "holder_num_cur": 466444,
+      "holder_num_prev": null,
+      "top10_changes": [
+        "深铁集团 27.18% 持股不变、无质押冻结（L2350）",
+        "HKSCC NOMINEES（H股名义持有人）18.49%，-4,000股",
+        "香港中央结算（深股通）1.23%，+12,431,207股",
+        "招商沪深300地产等权指数分级基金 0.87%，+53,785,360股（大幅增持）",
+        "南方中证全指房地产ETF 0.45%，-4,470,400股",
+        "徐小雅 0.26% 新进 +30,475,236股；吕强 0.25% 新进 +29,740,900股",
+        "中央汇金、证金、招商财富资管等 2025H1 前十大股东本期退出前十"
+      ],
+      "pledge_ratio": 0.0,
+      "src": "L2340 股东户数；L2350-L2363 前十大股东",
+      "note": "2025-12-31 户数本报告未披露；2026-07-31 为 458,102 户（较 6-30 降 1.8%）；深铁质押冻结=0"
+    },
+    "capacity": [
+      {
+        "product": "房地产开发：销售金额（亿元）",
+        "capacity": null,
+        "output": 358.0,
+        "utilization": null,
+        "src": "L223/L356 MD&A"
+      },
+      {
+        "product": "房地产开发：销售面积（万㎡）",
+        "capacity": null,
+        "output": 293.0,
+        "utilization": null,
+        "src": "L356 MD&A"
+      },
+      {
+        "product": "房地产开发：交付（万套/项目数88个）",
+        "capacity": null,
+        "output": 2.3,
+        "utilization": null,
+        "src": "L413 MD&A"
+      },
+      {
+        "product": "已售未结金额（亿元）",
+        "capacity": null,
+        "output": 915.1,
+        "utilization": null,
+        "src": "L409-411 MD&A"
+      },
+      {
+        "product": "物业（万物云全口径收入，亿元）",
+        "capacity": null,
+        "output": 191.9,
+        "utilization": null,
+        "src": "L499 MD&A"
+      },
+      {
+        "product": "租赁住宅（泊寓出租率）",
+        "capacity": null,
+        "output": 0.943,
+        "utilization": null,
+        "src": "L526 MD&A"
+      }
+    ]
+  },
+  "peers": [
+    {
+      "name": "保利发展",
+      "code": "600048.SH",
+      "gross_margin": 0.1303,
+      "rd_ratio": null,
+      "debt_to_assets": 0.7179,
+      "net_margin": 0.0314,
+      "asset_turnover": 0.087,
+      "equity_multiplier": 3.5462,
+      "roe": 0.01,
+      "src": "东方财富公开数据 2026-09-28（子代理取数，2026H1 口径）",
+      "note": "equity_multiplier=1/(1-资产负债率) 推算"
+    },
+    {
+      "name": "招商蛇口",
+      "code": "001979.SZ",
+      "gross_margin": 0.1329,
+      "rd_ratio": null,
+      "debt_to_assets": 0.6738,
+      "net_margin": 0.0135,
+      "asset_turnover": 0.066,
+      "equity_multiplier": 3.0656,
+      "roe": 0.0054,
+      "src": "东方财富公开数据 2026-09-28（子代理取数，2026H1 口径）",
+      "note": "equity_multiplier=1/(1-资产负债率) 推算"
+    },
+    {
+      "name": "金地集团",
+      "code": "600383.SH",
+      "gross_margin": 0.1688,
+      "rd_ratio": null,
+      "debt_to_assets": 0.6421,
+      "net_margin": -0.2695,
+      "asset_turnover": 0.055,
+      "equity_multiplier": 2.794,
+      "roe": -0.0624,
+      "src": "东方财富公开数据 2026-09-28（子代理取数，2026H1 口径）",
+      "note": "equity_multiplier=1/(1-资产负债率) 推算"
+    },
+    {
+      "name": "滨江集团",
+      "code": "002244.SZ",
+      "gross_margin": 0.1196,
+      "rd_ratio": null,
+      "debt_to_assets": 0.7238,
+      "net_margin": 0.0748,
+      "asset_turnover": 0.16,
+      "equity_multiplier": 3.6206,
+      "roe": 0.0513,
+      "src": "东方财富公开数据 2026-09-28（子代理取数，2026H1 口径）",
+      "note": "equity_multiplier=1/(1-资产负债率) 推算；民营房企中唯一稳定盈利"
+    }
+  ],
+  "derived": {
+    "ratios": {
+      "roe": {
+        "cur": -0.1463,
+        "prev": -0.0624,
+        "hist": [
+          0.0522,
+          0.0396,
+          -0.0408,
+          -0.0624,
+          -0.1463
+        ]
+      },
+      "gross_margin": {
+        "cur": 0.0794,
+        "prev": 0.0997,
+        "hist": [
+          0.2046,
+          0.1887,
+          0.0812,
+          0.0997,
+          0.0794
+        ]
+      },
+      "net_margin": {
+        "cur": -0.2131,
+        "prev": -0.1134,
+        "hist": [
+          0.0591,
+          0.0491,
+          -0.069,
+          -0.1134,
+          -0.2131
+        ]
+      },
+      "net_cash_ratio": {
+        "cur": -0.0331,
+        "prev": 0.2544,
+        "hist": [
+          0.6781,
+          0.1889,
+          0.5254,
+          0.2544,
+          -0.0331
+        ]
+      },
+      "cash_to_sales": {
+        "cur": 0.6825,
+        "prev": null,
+        "hist": [
+          0.6825
+        ]
+      },
+      "debt_to_assets": {
+        "cur": 0.7751,
+        "prev": 0.7311,
+        "hist": [
+          0.7916,
+          0.7609,
+          0.7294,
+          0.7311,
+          0.7751
+        ]
+      },
+      "asset_turnover": {
+        "cur": 0.0709,
+        "prev": 0.0849,
+        "hist": [
+          0.1084,
+          0.1168,
+          0.0975,
+          0.0849,
+          0.0709
+        ]
+      },
+      "equity_multiplier": {
+        "cur": 9.3927,
+        "prev": 6.2377,
+        "hist": [
+          8.0227,
+          6.755,
+          5.8872,
+          6.2377,
+          9.3927
+        ]
+      },
+      "dso": {
+        "cur": 53.5436,
+        "prev": 30.1897,
+        "hist": [
+          9.9366,
+          15.0854,
+          21.5292,
+          30.1897,
+          53.5436
+        ]
+      },
+      "dio": {
+        "cur": 2033.1991,
+        "prev": 1889.0559,
+        "hist": [
+          2327.2773,
+          1952.8383,
+          1839.1614,
+          1889.0559,
+          2033.1991
+        ]
+      },
+      "dpo": {
+        "cur": 697.621,
+        "prev": 570.1931,
+        "hist": [
+          710.9448,
+          613.7472,
+          577.2272,
+          570.1931,
+          697.621
+        ]
+      },
+      "ccc": {
+        "cur": 1389.1217,
+        "prev": 1349.0525,
+        "hist": [
+          1626.2691,
+          1354.1764,
+          1283.4634,
+          1349.0525,
+          1389.1217
+        ]
+      },
+      "dfl": {
+        "cur": 0.6989,
+        "prev": 0.6246,
+        "hist": [
+          1.0092,
+          1.1162,
+          0.7264,
+          0.6246,
+          0.6989
+        ]
+      },
+      "dol": {
+        "cur": 0.5216,
+        "prev": null,
+        "hist": [
+          0.5216
+        ],
+        "note": "历史期折旧摊销（含使用权资产）披露不全，hist 缺口径不补"
+      },
+      "short_debt_cover": {
+        "cur": 0.3255
+      },
+      "incr_expense_eff": {
+        "cur": 4.2367,
+        "note": "Δ毛利-49.30亿 / Δ期间费用+11.64亿（费用下降），增量效率为负无判读意义"
+      },
+      "incr_sales_eff": {
+        "cur": 24.7128,
+        "note": "Δ收入-351.54亿 / Δ销售费用-14.23亿（收缩期无判读意义）"
+      },
+      "nonrecurring_share": {
+        "cur": 0.0743,
+        "note": "非经=-11.1083亿（归母-149.5127 - 扣非-138.4044），亏损加重项非粉饰项"
+      },
+      "non_main_rev_share": {
+        "cur": -0.0028,
+        "note": "(营业外2.3630+其他业务30.1289+投资收益-33.4049+公允价值-1.0828)/收入701.6911≈-0.004"
+      },
+      "ocf_to_liab": {
+        "cur": 0.0006
+      }
+    },
+    "dupont": {
+      "margin_effect": -0.0528,
+      "turnover_effect": 0.0186,
+      "leverage_effect": -0.0477,
+      "roe_product_cur": -0.1419,
+      "roe_product_prev": -0.0601,
+      "closure_gap": -0.002,
+      "driver": "净利率",
+      "driver_fragile": true,
+      "effects_ratio": 1.1076,
+      "driver_second": "杠杆",
+      "margin_drill": {
+        "op_effect": -0.0802,
+        "tax_effect": -0.0197,
+        "interest_effect": -0.0253,
+        "minority_effect": 0.0255
+      },
+      "turnover_drill": {
+        "top1_subject": "存货",
+        "top1_share": 0.4565,
+        "top2_subject": "货币资金",
+        "top2_share": 0.1346,
+        "wc_share": 0.5102,
+        "capex_share": 0.0144
+      },
+      "leverage_drill": {
+        "ib_cur": 3339.6408,
+        "ib_prev": 3458.5917,
+        "ni_cur": 1938.5979,
+        "ni_prev": 2236.8922,
+        "ib_to_equity_cur": 3.2684,
+        "ni_to_equity_cur": 1.8972,
+        "ni_share": 0.3673,
+        "dfl_delta": 0.0743,
+        "quality_upgrade": null
+      },
+      "src": "",
+      "note": ""
+    },
+    "dupont_dt": {
+      "margin_effect": -0.0462,
+      "turnover_effect": 0.0172,
+      "leverage_effect": -0.0441,
+      "roe_product_cur": -0.1314,
+      "roe_product_prev": -0.0583,
+      "closure_gap": 0.0368,
+      "driver": "净利率",
+      "driver_fragile": true,
+      "effects_ratio": 1.0466,
+      "driver_second": "杠杆",
+      "triggered": true,
+      "src": "",
+      "note": ""
+    },
+    "dupont5y": {
+      "margin_effect": -0.2367,
+      "turnover_effect": 0.0641,
+      "leverage_effect": -0.0207,
+      "roe_product_cur": -0.1419,
+      "roe_product_prev": 0.0514,
+      "closure_gap": -0.0052,
+      "driver": "净利率",
+      "driver_fragile": false,
+      "effects_ratio": 3.6923,
+      "driver_second": "周转率",
+      "period_start": "2022H1",
+      "period_end": "2026H1",
+      "roe_start": 0.0522,
+      "roe_end": -0.1463,
+      "percentile": {
+        "net_margin": 0.0,
+        "asset_turnover": 0.0,
+        "equity_multiplier": 1.0
+      },
+      "src": "",
+      "note": ""
+    },
+    "cycle_evidence": {
+      "rev_growth": [
+        null,
+        -0.0291,
+        -0.2893,
+        -0.2623,
+        -0.3338
+      ],
+      "gross_margin": [
+        0.2046,
+        0.1887,
+        0.0812,
+        0.0997,
+        0.0794
+      ],
+      "capex_growth": [
+        null,
+        -0.4281,
+        -0.1614,
+        -0.5085,
+        -0.5786
+      ],
+      "periods": [
+        "2022H1",
+        "2023H1",
+        "2024H1",
+        "2025H1",
+        "2026H1"
+      ],
+      "src": "",
+      "note": ""
+    },
+    "threshold_check": {
+      "shell_line": {
+        "roe": -0.1463,
+        "target": 0.065,
+        "net_margin": -0.2131,
+        "hit": false
+      },
+      "refinance_line": {
+        "roe": -0.1463,
+        "target": 0.1,
+        "hit": false
+      },
+      "incentive_line": {
+        "target_desc": "",
+        "actual": null,
+        "target": null,
+        "ratio": null,
+        "share_payment": null,
+        "hit": null,
+        "src": ""
+      },
+      "note": "报告期内未实施股权激励/员工持股计划（L1082），激励线整块 null"
+    },
+    "risk_models": {
+      "altman_z": {
+        "cur": 0.3736,
+        "zone": "危险",
+        "annualized": true
+      },
+      "ohlson_o": {
+        "cur": -0.3621,
+        "prob": 0.4105,
+        "level": "中"
+      },
+      "note": "房地产开发企业：frameworks.md 第三节定案 Altman/Ohlson 对地产适用性受限（高杠杆为行业常态、资本结构不可与一般工商企业比）；本块为 --fill 机械复算值（Altman 含市值口径，流量项已年化），报告 s7 仅作参考呈现并附本声明，持续经营风险评估以审阅报告强调事项段+短债覆盖+期后展期执行为准"
+    },
+    "stress": {
+      "scenarios": [
+        {
+          "p": 0.1,
+          "np_stressed": -129.9827,
+          "cover_stressed": 0.3253
+        },
+        {
+          "p": 0.2,
+          "np_stressed": -125.0655,
+          "cover_stressed": 0.325
+        },
+        {
+          "p": 0.3,
+          "np_stressed": -120.1483,
+          "cover_stressed": 0.3247
+        }
+      ],
+      "note": ""
+    },
+    "cash_ts": {
+      "ncr_mean5": 0.3227,
+      "ncr_neg_years": 2,
+      "fcf_to_np_mean5": 0.2561,
+      "fcf_neg_years": 4,
+      "ncr": [
+        0.6781,
+        0.1889,
+        0.5254,
+        0.2544,
+        -0.0331
+      ],
+      "fcf_to_np": [
+        0.257,
+        -0.1093,
+        0.7759,
+        0.3559,
+        0.0011
+      ],
+      "periods": [
+        "2022H1",
+        "2023H1",
+        "2024H1",
+        "2025H1",
+        "2026H1"
+      ],
+      "note": ""
+    },
+    "q4": {
+      "rev": null,
+      "np": null,
+      "rev_share": null,
+      "gm_q4": null,
+      "gm_q1q3": null,
+      "impair_share": null,
+      "exp_ratio_q4": null,
+      "exp_ratio_q1q3": null,
+      "src": "",
+      "note": "半年报无 Q4 透视"
+    },
+    "rev_factors": {
+      "volume": null,
+      "price": null,
+      "mix": null,
+      "src": "L7731-L7734",
+      "note": "无分产品量价数据：按报告分组轴降级为分部收入桥——开发 -357.3890 + 物业 +13.6890 + 其他 -7.8419 = Δ收入 -351.5419；结算口径非当年销售"
+    },
+    "np_bridge": [
+      {
+        "item": "毛利",
+        "delta": -49.2958
+      },
+      {
+        "item": "税金及附加",
+        "delta": 17.197
+      },
+      {
+        "item": "期间费用",
+        "delta": 11.6353
+      },
+      {
+        "item": "减值",
+        "delta": 11.8397
+      },
+      {
+        "item": "投资/公允",
+        "delta": -28.0775
+      },
+      {
+        "item": "非经",
+        "delta": -6.8151
+      },
+      {
+        "item": "所得税",
+        "delta": -8.0463
+      },
+      {
+        "item": "少数股东",
+        "delta": 21.5157
+      }
+    ],
+    "ocf_bridge": [
+      {
+        "item": "净利润",
+        "delta": -160.2125
+      },
+      {
+        "item": "折旧摊销",
+        "delta": 45.1054
+      },
+      {
+        "item": "减值",
+        "delta": 42.6298
+      },
+      {
+        "item": "递延税",
+        "delta": 10.6083
+      },
+      {
+        "item": "Δ应收",
+        "delta": 39.3991
+      },
+      {
+        "item": "Δ存货",
+        "delta": 279.5609
+      },
+      {
+        "item": "Δ应付",
+        "delta": -327.3706
+      },
+      {
+        "item": "其他营运资本",
+        "delta": 75.2273
+      }
+    ],
+    "wc_devour": {
+      "amount": -66.8167,
+      "share_of_np": 0.4170,
+      "note": "净释放 66.82 亿（负=释放）：存货去化+应收回收释放 384.21 亿，应付压降吞掉 327.37 亿（偿还上游欠款）；主吞噬项=经营性应付减少——收缩去杠杠的双面读数，与拖欠型 DPO 拉长互证；share_of_np 分母=净利润含少数（-160.2125）"
+    },
+    "interest_arrears": {
+      "cur": 8.7942,
+      "note": "利息费用42.3400-付现33.5458=8.7942亿；单期为正（付息错期可能），未达「连续两年为正且上升」立案线；interest_paid 含资本化利息支付及子公司少数股东股利，口径偏宽"
+    }
+  },
+  "recon": {
+    "A1_cash": {
+      "lhs": 530.8294,
+      "rhs": 530.8294,
+      "verdict": "闭合",
+      "explanation": "",
+      "src": "L2975 货币资金 - L8224 受限 59.6635 = L8150 现金及现金等价物 530.8294，分毫不差"
+    },
+    "A2_retained": {
+      "lhs": -593.6987,
+      "rhs": -593.6987,
+      "verdict": "闭合",
+      "explanation": "",
+      "src": "L3076：期初-444.1860 + 归母净利-149.5127 - 盈余公积提取0 - 分红0 = 期末-593.6987"
+    },
+    "A3_indirect": {
+      "lhs": 4.9477,
+      "rhs": 4.9477,
+      "verdict": "闭合",
+      "explanation": "",
+      "src": "L8129-L8147 补充资料逐项加总=OCF 4.9477，精确闭合"
+    },
+    "A4_rev_cash": {
+      "lhs": 478.9086,
+      "rhs": 594.3139,
+      "verdict": "可解释",
+      "explanation": "偏差 19.4%：①开发商结算滞后模式——本期确认的收入主要来自以前年度预售（收现已在上年发生），本期销售收现 478.9 亿对应新增预收下降（Δ合同负债 -155.0 亿）；②rhs 含税系数取 1.09（房地产/物业混合税率，非 1.13）；③收现比 hist 0.78→0.80→0.73→0.59→0.68，本期回升系结算收入降幅(-33%)大于收现降幅(-22%)。方向与行业属性一致，非收入确认激进",
+      "src": "L3337 销售收现；L3042 合同负债；L2980 应收"
+    },
+    "A5_dep_amort": {
+      "lhs": 45.1054,
+      "rhs": 45.1054,
+      "verdict": "闭合",
+      "explanation": "rhs 取自同一补充资料（固定资产及投资性房地产折旧+无形及长待摊+使用权折旧），固定资产附注本期折旧额未单独提取，属同源闭合",
+      "src": "L8134-L8136"
+    },
+    "A6_capex": {
+      "lhs": 5.1124,
+      "rhs": 36.3213,
+      "verdict": "可解释",
+      "explanation": "偏差 85.9%：①dep_amort 45.11 亿中含投资性房地产折旧（对应 1229 亿投资性房地产，不在固定资产+在建工程内），rhs 口径不对称；②万科为开发商，开发投入（土地/建安）走存货与应付款而非 capex，capex 仅 5.1 亿为物流/商业等经营性资产投入；③Δ固定资产净值 -8.96 亿系折旧大于新增。非资金外流异常",
+      "src": "L3361 capex；L3002/L3004 固定资产+在建；L8134-L8136 折旧摊销"
+    },
+    "A7_implied_rate": {
+      "lhs": 0.0259,
+      "rhs": 0.05,
+      "verdict": "闭合",
+      "explanation": "隐含利率=利息费用 42.3400×2（中期年化）÷平均有息负债（3224.1060+3314.6282）/2=3269.3671=2.59%，低于 5% 基准（rhs 取值依据：国企背景+银行借款占 72%，基准取央企/高评级档）；与披露存量融资成本 2.86% 一致；未年化值 1.30%。利息资本化 15.2 亿（L724）使费用化口径低于真实付息",
+      "src": "L3184 利息费用；L3036/L3050/L3055/L3057 有息负债"
+    },
+    "A8_invest_income": {
+      "lhs": -0.0317,
+      "rhs": 0.08,
+      "verdict": "闭合",
+      "explanation": "隐含收益率=-33.4049÷平均金融资产 1054.5690=-3.17%，远低于 8% 基准（rhs 依据：fin_assets 以权益法长期股权投资为主取 0.08）；亏损主因联营/合营企业权益法亏损 -31.66 亿，非收益操纵",
+      "src": "L3188 投资收益；L2976/L2996/L2999 金融资产"
+    },
+    "B1_ar_roll": {
+      "lhs": 226.0834,
+      "rhs": 110.6781,
+      "verdict": "可解释",
+      "explanation": "偏差 104.3%：净额法隐含「收入≈当期赊销」假设对开发商不成立——本期结算收入 701.7 亿主要来自以前年度预售（收现在以前年度已发生），Δ合同负债 -155.0 亿只是新预售进/结转出的净额，lhs 与 rhs 的缺口即「以前年度已收现、本期才确认收入」的部分；应收自身 110.68 亿仅占收入 15.8%、坏账计提比例 3.5%（1年内）处于正常档，非收入质量问题",
+      "src": "L2980 应收；L3042 合同负债；L3337 销售收现"
+    },
+    "B2_inv_roll": {
+      "lhs": null,
+      "rhs": null,
+      "verdict": "",
+      "explanation": "",
+      "src": ""
+    },
+    "B3_cip_roll": {
+      "lhs": null,
+      "rhs": null,
+      "verdict": "",
+      "explanation": "",
+      "src": ""
+    },
+    "B4_goodwill_roll": {
+      "lhs": 57.0366,
+      "rhs": 56.9812,
+      "verdict": "闭合",
+      "explanation": "偏差 0.097%：海外商誉汇率折算差 -0.0554 亿（万科海外投资控股，L6941），无新增并购无减值",
+      "src": "L3009-L3010 商誉；L6941-L6945 商誉附注"
+    },
+    "D1_parent_cash": {
+      "lhs": 0.0145,
+      "rhs": 0.1,
+      "verdict": "可解释",
+      "explanation": "母公司货币资金 8.54 亿仅占合并 1.45%，且集团现金紧张（短债覆盖 0.33）——资金全部沉淀在项目公司，母公司自身几乎无可支配现金，偿债依赖子公司归集/再融资/深铁借款",
+      "src": "L3103 母公司货币资金 ÷ L2975 合并货币资金"
+    },
+    "D2_parent_retained": {
+      "lhs": -628.7827,
+      "rhs": 0.0,
+      "verdict": "可解释",
+      "explanation": "母公司未分配利润 -628.78 亿（累计亏损），无分红能力，与「中期不派现」一致",
+      "src": "L3147 母公司未分配利润"
+    },
+    "D3_parent_other_ar": {
+      "lhs": 2.0872,
+      "rhs": 0.5,
+      "verdict": "可解释",
+      "explanation": "母公司其他应收款 3560.74 亿=合并口径 2.09 倍（合并抵销后对子公司往来为主）——房企项目公司制下属正常架构，但叠加 D1（母公司现金仅 8.5 亿），意味着偿债资源沉淀在项目公司层面，上收能力与意愿是流动性关键",
+      "src": "L3104 母公司其他应收款 ÷ L2983 合并其他应收款"
+    },
+    "D4_parent_invest": {
+      "lhs": -0.0398,
+      "rhs": 0.5,
+      "verdict": "可解释",
+      "explanation": "本期母公司净利润 -146.05 亿为负，投资收益占比失真；上期投资收益 153.27 亿/母公司净利 140.85 亿=108.8%——纯控股平台特征（上期靠处置股权收益），母公司自身无经营造血",
+      "src": "L3289 母公司投资收益 ÷ L3309 母公司净利润"
+    },
+    "D5_parent_ocf": {
+      "lhs": 35.6724,
+      "rhs": 0.0,
+      "verdict": "可解释",
+      "explanation": "母公司 OCF +35.67 亿为正，与合并 +4.95 亿差异主要来自母公司与子公司间的往来款收支（对应其他应收款 3560.74 亿的内部流动），非自身造血能力",
+      "src": "L3434 母公司经营现金流净额"
+    }
+  },
+  "assertions": [
+    {
+      "id": "A1",
+      "text": "亏损三因：①开发结算规模显著下降且毛利率低位 ②新增资产减值计提 ③成本法扣折旧摊销后部分经营性业务及非主业财务投资亏损（L347-349）",
+      "account": "营业收入/资产减值损失/投资收益/分部利润",
+      "verdict": "通过",
+      "evidence": "收入 -33.4%（L3170）；存货跌价计提 39.3699 亿=资产减值 100%（L7898）；投资收益 -33.4049 亿（其中联营/合营 -31.6611 亿，L3189-3191）；未分配项目分部亏损 -37.1936 亿（L9876-9884）；开发结算毛利率 5.1%（L311）",
+      "missing": "",
+      "source": "L347-349 MD&A"
+    },
+    {
+      "id": "A2",
+      "text": "10 只公开债券通过部分兑付+配套展期完成风险缓释，涉及本金约 181 亿元；2025 年以来累计完成约 485 亿元到期公开债本金偿付或风险处置（L233-235）",
+      "account": "应付债券/一年内到期非流动负债",
+      "verdict": "通过",
+      "evidence": "附注(五)32 列示 7 只债券展期安排（H1万科02/04/06、MTN004/005/001/002/003，L7526-7571）；期后 7 月 MTN004/H3万科01/H1万科06 三只再按 40%+60% 模式执行（附注(十三)2）；应付债券余额由 293.60 亿降至 238.05 亿（L7512）",
+      "missing": "",
+      "source": "L233-235/附注(五)32/(十三)2"
+    },
+    {
+      "id": "A3",
+      "text": "管理费用同比下降 13%（可比口径，过去 8 个季度费用连续下降，L228/L608）",
+      "account": "管理费用",
+      "verdict": "通过",
+      "evidence": "管理费用 25.0012 亿 vs 28.7071 亿 = -12.91%（L3177-3178），与宣称 -13% 一致",
+      "missing": "",
+      "source": "L228/L608/L3177-3178"
+    },
+    {
+      "id": "A4",
+      "text": "有息负债 3,512.6 亿（占总资产 36.6%），其中一年内到期 1,788.6 亿（占 50.9%，L697-700）",
+      "account": "有息负债",
+      "verdict": "通过",
+      "evidence": "可复算：短借 286.09（剔除应付息 2.83）+一年内到期有息 1490.44（剔应付息 37.73 与租赁 11.95）+股东借款一年内 12.08=1788.61 亿，与审阅报告口径 1788.6 亿精确一致；3512.6 亿与报表有息+租赁+其他借款口径相符",
+      "missing": "",
+      "source": "L697-709/L2940-2944"
+    },
+    {
+      "id": "A5",
+      "text": "存量融资综合成本 2.86%，较年初 -17bp（L230/L722）",
+      "account": "财务费用/借款",
+      "verdict": "无法验证",
+      "evidence": "",
+      "missing": "分笔借款利率台账未披露；A7 隐含利率年化 2.59% 旁证不矛盾但不足以证实 2.86%",
+      "source": "L230/L722"
+    },
+    {
+      "id": "A6",
+      "text": "集中交付期收房率接近 9 成（L420）",
+      "account": "交付/合同负债",
+      "verdict": "无法验证",
+      "evidence": "",
+      "missing": "第三方交付收房数据不可得，仅公司单方面表述",
+      "source": "L420 MD&A"
+    },
+    {
+      "id": "A7",
+      "text": "过去 8 个季度费用连续下降（可比口径，L228）",
+      "account": "期间费用",
+      "verdict": "无法验证",
+      "evidence": "",
+      "missing": "需 2023Q1 以来单季度费用序列（年报仅半年/全年累计口径），本报告未提供",
+      "source": "L228"
+    }
+  ],
+  "signals": [
+    {
+      "id": "R11",
+      "level": "r",
+      "verdict": "命中",
+      "type": "signal",
+      "title": "债务覆盖不足（流动性缺口）",
+      "data": "(货币资金 590.49 亿 + OCF 4.95 亿) ÷ 短期有息负债 1,829.04 亿 = 0.33，远低于 1；审阅报告强调事项段原文：短借+股东借款+一年内到期有息合计 1,788.6 亿 vs 现金及现金等价物 530.8 亿",
+      "concern": "短期要还的钱是可用现金的 3 倍以上——自身造血无法覆盖，刚性依赖借新还旧、展期与大股东输血",
+      "evidence": "一年内到期有息占总口径 50.9%；期后 7 月 3 只公开债再展期（40% 兑付+60% 展期 1 年）；深铁 2026 年内累计借款约 40 亿、期末余额 340.96 亿；2025 年报保留意见+持续经营段落",
+      "source": "L2975/L3036/L3050/L3348；审阅报告 L2940-2947；附注(十三)；mx 期后公告"
+    },
+    {
+      "id": "R12",
+      "level": "r",
+      "verdict": "命中",
+      "type": "signal",
+      "title": "审计非标（上年度保留意见+本年度持续经营重大不确定性）",
+      "data": "2025 年报：保留意见（附持续经营重大不确定性段落）；2026H1：德勤审阅（有限保证）+持续经营重大不确定性强调事项段——归母净亏损 149.5 亿、短债缺口 1,788.6 亿 vs 现金 530.8 亿",
+      "concern": "看门人对报表投了『有保留』票：数字存在说不通之处，且持续经营本身存疑",
+      "evidence": "审阅报告 L2940-2947 原文『表明存在可能导致对万科持续经营能力产生重大疑虑的重大不确定性』；L1273 董事会说明上年保留意见",
+      "source": "L2916-L2958 审阅报告；L1269-L1273"
+    },
+    {
+      "id": "R6",
+      "level": "r",
+      "verdict": "命中",
+      "type": "signal",
+      "title": "其他应收款高企且账龄恶化（D1+D3 联动）",
+      "data": "其他应收款净值 1,705.96 亿=总资产 17.8%（阈值 5%）；账龄 2 年以上占 81.6%（888.23+1,003.99 亿）；坏账准备余额 618.78 亿（计提比例 26.8%）；母公司口径 3,560.74 亿=合并的 208.7%",
+      "concern": "约 2,100 亿资金以『往来款』名义沉淀在联营/合营企业与合作方，回收周期与可回收金额高度不确定——这是资产端最大的暗区",
+      "evidence": "附注(五)5 对象明细：应收联营/合营企业款 1,323.70 亿+合作方经营往来 783.46 亿；单项计提比例 26.82%；D1（母公司现金占比 1.45%）+D3（208.7%）同时异常，按 articulation D 组规则升 🔴",
+      "source": "L5476-L5569 附注(五)5；L3104/L2983；L8224"
+    },
+    {
+      "id": "R13",
+      "level": "y",
+      "verdict": "观察",
+      "type": "signal",
+      "title": "合同负债收缩（收入蓄水池下降）",
+      "data": "合同负债 775.53 亿，较年初 -16.7%（上年同期口径 930.57 亿）；已售未结金额 915.1 亿，较上年末 -19.4%；剩余履约义务 798.54 亿（上年末 998.66 亿，-20.0%）",
+      "concern": "预收是开发商未来结算收入的先行指标——蓄水池以两位数速度缩水，未来 12 个月结算收入继续萎缩的概率高",
+      "evidence": "H1 销售金额 358.0 亿（-48.2%），新增预收来源近乎枯竭；收缩主因是结转大于新预售，属行业性去化困难而非收入确认激进",
+      "source": "L3042/L409-411/L7776-7777"
+    },
+    {
+      "id": "R14",
+      "level": "y",
+      "verdict": "观察",
+      "type": "signal",
+      "title": "少数股东损益与归母利润严重背离",
+      "data": "2025H1：少数股东 +10.82 亿 vs 归母 -119.47 亿；2026H1：少数股东 -10.70 亿 vs 归母 -149.51 亿；少数股东权益 1,136.25 亿占净资产合计 52.7%",
+      "concern": "并表项目亏损由上市公司独扛的格局若持续，归母净资产的侵蚀速度将长期快于集团整体",
+      "evidence": "本期少数股东转为分担亏损（-10.70 亿）为边际改善；需跟踪非全资子公司层面少数股东资金的性质（真股权 vs 明股实债）",
+      "source": "L3219/L3079"
+    },
+    {
+      "id": "R15",
+      "level": "y",
+      "verdict": "观察",
+      "type": "signal",
+      "title": "对外担保余额 936 亿=归母净资产 80%（表外或有负债）",
+      "data": "期后公告（2026-09-24）：担保余额 936.36 亿，占 2025 年末经审计归母净资产 80.10%，无逾期担保",
+      "concern": "担保是开发商债务的第二张表——被担保项目公司现金流断裂将直接吞噬归母净资产",
+      "evidence": "910.65 亿为体系内担保（可控性较强）；联营/合营担保 16.57 亿+其他公司 9.14 亿对外部信用主体，需逐笔盯；期内累计诉讼仲裁新增 120.41 亿（占净资产 10.3%）显示施工/合作方纠纷在加速",
+      "source": "mx_finance_search_notice AN202609271829937143/AN202608271828553935"
+    },
+    {
+      "id": "R16",
+      "level": "y",
+      "verdict": "观察",
+      "type": "signal",
+      "title": "营业外支出中滞纳金大增",
+      "data": "营业外支出 12.13 亿（+75.8%），公司解释『滞纳金增加』（L772）",
+      "concern": "滞纳金是『该付的钱没按时付』的财务证据，与拖欠供应商/工程款同向——资金链紧张的旁证",
+      "evidence": "C2 联合判定：DPO 拉长（应付压降中拖欠成分）+ short_debt_cover 0.33 << 1.5 → 拖欠型而非议价型；OCF 调节桥显示经营性应付减少 327.37 亿（偿还+拖欠消化并存）",
+      "source": "L771-772/L8145"
+    },
+    {
+      "id": "R17",
+      "level": "g",
+      "verdict": "反向未触发",
+      "type": "signal",
+      "title": "非经常性损益撑利润",
+      "data": "扣非 -138.40 亿 vs 归母 -149.51 亿：非经 -11.11 亿为负——亏损中非经常项不是粉饰来源而是加重项（资产处置 -1.37 亿+其他收支 -10.81 亿）",
+      "concern": "",
+      "evidence": "若亏损主要靠非经调节则利润质量更差，本案反向——亏损是主业真实亏损",
+      "source": "L162 摘要表"
+    },
+    {
+      "id": "G1",
+      "level": "g",
+      "verdict": "反向未触发",
+      "type": "signal",
+      "title": "净现比异常（反向：亏损期 OCF 转正）",
+      "data": "OCF +4.95 亿（2024H1 以来首次为正，上期 -30.39 亿）vs 归母 -149.51 亿；净现比 -0.03 为亏损期失真读数",
+      "concern": "",
+      "evidence": "转正来源=存货去化 279.56 亿+应收回收 39.40 亿，对冲应付压降 327.37 亿——『止血式』转正而非盈利式转正，随存货收缩不可持续",
+      "source": "L3348/L8129-L8147"
+    },
+    {
+      "id": "R18",
+      "level": "g",
+      "verdict": "未触发",
+      "type": "signal",
+      "title": "存贷双高",
+      "data": "货币资金/总资产 6.15%（阈值 25%）未达；有息负债/总资产 33.6%",
+      "concern": "",
+      "evidence": "现金占比不高，不存在『一边囤钱一边借钱』形态；但受限货币资金 59.66 亿（占货币资金 10.1%）需知悉",
+      "source": "L2975/L8224"
+    },
+    {
+      "id": "R19",
+      "level": "g",
+      "verdict": "未触发",
+      "type": "signal",
+      "title": "商誉堰塞湖",
+      "data": "商誉 56.98 亿/归母净资产 5.6%（阈值 30%）",
+      "concern": "",
+      "evidence": "主要为万物云相关物业商誉 39.20 亿+环山集团 15.63 亿；物业分部仍盈利 10.78 亿，减值风险暂低",
+      "source": "L3009/L6933-L6945"
+    }
+  ],
+  "watchlist": [
+    {
+      "indicator": "短期有息负债覆盖倍数（货币资金+OCF）÷短期有息负债",
+      "current": "0.33 倍（2026H1：595.44÷1,829.04 亿）",
+      "tripwire": "若该倍数连续两期低于 1 且深铁借款余额增速放缓，则流动性依赖展期的状态固化、自主化债窗口关闭",
+      "upper": "1.0",
+      "upper_meaning": "回到 1 倍以上=自身现金+造血可覆盖到期债务，脱离续命模式",
+      "lower": null,
+      "lower_meaning": null,
+      "source": "资产负债表货币资金/短期借款/一年内到期非流动负债 + 现金流量表 OCF；阈值依据=信号 #11 判定线",
+      "badge": "der",
+      "review": {
+        "verdict": null,
+        "actual": null,
+        "attribution": null
+      }
+    },
+    {
+      "indicator": "合同负债（收入蓄水池）",
+      "current": "775.53 亿，较年初 -16.7%（2026H1）",
+      "tripwire": "若合同负债连续两期降幅超过 20%，则未来 12 个月结算收入继续萎缩成立",
+      "upper": "-5%",
+      "upper_meaning": "降幅收窄至 5% 以内=新预售与结转重新平衡，去化企稳",
+      "lower": "-20%",
+      "lower_meaning": "跌破 -20%=需求走弱确认，结算收入下台阶",
+      "source": "资产负债表合同负债 L3042；阈值依据=黄色信号『合同负债/预收大幅收缩』15% 线加裕度",
+      "badge": "disc",
+      "review": {
+        "verdict": null,
+        "actual": null,
+        "attribution": null
+      }
+    },
+    {
+      "indicator": "存货跌价准备计提节奏",
+      "current": "本期计提 39.37 亿（上年同期 51.45 亿），期末余额 285.05 亿",
+      "tripwire": "若单期存货跌价计提连续两期超过 40 亿，则房价假设继续系统性下修、资产减值远未出清",
+      "upper": "20 亿",
+      "upper_meaning": "单期计提降至 20 亿以下=价格假设趋于企稳",
+      "lower": "40 亿",
+      "lower_meaning": "单期计提超 40 亿=减值出清进行中，净资产继续被侵蚀",
+      "source": "存货附注 roll-forward L5663-L5671；阈值依据=近两期实际计提区间",
+      "badge": "disc",
+      "review": {
+        "verdict": null,
+        "actual": null,
+        "attribution": null
+      }
+    },
+    {
+      "indicator": "公开债兑付/展期执行",
+      "current": "10 只 181 亿已完成缓释；下一节点 2026-12-15 MTN004 余 60%（约 12 亿）、12-28 MTN005 余 60%（约 22.2 亿）",
+      "tripwire": "若任一期公开债未在到期后 30 日内完成兑付或展期，则『部分兑付+展期』模式破裂，流动性风险升级为实质违约状态",
+      "upper": null,
+      "upper_meaning": null,
+      "lower": null,
+      "lower_meaning": null,
+      "source": "半年报附注(五)32/(十三)2 + 期后公告（mx_finance_search_notice）",
+      "badge": "disc",
+      "review": {
+        "verdict": null,
+        "actual": null,
+        "attribution": null
+      }
+    },
+    {
+      "indicator": "全口径销售金额",
+      "current": "358.0 亿，同比 -48.2%（2026H1）",
+      "tripwire": "若全年销售金额同比降幅扩大至 50% 以上，则经营性现金流回正不可持续（新增预收无法接续）",
+      "upper": "-30%",
+      "upper_meaning": "降幅收窄至 30% 以内=去化企稳信号",
+      "lower": "-50%",
+      "lower_meaning": "降幅超 50%=经营现金流再度转负的前兆",
+      "source": "MD&A L223/L356（月度销售公告可验证）",
+      "badge": "disc",
+      "review": {
+        "verdict": null,
+        "actual": null,
+        "attribution": null
+      }
+    }
+  ]
+}
