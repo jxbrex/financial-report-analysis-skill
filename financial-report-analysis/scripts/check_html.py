@@ -44,11 +44,22 @@ calc.py 只校验数据层（data.json）；报告 HTML 层此前没有任何机
   12. slot-length   [WARN] 槽位长度契约（v0.0.9 L3）：s1 四维表「评价」列（每行最后
                   一个 td.txt）注脚 ≤15 字，>20 字告警（15+5 容忍）；杜邦表（s1 内
                   第二张）末列是归因长文本，不在检查范围。
-  13. s1-v15-shape  [WARN] ★ v0.0.15 杜邦双卡形态：下钻子行 ≤3；因子分位表数据行
-                  带三档徽章（上限区/下限区/常态区）且禁用「显著」统计措辞；
-                  现金时序表/周期证据表存在（降级须有声明）。
+  13. s1-v15-shape  [WARN] ★ 杜邦双卡形态：下钻子行 ≤3；因子分位表数据行带白描读数
+                  （v0.0.18 起：5 期最低/第 2 低/居中/第 2 高/最高，禁贴「上限区/下限区/
+                  常态区」档位标签）且禁用「显著」统计措辞；现金时序表/周期证据表存在
+                  （降级须有声明）。
   14. dupont-stack  [FAIL]（仅 --json）ΔROE 堆叠条数据槽 ↔ derived.dupont 三效应
                   与 closure_gap 一致性——口径差段不许视觉隐瞒。
+  15. internal-ref  [FAIL] 可见文本禁现内部过程引用（v0.0.18）：底稿文件名
+                  （data.json/fillsheet）、方法库路径（references/）、脚本名
+                  （calc.py/check_html）、字段路径（derived.）、技能版本号（v0.0.x）、
+                  取数工具函数名（mx_xxx）——这些都不是「数据来源」，来源只写对外口径
+                  （定期报告/公告/Tushare/东方财富）。HTML 注释/style/script 已屏蔽不算。
+  16. srcline-dup   [FAIL] srcline 拼接纪律（v0.0.18）：禁嵌套、相邻组 ≤2 条
+                  （来源条+图例条为合法双条）、禁文本重复。
+  17. percentile-map [FAIL]（仅 --json）因子分位白描读数 ↔ derived.dupont5y.percentile
+                  映射一致性（0→5 期最低 / .25→第 2 低 / .5→居中 / .75→第 2 高 / 1→最高）。
+                  旧版式存量报告仍贴三档标签会 FAIL——纪律 7 不追溯，属预期。
   （另：v0.0.12 起 inspection-verdict 覆盖 s7；v0.0.15 扩展 s5 在建/产能表判定列。）
 
 启发式检查的边界（诚实声明，改判据前先读这段）：
@@ -348,7 +359,7 @@ def check_s2_shape(text, rep):
     g = badges("g")
     if len(g) > 1:
         rep.add(WARN, "s2-shape",
-                f"排雷章出现 {len(g)} 个绿色徽章行——未触发不应逐条展开（仅容忍汇总行 1 处），逐条读数见 data.json signals 块")
+                f"排雷章出现 {len(g)} 个绿色徽章行——未触发不应逐条展开（仅容忍汇总行 1 处），逐条读数落底稿不进报告")
     # 观察行上限：观察两行形态（担心→本案，v0.0.7），最多 6 条，超出并入汇总。
     # 只数「🟡」开头的观察徽章——勾稽表的「⚠️ 可解释偏差」同为 badge y 但语义不同，不计入
     y = re.findall(r'class="[^"]*\bbadge\b[^"]*\by\b[^"]*"[^>]*>\s*🟡', seg)
@@ -649,6 +660,65 @@ def check_inspection_verdict(text, rep):
         rep.add(OK, "inspection-verdict", "检验/期后/在建类表格数据行均带判定徽标")
 
 
+# ─────────────────── v0.0.18：内部过程引用禁词（FAIL）───────────────────
+
+# 报告面向报告读者：底稿文件名 / 方法库路径 / 脚本名 / 字段路径 / 技能版本号 / 取数工具
+# 函数名都是制作过程产物，不是「数据来源」——可见文本一律禁现（注释/style/script 已屏蔽）。
+# 万华轮教训：模板 srcline 曾把「见 data.json signals 块」「references/articulation.md」
+# 「derived.threshold_check（calc.py 复算）」「v0.0.15 设定待校准」直接写给读者。
+INTERNAL_REF_RE = re.compile(
+    r"data\.json|references/|derived\.|calc\.py|check_html|fillsheet|v0\.0\.\d+|mx_[a-z_]+")
+
+
+def check_internal_ref(body, rep, secs):
+    hits = [(m.start(), m.group(0)) for m in INTERNAL_REF_RE.finditer(body)]
+    if not hits:
+        rep.add(OK, "internal-ref", "可见文本未出现内部过程引用（底稿/方法库/脚本/字段路径/版本号/工具函数名）")
+        return
+    by_sect = {}
+    for p, w in hits:
+        by_sect.setdefault(secs.label(p), []).append(w)
+    dist = " · ".join(f"{k} {len(v)}" for k, v in sorted(by_sect.items(), key=lambda kv: -len(kv[1])))
+    details = [f"第 {line_of(body, p)} 行 [{secs.label(p)}]「{w}」：…{snippet(body[max(0, p - 20):p + 30], 50)}…"
+               for p, w in hits[:DETAIL_CAP]]
+    rep.add(FAIL, "internal-ref",
+            f"可见文本出现内部过程引用 {len(hits)} 处（分布：{dist}）——数据来源只写对外口径"
+            f"（定期报告/公告/Tushare/东方财富），过程产物不进报告",
+            details)
+
+
+def check_srcline_dup(body, rep):
+    """srcline 拼接纪律（v0.0.18，FAIL）：① 禁嵌套（srcline div 内又开一条）；
+    ② 相邻 srcline 组 ≤2 条（来源条+图例条为合法双条形态）；③ 全文禁相同文本重复。
+    万华轮 713 行嵌套重复、563 行相邻拼接的教训。"""
+    bad = []
+    for m in re.finditer(r'<div class="srcline"[^>]*>((?:(?!</div>).){0,800}?)<div class="srcline"',
+                         body, re.S):
+        bad.append(f"第 {line_of(body, m.start())} 行：srcline 内嵌套另一条 srcline（拼接缺陷）")
+    spans = [(m.start(), m.end())
+             for m in re.finditer(r'<div class="srcline"[^>]*>.*?</div>', body, re.S)]
+    chain = 1
+    for i in range(1, len(spans)):
+        if re.fullmatch(r"\s*", body[spans[i - 1][1]:spans[i][0]]):
+            chain += 1
+            if chain > 2:
+                bad.append(f"第 {line_of(body, spans[i][0])} 行：相邻 srcline 超过 2 条"
+                           f"（每卡至多 1 条来源 + 1 条图例）")
+        else:
+            chain = 1
+    seen = {}
+    for p, e in spans:
+        t = re.sub(r"\s+", "", re.sub(r"<[^>]+>", "", body[p:e]))
+        if len(t) >= 12 and t in seen:
+            bad.append(f"第 {line_of(body, p)} 行与第 {line_of(body, seen[t])} 行：srcline 文本完全重复")
+        seen.setdefault(t, p)
+    if bad:
+        rep.add(FAIL, "srcline-dup", f"srcline 拼接纪律违规 {len(bad)} 处（禁嵌套/相邻>2/文本重复）",
+                bad[:DETAIL_CAP])
+    else:
+        rep.add(OK, "srcline-dup", "srcline 无嵌套、相邻组 ≤2 条、无重复文本")
+
+
 # ─────────────────── v0.0.15：S1 杜邦双卡与证据表形态（WARN 启发式） ───────────────────
 
 def _table_containing(seg, kw):
@@ -660,15 +730,16 @@ def _table_containing(seg, kw):
 
 
 def check_s1_v15_shape(text, rep):
-    """S1 v0.0.15 形态：① 杜邦下钻子行 ≤3（每因子 ≤1 行密度纪律）；
-    ② 因子分位表（表头含「五年位置」）数据行必须带三档徽章（上限区/下限区/常态区），
+    """S1 杜邦双卡形态：① 杜邦下钻子行 ≤3（每因子 ≤1 行密度纪律）；
+    ② 因子分位表（表头含「五年位置」）数据行必须带白描读数（v0.0.18：5 期最低/
+       第 2 低/居中/第 2 高/最高），禁贴「上限区/下限区/常态区」档位标签，
        且表内禁用「显著」统计措辞（n=5 位置读数非统计分位）；
     ③ 现金时序表（净现比逐期）与周期证据表（阶段判定）存在——降级时须有声明。
-    注意：对 v0.0.15 前的存量旧版式报告重跑本检查必出 ②③ WARN——纪律 7 不重出旧报告，
+    注意：对 v0.0.18 前的存量旧版式报告重跑本检查必出 ②③ WARN——纪律 7 不重出旧报告，
     该 WARN 属预期，勿追溯修旧报告。"""
     seg = _section_seg(text, "s1")
     if seg is None:
-        rep.add(WARN, "s1-v15-shape", "未找到财务总览章（secthead id=\"s1\"），无法校验 v0.0.15 形态")
+        rep.add(WARN, "s1-v15-shape", "未找到财务总览章（secthead id=\"s1\"），无法校验杜邦双卡形态")
         return
     bad = []
     drills = re.findall(r'<tr class="drillrow">', seg)
@@ -677,11 +748,15 @@ def check_s1_v15_shape(text, rep):
     tm = _table_containing(seg, "五年位置")
     if tm:
         rows = [r for r in re.findall(r"<tr>(.*?)</tr>", tm.group(1), re.S) if "<th" not in r]
-        nob = sum(1 for r in rows if not re.search(r"上限区|下限区|常态区", r))
+        nob = sum(1 for r in rows
+                  if not re.search(r"5 期最低|5 期中第 2 低|5 期中居中|5 期中第 2 高|5 期最高", r))
         if nob:
-            bad.append(f"因子分位表 {nob}/{len(rows)} 行缺三档徽章（上限区/下限区/常态区）")
+            bad.append(f"因子分位表 {nob}/{len(rows)} 行缺白描读数"
+                       f"（5 期最低/第 2 低/居中/第 2 高/最高，v0.0.18）")
+        if re.search(r"上限区|下限区|常态区", tm.group(0)):
+            bad.append("因子分位表仍贴「上限区/下限区/常态区」档位标签——v0.0.18 起改白描读数")
         if re.search(r"显著", tm.group(0)):
-            bad.append("因子分位表内出现「显著」——n=5 位置读数（离散步长 25%）禁用统计措辞")
+            bad.append("因子分位表内出现「显著」——n=5 位置读数禁用统计措辞")
     has_cash_table = _table_containing(seg, "净现比")
     if not has_cash_table and "现金含量证据不足" not in seg:
         bad.append("s1 未见现金时序表（净现比逐期），也无「现金含量证据不足」降级声明")
@@ -691,7 +766,7 @@ def check_s1_v15_shape(text, rep):
         rep.add(WARN, "s1-v15-shape", f"s1 杜邦双卡/证据表形态 {len(bad)} 处待确认", bad[:6])
     else:
         rep.add(OK, "s1-v15-shape",
-                "s1 v0.0.15 形态合规（下钻子行 ≤3、分位三档徽章、现金/周期证据表在位）")
+                "s1 杜邦双卡形态合规（下钻子行 ≤3、分位白描读数、现金/周期证据表在位）")
 
 
 def check_dupont_stack(raw, data, rep):
@@ -735,6 +810,52 @@ def check_dupont_stack(raw, data, rep):
         rep.add(FAIL, "dupont-stack", "ΔROE 堆叠条数据槽与 derived.dupont 不符：" + "；".join(bad[:4]))
     else:
         rep.add(OK, "dupont-stack", "ΔROE 堆叠条数据槽与 derived.dupont 一致（含口径差段）")
+
+
+# v0.0.18 分位白描映射：(rank−1)/(n−1)，n=5 离散步长 0.25
+PCTILE_LABEL = {0.0: "5 期最低", 0.25: "5 期中第 2 低", 0.5: "5 期中居中",
+                0.75: "5 期中第 2 高", 1.0: "5 期最高"}
+
+
+def check_percentile_map(body, data, rep):
+    """因子分位白描读数 ↔ derived.dupont5y.percentile 一致性（v0.0.18，FAIL，仅 --json）：
+    s1「五年位置」表三因子行必须出现映射白描读数（0→5 期最低 / .25→第 2 低 / .5→居中 /
+    .75→第 2 高 / 1→最高），且不得再贴「上限区/下限区/常态区」档位标签。
+    旧版式存量报告仍贴三档标签会 FAIL——纪律 7 不追溯，属预期（运维速查）。"""
+    pct = ((data.get("derived") or {}).get("dupont5y") or {}).get("percentile") or {}
+    if all(v is None for v in pct.values()):
+        rep.add(OK, "percentile-map", "derived.dupont5y.percentile 未填（hist 不足降级时正常），跳过白描校验")
+        return
+    seg = _section_seg(body, "s1")
+    if seg is None:
+        return  # 缺章由 s1-v15-shape 报告
+    tm = _table_containing(seg, "五年位置")
+    if not tm:
+        rep.add(FAIL, "percentile-map", "json 有分位数据但 s1 未见「五年位置」表")
+        return
+    tbl = tm.group(0)
+    bad = []
+    for fname, key in (("净利率", "net_margin"), ("总资产周转率", "asset_turnover"),
+                       ("权益乘数", "equity_multiplier")):
+        v = pct.get(key)
+        if v is None:
+            continue
+        row = re.search(rf"<tr>(?:(?!</tr>).)*{fname}.*?</tr>", tbl, re.S)
+        if not row:
+            bad.append(f"分位表缺「{fname}」行")
+            continue
+        label = PCTILE_LABEL.get(round(v, 2))
+        if label is None:
+            continue  # 非 n=5 步长值（hist≠5 期）不校验映射，由人工核对
+        if label not in row.group(0):
+            bad.append(f"「{fname}」分位 {v:g} 应标「{label}」，行内未见（白描映射 v0.0.18）")
+        if re.search(r"上限区|下限区|常态区", row.group(0)):
+            bad.append(f"「{fname}」行仍贴档位标签（上限区/下限区/常态区）——v0.0.18 起改白描读数")
+    if bad:
+        rep.add(FAIL, "percentile-map", "因子分位白描读数与 derived.dupont5y.percentile 不符："
+                                        + "；".join(bad[:5]))
+    else:
+        rep.add(OK, "percentile-map", "因子分位白描读数与 derived.dupont5y.percentile 映射一致")
 
 
 # ─────────────────────────── 主流程 ───────────────────────────
@@ -798,8 +919,11 @@ def main():
     check_figtitle_attribution(body, rep, secs)
     check_inspection_verdict(body, rep)
     check_s1_v15_shape(body, rep)
+    check_internal_ref(body, rep, secs)
+    check_srcline_dup(body, rep)
     if data is not None:
         check_dupont_stack(raw, data, rep)
+        check_percentile_map(body, data, rep)
         check_numbers_vs_json(body, raw, data, rep, args.verbose)
         check_json_vs_md(data, Path(args.json_path).resolve(), rep, args.verbose)
 

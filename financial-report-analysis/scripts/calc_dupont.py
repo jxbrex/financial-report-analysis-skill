@@ -120,7 +120,7 @@ def compute_leverage_drill(data, dupont=None):
     有息 = st_debt+noncur_due_1y+lt_debt；无息 = payable+contract_liab（不含其他应付款，
     schema 无此字段——口径声明，不假装完整）；各自 null 按 0 计、全 null 才 None。
     quality_upgrade：杠杆为主驱动且 ni_share>0.7 且 |ΔDFL|<0.1 → True（经验阈值，
-    v0.0.15 设定待校准，报告只作提醒级呈现）；杠杆非主驱动 → None（不适用）。"""
+    随样本校准，报告只作提醒级呈现）；杠杆非主驱动 → None（不适用）。"""
     B = lambda f, key="cur": val(data, "statements", "balance", f, key=key)
     parts = lambda fields, key: parts_sum(data, fields, key)  # 口径唯一定义处在 calc_common
 

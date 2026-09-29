@@ -3,6 +3,11 @@
 > Phase 1 起，所有从报告中提取的数字**必须**写入 `reports/{公司}-{代码}-{类型}-{期}.json`；
 > Phase 7.5 由 `scripts/calc.py` 机械校验；Phase 8 写报告时**数字只允许从 data.json 流入
 > HTML，禁止对着 md 原文直读直写**。这是防幻觉的结构性约束：原文→JSON（可校验）→HTML。
+>
+> **分块合成（v0.0.18）**：派发窗子代理按本契约的顶层块分块落盘
+> `reports/archive/json/_chunks/{stem}/*.json`（分块模板与代理分工见
+> `references/subagent-prompts.md`）；主线合并 _chunks + 补 meta/derived 判断字段 + recon 后
+> `calc.py --fill` 补机械 derived——键名以本契约为准，漂移由 calc 结构校验兜底。
 
 ## 一、单位与命名约定
 
@@ -196,7 +201,7 @@
                         "margin_drill=净利率恒等四项分解 op/tax/interest/minority（ΔEBIT率 −Δ财务费用率 −Δ有效税负率 −Δ少数股东率，加和恒等于 Δ净利率）；"
                         "turnover_drill=Δ总资产科目贡献前二 + 聚合份额（wc_share=Δ应收类+Δ存货 ÷ Δ总资产，capex_share=Δ在建+Δ固定资产 ÷ Δ总资产；|ΔTA|/TA<1% 时整块 null=总资产未动，定位无意义；不含其他应付款等未提取科目，口径声明在报告 srcline）；"
                         "leverage_drill=有息 ib=st_debt+noncur_due_1y+lt_debt（null 按 0 计，三字段全 null 才整块 null）/ 无息 ni=payable+contract_liab（同规则；不含其他应付款）；"
-                        "quality_upgrade=话语权型杠杆升档判定：杠杆为主驱动且 ni_share>0.7 且 |dfl_delta|<0.1 → true，杠杆非主驱动时 null（不适用）——阈值为 v0.0.15 经验起点，随样本校准，只触发提醒级呈现；"
+                        "quality_upgrade=话语权型杠杆升档判定：杠杆为主驱动且 ni_share>0.7 且 |dfl_delta|<0.1 → true，杠杆非主驱动时 null（不适用）——阈值为经验起点，随样本校准，只触发提醒级呈现；"
                         "driver_fragile=双驱动护栏：第一、二大 |效应| 之比 effects_ratio<1.5 → true，报告标「双驱动（X/Y）」替代单一主驱动" },
     "dupont_dt": { "driver": null, "margin_effect": null, "turnover_effect": null,
                    "leverage_effect": null, "roe_product_cur": null, "roe_product_prev": null,
@@ -334,7 +339,7 @@
   `level ∈ g/y/r`（**严重度**，用于计数与排序）。两者对应：命中→`r`、观察→`y`、
   未触发→`g`、反向未触发→`g`（不是风险，但含信息量）。报告正文按四态分层呈现（v0.2.0 起）：
   命中逐条展开；观察两行形态（担心→本案）、上限 6 条（v0.0.7 起，取代单行 ≤30 字）；
-  反向未触发不再有可见行，与未触发一并压入表末 total 汇总行（四计数 + data.json signals 块指引）
+  反向未触发不再有可见行，与未触发一并压入表末 total 汇总行（只给四计数；逐条读数落底稿，报告不附指引）
 - `concern`（v0.0.7，**选填不 FAIL**，calc.py 不校验）：一句话「担心什么」——三问①
   （这信号若是真雷，经营上意味着什么），供报告 s2「担心 → 本案」列的「担心」半行；
   `evidence` 对应「本案」半行。观察/命中条目应填

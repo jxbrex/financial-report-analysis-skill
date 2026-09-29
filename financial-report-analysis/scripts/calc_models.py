@@ -5,7 +5,9 @@
 的编排与 fillsheet 产出。
 """
 
+import json
 import pathlib
+import statistics
 
 from calc_common import build_ratio_calcs, ratio_hist_series, RATIO_HIST_SPECS
 from calc_dupont import compute_dupont, compute_dupont_dt, compute_dupont5y
@@ -13,6 +15,12 @@ from calc_evidence import compute_cycle_evidence, compute_threshold_check
 from calc_risk import compute_altman, compute_ohlson, compute_stress, compute_cash_ts
 
 R4 = lambda x: None if x is None else round(x, 4)
+
+# 分位白描映射（v0.0.18）：(rank−1)/(n−1)，n=5 离散步长 0.25 → 呈现文本。
+# 与 check_html.py PCTILE_LABEL 双写互指（跨家族 import 会造成 calc↔check_html 耦合，
+# 故保持双写 + 回归一致性断言锁契约，改动必须同步）
+PCTILE_LABEL = {0.0: "5 期最低", 0.25: "5 期中第 2 低", 0.5: "5 期中居中",
+                0.75: "5 期中第 2 高", 1.0: "5 期最高"}
 
 
 def _r4deep(x):
@@ -129,6 +137,8 @@ def write_fillsheet(data, path):
     L = []
     L.append("# 填充速查表（calc.py --fill 产出——机械槽位照抄，判断槽位自己写）\n")
     L.append("> 徽章：der=两数运算；语义色：up=利好/dn=利空/不染=语境中性（方向语义表）。")
+    L.append("> **本表是 Phase 8 唯一槽位契约（v0.0.18）**：填充只看本表，不需要对照 examples 标杆；"
+             "数值一律从本表复制，禁凭记忆手写（check_html T8① 会回验 HTML↔json 一致性）。")
     L.append("\n## S1 四维表（本期 / 上期 / 较上期 / SPARK hist）\n")
     L.append("| 指标 | 本期 | 上期 | 较上期 | 语义色 | badge |")
     L.append("|---|---|---|---|---|---|")
@@ -225,4 +235,192 @@ def write_fillsheet(data, path):
              f"获客效率 {ratios.get('incr_sales_eff', {}).get('cur')}")
     L.append(f"- ROIC（去杠杆，vs ROE 看杠杆撑多少） {ratios.get('roic', {}).get('cur')} · "
              f"内生增长率（亏损期 null） {ratios.get('sustainable_growth', {}).get('cur')}")
+
+    # ── v0.0.18 契约补全：剩余机械槽位（照抄）+ 判断槽位清单 ──
+    meta = data.get("meta") or {}
+    stmts = data.get("statements") or {}
+    inc, cfs = stmts.get("income") or {}, stmts.get("cashflow") or {}
+    notes = data.get("notes") or {}
+    _v = lambda blk, f, k="cur": (blk.get(f) or {}).get(k)
+    _yoy = lambda c, p: "—" if not c or not p else f"{(c - p) / abs(p) * 100:+.1f}%"
+
+    L.append("\n## 页眉页脚槽（meta 照抄）\n")
+    L.append(f"- 公司名={meta.get('company')} · 代码={meta.get('code')} · 上市地={meta.get('market')} · "
+             f"报告期={meta.get('period')} · 报告类型={meta.get('report_type')} · "
+             f"披露日期={meta.get('disclose_date')} · 生成日期={meta.get('analyst_date')} · "
+             f"单位={meta.get('unit')}")
+
+    L.append("\n## S1 KPI 行（statements 照抄）\n")
+    roe_n = ratios.get("roe") or {}
+    roe_d = None if roe_n.get("cur") is None or roe_n.get("prev") is None \
+        else (roe_n["cur"] - roe_n["prev"]) * 100
+    L.append(f"- 营业收入 {_v(inc, 'revenue')} 亿（同比 {_yoy(_v(inc, 'revenue'), _v(inc, 'revenue', 'prev'))}）"
+             f" <span class=\"badge disc\">披露</span>")
+    L.append(f"- 归母净利 {_v(inc, 'np_at')} 亿（同比 {_yoy(_v(inc, 'np_at'), _v(inc, 'np_at', 'prev'))}） disc · "
+             f"经营现金流 {_v(cfs, 'ocf')} 亿 · 净现比 {(cts.get('ncr') or [None])[-1]} der")
+    L.append(f"- ROE {roe_n.get('cur')}（较上期 {'—' if roe_d is None else f'{roe_d:+.1f}pct'}） der · "
+             f"扣非对照 {_v(inc, 'np_dt')}（差 >1pct 时该行染 dn 色）")
+
+    L.append("\n## S1 TREND 槽（JS 区粘贴；np_dt/roe 缺 hist 留空数组；**gm 填百分数**"
+             "（绘图不做 ×100，填小数会显示成 0.2%），**roe 存小数**（绘图 ×100））\n")
+    labels = cts.get("periods") or cv.get("periods") or []
+    _hist = lambda node: (node or {}).get("hist") or []
+    _gm_pct = [round(x * 100, 4) if x is not None else None
+               for x in _hist(ratios.get("gross_margin"))]
+    L.append(f"const TREND={{labels:{json.dumps(labels, ensure_ascii=False)},"
+             f"rev:{json.dumps(_hist(inc.get('revenue')))},np:{json.dumps(_hist(inc.get('np_at')))},"
+             f"np_dt:{json.dumps(_hist(inc.get('np_dt')))},roe:{json.dumps(_hist(roe_n))},"
+             f"gm:{json.dumps(_gm_pct)}}};")
+
+    if du:
+        _p1 = lambda x: None if x is None else round(x * 100, 1)
+        L.append("\n## S1 DUPONT_STACK 槽（JS 区粘贴；gap≠0 必须保留第四段，不许视觉隐瞒）\n")
+        L.append(f"const DUPONT_STACK={{steps:[['净利率',{_p1(du.get('margin_effect'))}],"
+                 f"['周转率',{_p1(du.get('turnover_effect'))}],['杠杆',{_p1(du.get('leverage_effect'))}]],"
+                 f"gap:{_p1(du.get('closure_gap'))}}};")
+    if d5:
+        pg = d5.get("percentile") or {}
+        L.append("\n## S1 杜邦右卡分位白描（照抄进「五年位置」列 badge disc；禁贴档位标签）\n")
+        L.append(f"- 净利率「{PCTILE_LABEL.get(pg.get('net_margin'), pg.get('net_margin'))}」 · "
+                 f"周转率「{PCTILE_LABEL.get(pg.get('asset_turnover'), pg.get('asset_turnover'))}」 · "
+                 f"权益乘数「{PCTILE_LABEL.get(pg.get('equity_multiplier'), pg.get('equity_multiplier'))}」")
+
+    sig = data.get("signals") or []
+    if sig:
+        L.append("\n## S2 信号计数与勾稽异常\n")
+        cnt = {}
+        for s in sig:
+            cnt[s.get("verdict")] = cnt.get(s.get("verdict"), 0) + 1
+        L.append(f"- 四计数：命中 {cnt.get('命中', 0)} · 观察 {cnt.get('观察', 0)} · "
+                 f"反向 {cnt.get('反向未触发', 0)} · 未触发 {cnt.get('未触发', 0)}（已检 {len(sig)} 项）")
+        obs = [f"{s.get('id')}「{s.get('title')}」" for s in sig if s.get("verdict") == "观察"]
+        L.append(f"- 观察行候选（挑 ≤6 条写「担心→本案」，素材=该条 concern/evidence）："
+                 + ("；".join(obs) if obs else "无"))
+    rec = data.get("recon") or {}
+    abn = [(k, v) for k, v in rec.items()
+           if isinstance(v, dict) and v.get("verdict") and "闭合" not in str(v.get("verdict"))]
+    if abn:
+        L.append(f"- 勾稽异常行（⚠️/🔴 才进正文；✅ 闭合 {len(rec) - len(abn)} 条一行汇总）：")
+        for k, v in abn:
+            L.append(f"  · {k} [{v.get('verdict')}] lhs={v.get('lhs')} rhs={v.get('rhs')}：{v.get('explanation')}")
+    elif rec:
+        L.append(f"- 勾稽全部闭合（{len(rec)} 条），正文一行汇总即可")
+
+    L.append("\n## S3 SEG_BRIDGE 槽（JS 区粘贴；端点行：基期收入→合计→本期收入）\n")
+    rf = (data.get("derived") or {}).get("rev_factors") or {}
+    if any(rf.get(k) is not None for k in ("volume", "price", "mix")):
+        seg = [["量效应", rf.get("volume") or 0], ["价效应", rf.get("price") or 0],
+               ["结构效应", rf.get("mix") or 0]]
+        L.append(f"const SEG_BRIDGE={json.dumps(seg, ensure_ascii=False)};")
+    else:
+        L.append(f"// 无量价（rev_factors 全 null）→ 分部轴降级，各分部贡献照 rev_factors.note 手填：")
+        L.append(f"// {rf.get('note') or '（note 未填分部拆解，回 Phase 7 补）'}")
+        L.append("const SEG_BRIDGE=[['分部A',0],['分部B',0],['其他',0]];")
+    L.append(f"// 端点行：基期收入 {_v(inc, 'revenue', 'prev')} 亿 →（合计 "
+             f"{None if _v(inc, 'revenue') is None or _v(inc, 'revenue', 'prev') is None else round(_v(inc, 'revenue') - _v(inc, 'revenue', 'prev'), 2)} 亿）"
+             f"→ 本期收入 {_v(inc, 'revenue')} 亿")
+
+    npb = (data.get("derived") or {}).get("np_bridge") or []
+    if npb:
+        L.append("\n## S3 净利桥（照抄：本期/上期/贡献额Δ；— 表示该环节无直接字段，照利润表对应行）\n")
+        def _sumf(fields, k):
+            """多字段合计（如期间费用四费）：全 None → None；部分 None 按 0 计。"""
+            vals = [_v(inc, f, k) for f in fields]
+            if not any(v is not None for v in vals):
+                return None
+            return round(sum(v or 0 for v in vals), 4)
+
+        def _gp(k):
+            """毛利=revenue−cost（gross_profit 常未单列，推算口径）。"""
+            a, b = _v(inc, "revenue", k), _v(inc, "cost", k)
+            return round(a - b, 4) if a is not None and b is not None else None
+        _abs = {
+            "毛利": (_gp("cur"), _gp("prev")),
+            "税金及附加": (_v(inc, "tax_surcharge"), _v(inc, "tax_surcharge", "prev")),
+            "期间费用（销售/管理/研发/财务）": (_sumf(("sell_exp", "admin_exp", "rd_exp", "fin_exp"), "cur"),
+                                          _sumf(("sell_exp", "admin_exp", "rd_exp", "fin_exp"), "prev")),
+            "减值（信用+资产）": (_v(inc, "impair_loss"), _v(inc, "impair_loss", "prev")),
+            "投资/公允/资产处置": (_sumf(("invest_income", "fv_change_income"), "cur"),
+                              _sumf(("invest_income", "fv_change_income"), "prev")),
+            "其他收益（政府补助等）": (_v(inc, "other_biz_income"), _v(inc, "other_biz_income", "prev")),
+            "非经（营业外收支净）": (_v(inc, "non_op_net"), _v(inc, "non_op_net", "prev")),
+            "所得税": (_v(inc, "income_tax"), _v(inc, "income_tax", "prev")),
+            "少数股东": (_v(inc, "minority_np"), _v(inc, "minority_np", "prev")),
+        }
+        L.append("| 环节 | 本期 | 上期 | 贡献额Δ |")
+        L.append("|---|---|---|---|")
+        for x in npb:
+            a, b = _abs.get(x.get("item"), (None, None))
+            L.append(f"| {x.get('item')} | {a if a is not None else '—'} | "
+                     f"{b if b is not None else '—'} | {x.get('delta'):+} |")
+        L.append("- 模板行归并指引：「投资/公允/资产处置」「其他收益」「非经（营业外）」三项"
+                 "对应模板「非经常性损益」一行（或按公司习惯拆行），Σ 须等于 Δ归母净利；"
+                 "期间费用备注列写销售/管理/研发/财务逐项Δ（income 同名字段取）")
+
+    ob = (data.get("derived") or {}).get("ocf_bridge") or []
+    if ob:
+        L.append("\n## S3 OCF_BRIDGE 槽（JS 区粘贴；项数纪律 ≤6 根+「其他」，已按 |Δ| 归并）\n")
+        items = [(x.get("item"), x.get("delta")) for x in ob
+                 if isinstance(x.get("delta"), (int, float))]
+        if items:
+            head, rest = items[0], sorted(items[1:], key=lambda t: -abs(t[1]))
+            top, tail = rest[:5], rest[5:]
+            rows = [[head[0], round(head[1], 2)]] + [[n, round(v, 2)] for n, v in top]
+            if tail:
+                rows.append(["其他", round(sum(v for _, v in tail), 2)])
+            L.append(f"const OCF_BRIDGE={json.dumps(rows, ensure_ascii=False)};")
+            L.append(f"const OCF_END={_v(cfs, 'ocf')};")
+            adj = round(sum(v for _, v in items[1:]), 2)
+            L.append(f"// 端点行：净利润 {round(head[1], 2)} 亿 →（调节净额 {adj:+} 亿）→ "
+                     f"经营现金流净额 {_v(cfs, 'ocf')} 亿")
+
+    cip = notes.get("cip_projects") or []
+    if cip:
+        L.append("\n## S5 在建工程行（照抄；判定=进度 vs 计划工期、连续两年进度增量）\n")
+        for p in cip:
+            L.append(f"- {p.get('name')}：预算 {p.get('budget')} · 累计投入 {p.get('invested_cur')} · "
+                     f"进度 {p.get('progress')} · 本期转固 {p.get('transferred')}（{p.get('note') or ''}）")
+
+    sh = notes.get("shareholders") or {}
+    if sh:
+        L.append("\n## S6 股东结构\n")
+        hn_c, hn_p = sh.get("holder_num_cur"), sh.get("holder_num_prev")
+        L.append(f"- 户数：本期 {hn_c} · 上期 {hn_p}"
+                 f"（万户呈现 ÷10000；HOLDERS 时序 ≥3 期从 Tushare stk_holdernumber 补，px 可留空）")
+        L.append(f"const HOLDERS={{labels:[],num:[],px:[]}};")
+        L.append("- 降级联动：户数时序补不齐 3 期时，图卡降级为两期文字行（本期/上期+变动解读），"
+                 "不硬画两点图")
+        L.append(f"- 前十大变动（照抄进表）：{sh.get('top10_changes')}")
+        L.append(f"- 质押率 {sh.get('pledge_ratio')}（>70% 徽章化并进 s2 风险清单）")
+
+    prs = data.get("peers") or []
+    if prs:
+        L.append("\n## S7 peers 表（照抄；中位数行已算好，本公司 vs 中位数自己减）\n")
+        L.append("| 公司 | 毛利率 | 研发费率 | 资产负债率 | 净利率 | 周转率 | 权益乘数 | ROE |")
+        L.append("|---|---|---|---|---|---|---|---|")
+        cols = ("gross_margin", "rd_ratio", "debt_to_assets", "net_margin",
+                "asset_turnover", "equity_multiplier", "roe")
+        for p in prs:
+            L.append(f"| {p.get('name')} | " + " | ".join(str(p.get(c)) for c in cols) + " |")
+        med = {c: round(statistics.median([p[c] for p in prs if isinstance(p.get(c), (int, float))]), 4)
+               for c in cols if any(isinstance(p.get(c), (int, float)) for p in prs)}
+        L.append("| 中位数 | " + " | ".join(str(med.get(c, "—")) for c in cols) + " |")
+
+    wl = data.get("watchlist") or []
+    if wl:
+        L.append("\n## S8 跟踪清单卡（逐条照抄；figtitle 自己写结论式）\n")
+        for w in wl:
+            L.append(f"- 【{w.get('indicator')}】读数 {w.get('current')}（badge {w.get('badge')}）· "
+                     f">{w.get('upper')} {w.get('upper_meaning')} / <{w.get('lower')} {w.get('lower_meaning')} · "
+                     f"依据 {w.get('source')}")
+
+    L.append("\n## 判断槽位清单（fillsheet 不给值，自己写；写法约束在模板注释）\n")
+    L.append("- S0 亮点/风险 TOP3、lede、分歧锚、异常线索追查（锚点指向下方各章）")
+    L.append("- 全部 figtitle（结论式：标题即判断，数字只许在表格里）与 takeaway（一句话读法）")
+    L.append("- S1 指标表「评价」列注脚（≤15 字）；阶段判定行（只放结论，依据进 takeaway）")
+    L.append("- S2 观察行「担心→本案」（signals[].concern/evidence 压缩，禁「属正常波动」式空话）")
+    L.append("- S3 lede（第一驱动）；S4 全章（断言验证素材=assertions 块，措辞/语气自己读）")
+    L.append("- S5 lede；S6 figtitle；S7 预期对照表（券商一致预期取 Tushare report_rc）")
+    L.append("- S8 各卡 figtitle；页脚")
+
     pathlib.Path(path).write_text("\n".join(L) + "\n", encoding="utf-8")

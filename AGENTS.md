@@ -14,27 +14,29 @@
     hist_periods/批量比对助手）+ `calc_dupont.py`（杜邦族：连环替代三口径/因子下钻/五年归因与分位）+
     `calc_evidence.py`（周期证据/四线贴线/peers 结构）+ `calc_risk.py`（破产双模型/压力情景/现金时序）+
     `calc_models.py`（fill 编排层，不含公式），入口仍是 calc.py
-  - `scripts/check_html.py` — Phase 8 报告机检（占位符/裸数字启发式/数据来源/模板硬规则/必备要素/锚点/s8 阈值形态/回看归因 + v0.0.12 起缩写首现展开/OCF 桥项数/归因 figtitle 前瞻与复述/检验卡判定列四条 WARN + v0.0.15 起 s1 杜邦双卡形态/ΔROE 堆叠条数据槽比对）；exit 0 才允许交付；
+  - `scripts/check_html.py` — Phase 8 报告机检（占位符/裸数字启发式/数据来源/模板硬规则/必备要素/锚点/s8 阈值形态/回看归因 + v0.0.12 起缩写首现展开/OCF 桥项数/归因 figtitle 前瞻与复述/检验卡判定列四条 WARN + v0.0.15 起 s1 杜邦双卡形态/ΔROE 堆叠条数据槽比对 + v0.0.18 起 internal-ref 内部引用禁词/srcline-dup 拼接纪律/percentile-map 分位白描映射三条 FAIL）；exit 0 才允许交付；
     模块布局：`check_html_common.py`（共享助手）+ `check_html_t8.py`（T8 数字回验：`--json` 启用，①级 HTML↔data.json 笔误检测（独特值 0.5% 窗口 FAIL）+ ②级 data.json↔原文 md 行号回核），入口仍是 check_html.py
 - `scripts/check_render.py` — 渲染测量门禁（可选但默认执行）：headless Chrome/Edge 真渲染后测量 SVG 文本重叠/HTML 溢出 .sheet/横向裁剪；`--png` 按章分片截图供 Phase 8 视觉验收；找不到浏览器声明跳过 exit 0，发现问题 exit 1
 - `scripts/gate.py` — 三道门禁单入口（v0.0.13）：calc → check_html --json → check_render 一条命令，统一退出码
 - `scripts/md_clean.py` — 财报 md 一次性确定性清洗（v0.0.13）：拼回 PDF 拆碎的逻辑表行、删重复分隔行与页眉页脚，产出 clean md 唯一工作副本 + 章节索引 sidecar；内置数字/文字双不变量，违反 exit 1
   - `tests/` — 金标准 fixtures + 回归入口：`moutai_2025.json`（干净样本，应零误报）、
     `kangdexin_2018.json`（造假样本，应命中）、`vanke_2026h1.json`（连亏地产样本，
-    扣非双版/双驱动真实触发）、`md_clean_synth.md`（md_clean 合成金标准，自包含）；
-    `run_regression.py` 是唯一回归入口（77 断言，含 check_html/T8/渲染冒烟与构造用例）
-  - `examples/` — 标杆样本报告（few-shot：万科A 2026H1，现行模板全槽位真实报告）+ lookback-demo/
+    扣非双版/双驱动真实触发）、`wanhua_2026h1.json`（周期股样本，双驱动第二样本/
+    ROIC·SGR 首验/白描分位锚点；v0.0.18 固化）、`md_clean_synth.md`（md_clean 合成金标准，自包含）；
+    `run_regression.py` 是唯一回归入口（99 断言，含 check_html/T8/渲染冒烟与构造用例）
+  - `examples/` — 构造样本（lookback-demo 回看机制演示）；标杆样本 v0.0.18 起退役
+    （槽位契约归 fillsheet、文风示范归模板注释「真实示范」条目，不再随模板改动维护副本）
 - `reports/` — 产出目录。顶层只放成品 HTML（每公司只留最新版；`贵州茅台-600519-年报-2025FY-20260904.html`
   是黄金样本，改流程/模板后用它做回归对比）；原始报告（PDF/md）存 `reports/archive/原始报告/`，
   data.json 底稿存 `reports/archive/json/`
-- `deploy.cmd` — 部署：robocopy 镜像技能源到用户级 skills 目录（examples/ 一并上线，供运行时 few-shot）
+- `deploy.cmd` — 部署：robocopy 镜像技能源到用户级 skills 目录
 
 ## 纪律
 
 1. 改完技能 → 跑 `deploy.cmd` → 新会话才生效（技能列表在会话启动时加载）
 2. **任何改动后先跑回归**：`python financial-report-analysis/tests/run_regression.py` 须 exit 0
-   （它内含 calc.py 三例 + 断言：茅台零 WARN、康得新 signals≥11 且红色≥6、recon 命中≥3、
-   万科 WARN==2 且扣非双版/双驱动真实触发）
+   （它内含 calc.py 四例 + 断言：茅台零 WARN、康得新 signals≥11 且红色≥6、recon 命中≥3、
+   万科 WARN==2 且扣非双版/双驱动真实触发、万华 WARN==2 且双驱动第二样本+白描分位锚点）
 3. 改 `calc.py` / `extraction-schema.md` / 任一 fixture 后，回归是强制的，不许跳过
 4. 结构性改动（流程/模板/阈值）先拿黄金样本与回归双绿，再提交
 5. 全程中文（代码关键字除外）

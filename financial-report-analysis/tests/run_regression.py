@@ -10,6 +10,8 @@ run_regression.py — financial-report-analysis 的金标准回归测试
   · tests/kangdexin_2018.json  康得新 2018 年报   —— 造假样本，抓**漏报**（假阴性）
   · tests/vanke_2026h1.json    万科A 2026 半年报  —— 连亏地产样本（v0.0.17 固化）：
                                扣非双版/双驱动护栏的真实触发锚点 + fill 块级 note 保留
+  · tests/wanhua_2026h1.json   万华化学 2026 半年报 —— 周期股样本（v0.0.18 固化，N3 落地）：
+                               周期证据链 + 双驱动护栏第二真实样本 + ROIC/内生增长率首验锚点
 
 断言清单
   [共同] calc.py exit code == 0（FAIL 清零），汇总 FAIL == 0
@@ -61,6 +63,7 @@ CALC = SKILL / "scripts" / "calc.py"
 MOUTAI = HERE / "moutai_2025.json"
 KANGDEXIN = HERE / "kangdexin_2018.json"
 VANKE = HERE / "vanke_2026h1.json"
+WANHUA = HERE / "wanhua_2026h1.json"
 
 # calc.py 的汇总行（唯一机器可读摘要）
 SUMMARY_RE = re.compile(
@@ -267,6 +270,56 @@ def check_vanke(case, proc, data):
                 "万科内生增长率 null（亏损期不计算，规则正确置空）")
 
 
+def check_wanhua(case, proc, data):
+    """万华化学 2026H1（v0.0.18 固化，N3 落地）：首份周期股报告底稿——
+    周期证据链可复算 + 双驱动护栏第二真实样本 + ROIC/内生增长率首验锚点 +
+    白描分位映射锚点（0.5/0.25/0.5 → 居中/第 2 低/居中）。"""
+    case.expect(proc.returncode == 0, f"calc.py exit 0（实际 {proc.returncode}）")
+    sm = parse_summary(proc.stdout or "")
+    case.expect(sm is not None, "汇总行可解析（calc.py 输出格式未变）")
+    if sm:
+        case.expect(sm["FAIL"] == 0, f"FAIL == 0（实际 {sm['FAIL']}）")
+        case.expect(sm["WARN"] == 2,
+                    f"WARN == 2（interest_arrears 单期 + recon-coverage 16/17 合法两条，实际 {sm['WARN']}）")
+    meta = data.get("meta") or {}
+    case.expect(meta.get("schema_version") == "1.4",
+                f"schema_version == 1.4（实际 {meta.get('schema_version')}）")
+    case.expect(meta.get("cycle_stage") == "上行" and meta.get("industry_profile") == "资源周期",
+                f"周期股锚点：cycle_stage=上行 + industry_profile=资源周期"
+                f"（实际 {meta.get('cycle_stage')}/{meta.get('industry_profile')}）")
+    dd = data.get("derived") or {}
+    dp = dd.get("dupont") or {}
+    case.expect(dp.get("driver_fragile") is True and (dp.get("effects_ratio") or 9) < 1.5,
+                f"双驱动护栏真实命中第二样本（effects_ratio={dp.get('effects_ratio')}）")
+    case.expect((dd.get("dupont_dt") or {}).get("triggered") is False,
+                "扣非双版未触发（非经 3.84%<20% 且口径差 <1pct，单版归因合法）")
+    rv = dd.get("ratios") or {}
+    roic = (rv.get("roic") or {}).get("cur")
+    sgr = (rv.get("sustainable_growth") or {}).get("cur")
+    case.expect(isinstance(roic, (int, float)) and abs(roic - 0.0543) < 5e-4,
+                f"ROIC 复算锚点 0.0543（实际 {roic}）——v0.0.17 新槽位首验样本")
+    case.expect(isinstance(sgr, (int, float)) and abs(sgr - 0.0541) < 5e-4,
+                f"内生增长率复算锚点 0.0541（实际 {sgr}）")
+    p5 = (dd.get("dupont5y") or {}).get("percentile") or {}
+    case.expect(p5.get("net_margin") == 0.5 and p5.get("asset_turnover") == 0.25
+                and p5.get("equity_multiplier") == 0.5,
+                f"白描分位映射锚点：0.5/0.25/0.5 → 居中/第 2 低/居中（实际 {p5}）")
+    cv = dd.get("cycle_evidence") or {}
+    rg = cv.get("rev_growth") or []
+    case.expect(len(rg) == 5 and rg[-1] is not None and abs(rg[-1] - 0.3126) < 5e-4,
+                f"周期证据链：收入增速五期在库、末值 +31.26%（实际 {rg[-1] if rg else None}）")
+    recon = data.get("recon") or {}
+    case.expect(len(recon) == 16 and all((v or {}).get("verdict") for v in recon.values()),
+                f"recon 覆盖 16/17（B2 附注未披露合法缺省，实际 {len(recon)} 条）")
+    il = ((dd.get("threshold_check") or {}).get("incentive_line"))
+    case.expect(isinstance(il, dict) and all(il.get(k) is None for k in
+                ("actual", "target", "ratio", "share_payment", "hit")),
+                "激励线「无计划」形态统一：全 null 对象（对齐 schema 与万科实践，v0.0.18 修）")
+    for code in ("cycle-evidence", "dupont5y", "cash-ts"):
+        case.expect(code in (proc.stdout or ""),
+                    f"检查被执行：calc.py 输出含 {code} 行")
+
+
 def report_case(case, proc, verbose):
     print(f"\n【{case.title}】{case.fixture.relative_to(SKILL)}")
     for ok, desc in case.results:
@@ -290,7 +343,7 @@ def main():
     print(f"技能根：{SKILL}")
     print(f"门禁：  {CALC}")
 
-    missing = [p for p in (CALC, MOUTAI, KANGDEXIN, VANKE) if not p.exists()]
+    missing = [p for p in (CALC, MOUTAI, KANGDEXIN, VANKE, WANHUA) if not p.exists()]
     if missing:
         for p in missing:
             print(f"❌ 缺少文件：{p}")
@@ -303,6 +356,7 @@ def main():
         ("贵州茅台 2025 年报 · 干净样本（抓误报）", MOUTAI, check_moutai),
         ("康得新 2018 年报 · 造假样本（抓漏报）", KANGDEXIN, check_kangdexin),
         ("万科A 2026 半年报 · 连亏地产样本（扣非双版/双驱动真实触发）", VANKE, check_vanke),
+        ("万华化学 2026 半年报 · 周期股样本（双驱动第二样本/ROIC·SGR 首验锚点）", WANHUA, check_wanhua),
     ):
         proc = run_calc(fixture)
         case = Case(title, fixture)
@@ -339,14 +393,17 @@ def main():
                     ("abbrev", "ocf-bridge-shape", "figtitle-attribution", "inspection-verdict"))
     # v0.0.15：s1 杜邦双卡形态检查必须被执行；dupont-stack 在 T8（--json）路径断言
     smoke_v15 = "s1-v15-shape" in (smoke.stdout or "")
+    # v0.0.18：内部引用禁词 / srcline 拼接纪律 两条新 FAIL 规则必须被执行
+    smoke_v18 = all(c in (smoke.stdout or "") for c in ("internal-ref", "srcline-dup"))
     print(f"\n【报告机检冒烟】check_html.py 跑模板："
           f"{'✅' if smoke_run else '❌'} 可运行（exit {smoke.returncode}）· "
           f"{'✅' if smoke_s8 else '❌'} s8-shape 检查存活 · "
           f"{'✅' if smoke_fig else '❌'} figtitle-style 检查存活 · "
           f"{'✅' if smoke_v12 else '❌'} v0.0.12 四检查存活 · "
-          f"{'✅' if smoke_v15 else '❌'} v0.0.15 s1-v15-shape 存活")
-    if not (smoke_run and smoke_s8 and smoke_fig and smoke_v12 and smoke_v15):
-        print("❌ 回归未通过：check_html.py 无法正常运行或 s8-shape / figtitle-style / v0.0.12 / v0.0.15 检查缺失。")
+          f"{'✅' if smoke_v15 else '❌'} v0.0.15 s1-v15-shape 存活 · "
+          f"{'✅' if smoke_v18 else '❌'} v0.0.18 两检查存活")
+    if not (smoke_run and smoke_s8 and smoke_fig and smoke_v12 and smoke_v15 and smoke_v18):
+        print("❌ 回归未通过：check_html.py 无法正常运行或 s8-shape / figtitle-style / v0.0.12 / v0.0.15 / v0.0.18 检查缺失。")
         return 1
 
     # ── T8 数字回验三断言（v0.0.6）──
@@ -376,6 +433,68 @@ def main():
         passed += ok
     if not all(ok for ok, _ in t8_checks):
         print("❌ 回归未通过：T8 数字回验断言失败，逐条核对上方 ❌。")
+        return 1
+
+    # ── v0.0.18 新规则构造用例（禁词 / 嵌套 srcline / 分位映射错配，各一反例）──
+    def _run_html_str(s):
+        with tempfile.NamedTemporaryFile("w", suffix=".html", delete=False, encoding="utf-8") as f:
+            f.write(s)
+            tmp = f.name
+        try:
+            return subprocess.run(
+                [sys.executable, str(SKILL / "scripts" / "check_html.py"),
+                 tmp, "--json", str(MOUTAI)],
+                capture_output=True, text=True, encoding="utf-8", errors="replace")
+        finally:
+            os.unlink(tmp)
+
+    _SECT = ('<div class="sect"><div class="secthead" id="s1"><span class="no">01</span>'
+             '<span class="t">财务总览</span><span class="line"></span></div>')
+    bad_ref = _run_html_str(
+        _SECT + '<div class="card"><table class="data"><tr><th>指标</th></tr>'
+        '<tr><td>净利率 <span class="badge der">推算</span></td></tr></table>'
+        '<div class="srcline">逐条读数与出处见 data.json signals 块</div></div></div>')
+    bad_nest = _run_html_str(
+        _SECT + '<div class="card"><table class="data"><tr><th>指标</th></tr>'
+        '<tr><td>净利率 <span class="badge der">推算</span></td></tr></table>'
+        '<div class="srcline">来源：公司年报<div class="srcline">来源：公司年报</div></div></div>')
+    bad_pct = _run_html_str(
+        _SECT + '<div class="card"><table class="data">'
+        '<tr><th>因子</th><th>当前值</th><th>五年位置</th></tr>'
+        '<tr><td>净利率 <span class="badge der">推算</span></td><td>48.8%</td>'
+        '<td><span class="badge disc">5 期最高</span></td></tr>'
+        '<tr><td>总资产周转率</td><td>0.56</td><td><span class="badge disc">5 期中居中</span></td></tr>'
+        '<tr><td>权益乘数</td><td>1.20</td><td><span class="badge disc">5 期最低</span></td></tr>'
+        '</table><div class="srcline">分位表演示</div></div></div>')
+    v18_checks = [
+        (bad_ref.returncode == 1 and "internal-ref" in (bad_ref.stdout or ""),
+         "v0.0.18 构造用例：可见文本「见 data.json」必 FAIL（internal-ref）"),
+        (bad_nest.returncode == 1 and "srcline-dup" in (bad_nest.stdout or ""),
+         "v0.0.18 构造用例：嵌套 srcline 必 FAIL（srcline-dup）"),
+        (bad_pct.returncode == 1 and "percentile-map" in (bad_pct.stdout or "")
+         and "5 期最低" in (bad_pct.stdout or ""),
+         "v0.0.18 构造用例：分位白描错配必 FAIL（percentile-map，茅台净利率 0 分位应标 5 期最低）"),
+    ]
+    print("\n【v0.0.18 新规则构造用例】")
+    for ok, desc in v18_checks:
+        print(f"  {'✅' if ok else '❌'} {desc}")
+        total += 1
+        passed += ok
+    if not all(ok for ok, _ in v18_checks):
+        print("❌ 回归未通过：v0.0.18 新规则构造用例失败，逐条核对上方 ❌。")
+        return 1
+
+    # ── 分位白描映射双写契约锁（v0.0.18）：check_html.py 与 calc_models.py 各持一份
+    # PCTILE_LABEL（跨家族 import 会造成耦合，故双写），本断言防单边漂移
+    sys.path.insert(0, str(SKILL / "scripts"))
+    from check_html import PCTILE_LABEL as _PL_CHECK
+    from calc_models import PCTILE_LABEL as _PL_FILL
+    pl_ok = _PL_CHECK == _PL_FILL
+    print(f"\n【分位白描映射契约锁】{'✅' if pl_ok else '❌'} check_html.PCTILE_LABEL == calc_models.PCTILE_LABEL")
+    total += 1
+    passed += pl_ok
+    if not pl_ok:
+        print("❌ 回归未通过：白描映射双写漂移，同步两处后再提交。")
         return 1
 
     # ── 渲染测量条件冒烟（v0.0.9 L2）──
@@ -417,7 +536,8 @@ def main():
 
     fill_checks = []
     with tempfile.TemporaryDirectory() as td2:
-        for fx in ("moutai_2025.json", "kangdexin_2018.json", "vanke_2026h1.json"):
+        for fx in ("moutai_2025.json", "kangdexin_2018.json", "vanke_2026h1.json",
+                   "wanhua_2026h1.json"):
             src = HERE / fx
             dst = Path(td2) / fx
             dst.write_text(src.read_text(encoding="utf-8"), encoding="utf-8")
@@ -585,7 +705,7 @@ def main():
         print("❌ 回归未通过：逐条核对上方 ❌；先确认是 calc.py 改坏了还是样本期望值需调整，"
               "禁止为了让测试变绿而改 fixture 数值。")
         return 1
-    print("✅ 三例全绿：门禁既未误报干净样本、未漏报造假样本，也未错伤连亏样本。")
+    print("✅ 四例全绿：门禁既未误报干净样本、未漏报造假样本，也未错伤连亏样本与周期股样本。")
     return 0
 
 
