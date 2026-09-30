@@ -303,7 +303,7 @@ def check_wanhua(case, proc, data):
     p5 = (dd.get("dupont5y") or {}).get("percentile") or {}
     case.expect(p5.get("net_margin") == 0.5 and p5.get("asset_turnover") == 0.25
                 and p5.get("equity_multiplier") == 0.5,
-                f"白描分位映射锚点：0.5/0.25/0.5 → 居中/第 2 低/居中（实际 {p5}）")
+                f"白描分位映射锚点：0.5/0.25/0.5 → 3/5 / 4/5 / 3/5（实际 {p5}）")
     cv = dd.get("cycle_evidence") or {}
     rg = cv.get("rev_growth") or []
     case.expect(len(rg) == 5 and rg[-1] is not None and abs(rg[-1] - 0.3126) < 5e-4,
@@ -395,15 +395,21 @@ def main():
     smoke_v15 = "s1-v15-shape" in (smoke.stdout or "")
     # v0.0.18：内部引用禁词 / srcline 拼接纪律 两条新 FAIL 规则必须被执行
     smoke_v18 = all(c in (smoke.stdout or "") for c in ("internal-ref", "srcline-dup"))
+    # v0.0.19：三态措辞 / 小数位 / 断言计数 三条新检查必须真的被执行到
+    smoke_v19 = all(c in (smoke.stdout or "") for c in
+                    ("recon-label", "decimal-places", "assertion-count"))
     print(f"\n【报告机检冒烟】check_html.py 跑模板："
           f"{'✅' if smoke_run else '❌'} 可运行（exit {smoke.returncode}）· "
           f"{'✅' if smoke_s8 else '❌'} s8-shape 检查存活 · "
           f"{'✅' if smoke_fig else '❌'} figtitle-style 检查存活 · "
           f"{'✅' if smoke_v12 else '❌'} v0.0.12 四检查存活 · "
           f"{'✅' if smoke_v15 else '❌'} v0.0.15 s1-v15-shape 存活 · "
-          f"{'✅' if smoke_v18 else '❌'} v0.0.18 两检查存活")
-    if not (smoke_run and smoke_s8 and smoke_fig and smoke_v12 and smoke_v15 and smoke_v18):
-        print("❌ 回归未通过：check_html.py 无法正常运行或 s8-shape / figtitle-style / v0.0.12 / v0.0.15 / v0.0.18 检查缺失。")
+          f"{'✅' if smoke_v18 else '❌'} v0.0.18 两检查存活 · "
+          f"{'✅' if smoke_v19 else '❌'} v0.0.19 三检查存活")
+    if not (smoke_run and smoke_s8 and smoke_fig and smoke_v12 and smoke_v15
+            and smoke_v18 and smoke_v19):
+        print("❌ 回归未通过：check_html.py 无法正常运行或 s8-shape / figtitle-style / "
+              "v0.0.12 / v0.0.15 / v0.0.18 / v0.0.19 检查缺失。")
         return 1
 
     # ── T8 数字回验三断言（v0.0.6）──
@@ -462,9 +468,9 @@ def main():
         _SECT + '<div class="card"><table class="data">'
         '<tr><th>因子</th><th>当前值</th><th>五年位置</th></tr>'
         '<tr><td>净利率 <span class="badge der">推算</span></td><td>48.8%</td>'
-        '<td><span class="badge disc">5 期最高</span></td></tr>'
-        '<tr><td>总资产周转率</td><td>0.56</td><td><span class="badge disc">5 期中居中</span></td></tr>'
-        '<tr><td>权益乘数</td><td>1.20</td><td><span class="badge disc">5 期最低</span></td></tr>'
+        '<td><span class="badge disc">1/5</span></td></tr>'
+        '<tr><td>总资产周转率</td><td>0.56</td><td><span class="badge disc">1/5</span></td></tr>'
+        '<tr><td>权益乘数</td><td>1.20</td><td><span class="badge disc">2/5</span></td></tr>'
         '</table><div class="srcline">分位表演示</div></div></div>')
     v18_checks = [
         (bad_ref.returncode == 1 and "internal-ref" in (bad_ref.stdout or ""),
@@ -472,8 +478,8 @@ def main():
         (bad_nest.returncode == 1 and "srcline-dup" in (bad_nest.stdout or ""),
          "v0.0.18 构造用例：嵌套 srcline 必 FAIL（srcline-dup）"),
         (bad_pct.returncode == 1 and "percentile-map" in (bad_pct.stdout or "")
-         and "5 期最低" in (bad_pct.stdout or ""),
-         "v0.0.18 构造用例：分位白描错配必 FAIL（percentile-map，茅台净利率 0 分位应标 5 期最低）"),
+         and "5/5" in (bad_pct.stdout or ""),
+         "v0.0.18 构造用例：分位白描错配必 FAIL（percentile-map，茅台净利率 0 分位应标 5/5）"),
     ]
     print("\n【v0.0.18 新规则构造用例】")
     for ok, desc in v18_checks:
@@ -484,8 +490,46 @@ def main():
         print("❌ 回归未通过：v0.0.18 新规则构造用例失败，逐条核对上方 ❌。")
         return 1
 
-    # ── 分位白描映射双写契约锁（v0.0.18）：check_html.py 与 calc_models.py 各持一份
-    # PCTILE_LABEL（跨家族 import 会造成耦合，故双写），本断言防单边漂移
+    # ── v0.0.19 新规则构造用例（断言计数错配 FAIL / 旧长标签 WARN / 三位小数 WARN）──
+    _SECT4 = ('<div class="sect"><div class="secthead" id="s4"><span class="no">04</span>'
+              '<span class="t">管理层在说什么</span><span class="line"></span></div>')
+    bad_ac = _run_html_str(
+        _SECT4 + '<div class="card">'
+        '<div class="figtitle">10 条重点断言：8 通过 / 1 不成立 / 2 无法验证</div>'
+        '<table class="data"><tr><th>断言</th><th>三态</th></tr>'
+        + '<tr><td>断言甲</td><td><span class="badge g">✅ 通过</span></td></tr>' * 7
+        + '<tr><td>断言乙</td><td><span class="badge r">❌ 不成立</span></td></tr>'
+        + '<tr><td>断言丙</td><td><span class="badge y">❓ 无法验证</span></td></tr>' * 2
+        + '</table><div class="srcline">断言表演示</div></div></div>')
+    warn_rl = _run_html_str(
+        _SECT + '<div class="card"><table class="data"><tr><th>等式</th><th>三态</th></tr>'
+        '<tr><td>A4 收入-收现</td><td><span class="badge y">⚠️ 可解释偏差</span></td></tr>'
+        '</table><div class="srcline">勾稽表演示</div></div></div>')
+    warn_dec = _run_html_str(
+        _SECT + '<div class="card"><table class="data"><tr><th>科目</th><th>金额</th></tr>'
+        '<tr><td>营业收入 <span class="badge disc">披露</span></td><td>1826.61009</td></tr>'
+        '</table><div class="srcline">小数位演示</div></div></div>')
+    v19_checks = [
+        (bad_ac.returncode == 1 and "assertion-count" in (bad_ac.stdout or ""),
+         "v0.0.19 构造用例：断言 figtitle「10 条=8+1+2」且表内仅 7✅ 必 FAIL（assertion-count）"),
+        ("recon-label" in (warn_rl.stdout or ""),
+         "v0.0.19 构造用例：旧长标签「可解释偏差」必出 WARN（recon-label）"),
+        ("decimal-places" in (warn_dec.stdout or "")
+         and "1826.61009" in (warn_dec.stdout or ""),
+         "v0.0.19 构造用例：可见文本五位小数必出 WARN（decimal-places）"),
+    ]
+    print("\n【v0.0.19 新规则构造用例】")
+    for ok, desc in v19_checks:
+        print(f"  {'✅' if ok else '❌'} {desc}")
+        total += 1
+        passed += ok
+    if not all(ok for ok, _ in v19_checks):
+        print("❌ 回归未通过：v0.0.19 新规则构造用例失败，逐条核对上方 ❌。")
+        return 1
+
+    # ── 分位白描映射双写契约锁（v0.0.18）：check_html_text.py 与 calc_models.py 各持一份
+    # PCTILE_LABEL（跨家族 import 会造成耦合，故双写；check_html.py 再导出本锁的 import 锚点），
+    # 本断言防单边漂移
     sys.path.insert(0, str(SKILL / "scripts"))
     from check_html import PCTILE_LABEL as _PL_CHECK
     from calc_models import PCTILE_LABEL as _PL_FILL
@@ -556,6 +600,13 @@ def main():
                     bad.append(k)
             fill_checks.append((r.returncode == 0 and not bad,
                                 f"--fill 幂等 {fx[:4]}…：exit 0 且 derived 不变（差异键 {bad[:3]}）"))
+            # fillsheet JS 槽形态冒烟（v0.0.19）：`('…',)` 元组 repr 是 f-string 把 JS 逗号
+            # 误写进插值大括号的特征（美的轮 TREND 槽 np:('…',) 笔误实证，幂等比对照不出来）
+            fs_text = (Path(td2) / (dst.stem + ".fillsheet.md")).read_text(encoding="utf-8")
+            leak = re.search(r"\('[^']*',\)", fs_text)
+            fill_checks.append((leak is None,
+                                f"--fill JS 槽形态 {fx[:4]}…：fillsheet 无元组 repr 泄漏"
+                                + (f"（命中 {leak.group(0)[:30]}…）" if leak else "")))
     print("\n【--fill 幂等金标准（v0.0.13）】")
     for ok, desc in fill_checks:
         print(f"  {'✅' if ok else '❌'} {desc}")

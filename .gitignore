@@ -2,6 +2,7 @@
 reports/**/*.pdf
 reports/**/*.md
 reports/**/*.index.json
+reports/archive/json/_chunks/
 
 __pycache__/
 *.pyc

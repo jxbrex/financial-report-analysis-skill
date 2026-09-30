@@ -43,14 +43,19 @@ def _num_of(node, k):
 
 
 def build_authority(data):
-    """权威值集：json 全部数值叶子。返回 (plain_entries, pct_entries, uniq_plain, uniq_pct)：
+    """权威值集：json 全部数值叶子。返回 (plain_entries, pct_entries, uniq_plain, uniq_pct, hist_pool)：
     plain = 各字段原值（金额/天数/倍数，供无 % 语境数字比较）；
     pct = 仅 derived.ratios 的 ×100 变体（供带 % 语境数字比较）。
     「独特性」= 与【其他叶子】的值 2% 内无碰撞（同一叶子 cur/prev 互撞不算）；
-    笔误检测只在独特值上做：撞脸的值无法归因，报了也是噪音。"""
+    笔误检测只在独特值上做：撞脸的值无法归因，报了也是噪音。
+    hist_pool = 所有数组（hist/hist_ye/cycle_evidence/cash_ts 等）的数值元素（含
+    derived.ratios 的 ×100 变体）——「五期序列」类呈现的 HTML 数字常与 cur/prev
+    独特值同域相邻（美的 2026H1 实证：毛利率序列 25.24 撞 cur 25.26、应收周转天数
+    序列 64.4 撞 prev 64.4671），它们是序列中间值的精度舍入，先按 hist_pool 豁免
+    再进独特值相近检查，消除该类系统性误报。"""
     leaves = []
     _iter_metric_leaves(data, [], leaves)
-    plain, pct = [], []
+    plain, pct, hist_pool = [], [], []
     for path, node in leaves:
         for k in NUM_KEY_LIST:
             v = _num_of(node, k)
@@ -59,6 +64,28 @@ def build_authority(data):
             plain.append((v, f"{path}.{k}", path))
             if path.startswith("derived.ratios"):
                 pct.append((v * 100, f"{path}.{k}×100", path))
+        for k in ("hist", "hist_ye"):
+            arr = node.get(k)
+            if isinstance(arr, list):
+                for i, v in enumerate(arr):
+                    if isinstance(v, (int, float)) and not isinstance(v, bool):
+                        hist_pool.append((float(v), f"{path}.{k}[{i}]"))
+                        if path.startswith("derived.ratios"):
+                            hist_pool.append((float(v) * 100, f"{path}.{k}[{i}]×100"))
+
+    def walk_arrays(node, path):
+        """收集其余数组型数值（cycle_evidence/cash_ts/dupont5y 等）进 hist_pool。"""
+        if isinstance(node, dict):
+            for k, v in node.items():
+                walk_arrays(v, path + [k])
+        elif isinstance(node, list):
+            for i, v in enumerate(node):
+                if isinstance(v, (int, float)) and not isinstance(v, bool):
+                    hist_pool.append((float(v), ".".join(path + [str(i)])))
+                else:
+                    walk_arrays(v, path + [str(i)])
+
+    walk_arrays(data, [])
 
     def uniq_of(entries):
         out = []
@@ -68,7 +95,7 @@ def build_authority(data):
                 out.append((v, p))
         return out
 
-    return plain, pct, uniq_of(plain), uniq_of(pct)
+    return plain, pct, uniq_of(plain), uniq_of(pct), hist_pool
 
 
 def check_numbers_vs_json(body, raw, data, rep, verbose=False):
@@ -79,7 +106,7 @@ def check_numbers_vs_json(body, raw, data, rep, verbose=False):
     与权威值「按显示精度相等且同号」→ 匹配 OK；未匹配但落在某【独特】值 0.15% 窗口内
     → FAIL 疑似笔误（报告行号 + 最接近的 json 字段）；其余无关数字跳过。
     阈值语境（&lt;x / &gt;y）、期次年份、序号小整数、外币（美元/欧元/港元）豁免。"""
-    plain, pct, uniq_plain, uniq_pct = build_authority(data)
+    plain, pct, uniq_plain, uniq_pct, hist_pool = build_authority(data)
     tag_spans = [(m.start(), m.end()) for m in re.finditer(r'<[^>]+>', body)]
     text = mask_ranges(body, tag_spans)
     matched = 0
@@ -114,6 +141,13 @@ def check_numbers_vs_json(body, raw, data, rep, verbose=False):
         pool = uniq_pct if is_pct else uniq_plain
         same_sign = [vp for vp in pool if vp[0] * d > 0]
         if not same_sign:
+            continue
+        # 序列呈现豁免：数字与 json 某数组元素（含 ×100 变体）按【显示精度】相等 =
+        # 序列中间值的舍入呈现（周期表/信号行的五期读数），非笔误——不进独特值相近检查。
+        # 豁免必须用显示精度 tol 而非近似窗：hist 末位=cur，0.15% 近似窗会把
+        # cur/prev 的笔误一并赦免（回归改错样例 1688.9 vs revenue 1688.381 实证）
+        if any(v * d > 0 and abs(v - d) <= tol for v, _ in hist_pool):
+            matched += 1
             continue
         bv, bp = min(same_sign, key=lambda vp: abs(vp[0] - d) / max(abs(vp[0]), 1e-9))
         dev = abs(bv - d) / max(abs(bv), 1e-9)

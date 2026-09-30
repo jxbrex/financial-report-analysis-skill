@@ -50,7 +50,7 @@
 | `scripts/check_html.py` | Phase 8，交付前 | 占位符残留、裸数字启发式、数据来源标注、模板硬规则、必备要素、锚点完整性、章节形态（s1 杜邦双卡/s2 瘦身/s8 阈值）、**T8 数字回验**（`--json`：HTML↔data.json 笔误检测 + data.json↔原文行号回核） | exit 非 0 禁止交付 |
 | `scripts/check_render.py` | Phase 8，交付前 | headless Chrome/Edge 真渲染测量：SVG 文本重叠 / HTML 溢出 / 横向裁剪；`--png` 按章分片截图供视觉验收 | 发现问题 exit 1 |
 | `scripts/gate.py` | 单入口 | 上三条一条命令串完（`--png`/`--verbose`/`--min-recon` 透传） | 统一退出码 |
-| `tests/run_regression.py` | 任何改动后 | 金标准四例（茅台干净样本零误报 / 康得新造假样本须命中 / 万科连亏地产样本扣非双版与双驱动真实触发 / 万华周期股样本双驱动第二样本与白描分位锚点）+ check_html/T8 冒烟 + md_clean 合成样本 + `--fill` 幂等（字符串叶精确比对）+ 构造用例，共 98 条断言 | 不绿不许提交 |
+| `tests/run_regression.py` | 任何改动后 | 金标准四例（茅台干净样本零误报 / 康得新造假样本须命中 / 万科连亏地产样本扣非双版与双驱动真实触发 / 万华周期股样本双驱动第二样本与白描分位锚点）+ check_html/T8 冒烟 + md_clean 合成样本 + `--fill` 幂等（字符串叶精确比对）+ 构造用例，共 106 条断言 | 不绿不许提交 |
 
 ## 三、目录结构
 
@@ -78,9 +78,10 @@ Financial Report Analysis/          本仓库（技能唯一真源）
 │   │   ├── calc_evidence.py        周期证据 / 四线贴线 / peers 结构
 │   │   ├── calc_risk.py            破产双模型 / 压力情景 / 现金时序
 │   │   ├── calc_models.py          --fill 编排层 + fillsheet 速查表产出（不含公式）
-│   │   ├── check_html.py           Phase 8 报告层门禁入口
+│   │   ├── check_html.py           Phase 8 报告层门禁入口（结构/硬规则族+主流程）
 │   │   ├── check_html_common.py    报告机检共享助手
-│   │   ├── check_html_t8.py        T8 数字回验整族（①级笔误检测 + ②级行号回核）
+│   │   ├── check_html_text.py      呈现文本族 14 条检查（v0.0.19 拆出；PCTILE_LABEL 居此）
+│   │   ├── check_html_t8.py        T8 数字回验整族（①级笔误检测 + hist_pool 豁免 + ②级行号回核）
 │   │   ├── check_render.py         渲染测量门禁（headless Chrome/Edge）
 │   │   ├── gate.py                 三道门禁单入口
 │   │   ├── md_clean.py             财报 md 确定性清洗（拼碎行/删页眉页脚 + 章节索引）
@@ -92,7 +93,7 @@ Financial Report Analysis/          本仓库（技能唯一真源）
 │   │   ├── wanhua_2026h1.json      周期股样本（双驱动第二样本/ROIC·SGR 首验/白描分位锚点）
 │   │   ├── md_clean_synth.md       md_clean 合成金标准（自包含，覆盖四类历史病理）
 │   │   ├── t8_demo.html / t8_demo_bad.html  T8 数字回验验收样例（正确版/改错版）
-│   │   └── run_regression.py       唯一回归入口（99 断言，全部门禁冒烟 + 构造用例）
+│   │   └── run_regression.py       唯一回归入口（106 断言，全部门禁冒烟 + 构造用例）
 │   └── examples/                   标杆样本（万科A 2026H1，现行模板全槽位真实报告）+ lookback-demo/
 ├── reports/                        产出目录。顶层只放成品 HTML（每公司最新版；PDF/md 不入库，json 入库）
 │   └── archive/                    原始报告（PDF/md，不入库）+ json 底稿（入库）

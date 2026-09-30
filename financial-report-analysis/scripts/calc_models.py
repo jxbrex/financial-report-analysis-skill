@@ -15,12 +15,13 @@ from calc_evidence import compute_cycle_evidence, compute_threshold_check
 from calc_risk import compute_altman, compute_ohlson, compute_stress, compute_cash_ts
 
 R4 = lambda x: None if x is None else round(x, 4)
+# 呈现两位小数（fillsheet 机械槽位：原始精度留 json，报告可见数字 ≤2 位，v0.0.19）
+R2 = lambda x: None if x is None else round(x, 2)
 
-# 分位白描映射（v0.0.18）：(rank−1)/(n−1)，n=5 离散步长 0.25 → 呈现文本。
-# 与 check_html.py PCTILE_LABEL 双写互指（跨家族 import 会造成 calc↔check_html 耦合，
+# 分位白描映射：(rank−1)/(n−1)，n=5 离散步长 0.25 → X/5（五年从高到低第 X，v0.0.19）。
+# 与 check_html_text.py PCTILE_LABEL 双写互指（跨家族 import 会造成 calc↔check_html 耦合，
 # 故保持双写 + 回归一致性断言锁契约，改动必须同步）
-PCTILE_LABEL = {0.0: "5 期最低", 0.25: "5 期中第 2 低", 0.5: "5 期中居中",
-                0.75: "5 期中第 2 高", 1.0: "5 期最高"}
+PCTILE_LABEL = {0.0: "5/5", 0.25: "4/5", 0.5: "3/5", 0.75: "2/5", 1.0: "1/5"}
 
 
 def _r4deep(x):
@@ -193,6 +194,16 @@ def write_fillsheet(data, path):
         L.append(f"- 五年归因（{d5.get('period_start')}→{d5.get('period_end')}）：净利率 "
                  f"{d5.get('margin_effect')} / 周转率 {d5.get('turnover_effect')} / 杠杆 "
                  f"{d5.get('leverage_effect')}；主驱动={d5.get('driver')}；closure_gap={d5.get('closure_gap')}")
+        _p2 = lambda x: "—" if x is None else f"{x * 100:+.2f}pct"
+        _rd = None
+        if d5.get("roe_start") is not None and d5.get("roe_end") is not None:
+            _rd = (d5["roe_end"] - d5["roe_start"]) * 100
+        L.append(f"- 五年累计列照抄（v0.0.19 统一口径：该因子对 ΔROE 的累计贡献，±x.xxpct 两位小数，"
+                 f"三因子行可加、合计=Δ三因子积；禁止填因子自身水平变化）：净利率 "
+                 f"{_p2(d5.get('margin_effect'))} / 周转率 {_p2(d5.get('turnover_effect'))} / "
+                 f"杠杆 {_p2(d5.get('leverage_effect'))}；ROE 行 ΔROE="
+                 f"{'—' if _rd is None else f'{_rd:+.2f}pct'}；口径差 {_p2(d5.get('closure_gap'))}"
+                 f" 写 ROE 行读法列")
         pg = d5.get("percentile") or {}
         L.append(f"- 因子分位（位置读数）：净利率 {pg.get('net_margin')} · 周转率 "
                  f"{pg.get('asset_turnover')} · 权益乘数 {pg.get('equity_multiplier')}")
@@ -250,26 +261,32 @@ def write_fillsheet(data, path):
              f"披露日期={meta.get('disclose_date')} · 生成日期={meta.get('analyst_date')} · "
              f"单位={meta.get('unit')}")
 
-    L.append("\n## S1 KPI 行（statements 照抄）\n")
+    L.append("\n## S1 KPI 行（statements 照抄；金额一律 R2 两位小数——原始精度留 json，"
+             "报告可见数字 ≤2 位小数，v0.0.19）\n")
     roe_n = ratios.get("roe") or {}
     roe_d = None if roe_n.get("cur") is None or roe_n.get("prev") is None \
         else (roe_n["cur"] - roe_n["prev"]) * 100
-    L.append(f"- 营业收入 {_v(inc, 'revenue')} 亿（同比 {_yoy(_v(inc, 'revenue'), _v(inc, 'revenue', 'prev'))}）"
+    L.append(f"- 营业收入 {R2(_v(inc, 'revenue'))} 亿（同比 {_yoy(_v(inc, 'revenue'), _v(inc, 'revenue', 'prev'))}）"
              f" <span class=\"badge disc\">披露</span>")
-    L.append(f"- 归母净利 {_v(inc, 'np_at')} 亿（同比 {_yoy(_v(inc, 'np_at'), _v(inc, 'np_at', 'prev'))}） disc · "
-             f"经营现金流 {_v(cfs, 'ocf')} 亿 · 净现比 {(cts.get('ncr') or [None])[-1]} der")
-    L.append(f"- ROE {roe_n.get('cur')}（较上期 {'—' if roe_d is None else f'{roe_d:+.1f}pct'}） der · "
-             f"扣非对照 {_v(inc, 'np_dt')}（差 >1pct 时该行染 dn 色）")
+    L.append(f"- 归母净利 {R2(_v(inc, 'np_at'))} 亿（同比 {_yoy(_v(inc, 'np_at'), _v(inc, 'np_at', 'prev'))}） disc · "
+             f"经营现金流 {R2(_v(cfs, 'ocf'))} 亿 · 净现比 {R2((cts.get('ncr') or [None])[-1])} der")
+    L.append(f"- ROE {'—' if roe_n.get('cur') is None else f'{roe_n['cur'] * 100:.2f}%'}"
+             f"（较上期 {'—' if roe_d is None else f'{roe_d:+.1f}pct'}） der · "
+             f"扣非对照 {R2(_v(inc, 'np_dt'))}（差 >1pct 时该行染 dn 色）")
 
     L.append("\n## S1 TREND 槽（JS 区粘贴；np_dt/roe 缺 hist 留空数组；**gm 填百分数**"
-             "（绘图不做 ×100，填小数会显示成 0.2%），**roe 存小数**（绘图 ×100））\n")
+             "（绘图不做 ×100，填小数会显示成 0.2%），**roe 存小数**（绘图 ×100）；"
+             "金额序列一律 R2 两位小数，v0.0.19）\n")
     labels = cts.get("periods") or cv.get("periods") or []
     _hist = lambda node: (node or {}).get("hist") or []
-    _gm_pct = [round(x * 100, 4) if x is not None else None
+    _r2l = lambda arr: [R2(x) for x in arr]
+    _gm_pct = [round(x * 100, 2) if x is not None else None
                for x in _hist(ratios.get("gross_margin"))]
     L.append(f"const TREND={{labels:{json.dumps(labels, ensure_ascii=False)},"
-             f"rev:{json.dumps(_hist(inc.get('revenue')))},np:{json.dumps(_hist(inc.get('np_at')))},"
-             f"np_dt:{json.dumps(_hist(inc.get('np_dt')))},roe:{json.dumps(_hist(roe_n))},"
+             f"rev:{json.dumps(_r2l(_hist(inc.get('revenue'))))},"
+             f"np:{json.dumps(_r2l(_hist(inc.get('np_at'))))},"
+             f"np_dt:{json.dumps(_r2l(_hist(inc.get('np_dt'))))},"
+             f"roe:{json.dumps(_hist(roe_n))},"
              f"gm:{json.dumps(_gm_pct)}}};")
 
     if du:
@@ -316,9 +333,9 @@ def write_fillsheet(data, path):
         L.append(f"// 无量价（rev_factors 全 null）→ 分部轴降级，各分部贡献照 rev_factors.note 手填：")
         L.append(f"// {rf.get('note') or '（note 未填分部拆解，回 Phase 7 补）'}")
         L.append("const SEG_BRIDGE=[['分部A',0],['分部B',0],['其他',0]];")
-    L.append(f"// 端点行：基期收入 {_v(inc, 'revenue', 'prev')} 亿 →（合计 "
+    L.append(f"// 端点行：基期收入 {R2(_v(inc, 'revenue', 'prev'))} 亿 →（合计 "
              f"{None if _v(inc, 'revenue') is None or _v(inc, 'revenue', 'prev') is None else round(_v(inc, 'revenue') - _v(inc, 'revenue', 'prev'), 2)} 亿）"
-             f"→ 本期收入 {_v(inc, 'revenue')} 亿")
+             f"→ 本期收入 {R2(_v(inc, 'revenue'))} 亿")
 
     npb = (data.get("derived") or {}).get("np_bridge") or []
     if npb:
@@ -369,10 +386,10 @@ def write_fillsheet(data, path):
             if tail:
                 rows.append(["其他", round(sum(v for _, v in tail), 2)])
             L.append(f"const OCF_BRIDGE={json.dumps(rows, ensure_ascii=False)};")
-            L.append(f"const OCF_END={_v(cfs, 'ocf')};")
+            L.append(f"const OCF_END={R2(_v(cfs, 'ocf'))};")
             adj = round(sum(v for _, v in items[1:]), 2)
             L.append(f"// 端点行：净利润 {round(head[1], 2)} 亿 →（调节净额 {adj:+} 亿）→ "
-                     f"经营现金流净额 {_v(cfs, 'ocf')} 亿")
+                     f"经营现金流净额 {R2(_v(cfs, 'ocf'))} 亿")
 
     cip = notes.get("cip_projects") or []
     if cip:
@@ -386,7 +403,8 @@ def write_fillsheet(data, path):
         L.append("\n## S6 股东结构\n")
         hn_c, hn_p = sh.get("holder_num_cur"), sh.get("holder_num_prev")
         L.append(f"- 户数：本期 {hn_c} · 上期 {hn_p}"
-                 f"（万户呈现 ÷10000；HOLDERS 时序 ≥3 期从 Tushare stk_holdernumber 补，px 可留空）")
+                 f"（万户呈现 ÷10000；HOLDERS 时序 ≥3 期从 Tushare stk_holdernumber 补；"
+                 f"px=户数环比增减 %，首期无环比填 null 跳点，可整列留空）")
         L.append(f"const HOLDERS={{labels:[],num:[],px:[]}};")
         L.append("- 降级联动：户数时序补不齐 3 期时，图卡降级为两期文字行（本期/上期+变动解读），"
                  "不硬画两点图")

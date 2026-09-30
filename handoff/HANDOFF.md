@@ -1,6 +1,6 @@
 # HANDOFF · 交接文档
 
-> 版本 **0.0.18** · 截至 2026-09-29 · 本文档面向「下一个接手这个项目的人/AI 会话」
+> 版本 **0.0.19** · 截至 2026-09-30 · 本文档面向「下一个接手这个项目的人/AI 会话」
 > 仓库：https://github.com/jxbrex/financial-report-analysis-skill（**私密**）
 > 部署：`C:/Users/rexji/.agents/skills/financial-report-analysis/`（由 `deploy.cmd` 镜像）
 
@@ -24,7 +24,7 @@
 
 ## 二、技能构成与三道门禁
 
-### 技能现在的构成（26 个源文件）
+### 技能现在的构成（27 个源文件）
 
 ```
 financial-report-analysis/
@@ -41,16 +41,17 @@ financial-report-analysis/
 │   ├── report-types.md         #   年报/半年报/季报/招股书/港美股 差异
 │   └── subagent-prompts.md     #   并行派发窗派单模板 ×5（v0.0.14）
 ├── assets/report-template.html # 10 章单文件报告模板（内联 SVG 绘图函数族、锚点 s0~s8 + review、置信度徽章）
-├── scripts/                    # 13 个脚本
+├── scripts/                    # 14 个脚本
 │   ├── calc.py                 #   Phase 7.5 数据层门禁入口（--fill / --min-recon / --strict）
 │   ├── calc_common.py          #   共享层：取值助手 + 比率公式唯一定义处 + hist_periods/批量比对
 │   ├── calc_dupont.py          #   杜邦族：连环替代三口径 / 因子下钻 / 五年归因与分位
 │   ├── calc_evidence.py        #   周期证据 / 四线贴线 / peers 结构
 │   ├── calc_risk.py            #   破产双模型 / 压力情景 / 现金时序
 │   ├── calc_models.py          #   --fill 编排层 + fillsheet 产出（不含公式）
-│   ├── check_html.py           #   Phase 8 报告层门禁入口
+│   ├── check_html.py           #   Phase 8 报告层门禁入口（结构/硬规则族 + 主流程）
 │   ├── check_html_common.py    #   报告机检共享助手
-│   ├── check_html_t8.py        #   T8 数字回验整族（①级笔误检测 + ②级行号回核）
+│   ├── check_html_text.py      #   呈现文本族 11+3 条检查（v0.0.19 拆出；PCTILE_LABEL 居此）
+│   ├── check_html_t8.py        #   T8 数字回验整族（①级笔误检测 + hist_pool 豁免 + ②级行号回核）
 │   ├── check_render.py         #   渲染测量门禁（headless Chrome/Edge，--png 分片截图）
 │   ├── gate.py                 #   三道门禁单入口
 │   ├── md_clean.py             #   财报 md 确定性清洗 + 章节索引
@@ -62,7 +63,7 @@ financial-report-analysis/
 │   ├── wanhua_2026h1.json      #   周期股样本（v0.0.18 固化：双驱动第二样本/ROIC·SGR 首验/白描分位锚点）
 │   ├── md_clean_synth.md       #   md_clean 合成金标准（自包含，四类病理；v0.0.17 起不再依赖原始 md）
 │   ├── t8_demo.html / t8_demo_bad.html  # T8 数字回验验收样例（正确版 / 改错版）
-│   └── run_regression.py       #   唯一回归入口：98 条断言 + check_html/T8/渲染冒烟 + 构造用例
+│   └── run_regression.py       #   唯一回归入口：106 条断言 + check_html/T8/渲染冒烟 + 构造用例
 └── examples/                   # lookback-demo 构造样本（标杆样本 v0.0.18 退役：槽位归 fillsheet、文风归模板注释）
 ```
 
@@ -73,16 +74,19 @@ financial-report-analysis/
    （净利桥/OCF 调节桥/收入三效应）、比率复算（含 dfl/dol/non_main_rev_share/ocf_to_liab）
    与 5 期 hist 逐期复算、勾稽三态一致性（A/B 组 + D 组 manual 型）、分部自洽、
    断言结构、勾稽覆盖率、应付未付利息、信号结构。exit 0 才允许进入 Phase 8。
-2. **`scripts/check_html.py`（报告层，Phase 8，交付前）**
+2. **`scripts/check_html.py`（报告层，Phase 8，交付前）**——v0.0.19 起呈现文本族拆至
+   `check_html_text.py`（PCTILE_LABEL 居此、入口再导出保契约锁锚点）。
    校验：占位符漏填、裸数字（启发式）、数据来源标注、模板硬规则、必备要素
    （下期清单/免责声明）、章节编号、锚点完整性、s2 瘦身形态、s8 阈值形态、回看归因；
-   `--json` 启用 **T8 数字回验**：①级 HTML↔data.json 笔误检测（独特值 0.5% 窗口 FAIL）+
-   ②级 data.json↔原文 md 行号回核；v0.0.18 起加三条 FAIL 规则：**internal-ref**
-   （可见文本禁内部过程引用：底稿文件名/方法库路径/脚本名/字段路径/版本号/工具函数名）、
-   **srcline-dup**（srcline 禁嵌套/相邻>2 条/文本重复）、**percentile-map**
-   （分位白描读数↔derived.dupont5y.percentile 映射一致）。exit 0 才允许交付。
-3. **`python tests/run_regression.py`** —— 任何改动后必跑，**98 条断言**全绿才算没改坏
-   （含 calc 四例 + check_html 冒烟 + T8 数字回验 + md_clean 合成样本 + 构造用例）。
+   `--json` 启用 **T8 数字回验**：①级 HTML↔data.json 笔误检测（独特值 0.5% 窗口 FAIL，
+   v0.0.19 起 hist_pool 序列中间值豁免）+ ②级 data.json↔原文 md 行号回核；v0.0.18 起三条
+   FAIL 规则（**internal-ref** 内部引用禁词 / **srcline-dup** 拼接纪律 / **percentile-map**
+   分位白描映射）；v0.0.19 起加 **assertion-count**（FAIL：断言 figtitle 三态计数
+   a+b+c=N 且与表内徽章/底稿 assertions 一致）与 **recon-label**（勾稽三态旧长标签）、
+   **decimal-places**（可见数字 ≥3 位小数）两条 WARN。exit 0 才允许交付。
+3. **`python tests/run_regression.py`** —— 任何改动后必跑，**106 条断言**全绿才算没改坏
+   （含 calc 四例 + check_html 冒烟 + T8 数字回验 + md_clean 合成样本 + 构造用例
+   + fillsheet JS 槽形态冒烟）。
 
 ---
 
@@ -120,10 +124,19 @@ financial-report-analysis/
 - 查 tag 用 `git tag | sort -V`，别用 tail（字符串排序 v0.0.10 排在 v0.0.5 前的坑，二·二十一）
 - 存量旧版式报告跑新 check_html 会出 internal-ref（内部引用禁词）与 percentile-map
   （分位白描）FAIL——纪律 7 不追溯不重出，属预期（v0.0.18；与 T8①级对旧报告的固有
-  噪音同类）。万华 2026H1 报告即此形态（仅修了 6 处内容错误，版式留在 v0.0.15 代）
-- 分位白描映射（0→5 期最低/.25→第 2 低/.5→居中/.75→第 2 高/1→最高）定义在两处：
-  check_html.py `PCTILE_LABEL` 与 calc_models.py `_LAB`（fillsheet 用）——双写互指，
-  改动必须同步，回归 fixture（茅台/万华）覆盖映射校验
+  噪音同类）。万华 2026H1 报告即此形态（仅修了 6 处内容错误，版式留在 v0.0.15 代）；
+  v0.0.19 起美的快照（v0.0.18 版式）再加 assertion-count FAIL（figtitle 8+1+2≠10 笔误
+  留档）与 recon-label/decimal-places WARN，同属预期
+- 分位白描映射 X/5（v0.0.19 起：五年从高到低第 X——0→5/5 / .25→4/5 / .5→3/5 / .75→2/5 /
+  1→1/5；旧措辞「5 期中第 2 高」族退役）双写定义在 check_html_text.py `PCTILE_LABEL` 与
+  calc_models.py `PCTILE_LABEL`（check_html.py 再导出保回归契约锁锚点）——改动必须同步
+- combo 线序列支持 null 跳点（环比首期无值不画点、断点不硬连，v0.0.19，与 trendDual
+  ROE 线同一约定）；check_html 拆分口径：呈现文本族（文风/标签/格式）归
+  check_html_text.py，结构/硬规则族与主流程留 check_html.py
+- 模板注释里的特性编号（F/T/L）与 HANDOFF/方法库有交叉引用——清理注释别全量机械删
+  （v0.0.18 热核 F1 误删 spark 线色纪律一行的实证）
+- decimal-places WARN 只屏蔽 srcline：inline style 里的 3+ 位小数（如 width:33.3333%）
+  会误报——当前模板无此形态，将来引入再扩屏蔽面（v0.0.19 对抗评审备查）
 - 万华轮效率基线（v0.0.18 效率治理对照）：全流程 53.3min，LLM 流式占 86%；
   Phase 8 填模板+门禁返工 19.5min、手写 16k token json 单步 311s、附注单代理 547s
   拖满 9.1min 并行窗口、grep 万科标杆 11 次。治理后（fillsheet 全槽位契约/派发窗
@@ -182,63 +195,71 @@ financial-report-analysis/
 
 ---
 
-## 四·五、当前未发布轮：v0.0.18（2026-09-29，万华报告反馈驱动轮）
+## 四·五、当前未发布轮：v0.0.19（2026-09-30，美的报告反馈驱动轮）
 
-> 触发：万华化学 2026H1（**首份周期股报告**）产出后，用户 11 点反馈 + handoff 周期股验证任务。
-> 五路并行排查定位后，用户拍板 4 项决策，一轮全做。本节发布后将整节移入 supersede/。
+> 触发：美的集团 2026H1 报告产出后用户 10 条呈现层反馈 + 「解决 handoff 可执行待办」。
+> 用户拍板：**只改 skill、美的报告快照不动**（figtitle 笔误也不修，用新机检防下一份）；
+> 周期证据卡按「非周期股整卡省略」；分位格式 X/5 从高到低。本节发布后整节移入 supersede/。
 
-### 用户 11 点反馈的处理对照
+### 用户 10 点反馈的处理对照
 
-| # | 反馈 | 定位结论 | 处置 |
-|---|---|---|---|
-| 1 | 报告用时非常长 | 53.3min，LLM 流式占 86%；Phase 8 填模板+门禁返工 19.5min（37%）、手写 16k token json 单步 311s、附注单代理 547s 拖满并行窗、grep 标杆 11 次 | fillsheet 全槽位契约 / 派发窗 5→6 代理分块落盘 `_chunks/` / 两段填充半程门禁 |
-| 2 | 反复查万科标杆 = 流程缺陷 | 病灶不是 SKILL.md 的 few-shot 提示（仅 1 处），是**模板槽位没有机读契约**，靠 grep 标杆试探 | fillsheet 契约化后 Phase 8 不碰 examples；SKILL.md examples 引用降级为「首次可选阅读」 |
-| 3 | 前十大表/peers 表半宽难看 | peers 8 列挤在半宽卡（~500px） | 两表全宽横铺 |
-| 4 | watchlist 小字出现两次 | 不是两处，是 713 行 **srcline 嵌套**（拼接 bug）；563 行同病灶；474-475 Q4 残留 | 模板 :695 整条删；check_html 加 srcline-dup FAIL 规则；Q4 卡非年报整删规则 |
-| 5 | 加右侧章节目录 | stock-deep-analysis 为纯 CSS 零 JS 方案（fixed 浮层+原生平滑滚动） | 移植 .toc-side（≤1300px 与打印隐藏） |
-| 6 | 财务总览指标表杂乱 | 12 行平铺无分组 | 加类别分组行（盈利→成长→营运→偿债与杠杆→收入质量） |
-| 7 | 阶段判定看不懂 | 「自证式对号」写法（frameworks F-07 + 模板逐线比对纪律驱动），推理过程写进结论位；模板占位词口径滞后 | 判定行只放结论、依据进 takeaway（正反示范落模板注释与 frameworks） |
-| 8 | 质量排序小字不像人话 | 模板 :344 硬编码照抄 frameworks，含版本号自我指涉+字段路径 | 重写为两句人话；方法库 5 处双写去版本号 |
-| 9/10 | 引用过程文件的小字无意义 | **模板 srcline 硬编码 15 处**（非模型自发），check_html 零覆盖 | 全部改写对外措辞 + internal-ref FAIL 禁词门禁 |
-| 11 | 净利桥太长、分部桥改柱状图 | 净利桥半宽 5 列 11 行备注超长；分部桥是 HTML 表 | 净利桥全宽+备注 ≤30 字；分部桥改 SVG delta 条形图（SEG_BRIDGE 槽，复用 OCF 桥 deltaBars） |
+| # | 反馈 | 处置 |
+|---|---|---|
+| 1 | 净现比「造血稳定是最不需要担心的一层」零信息量 | 模板 figtitle 指令重写：正常形态禁抒情占位（该句作反面教材进注释） |
+| 2 | 顶部回落段与趋势图重复 | 周期证据卡非周期股整卡省略（模板裁剪规则 + SKILL Phase 0.5 + s1 留「非周期」声明豁免词） |
+| 3 | 杜邦堆叠条列示不分明、单位混排（-0.23 vs +0.4pct） | stackH 三因子固定分色（赭石/浅赭/棕，口径差灰）+ 段标签统一 ±x.xpct；**真发现：旧单一累加链在符号翻转时段间互相覆盖，美的净利率 −0.23pct 段被周转率段整段盖没**——改双向累叠（正贡献零轴向右、负贡献向左，deltaBars 同款零轴居中）+ 边缘窄段标签钳位；下钻子行四项全带 pct；旁表单位纪律入注释 |
+| 4 | 五年归因表五年累计列格式混乱 | 统一为对 ΔROE 累计贡献 ±x.xxpct（三行可加）；fillsheet 五年归因行直接产出转好的 pct 照抄值 |
+| 5 | 「5 期中第 2 高」改 2/5 | PCTILE_LABEL 双写改 X/5（从高到低）；s1-v15-shape 正则 + percentile-map + t8_demo + 构造用例同步 |
+| 6 | 「可解释偏差」缩略 | 徽章短式「可解释/无法解释」；articulation.md 同步；新增 recon-label WARN 抓旧长标签 |
+| 7 | OCF 桥太大 | viewBox 960×200 与收入桥同尺寸；不再与 Q4 卡组双列（半宽下 960 宽 viewBox 文字不可读），始终全宽 |
+| 8 | 断言 10 条平铺 + figtitle 算术错（8+1+2≠10，表内实际 7） | 模板加科目分组行 + 表下汇总行（text-mining 呈现规范同步）；新增 assertion-count FAIL（figtitle↔表内徽章↔底稿 assertions 三方计数自洽） |
+| 9 | 股东户数图太高、加增减折线 | 920×280→920×200；px 槽语义=户数环比增减 %（combo 新增线序列 null 跳点，与 ROE 线同一约定） |
+| 10 | 1826.61009 五位小数上桌 | 三层堵口：fillsheet TREND/KPI/SEG/OCF_END 裸值 R2 + JS fmt 助手接入全部裸输出点 + decimal-places WARN；原始精度留底稿 |
 
-### 周期股验证结论（handoff 未验证项 17/18 首验）
+### handoff 可执行待办清理
 
-三道门禁全绿（calc FAIL 0·WARN 2 合法 / check_html FAIL 0 / check_render 双视口 0）；
-ROIC 0.0543 / SGR 0.0541 首验（calc 复算+手工独立复算三重一致）；双驱动护栏第二真实样本
-（effects_ratio 1.1078）；扣非未触发（正确）；激励线「无计划」路径与披露互证。
-**两个真发现**：① 周转率 25 分位被误标「下限区」（规则 ≤10 分位才算，check_html 只查
-存在性不查档位）——直接促成 v0.0.18 分位白描化 + percentile-map 映射校验；
-② 资本承诺两口径并存（A6 勾稽 243.28 亿购建口径 vs 报告叙述 246.16 亿合计口径）+ 行号
-错位（已修，L6647）。万华 json 固化为第四金标准（13 断言）。
+- **check_html.py 952→543 行**：呈现文本族 11 条检查纯搬迁至 check_html_text.py
+  （热核记录项①「加规则前先拆」本轮触发并完成）；三条新规则直接落新模块（共 14 条在册）
+- **任务 8 正式关闭**：裸数字启发式不再投入（T8① FAIL 级直校已替代精度需求）
+- **美的轮回填**：效率数据跨会话不可得，如实记录；fillsheet 契约缺口 4 项（TREND/KPI
+  裸值、HOLDERS 手填、figtitle 算术无校验、分位标签旧措辞引导）已随本轮修复
+- 热核记录项②（run_regression helper，第五例前）未触发；③ write_fillsheet 现约 310 行
+  （本轮 +20），仍维持「再涨按章节拆」记录项
 
-### 万华报告内容错误修正（6+3 处，版式按纪律 7 不重出）
+### 验证链收获（本轮实证）
 
-分位徽章「下限区→常态区」+takeaway 联动措辞、713 嵌套 srcline 去重、563 相邻双 srcline
-去重、474-475 Q4 残留删除、资本承诺行号 L6645→L6647（合计口径）、收入增速首格 +31.7%
-（无底稿）改「—」；json 侧 wc_devour note 分母表述、incentive_line 补全 null 对象、
-A6 note 写明两口径分工。修后 calc exit 0、check_render 双视口 0；internal-ref 35 处与
-percentile-map FAIL 按纪律 7 记预期（运维速查）。
+- 渲染目检抓到 **stackH 单一累加链符号翻转覆盖 bug**（旧版负贡献段被整段盖没——美的
+  「列示不分明」的根因，check_render 测不到、纯截图目检发现）→ 双向累叠修复 + 边缘标签钳位
+- fillsheet 抽检抓到 **TREND 槽元组 repr 笔误**（f-string 插值大括号误含 JS 逗号 →
+  `np:('…',)`）——幂等比对只看 derived 不可见，新增 fillsheet JS 槽形态冒烟断言（`('…',)`
+  特征扫描，4 fixture 各一条）
+
+### 本轮对抗评审（热核审计 skill 不在会话可用列表，人工+评审子代理双轨替代）结论与处置
+
+- 真 bug 修复：assertion-count 总条数取首个「N 条」的误报面（figtitle 前置「复盘 3 条
+  上期断言」类短语时误 FAIL）→ 改取三态计数关键词前最后一个「N 条」；frameworks.md
+  方案 D 分位措辞漏同步 X/5（方法库旧措辞会诱发报告撞 percentile-map FAIL）→ 已同步
+- 一致性修复：fillsheet KPI 行 ROE 补 ×100 两位小数 % 形态；HANDOFF/README 断言计数
+  98/99/102 残留全统一 106；SKILL 版本记录「14 条纯搬迁」→「11 搬迁+3 新增」
+- 评审确认无问题项：拆分搬迁 9/11 函数逐字一致（2 处差异即 X/5 预期改动）、stackH
+  全正/全负/混合/全零/单段五形态几何探针全对、combo null 跳点与 fmt 边界全对、
+  check_html.py 无死 import（PCTILE_LABEL 再导出为有意锚点）
+
+### T8① hist_pool 豁免（美的轮遗留修复，本轮随入库）
+
+美的轮实证：五期序列中间值的精度舍入（毛利率序列 25.24 撞 cur 25.26、应收周转天数
+64.4 撞 prev 64.4671）造成系统性误报；build_authority 新增 hist_pool（全部数组型数值
+叶子 + derived.ratios ×100 变体），先按 hist_pool 豁免再进独特值相近检查。
 
 ### 遗留（下轮关注）
 
-- fillsheet 契约实战反馈随下一份报告收集（万科标杆刷新首测已兑现 5 处缺口修复；
-  标杆样本随用户定案退役，文风示范改由模板注释「真实示范」条目承担）
-- 效率治理效果对照基线四项指标（运维速查）随下一份报告评估
 - 70% 升档阈值真实触发、激励线「有计划」取数流程仍待样本
-
-### 热核审计（thermo-nuclear-code-quality-review，用户触发）结论与处置
-
-- **F1 模板破 1k 红线**（1014→1075）：轻量清理定案——删版本考古标签与替代史 36 行
-  （1075→1039，去注释 ~900），红线口径改「去注释计 1k」（本节 N4 已落）；
-  全量清理被否决（F/T/L 特性编号在 HANDOFF/方法库有交叉引用，误判删除风险 > 守数字收益——
-  机械清理当场误删 spark 线色纪律一行，实证该风险，已当场修复）
-- **F2 PCTILE_LABEL 双写**：calc_models 提为模块级常量 + 回归新增「双写契约锁」断言
-  （跨家族 import 会造成 calc↔check_html 耦合，故双写+断言锁而非合并定义处）
-- **F3 calc_models lambda 套 lambda**：改普通 def（_sumf/_gp），语义不变
-- 记录项（未动，下轮或触发时再处理）：check_html.py 952 行（下次加规则前先拆
-  check_html_text.py 呈现文本族）；run_regression 四 checker 样板（第五例前抽 helper）；
-  write_fillsheet 单函数 290 行（再涨按章节拆 _emit_*）
+- N4 模板冻结计数再次清零起算（本轮模板有结构性改动：stackH 双向累叠/两桥同尺寸/
+  断言分组行/户数图）；连续两份新报告零结构性改动才重议 fill→render 脚本化
+- 美的报告（v0.0.18 版式快照）跑新门禁的预期命中：assertion-count FAIL（figtitle 笔误
+  留档）+ internal-ref/percentile-map FAIL（旧版式固有）+ recon-label/decimal-places
+  WARN——纪律 7 不追溯（运维速查同类条目）
+- 效率治理四项指标对照仍未有第二份可测样本（下份报告产出会话须记录耗时）
 
 ---
 
@@ -373,7 +394,8 @@ fill→render 脚本化（fillsheet v0.0.18 已全槽位化，脚本化只剩映
 **任务 6：GitHub Actions CI** —— ✅ 已完成（v0.0.17：.github/workflows/regression.yml，
 push/PR 自动跑回归；首跑待本次 push 验证）
 **任务 7：README.md** —— ✅ 已完成（v0.0.17：重写到当前版本，徽章/断言数/目录结构全量勘误）
-**任务 8（可选）**：check_html.py 裸数字检查的精度改进，或明确接受其为启发式
+**任务 8** —— ✅ 已关闭（v0.0.19 定案：T8①级 FAIL 级直校已替代精度需求，裸数字检查
+明确接受为启发式辅助 WARN，不再投入精度改进）
 
 ---
 
@@ -395,7 +417,7 @@ push/PR 自动跑回归；首跑待本次 push 验证）
 ```bash
 # 1. 确认环境
 cd "D:/KimiCodeProject/Financial Report Analysis"
-python financial-report-analysis/tests/run_regression.py   # 应 99/99 通过
+python financial-report-analysis/tests/run_regression.py   # 应 106/106 通过
 
 # 2. 部署（如需让技能在当前机器生效）
 cmd //c deploy.cmd
@@ -423,3 +445,4 @@ cmd //c deploy.cmd
 | `supersede/v0.0.10-v0.0.11_2026-09-21~22.md` | v0.0.10~v0.0.11（平均余额口径定案、说人话、移动端可读性） |
 | `supersede/v0.0.12-v0.0.16_2026-09-24~28.md` | v0.0.12~v0.0.16（TradingAgents 借鉴、云铝/比亚迪/万科三份首测报告、杜邦深化、热核整改、trendDual 负值柱回填） |
 | `supersede/v0.0.17_2026-09-28.md` | v0.0.17（工程化还账 + 方法论补全 + 热核审计整改） |
+| `supersede/v0.0.18_2026-09-29.md` | v0.0.18（万华首份周期股报告反馈轮：呈现层清洗 + 门禁补强 + 效率治理） |
