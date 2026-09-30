@@ -215,20 +215,23 @@ def write_fillsheet(data, path):
                  f"权益乘数 {em_h} / ROE {roe_h}")
     cts = (data.get("derived") or {}).get("cash_ts") or {}
     if cts.get("ncr"):
-        L.append("\n## S1 现金时序表（v1.3）\n")
-        L.append(f"- periods={cts.get('periods')}")
-        L.append(f"- 净现比 ncr={cts.get('ncr')}（均值 {cts.get('ncr_mean5')}，负值 "
-                 f"{cts.get('ncr_neg_years')} 年）")
-        L.append(f"- FCF÷归母净利={cts.get('fcf_to_np')}（均值 {cts.get('fcf_to_np_mean5')}，负值 "
-                 f"{cts.get('fcf_neg_years')} 年）")
+        L.append("\n## S1 NCR_TS 槽（JS 区粘贴；v0.0.20 现金时序卡表格改双折线图——"
+                 "fcf 短序列前置 null 跳点；fcf 均值与负值年数写进卡 takeaway 判定语）\n")
+        L.append(f"const NCR_TS={{labels:{json.dumps(cts.get('periods') or [], ensure_ascii=False)},"
+                 f"ncr:{json.dumps([R2(x) for x in (cts.get('ncr') or [])])},"
+                 f"fcf:{json.dumps([R2(x) for x in (cts.get('fcf_to_np') or [])])},"
+                 f"mean:{R2(cts.get('ncr_mean5'))}}};")
+        L.append(f"- takeaway 判定语素材：净现比均值 {R2(cts.get('ncr_mean5'))}、负值 "
+                 f"{cts.get('ncr_neg_years')} 年 · FCF 均值 {R2(cts.get('fcf_to_np_mean5'))}、负值 "
+                 f"{cts.get('fcf_neg_years')} 年")
     cv = (data.get("derived") or {}).get("cycle_evidence") or {}
     if cv.get("periods"):
-        L.append("\n## 周期定位证据表（v1.3）\n")
-        L.append(f"- periods={cv.get('periods')}")
-        L.append(f"- 收入增速={cv.get('rev_growth')}")
-        L.append(f"- 毛利率={cv.get('gross_margin')}")
-        L.append(f"- Capex 增速={cv.get('capex_growth')}")
-        L.append(f"- meta.cycle_stage={((data.get('meta') or {}).get('cycle_stage'))}（分析师判定）")
+        L.append("\n## 周期定位声明句素材（v0.0.20：周期定位证据卡整槽退役，判定句挂趋势图卡"
+                 " srcline——「周期定位：X（一句注解）」，非周期股填「非周期行业」；"
+                 "三线读数留底稿不进报告）\n")
+        L.append(f"- meta.cycle_stage={((data.get('meta') or {}).get('cycle_stage'))}（分析师判定）"
+                 f" · 三线读数（底稿备查）：收入增速={cv.get('rev_growth')} / "
+                 f"毛利率={cv.get('gross_margin')} / Capex 增速={cv.get('capex_growth')}")
     tk = (data.get("derived") or {}).get("threshold_check") or {}
     if tk:
         L.append("\n## 四线考核贴线检测（v1.3）\n")
@@ -276,7 +279,7 @@ def write_fillsheet(data, path):
 
     L.append("\n## S1 TREND 槽（JS 区粘贴；np_dt/roe 缺 hist 留空数组；**gm 填百分数**"
              "（绘图不做 ×100，填小数会显示成 0.2%），**roe 存小数**（绘图 ×100）；"
-             "金额序列一律 R2 两位小数，v0.0.19）\n")
+             "金额序列一律 R2 两位小数，v0.0.19；capex=趋势图卡底条，v0.0.20）\n")
     labels = cts.get("periods") or cv.get("periods") or []
     _hist = lambda node: (node or {}).get("hist") or []
     _r2l = lambda arr: [R2(x) for x in arr]
@@ -287,7 +290,8 @@ def write_fillsheet(data, path):
              f"np:{json.dumps(_r2l(_hist(inc.get('np_at'))))},"
              f"np_dt:{json.dumps(_r2l(_hist(inc.get('np_dt'))))},"
              f"roe:{json.dumps(_hist(roe_n))},"
-             f"gm:{json.dumps(_gm_pct)}}};")
+             f"gm:{json.dumps(_gm_pct)},"
+             f"capex:{json.dumps(_r2l(_hist(cfs.get('capex'))))}}};")
 
     if du:
         _p1 = lambda x: None if x is None else round(x * 100, 1)

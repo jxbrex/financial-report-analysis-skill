@@ -280,7 +280,12 @@ def check_bridges(data, rep):
     total, n = sum_bridge(items)
     ocf = val(data, "statements", "cashflow", "ocf")
     if total is None:
-        rep.add(SKIP, "bridge.ocf", f"OCF 调节桥未填或不完整（已填 {n} 项）")
+        if ocf is not None:
+            rep.add(WARN, "bridge.ocf", f"OCF 调节桥未填或不完整（已填 {n} 项）但经营现金流净额已填"
+                                        "——回原文确认「现金流量表补充资料」是否真未披露"
+                                        "（A 股半年报同样强制披露，换搜「将净利润调节为」复核），勿凭常识降级")
+        else:
+            rep.add(SKIP, "bridge.ocf", f"OCF 调节桥未填或不完整（已填 {n} 项）")
     elif ocf is None:
         rep.add(SKIP, "bridge.ocf", "OCF 调节桥已填但缺经营现金流净额")
     else:

@@ -307,38 +307,18 @@ html{scroll-behavior:smooth}
  <div class="srcline">数据来源：公司{{报告期}}{{报告类型}}、Tushare · CCC/平均余额口径期初取上年末 12-31</div>
  <div class="srcline">证据等级：<span class="badge disc">披露</span> 主表/附注直接披露 · <span class="badge der">推算</span> 两数运算（毛利率/净现比/周转天数）· <span class="badge est">估算</span> 含假设（情景测算）</div>
  </div>
- <!-- ◆ 现金时序 + 周期定位证据双卡：「现金含量」层证据与阶段判定前提落表
- ◆ 裁剪规则（v0.0.19）：meta.cycle_stage 判定为「非周期」时右卡（周期定位证据卡）整卡删除
- （含 srcline），grid2 拆除、左卡独占全宽，并在左卡 srcline 末尾加「本公司属非周期行业，周期定位卡省略」
- ——收入/毛利率读数本就在下方五年趋势图里，非周期股重复呈现无信息量（美的 2026H1 反馈）；周期股照旧三线全填 -->
- <div class="grid2">
+ <!-- ◆ 现金时序卡（单卡全宽；v0.0.20 起表格改双折线图：读数在图上、判断在文字）：
+ 「现金含量」层证据——净现比/FCF÷归母 五期走势。原右侧「周期定位证据卡」整槽退役：
+ 收入/毛利率读数本就在下方五年趋势图里，重复呈现无信息量（美的 2026H1 反馈）；唯一
+ 独有的 Capex 线并入趋势图卡迷你柱条、阶段判定降级为该卡声明句（卫星化学 2026H1 反馈定稿） -->
  <div class="card">
  <div class="figtitle">{{结论式：现金含量一句话——只写异常/边际变化/风险点（如「净现比五年首度跌破 1」「负值 2 年、忽高忽低」）；「均值≥1 且无负值年」的正常形态禁止抒情占位（反面教材：「造血稳定是本报告最不需要担心的一层」=零信息量），正常时写边际读数即可（如「五年净现比均 ≥1，本期 1.4 持平」）}}</div>
- <table class="data">
- <tr><th>期间</th><th>净现比</th><th>FCF÷归母净利</th></tr>
- <!-- ◆ 行数随 hist 期数走：n<5 删多余行，hist<3 整卡降级为「现金含量证据不足」声明 -->
- <tr><td>{{期间1}}</td><td>{{}}</td><td>{{}}</td></tr>
- <tr><td>{{期间2}}</td><td>{{}}</td><td>{{}}</td></tr>
- <tr><td>{{期间3}}</td><td>{{}}</td><td>{{}}</td></tr>
- <tr><td>{{期间4}}</td><td>{{}}</td><td>{{}}</td></tr>
- <tr><td>{{期间5}}</td><td>{{}}</td><td>{{}}</td></tr>
- <tr class="total"><td>均值 / 负值年数</td><td>{{ncr_mean5}} / {{ncr_neg_years}} 年</td><td>{{fcf_mean5}} / {{fcf_neg_years}} 年</td></tr>
- </table>
- <div class="takeaway">判定：{{✅ 稳定造血（均值≥1 且无负值年）/ ⚠️ 忽高忽低（负值 {{n}} 年或均值 <0.5）}}· 周期股护栏：下行年 OCF 恶化是周期属性而非造假，须挂周期定位解读（见右卡）</div>
+ <!-- ◆ 双折线（JS ncrLine 画，数据填 JS 区 NCR_TS 槽=derived.cash_ts 逐期数组照抄）：
+  净现比 INK + FCF÷归母 C2 + y=1 造血参考虚线 + 均值虚线；null 跳点不硬连；
+  hist<3 期整卡降级为「现金含量证据不足」声明（删 svg 与 figtitle 改写） -->
+ <svg id="ncrline" viewBox="0 0 960 200" preserveAspectRatio="xMidYMid meet"></svg>
+ <div class="takeaway">判定：{{✅ 稳定造血 / ⚠️ 忽高忽低——带均值与负值年读数（净现比均值 {{x.xx}}、FCF 均值 {{x.xx}}、负值 {{n}} 年）}}· 周期股护栏：下行年 OCF 恶化是周期属性而非造假，须挂周期定位解读（声明句见下方趋势图卡）</div>
  <div class="srcline">数据来源：各期现金流量表 · 净现比=OCF÷归母净利；FCF=OCF−Capex <span class="badge der">推算</span> · hist&lt;3 期时本卡降级为「现金含量证据不足」声明并注明</div>
- </div>
- <div class="card">
- <div class="figtitle">{{结论式：周期定位一句话，如「收入降+毛利率降+Capex 收缩三线齐=下行期特征，DOL 按下行期解读」}}</div>
- <table class="data">
- <tr><th>证据线</th><th class="txt">近五期读数（旧→新）</th><th class="txt">指向</th></tr>
- <tr><td>收入增速</td><td class="txt">{{+16.9% → +19.0% → +15.7% → −1.2%}}</td><td class="txt">{{}}</td></tr>
- <tr><td>毛利率</td><td class="txt">{{91.5% → … → 91.2%}}</td><td class="txt">{{}}</td></tr>
- <tr><td>Capex 增速</td><td class="txt">{{+55.7% → −50.6% → +78.6% → −33.2%}}</td><td class="txt">{{扩张/收缩}}</td></tr>
- <tr class="total"><td>阶段判定</td><td colspan="2" class="txt">{{上行/顶部/下行/底部 + 一句阶段注解，如「上行期（收获段）」}}——判定必须与三线特征一致，不一致重写判定；判定行只放结论，依据与例外项挪 takeaway，禁止把逐线对号过程写进本行</td></tr>
- </table>
- <div class="takeaway">读法：{{判定依据与例外项写在这里——哪些线支持判定、哪些线不套档怎么解读；阶段判定决定全局信号解读方向：DOL 上行期=弹性、下行期=陷阱；压力情景/因子分位均挂本判定解读}}</div>
- <div class="srcline">数据来源：各期年报/半年报（收入/毛利率/Capex 逐期）· hist&lt;2 期本卡降级缺省 · 非周期行业整卡删除（裁剪规则见双卡 SLOT 注释）</div>
- </div>
  </div>
  <!-- ◆ 杜邦双卡：左卡=当期归因+因子下钻+ΔROE 堆叠条；右卡=五年累计归因（方案A）+因子分位
  （方案D）。子行纪律：每因子 ≤1 行浅灰子行、只放证据，判断只在 figtitle/takeaway；
@@ -405,7 +385,14 @@ html{scroll-behavior:smooth}
  <div class="fig">
  <div class="figtitle">{{结论式：五年趋势一句话，如「收入创新高、毛利率抬升、ROE 被摊薄——下期盯摊薄是否见底」}}</div>
  <svg id="trend" viewBox="0 0 960 300" preserveAspectRatio="xMidYMid meet"></svg>
- <div class="srcline">数据来源：{{…}} · 左面板=收入柱+毛利率线 · 右面板=归母净利+扣非净利柱、ROE 线（扣非/ROE 缺数据时右板降级为归母净利单柱、ROE 线跳过）</div>
+ <!-- ◆ Capex 迷你柱条 + 周期定位声明句（v0.0.20，原「周期定位证据卡」整槽退役并入本卡）：
+  底条=购建固定资产等支付的现金逐期小柱（独立缩放——量级悬殊不画进 trendDual 主图同轴，
+  缩放契约见 trendDual 注释；数据填 TREND.capex=cashflow.capex hist 照抄，null 跳点）；
+  声明句=阶段判定唯一挂载点，填法二选一：周期股「周期定位：{{上行/顶部/下行/底部（一句注解，
+  如「上行期（收获段）」）}}」/ 非周期股「周期定位：非周期行业」；判定必须与底稿三线证据一致，
+  DOL/压力情景/因子分位的解读均挂本句（原右卡「不套档怎么解读」的例外项也写在这里） -->
+ <svg id="capexbars" viewBox="0 0 960 90" preserveAspectRatio="xMidYMid meet"></svg>
+ <div class="srcline">周期定位：{{判定+一句注解 / 非周期行业}}——依据：收入/毛利率见上图，Capex 节奏见下条 · 数据来源：{{…}} · 左面板=收入柱+毛利率线 · 右面板=归母净利+扣非净利柱、ROE 线（扣非/ROE 缺数据时右板降级为归母净利单柱、ROE 线跳过）· 底条=购建固定资产等支付的现金（亿元，各期）</div>
  </div>
  </div>
 
@@ -786,8 +773,14 @@ function niceStep(raw){const p=Math.pow(10,Math.floor(Math.log10(raw)));const n=
 /* trend：多期标签 + 收入 + 归母净利 + 扣非净利 + ROE(小数) + 毛利率线(%)——等宽双面板：
  左=收入柱+毛利率线，右=归母净利柱（+扣非净利柱）+ROE 线。可缺省：np_dt 整列留空或某期
  为 null 该期不画扣非柱、图例不列扣非（右板降级单柱）；roe 整列留空则整线跳过。
- roe 存小数绘图 ×100；**gm 填百分数**（如 20.46——绘图不做 ×100，填小数会显示成 0.2%） */
-const TREND={labels:['2022','2023','2024'],rev:[0,0,0],np:[0,0,0],np_dt:[],roe:[],gm:[0,0,0]};
+ roe 存小数绘图 ×100；**gm 填百分数**（如 20.46——绘图不做 ×100，填小数会显示成 0.2%）；
+ capex=购建固定资产等支付的现金（亿元，v0.0.20 起——趋势图卡底部迷你柱条，cashflow.capex
+ hist 照抄，缺期填 null 跳点） */
+const TREND={labels:['2022','2023','2024'],rev:[0,0,0],np:[0,0,0],np_dt:[],roe:[],gm:[0,0,0],capex:[0,0,0]};
+/* ncrline：现金时序双折线（现金时序卡）——labels=期间（derived.cash_ts.periods 照抄）、
+ ncr=净现比逐期、fcf=FCF÷归母逐期（短序列前置 null 跳点）、mean=净现比均值（均值虚线+小字；
+ fcf 均值写进卡 takeaway 判定语）；hist<3 期整卡降级声明，本槽留空 */
+const NCR_TS={labels:['2022','2023','2024'],ncr:[1.31,1.59,1.03],fcf:[1.1,1.4,0.9],mean:1.31};
 /* spark：四维表「近5期趋势」迷你折线——vals 填 ratios 五期 hist（同类型滚动，旧→新）；
  color 由填充者按方向语义表对本期 vs 上期的好坏选 GOOD/BAD/INK；不足 2 期不画（该格留空并注明） */
 const SPARK={gm:[],nm:[],da:[],dio:[],dso:[],c2s:[],ccc:[],dol:[],dfl:[]};
@@ -801,6 +794,80 @@ function spark(id,vals,color){
  el(s,'polyline',{points:vals.map((v,i)=>x(i)+','+y(v)).join(' '),fill:'none',
  stroke:color,'stroke-width':1.6,'stroke-linejoin':'round','stroke-linecap':'round'});
  el(s,'circle',{cx:x(vals.length-1),cy:y(vals[vals.length-1]),r:1.9,fill:color});
+}
+/* ncrline：现金时序双折线——净现比 INK / FCF÷归母 C2 合并量程（双向 1.15 余量，
+ 值域强制含 1：造血参考线必须在画布内）；y=1 参考虚线 + mean 均值虚线（右端小字）；
+ null 跳点不硬连（与 combo/trendDual 同一约定）；ncr 标签点上、fcf 标签点下（防互撞） */
+function ncrLine(id,labels,ncr,fcf,mean){
+ const s=document.getElementById(id);if(!s||!labels.length)return;
+ ncr=ncr||[];fcf=fcf||[];
+ const all=[...ncr,...fcf].filter(v=>v!=null);
+ if(!all.length)return;
+ const W=+s.viewBox.baseVal.width,H=+s.viewBox.baseVal.height,L=54,R=64,B=30,T=30;
+ let lo=Math.min(...all,1),hi=Math.max(...all,1);
+ const span=(hi-lo)||1;lo-=span*.15;hi+=span*.15;
+ const bw=(W-L-R)/labels.length;
+ const y=v=>T+(H-B-T)*(1-(v-lo)/(hi-lo));
+ const cx=i=>L+i*bw+bw/2;
+ const step=niceStep((hi-lo)/4);
+ for(let v=Math.ceil(lo/step)*step;v<hi;v+=step){
+  if(Math.abs(v)<1e-9)continue;
+  const gy=y(v);
+  el(s,'line',{x1:L,y1:gy,x2:W-R,y2:gy,stroke:FAINT,'stroke-width':.7,'stroke-dasharray':'3 3'});
+  txt(s,{x:L-8,y:gy+3,'font-size':8.5,'font-weight':600,fill:MUT,'text-anchor':'end'},fmt(v));
+ }
+ el(s,'line',{x1:L,y1:y(1),x2:W-R,y2:y(1),stroke:MUT,'stroke-width':1,'stroke-dasharray':'5 3'});
+ txt(s,{x:W-R+4,y:y(1)+3,'font-size':8.5,'font-weight':700,fill:MUT},'1');
+ if(mean!=null){
+  el(s,'line',{x1:L,y1:y(mean),x2:W-R,y2:y(mean),stroke:INK,'stroke-width':1,'stroke-dasharray':'2 2'});
+  txt(s,{x:W-R+4,y:y(mean)+3,'font-size':8.5,'font-weight':700,fill:INK},'均值'+fmt(mean));
+ }
+ const draw=(vals,color,name,dy)=>{
+  let run=[];
+  const flush=()=>{
+   if(run.length>1){el(s,'path',{d:'M'+run.map(i=>[cx(i),y(vals[i])]).map(p=>p.join(' ')).join(' L '),fill:'none',stroke:color,'stroke-width':1.8});}
+   run=[];
+  };
+  vals.forEach((v,i)=>{
+   if(v==null){flush();return;}
+   run.push(i);
+   const c=el(s,'circle',{cx:cx(i),cy:y(v),r:3,fill:color,stroke:'#fff','stroke-width':1.5});
+   tip(c,`${labels[i]} ${name}：${fmt(v)}`);
+   txt(s,{x:cx(i),y:y(v)+dy,'font-size':9,'font-weight':700,fill:MUT,'text-anchor':'middle',...HALO},fmt(v));
+  });
+  flush();
+ };
+ draw(ncr,INK,'净现比',-7);draw(fcf,C2,'FCF÷归母',13);
+ labels.forEach((lb,i)=>{txt(s,{x:cx(i),y:H-B+18,'font-size':10,'font-weight':600,fill:MUT,'text-anchor':'middle'},lb);});
+ el(s,'line',{x1:L,y1:H-B,x2:W-R,y2:H-B,stroke:GRID,'stroke-width':1});
+ [['净现比',INK],['FCF÷归母',C2]].forEach(([n,c],i)=>{
+  el(s,'rect',{x:L+i*130,y:8,width:10,height:10,fill:c,rx:2});
+  txt(s,{x:L+i*130+15,y:17,'font-size':10,'font-weight':600,fill:MUT},n);
+ });
+}
+/* capexbars：Capex 节奏迷你柱条（趋势图卡底部）——购建付现逐期小柱（亿元，独立缩放），
+ null 跳点不画；柱顶数值标签 R2；中性 INK 柱（扩张/收缩是节奏读数，不按好坏染色） */
+function capexBars(id,labels,vals){
+ const s=document.getElementById(id);if(!s||!labels.length)return;
+ vals=vals||[];
+ const vv=vals.filter(v=>v!=null);
+ if(!vv.length)return;
+ const W=+s.viewBox.baseVal.width,H=+s.viewBox.baseVal.height,L=54,R=54,B=22,T=24;
+ const max=Math.max(...vv)*1.15||1;
+ const bw=(W-L-R)/labels.length;
+ txt(s,{x:L,y:12,'font-size':9.5,'font-weight':700,fill:MUT},'Capex 购建付现（亿元）');
+ vals.forEach((v,i)=>{
+  const lb=labels[i];
+  const x=L+i*bw+bw*.3,w=bw*.4;
+  if(v!=null){
+   const ha=(H-B-T)*v/max;
+   const r1=capsule(s,x,H-B-ha,w,ha,w/2,INK);
+   tip(r1,`${lb} Capex：${fmt(v)} 亿`);
+   txt(s,{x:x+w/2,y:H-B-ha-5,'font-size':9.5,'font-weight':700,fill:INK,'text-anchor':'middle'},fmt(v));
+  }
+  txt(s,{x:x+w/2,y:H-B+14,'font-size':10,'font-weight':600,fill:MUT,'text-anchor':'middle'},lb);
+ });
+ el(s,'line',{x1:L,y1:H-B,x2:W-R,y2:H-B,stroke:GRID,'stroke-width':1});
 }
 /* ocfbridge：净利→经营现金流调节桥（间接法，亿元）——首项「净利润」为水平值（不画柱，
  与 OCF_END 一起填上方 .brends 端点行），其余为调节项，Σ=OCF；OCF_END=经营现金流净额。
@@ -1058,6 +1125,8 @@ function stackH(id,steps,gap,unit){
 }
 
 trendDual('trend',TREND.labels,TREND.rev,TREND.np,TREND.gm,TREND.np_dt,TREND.roe);
+capexBars('capexbars',TREND.labels,TREND.capex);
+ncrLine('ncrline',NCR_TS.labels,NCR_TS.ncr,NCR_TS.fcf,NCR_TS.mean);
 /* 四维表迷你折线线色：由填充者按方向语义表对「本期 vs 上期」的好坏选 GOOD/BAD/INK——模板默认全 INK 占位，交付前必须逐行改对（同徽章纪律） */
 spark('spark-gm',SPARK.gm,INK);spark('spark-nm',SPARK.nm,INK);spark('spark-da',SPARK.da,INK);
 spark('spark-dio',SPARK.dio,INK);spark('spark-dso',SPARK.dso,INK);spark('spark-c2s',SPARK.c2s,INK);

@@ -113,7 +113,7 @@ for _s in (sys.stdout, sys.stderr):
 from check_html_common import (FAIL, WARN, OK, Report, DETAIL_CAP,
                                mask_ranges, tag_ranges, line_of, snippet,
                                Sections, _section_seg)
-from check_html_t8 import check_numbers_vs_json, check_json_vs_md
+from check_html_t8 import check_numbers_vs_json, check_json_vs_md, check_undisclosed_claims
 # 呈现文本族（v0.0.19 拆出）；PCTILE_LABEL 在此再导出——回归契约锁从本模块 import
 from check_html_text import (  # noqa: F401
     PCTILE_LABEL,
@@ -517,6 +517,7 @@ def main():
         check_percentile_map(body, data, rep)
         check_numbers_vs_json(body, raw, data, rep, args.verbose)
         check_json_vs_md(data, Path(args.json_path).resolve(), rep, args.verbose)
+        check_undisclosed_claims(body, data, Path(args.json_path).resolve(), rep)
 
     print(f"\n=== check_html.py 报告机检 · {path.name} ===\n")
     order = {FAIL: 0, WARN: 1, OK: 2}

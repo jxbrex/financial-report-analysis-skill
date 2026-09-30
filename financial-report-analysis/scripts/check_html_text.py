@@ -375,8 +375,9 @@ def check_s1_v15_shape(text, rep):
     ② 因子分位表（表头含「五年位置」）数据行必须带白描读数（v0.0.19 起 X/5 从高到低），
        旧措辞「5 期中第 2 高」族与「上限区/下限区/常态区」档位标签均禁贴，
        且表内禁用「显著」统计措辞（n=5 位置读数非统计分位）；
-    ③ 现金时序表（净现比逐期）与周期证据表（阶段判定）存在——降级须有声明；
-       非周期股整卡省略时 s1 须有「非周期」声明（v0.0.19 裁剪规则）。
+    ③ 现金时序证据（v0.0.20 起 svg#ncrline 双折线图，旧版式为净现比表格）与周期定位声明句
+       （v0.0.20 起「周期定位：」挂趋势图卡 srcline，旧版式为阶段判定行）存在——降级须有声明；
+       非周期股填「非周期行业」声明。
     注意：对 v0.0.19 前的存量旧版式报告重跑本检查必出 ②③ WARN——纪律 7 不重出旧报告，
     该 WARN 属预期，勿追溯修旧报告。"""
     seg = _section_seg(text, "s1")
@@ -400,16 +401,16 @@ def check_s1_v15_shape(text, rep):
             bad.append("因子分位表仍贴「上限区/下限区/常态区」档位标签——v0.0.18 起改白描读数")
         if re.search(r"显著", tm.group(0)):
             bad.append("因子分位表内出现「显著」——n=5 位置读数禁用统计措辞")
-    has_cash_table = _table_containing(seg, "净现比")
-    if not has_cash_table and "现金含量证据不足" not in seg:
-        bad.append("s1 未见现金时序表（净现比逐期），也无「现金含量证据不足」降级声明")
-    if "阶段判定" not in seg and "非周期" not in seg:
-        bad.append("s1 未见周期定位证据表（阶段判定行），也无「非周期」声明")
+    has_cash_ev = "ncrline" in seg or _table_containing(seg, "净现比")
+    if not has_cash_ev and "现金含量证据不足" not in seg:
+        bad.append("s1 未见现金时序折线图（svg#ncrline）或现金时序表，也无「现金含量证据不足」降级声明")
+    if "周期定位：" not in seg and "阶段判定" not in seg and "非周期" not in seg:
+        bad.append("s1 未见周期定位声明句（「周期定位：」挂趋势图卡）或阶段判定行，也无「非周期」声明")
     if bad:
         rep.add(WARN, "s1-v15-shape", f"s1 杜邦双卡/证据表形态 {len(bad)} 处待确认", bad[:6])
     else:
         rep.add(OK, "s1-v15-shape",
-                "s1 杜邦双卡形态合规（下钻子行 ≤3、分位白描读数、现金/周期证据表在位）")
+                "s1 杜邦双卡形态合规（下钻子行 ≤3、分位白描读数、现金/周期证据在位）")
 
 
 # v0.0.19 分位白描映射：(rank−1)/(n−1)，n=5 离散步长 0.25 → X/5（五年从高到低第 X）。

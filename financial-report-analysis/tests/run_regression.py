@@ -527,6 +527,54 @@ def main():
         print("❌ 回归未通过：v0.0.19 新规则构造用例失败，逐条核对上方 ❌。")
         return 1
 
+    # ── v0.0.20 新规则构造用例（undisclosed 未披露声明反向检索：卫星化学失守模式固化）──
+    def _run_html_json_md(html_s, md_s):
+        """临时 HTML + 临时 md + 茅台 json（meta.source_md 改指临时 md）——
+        undisclosed 依赖 --json 的 source_md 解析；茅台原文 md 不在库（回归自包含），
+        故用临时 md 控制「补充资料」字样有无。"""
+        with tempfile.NamedTemporaryFile("w", suffix=".html", delete=False, encoding="utf-8") as f:
+            f.write(html_s)
+            tmp_html = f.name
+        with tempfile.NamedTemporaryFile("w", suffix=".md", delete=False, encoding="utf-8") as f:
+            f.write(md_s)
+            tmp_md = f.name
+        data = json.loads(MOUTAI.read_text(encoding="utf-8"))
+        data.setdefault("meta", {})["source_md"] = tmp_md
+        with tempfile.NamedTemporaryFile("w", suffix=".json", delete=False, encoding="utf-8") as f:
+            json.dump(data, f, ensure_ascii=False)
+            tmp_json = f.name
+        try:
+            return subprocess.run(
+                [sys.executable, str(SKILL / "scripts" / "check_html.py"),
+                 tmp_html, "--json", tmp_json],
+                capture_output=True, text=True, encoding="utf-8", errors="replace")
+        finally:
+            os.unlink(tmp_html)
+            os.unlink(tmp_md)
+            os.unlink(tmp_json)
+
+    _DECL = ('<div class="card"><table class="data"><tr><th>指标</th></tr>'
+             '<tr><td>净现比 <span class="badge der">推算</span></td></tr></table>'
+             '<div class="srcline">半年报无现金流量表补充资料（A 股半年报不强制披露），调节项不可机检</div></div>')
+    bad_und = _run_html_json_md(
+        _SECT + _DECL, "| 项目 | 金额 |\n| 现金流量表补充资料 | 1.0 |\n")
+    ok_und = _run_html_json_md(
+        _SECT + _DECL, "| 项目 | 金额 |\n| 净利润 | 1.0 |\n")
+    v20_checks = [
+        (bad_und.returncode == 1 and "undisclosed" in (bad_und.stdout or ""),
+         "v0.0.20 构造用例：声明「无补充资料」但 md 检出补充资料必 FAIL（undisclosed）"),
+        ("undisclosed" in (ok_und.stdout or "") and "未见与原文矛盾" in (ok_und.stdout or ""),
+         "v0.0.20 构造用例：md 真缺补充资料时 undisclosed 判 OK（不误报合法缺数声明）"),
+    ]
+    print("\n【v0.0.20 新规则构造用例】")
+    for ok, desc in v20_checks:
+        print(f"  {'✅' if ok else '❌'} {desc}")
+        total += 1
+        passed += ok
+    if not all(ok for ok, _ in v20_checks):
+        print("❌ 回归未通过：v0.0.20 新规则构造用例失败，逐条核对上方 ❌。")
+        return 1
+
     # ── 分位白描映射双写契约锁（v0.0.18）：check_html_text.py 与 calc_models.py 各持一份
     # PCTILE_LABEL（跨家族 import 会造成耦合，故双写；check_html.py 再导出本锁的 import 锚点），
     # 本断言防单边漂移

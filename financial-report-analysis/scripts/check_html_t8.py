@@ -258,3 +258,36 @@ def check_json_vs_md(data, json_path, rep, verbose=False):
                 f"（精确 {exact} · 偏移 {shifted} · 无行号跳过 {no_src}）")
 
 
+# ─────────────────────────── 13. 未披露声明反向检索（v0.0.20） ───────────────────────────
+
+UNDISCLOSED_KW = [
+    # (关键词, 声明模式)——白名单克制：首轮只「补充资料」（卫星化学 2026H1 失守模式固化）
+    ("补充资料", re.compile(r"(?:无|未披露|缺乏|缺少|缺)[^，。；、]{0,15}补充资料")),
+]
+
+
+def check_undisclosed_claims(visible, data, json_path, rep):
+    """未披露声明反向检索（v0.0.20，卫星化学 2026H1 实证固化）：
+    报告声明「无/未披露/缺 X」时回原文 md 检索 X——md 命中即 FAIL（声明与原文矛盾）。
+    防「提取漏项 + 错误常识合理化」失守模式：找不到就当未披露写进报告（如
+    「A 股半年报不强制披露补充资料」），三道门禁无一拦截；首轮白名单只「补充资料」。"""
+    md_rel = (data.get("meta") or {}).get("source_md")
+    md_path = _resolve_md(md_rel, json_path)
+    if md_path is None:
+        rep.add(OK, "undisclosed", f"原文 md 未找到（{md_rel}），未披露声明反向检索未执行")
+        return
+    md_text = md_path.read_text(encoding="utf-8", errors="replace")
+    bad = []
+    for kw, pat in UNDISCLOSED_KW:
+        claims = pat.findall(visible)
+        if claims and kw in md_text:
+            bad.append(f"报告 {len(claims)} 处声明「{claims[0]}…」，但原文 md 含「{kw}」"
+                       f"（{md_text.count(kw)} 次）——「未披露」声明与原文矛盾："
+                       "回 Phase 1 补提取并改写报告，禁止凭常识降级")
+    if bad:
+        for b in bad:
+            rep.add(FAIL, "undisclosed", b)
+    else:
+        rep.add(OK, "undisclosed", "未见与原文矛盾的「未披露」声明")
+
+
