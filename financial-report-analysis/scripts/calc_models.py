@@ -214,16 +214,19 @@ def write_fillsheet(data, path):
         L.append(f"- 右卡 A 表起止列取 hist 首末：净利率 {nm_h} / 周转率 {at_h} / "
                  f"权益乘数 {em_h} / ROE {roe_h}")
     cts = (data.get("derived") or {}).get("cash_ts") or {}
+    _hist = lambda node: (node or {}).get("hist") or []
+    _r2l = lambda arr: [R2(x) for x in arr]
+    _m = lambda x: '—' if x is None else R2(x)
     if cts.get("ncr"):
         L.append("\n## S1 NCR_TS 槽（JS 区粘贴；v0.0.20 现金时序卡表格改双折线图——"
                  "fcf 短序列前置 null 跳点；fcf 均值与负值年数写进卡 takeaway 判定语）\n")
         L.append(f"const NCR_TS={{labels:{json.dumps(cts.get('periods') or [], ensure_ascii=False)},"
-                 f"ncr:{json.dumps([R2(x) for x in (cts.get('ncr') or [])])},"
-                 f"fcf:{json.dumps([R2(x) for x in (cts.get('fcf_to_np') or [])])},"
-                 f"mean:{R2(cts.get('ncr_mean5'))}}};")
-        L.append(f"- takeaway 判定语素材：净现比均值 {R2(cts.get('ncr_mean5'))}、负值 "
-                 f"{cts.get('ncr_neg_years')} 年 · FCF 均值 {R2(cts.get('fcf_to_np_mean5'))}、负值 "
-                 f"{cts.get('fcf_neg_years')} 年")
+                 f"ncr:{json.dumps(_r2l(cts.get('ncr') or []))},"
+                 f"fcf:{json.dumps(_r2l(cts.get('fcf_to_np') or []))},"
+                 f"mean:{json.dumps(R2(cts.get('ncr_mean5')))}}};")
+        L.append(f"- takeaway 判定语素材：净现比均值 {_m(cts.get('ncr_mean5'))}（OCF 为负 "
+                 f"{cts.get('ncr_neg_years')} 年）· FCF 均值 {_m(cts.get('fcf_to_np_mean5'))}（FCF 为负 "
+                 f"{cts.get('fcf_neg_years')} 年）")
     cv = (data.get("derived") or {}).get("cycle_evidence") or {}
     if cv.get("periods"):
         L.append("\n## 周期定位声明句素材（v0.0.20：周期定位证据卡整槽退役，判定句挂趋势图卡"
@@ -281,17 +284,17 @@ def write_fillsheet(data, path):
              "（绘图不做 ×100，填小数会显示成 0.2%），**roe 存小数**（绘图 ×100）；"
              "金额序列一律 R2 两位小数，v0.0.19；capex=趋势图卡底条，v0.0.20）\n")
     labels = cts.get("periods") or cv.get("periods") or []
-    _hist = lambda node: (node or {}).get("hist") or []
-    _r2l = lambda arr: [R2(x) for x in arr]
+    _aln = lambda arr: ([None] * (len(labels) - len(arr)) + arr)[-len(labels):] \
+        if labels and arr else arr
     _gm_pct = [round(x * 100, 2) if x is not None else None
-               for x in _hist(ratios.get("gross_margin"))]
+               for x in _aln(_hist(ratios.get("gross_margin")))]
     L.append(f"const TREND={{labels:{json.dumps(labels, ensure_ascii=False)},"
-             f"rev:{json.dumps(_r2l(_hist(inc.get('revenue'))))},"
-             f"np:{json.dumps(_r2l(_hist(inc.get('np_at'))))},"
-             f"np_dt:{json.dumps(_r2l(_hist(inc.get('np_dt'))))},"
-             f"roe:{json.dumps(_hist(roe_n))},"
+             f"rev:{json.dumps(_r2l(_aln(_hist(inc.get('revenue')))))},"
+             f"np:{json.dumps(_r2l(_aln(_hist(inc.get('np_at')))))},"
+             f"np_dt:{json.dumps(_r2l(_aln(_hist(inc.get('np_dt')))))},"
+             f"roe:{json.dumps(_aln(_hist(roe_n)))},"
              f"gm:{json.dumps(_gm_pct)},"
-             f"capex:{json.dumps(_r2l(_hist(cfs.get('capex'))))}}};")
+             f"capex:{json.dumps(_r2l(_aln(_hist(cfs.get('capex')))))}}};")
 
     if du:
         _p1 = lambda x: None if x is None else round(x * 100, 1)

@@ -53,7 +53,8 @@ calc.py 只校验数据层（data.json）；报告 HTML 层此前没有任何机
   12. slot-length [WARN] s1 四维表「评价」列注脚 ≤15 字（>20 告警）。
   13. s1-v15-shape [WARN] ★ 杜邦双卡形态：下钻子行 ≤3；因子分位表带白描读数
                   （v0.0.19 起 X/5 从高到低；旧措辞与「上限区/下限区/常态区」均禁）
-                  且禁用「显著」；现金时序表/周期证据表存在（降级或非周期须有声明）。
+                  且禁用「显著」；现金时序证据（v0.0.20 起 svg#ncrline 折线图）与
+                  周期定位声明句在位（降级或非周期须有声明）。
   11·六. abbrev / ocf-bridge-shape / figtitle-attribution / inspection-verdict
                   [WARN] v0.0.12 读法层兜底四件 + v0.0.15 s5 判定列扩展。
   15. internal-ref [FAIL] 可见文本禁现内部过程引用（v0.0.18）：底稿文件名

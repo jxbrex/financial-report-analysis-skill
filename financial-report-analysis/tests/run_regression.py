@@ -560,11 +560,28 @@ def main():
         _SECT + _DECL, "| 项目 | 金额 |\n| 现金流量表补充资料 | 1.0 |\n")
     ok_und = _run_html_json_md(
         _SECT + _DECL, "| 项目 | 金额 |\n| 净利润 | 1.0 |\n")
+    # M2 回归锚：cash_ts 均值缺省时 fillsheet 不得泄漏 Python repr
+    # （`mean:None` 进 JS 字面量 = ReferenceError，整页图表全灭；ncrLine 的 mean!=null
+    # 守卫要求生产者产出合法的 null）
+    _data = json.loads(MOUTAI.read_text(encoding="utf-8"))
+    _data["derived"]["cash_ts"]["ncr_mean5"] = None
+    with tempfile.NamedTemporaryFile("w", suffix=".md", delete=False, encoding="utf-8") as f:
+        _fs = f.name
+    try:
+        sys.path.insert(0, str(SKILL / "scripts"))
+        from calc_models import write_fillsheet
+        write_fillsheet(_data, _fs)
+        _fs_text = open(_fs, encoding="utf-8").read()
+        mean_null_ok = "mean:None" not in _fs_text and "mean:null" in _fs_text
+    finally:
+        os.unlink(_fs)
     v20_checks = [
         (bad_und.returncode == 1 and "undisclosed" in (bad_und.stdout or ""),
          "v0.0.20 构造用例：声明「无补充资料」但 md 检出补充资料必 FAIL（undisclosed）"),
         ("undisclosed" in (ok_und.stdout or "") and "未见与原文矛盾" in (ok_und.stdout or ""),
          "v0.0.20 构造用例：md 真缺补充资料时 undisclosed 判 OK（不误报合法缺数声明）"),
+        (mean_null_ok,
+         "v0.0.20 构造用例：cash_ts 均值缺省时 fillsheet 产出 mean:null（JS 合法），不泄漏 Python repr（M2 锚）"),
     ]
     print("\n【v0.0.20 新规则构造用例】")
     for ok, desc in v20_checks:

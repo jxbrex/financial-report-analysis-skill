@@ -271,6 +271,22 @@ financial-report-analysis/
    背景注记：端点值目前在 .brends 文字行（「净利润 X →（调节净额 ±Y）→ OCF Z」），SVG 内无
    端点柱。候选：deltaBars 加首末端点柱（中性色）或端点竖线+数值标签。下轮定形态后回填模板。
 
+### 热核审计（用户触发，发布后补审；主线自审 + 独立评审子代理双轨）
+
+- **4 major 全修**：① calc bridge.ocf 空桥 WARN 按 report_type 分流（季报无附注属裁剪常态，
+  原文案「半年报强制」对季报系统性误报）；② fillsheet `mean:{R2(None)}` 产出非法 JS
+  `mean:None`（Python repr 进字面量=整页图表全灭，ncrLine 的 null 守卫根本接不到——
+  json.dumps 包裹 + 构造断言锚，回归 108→109）；③ 模板 NCR_TS 演示值竟是卫星真实数据
+  前三位（漏填无任何门禁能发现→交付可信度假图，改全 0 风格与 TREND 一致）；
+  ④ SKILL Phase 0.5 残留「周期股照旧三线呈现」从句（与整槽退役矛盾——单行替换漏执行一行）
+- **主线自审补 1 条**：fillsheet TREND 六序列 `_aln` 对齐 labels（短前置补 null/长截尾——
+  原裸假设 hist 与 periods 同期数，期数不齐公司静默错位；四 fixture 全对齐幂等不变）
+- **3 minor 修**：`_hist/_r2l` 前移消重 / takeaway 素材「负值 n 年」改「OCF/FCF 为负 n 年」
+  （OCF<0 口径错挂净现比名下）/ check_html docstring 同步
+- **不成立项（双轨一致）**：ncrLine/combo/trendDual 折线段不抽共享助手（标签策略各异，
+  模板「函数间有意重复」契约）/ UNDISCLOSED_KW 单元素列表=文档化扩展点 /
+  NCR_TS.labels 与 TREND.labels 重复=槽位自足要求 / 正则误报漏报面记录为下轮扩词输入
+
 ### 遗留（下轮关注）
 
 - 70% 升档阈值真实触发、激励线「有计划」取数流程仍待样本（承 v0.0.19）

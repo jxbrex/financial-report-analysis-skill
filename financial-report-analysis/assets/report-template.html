@@ -780,7 +780,7 @@ const TREND={labels:['2022','2023','2024'],rev:[0,0,0],np:[0,0,0],np_dt:[],roe:[
 /* ncrline：现金时序双折线（现金时序卡）——labels=期间（derived.cash_ts.periods 照抄）、
  ncr=净现比逐期、fcf=FCF÷归母逐期（短序列前置 null 跳点）、mean=净现比均值（均值虚线+小字；
  fcf 均值写进卡 takeaway 判定语）；hist<3 期整卡降级声明，本槽留空 */
-const NCR_TS={labels:['2022','2023','2024'],ncr:[1.31,1.59,1.03],fcf:[1.1,1.4,0.9],mean:1.31};
+const NCR_TS={labels:['2022','2023','2024'],ncr:[0,0,0],fcf:[0,0,0],mean:0};
 /* spark：四维表「近5期趋势」迷你折线——vals 填 ratios 五期 hist（同类型滚动，旧→新）；
  color 由填充者按方向语义表对本期 vs 上期的好坏选 GOOD/BAD/INK；不足 2 期不画（该格留空并注明） */
 const SPARK={gm:[],nm:[],da:[],dio:[],dso:[],c2s:[],ccc:[],dol:[],dfl:[]};
