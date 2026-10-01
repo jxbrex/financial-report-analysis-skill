@@ -5,7 +5,7 @@ check_html_text.py — 报告机检的「呈现文本族」检查（v0.0.19 从 
 
 口径划分：本模块管「文字怎么呈现」——裸数字启发式、figtitle 文风、槽位长度、
 缩写展开、桥图项数、归因标题复述、判定列、内部引用禁词、srcline 拼接、杜邦双卡
-形态、分位白描映射、勾稽三态措辞、可见数字精度、断言计数自洽。
+形态、分位白描映射、勾稽三态措辞、可见数字精度、断言计数自洽、数据缺口声明落点。
 结构/硬规则类（占位符、外部资源、必备要素、锚点、章节形态、s2/s8/review、
 dupont-stack 数据槽比对、T8 数字回验）留在 check_html.py / check_html_t8.py。
 
@@ -375,8 +375,9 @@ def check_s1_v15_shape(text, rep):
     ② 因子分位表（表头含「五年位置」）数据行必须带白描读数（v0.0.19 起 X/5 从高到低），
        旧措辞「5 期中第 2 高」族与「上限区/下限区/常态区」档位标签均禁贴，
        且表内禁用「显著」统计措辞（n=5 位置读数非统计分位）；
-    ③ 现金时序证据（v0.0.20 起 svg#ncrline 双折线图，旧版式为净现比表格）与周期定位声明句
-       （v0.0.20 起「周期定位：」挂趋势图卡 srcline，旧版式为阶段判定行）存在——降级须有声明；
+    ③ 现金时序证据（v0.0.20 起 svg#ncrline 双折线图，旧版式为净现比表格）与周期定位判词
+       （v0.0.21 起为趋势图卡 .wv 大字声明行；v0.0.20 形态挂 srcline、更旧为阶段判定行——
+       三形态均认「周期定位：」字样）存在——降级须有声明；
        非周期股填「非周期行业」声明。
     注意：对 v0.0.19 前的存量旧版式报告重跑本检查必出 ②③ WARN——纪律 7 不重出旧报告，
     该 WARN 属预期，勿追溯修旧报告。"""
@@ -405,7 +406,8 @@ def check_s1_v15_shape(text, rep):
     if not has_cash_ev and "现金含量证据不足" not in seg:
         bad.append("s1 未见现金时序折线图（svg#ncrline）或现金时序表，也无「现金含量证据不足」降级声明")
     if "周期定位：" not in seg and "阶段判定" not in seg and "非周期" not in seg:
-        bad.append("s1 未见周期定位声明句（「周期定位：」挂趋势图卡）或阶段判定行，也无「非周期」声明")
+        bad.append("s1 未见周期定位判词声明行（「周期定位：」，v0.0.21 起 .wv 大字置顶趋势图卡）"
+                   "或阶段判定行，也无「非周期」声明")
     if bad:
         rep.add(WARN, "s1-v15-shape", f"s1 杜邦双卡/证据表形态 {len(bad)} 处待确认", bad[:6])
     else:
@@ -559,3 +561,29 @@ def check_assertion_counts(body, data, rep):
     else:
         rep.add(OK, "assertion-count",
                 f"断言验证矩阵计数自洽（{a_n} 通过 / {b_n} 不成立 / {c_n} 无法验证）")
+
+
+def check_gap_declaration(body, rep):
+    """数据缺口声明集中落点（v0.0.21，FAIL）：s4 章出现 ❓（无法验证）徽章时，
+    章内必须存在「数据缺口声明」行（模板表下 srcline 槽位），❓ 断言逐条写明缺什么数据。
+    text-mining.md 第七节早要求「❓ 条目必须同时出现在数据缺口声明」，但模板无集中落点、
+    无机检——美的/卫星 2026H1 两份报告均缺（规范与执行脱节实证，卫星复核轮遗留项）。
+    无 s4 章（报告类型裁剪）或 ❓=0 时跳过。❓ 计数按表情个数——模板约定 ✅/❌/❓
+    只出现在三态徽章里（与 assertion-count 同一约定）。"""
+    seg = _section_seg(body, "s4")
+    if seg is None:
+        rep.add(OK, "gap-declaration", "无 s4 章（报告类型裁剪时正常），数据缺口声明校验跳过")
+        return
+    tm = list(re.finditer(r"<table[^>]*>(.*?)</table>", seg, re.S))
+    # ❓ 只数表格内徽章（s4 可能有多张表——宣称方向/断言矩阵/变动未解释，声明行与
+    # takeaway 的 ❓ 字样不计入）
+    n_q = sum(m.group(1).count("❓") for m in tm)
+    if n_q == 0:
+        rep.add(OK, "gap-declaration", "s4 无 ❓ 断言，数据缺口声明行可省")
+        return
+    if "数据缺口" not in seg:
+        rep.add(FAIL, "gap-declaration",
+                f"s4 有 {n_q} 处 ❓ 断言但未见「数据缺口声明」行——❓ 须逐条写明缺什么数据"
+                "（text-mining.md 第七节呈现规范 2）")
+    else:
+        rep.add(OK, "gap-declaration", f"s4 ❓ 断言 {n_q} 处，数据缺口声明行在位")

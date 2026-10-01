@@ -54,7 +54,7 @@ calc.py 只校验数据层（data.json）；报告 HTML 层此前没有任何机
   13. s1-v15-shape [WARN] ★ 杜邦双卡形态：下钻子行 ≤3；因子分位表带白描读数
                   （v0.0.19 起 X/5 从高到低；旧措辞与「上限区/下限区/常态区」均禁）
                   且禁用「显著」；现金时序证据（v0.0.20 起 svg#ncrline 折线图）与
-                  周期定位声明句在位（降级或非周期须有声明）。
+                  周期定位判词声明行在位（降级或非周期须有声明）。
   11·六. abbrev / ocf-bridge-shape / figtitle-attribution / inspection-verdict
                   [WARN] v0.0.12 读法层兜底四件 + v0.0.15 s5 判定列扩展。
   15. internal-ref [FAIL] 可见文本禁现内部过程引用（v0.0.18）：底稿文件名
@@ -72,6 +72,9 @@ calc.py 只校验数据层（data.json）；报告 HTML 层此前没有任何机
                   srcline 屏蔽；版本号/日期形态不匹配。
   20. assertion-count [FAIL] v0.0.19 断言验证矩阵算术自洽：figtitle 三态计数
                   a+b+c=N、与表内 ✅/❌/❓ 徽章数一致；--json 再比对底稿 assertions。
+  21. gap-declaration [FAIL] v0.0.21 数据缺口声明集中落点：s4 有 ❓ 断言时必须
+                  存在「数据缺口声明」行，❓ 逐条写明缺什么数据（text-mining.md
+                  第七节呈现规范 2；美的/卫星规范与执行脱节实证）。无 s4 或 ❓=0 跳过。
 
 启发式检查的边界（诚实声明，改判据前先读这段）：
   · bare-number 的判据是：在 <td> / KPI 卡 .v / .figtitle 里出现「3 位以上数字
@@ -121,7 +124,8 @@ from check_html_text import (  # noqa: F401
     check_bare_numbers, check_figtitle_style, check_slot_length, check_abbrev,
     check_ocf_bridge_shape, check_figtitle_attribution, check_inspection_verdict,
     check_internal_ref, check_srcline_dup, check_s1_v15_shape, check_percentile_map,
-    check_recon_label, check_decimal_places, check_assertion_counts)
+    check_recon_label, check_decimal_places, check_assertion_counts,
+    check_gap_declaration)
 
 
 ICON = {FAIL: "🔴", WARN: "🟡", OK: "✅"}
@@ -513,6 +517,7 @@ def main():
     check_recon_label(body, rep)
     check_decimal_places(body, rep)
     check_assertion_counts(body, data, rep)
+    check_gap_declaration(body, rep)
     if data is not None:
         check_dupont_stack(raw, data, rep)
         check_percentile_map(body, data, rep)

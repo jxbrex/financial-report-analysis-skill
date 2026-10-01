@@ -1,6 +1,6 @@
 # HANDOFF · 交接文档
 
-> 版本 **0.0.20** · 截至 2026-09-30 · 本文档面向「下一个接手这个项目的人/AI 会话」
+> 版本 **0.0.21** · 截至 2026-10-01 · 本文档面向「下一个接手这个项目的人/AI 会话」
 > 仓库：https://github.com/jxbrex/financial-report-analysis-skill（**私密**）
 > 部署：`C:/Users/rexji/.agents/skills/financial-report-analysis/`（由 `deploy.cmd` 镜像）
 
@@ -83,8 +83,8 @@ financial-report-analysis/
    FAIL 规则（**internal-ref** 内部引用禁词 / **srcline-dup** 拼接纪律 / **percentile-map**
    分位白描映射）；v0.0.19 起加 **assertion-count**（FAIL：断言 figtitle 三态计数
    a+b+c=N 且与表内徽章/底稿 assertions 一致）与 **recon-label**（勾稽三态旧长标签）、
-   **decimal-places**（可见数字 ≥3 位小数）两条 WARN。exit 0 才允许交付。
-3. **`python tests/run_regression.py`** —— 任何改动后必跑，**106 条断言**全绿才算没改坏
+   **decimal-places**（可见数字 ≥3 位小数）两条 WARN；v0.0.21 起加 **gap-declaration**（FAIL：s4 ❓ 断言须进「数据缺口声明」行）。exit 0 才允许交付。
+3. **`python tests/run_regression.py`** —— 任何改动后必跑，**112 条断言**全绿才算没改坏
    （含 calc 四例 + check_html 冒烟 + T8 数字回验 + md_clean 合成样本 + 构造用例
    + fillsheet JS 槽形态冒烟）。
 
@@ -121,12 +121,16 @@ financial-report-analysis/
   （万科 39.3699 vs 39.3991 → 39.4，二·二十二）
 - L4 目检清单含「折线全部数据点在画布内」——check_render 的 overlap/clipped 测不到出界点
   （万科 ROE 线两点被顶出 SVG 的漏检教训，SKILL.md Phase 8 已落）
+- OCF 桥失守三层堵口勿回退（v0.0.20，卫星实证）：派单模板「补充资料」必提项+「换搜『将净利润
+  调节为』、禁凭常识降级」护栏 / SKILL 门禁接线 --min-recon / calc 空桥且 OCF 已填 SKIP 升 WARN
+  / check_html undisclosed 反向检索——任一被「优化」掉都会重开失守模式（原文在 supersede/v0.0.20）
 - 查 tag 用 `git tag | sort -V`，别用 tail（字符串排序 v0.0.10 排在 v0.0.5 前的坑，二·二十一）
 - 存量旧版式报告跑新 check_html 会出 internal-ref（内部引用禁词）与 percentile-map
   （分位白描）FAIL——纪律 7 不追溯不重出，属预期（v0.0.18；与 T8①级对旧报告的固有
   噪音同类）。万华 2026H1 报告即此形态（仅修了 6 处内容错误，版式留在 v0.0.15 代）；
   v0.0.19 起美的快照（v0.0.18 版式）再加 assertion-count FAIL（figtitle 8+1+2≠10 笔误
-  留档）与 recon-label/decimal-places WARN，同属预期
+  留档）与 recon-label/decimal-places WARN，同属预期；v0.0.21 起再加 gap-declaration
+  FAIL（❓2 无声明行，本轮评估定案）——undisclosed 零命中（存量 grep 验证一致）
 - 分位白描映射 X/5（v0.0.19 起：五年从高到低第 X——0→5/5 / .25→4/5 / .5→3/5 / .75→2/5 /
   1→1/5；旧措辞「5 期中第 2 高」族退役）双写定义在 check_html_text.py `PCTILE_LABEL` 与
   calc_models.py `PCTILE_LABEL`（check_html.py 再导出保回归契约锁锚点）——改动必须同步
@@ -195,108 +199,72 @@ financial-report-analysis/
 
 ---
 
-## 四·五、当前未发布轮：v0.0.20（2026-09-30，卫星化学报告复核驱动轮）
+## 四·五、当前未发布轮：v0.0.21（2026-10-01，卫星化学四项反馈定案轮 + handoff 遗留清理）
 
-> 触发：卫星化学 2026H1 报告产出后用户复核（效率治理四项指标对照 + 三点质疑），
-> 复核坐实一处真 bug（OCF 桥失守模式）+ 拍板 s1 双卡改造。本节发布后整节移入 supersede/。
+> 触发：用户 9-30 读卫星修正版报告后反馈 4 项（原话与背景注记见 supersede/v0.0.20），
+> 本轮定案 1A/2A/3 不修/4A；同步清理 handoff 可执行遗留（❓ 规范脱节根治 + 美的快照评估）。
+> 本节发布后整节移入 supersede/。
 
-### 复核三项质疑的裁决
+### 四项反馈的裁决与落地
 
-1. **净现比 figtitle/「不套档」仍在——不是残留**：v0.0.19 拍板的是「快照不动 + 禁抒情写边际读数 +
-   非周期股整卡省略」，从未约定删除这两类槽位（session_61b8dfc9 wire 考证：用户原话「建议删除」
-   针对美的两句具体文本）。但用户重读后仍判「复述图内信息=低信息量」→ 拍板 s1 双卡改造（见下）。
-2. **OCF 桥消失——真 bug（本轮核心发现）**：①三表代理漏提补充资料（派单模板未列必提项）→
-   主线以「A 股半年报不强制披露」错误常识降级 → 桥空/recon 12/17/三处错误陈述进报告，
-   三道门禁全绿无一拦截。**失守模式三层堵口全部落地**（派单模板必提项+「换搜将净利润调节为、
-   禁凭常识降级」护栏 / SKILL 门禁命令接线 --min-recon / calc bridge.ocf 空桥且 OCF 已填 SKIP 升 WARN /
-   check_html undisclosed FAIL——未披露声明反向检索，白名单首轮只「补充资料」）。
-3. **断言 34 条——机制合规**（三方计数自洽、>20 条「其余列未验证」路径正确、figtitle 把 9 条
-   「全球第一/唯一」零出处族点名）；遗留观察点：4 条 ❓ 写「本流程未取数」属规范灰区、
-   「❓ 须进数据缺口声明」规范无集中落点（美的同样缺，skill 层欠账）。
+1. **1A FCF 指标含义写白**：FCF 线保留（「收获段」叙事核心证据——卫星 figtitle「Capex 低位下
+   自由现金流充裕」靠它坐实）；现金时序卡 figtitle 纪律=提及 FCF 线必须写白指标含义
+   （「FCF=经营现金流−资本开支，即维持生产后真正可自由支配的现金」，模板注释+fillsheet 素材行双落点）。
+   现金/短债比**不加**进 s1（s7 健康检验表已在列，跨章重复呈现否决）。
+2. **2A 判词声明行**：周期定位判词从趋势图卡 srcline 小字升为 `.wv` 大字独立声明行置顶本卡
+   （「周期定位：X（一句注解）/ 非周期行业」+推算徽章），srcline 只留依据与图例。
+   check_s1_v15_shape ③ 认「周期定位：」字样、三形态兼容（v0.0.21 .wv 行 / v0.0.20 srcline / 更旧阶段判定行）。
+3. **3 不修**：Capex 迷你柱条维持 v0.0.20 形态（trendDual 缩放契约：收入 307 亿 vs Capex 7.3 亿
+   同轴必压扁），三线合图与 small-multiples 两案均否决。
+4. **4A 桥图端点柱**：deltaBars 支持首末端点柱（期初钉顶/期末钉底、中性 MUT 色、不参与排序与缩放——
+   纵轴量程仍只由调整项决定；端点超量程满幅截断+双斜线断口、数值标签条内白字）。卫星真实数验证：
+   收入桥端点 5× 超量程→断线、贡献项满幅不被压扁；OCF 桥端点 3.6× 超量程→断线。
+   .brends 端点行保留（数字文字证据）。新增 SEG_ENDS 槽（fillsheet json.dumps 产出，防 None 进 JS）。
+   正向验证=桌面浏览器 DOM（端点行/判词行文本在位）+截图目检+check_render 几何全过；
+   模板 demo 全 0 值时 dupontstack 的标签重叠原为模板 demo 固有形态（check_render 跑模板必报），
+   热核审计已加 stackH 退化守卫修复，模板 check_render 现 0 问题。
 
-### 效率治理四项指标对照（第二份样本：卫星化学，万华基线对照）
+### gap-declaration 机检（遗留「❓ 规范与执行脱节」根治）
 
-| 指标 | 卫星化学 | 万华基线 | 读数 |
-|---|---|---|---|
-| 全流程总耗时 | 57.8 min | 53.3 min | +8.4%——Phase 8 +3.4 / 前段 +1.1 |
-| Phase 8 填模板+门禁返工 | **22.9 min**（18:27:49→18:50:40 全程；s0~s3 段 17.2 + 返工 2.5 + 门禁与目检 ~3.2） | 19.5 min | 用户汇报表 17.2 为半程口径，按可比全程口径多 3.4 |
-| 最大单步输出 | 合并脚本 24.5KB / 2'39" | 手写 16k token json / 311s | 分块落盘生效，无手写大 json |
-| 并行窗拖尾 | 窗 10 min（①三表代理最慢），拖尾 ≈0 | 附注 547s 拖满 9.1min 窗 | 明显改善 |
-| grep 标杆/examples | **0 次**（复核以 wire 坐实：21 条 Grep/Glob 全指自家文件/技能源码） | 11 次（万科轮） | fillsheet 契约无缺口 |
+- 新 FAIL 规则：s4 表内出现 ❓ 徽章时，章内必须存在「数据缺口声明」行（模板 s4 表下新增集中落点
+  srcline 槽位；text-mining.md 第七节呈现规范 2 同步补落点定义）。
+- 计数口径：❓ 只数表内徽章——s4 可有多张表（美的=宣称方向/断言矩阵/变动未解释三张），
+  汇总行与声明行的 ❓ 字样不计入（美的实测口径修正一次的教训）。
+- 美的快照评估（本轮跑 check_html --json 定案）：gap-declaration FAIL 1（❓2 无声明行）=
+  规范脱节实证落档；undisclosed 零命中（与存量 grep 验证一致）。评估后美的快照预期命中清单=
+  FAIL 3（assertion-count 笔误留档 / percentile-map / gap-declaration）+ WARN 6
+  （bare-number 121 / json-md 25 / decimal-places 17 / recon-label 7 / s1-v15-shape 2 / s2-shape 2），
+  纪律 7 不重出不追溯。
+- 回归 109→112 全绿（+3 构造用例：无声明行 FAIL / 带声明行 OK / SEG_ENDS 无 None 泄漏；
+  冒烟加 gap-declaration 存活）。
 
-读数：治理消除的是「无效动作」（grep 标杆/手写大 json/并行窗空等已清零）；总时长未降，
-与「LLM 流式占 86%」刚性判断一致。数据源：卫星化学-timing.md × 产出会话 wire.jsonl 双证。
+### 热核审计（用户触发，主线自审本轮修订）
 
-### 卫星报告内容修正（循万华先例：版式外内容错误修）
-
-- 补提补充资料 19 项（手工复算精确闭合 96.2928 亿=OCF）→ ocf_bridge 8 柱（R2 上桌口径）/
-  wc_devour 净释放 -5.35 亿 / dep_amort src 改指补充资料、prev 补 24.3219
-- recon 补四判定至 16/17：A3 闭合 / A5 可解释（使用权折旧 10.25 亿口径差，剔除后精确闭合）/
-  A6 可解释（**复核轮新读数**：在建权责增 13.69 亿 vs 购建付现 7.27 亿时点差 6.4 亿，
-  应付工程设备款未膨胀——「收获段低 Capex」的付款高峰在后）/ B3 闭合（-1.2% 容差内）；
-  B2 空壳留方向性说明（无生产成本表，万科先例）
-- HTML 五处错误陈述改写 + OCF 桥正常画柱 + s2 勾稽表加 A5/A6 行 + s8 加「经营性应付扩张」跟踪卡
-- 验证：gate --min-recon 13 三道全绿 + --png 全章目检通过
-
-### s1 双卡改造（用户拍板）
-
-- 现金时序卡：五期表格改**双折线图**（ncrLine 函数+NCR_TS 槽，y=1 造血参考线+均值虚线、
-  null 跳点、ncr 标签点上/fcf 点下防互撞）；figtitle/takeaway 文字保留（边际读数写法不变）
-- 周期定位证据卡**整槽退役**（v0.0.19「非周期整删」规则废止）：收入/毛利率本在趋势图重复无
-  信息量；独有的 Capex 线并入趋势图卡底部迷你柱条（capexBars，独立缩放不同轴——模板缩放
-  契约）；阶段判定改声明句挂该卡 srcline（「周期定位：X（一句注解）/ 非周期行业」）
-- 数据层零侵入：derived.cycle_evidence/cash_ts 底稿结构与 calc 复算照旧，只动呈现层
-  （模板/fillsheet/check_s1_v15_shape ③ 兼容新旧形态/SKILL Phase 0.5）
-- **N4 冻结计数再次清零**（模板结构性改动：ncrLine/capexBars/右卡退役/NCR_TS 槽）
-
-### 下一轮必须讨论项（用户 2026-09-30 读卫星修正版报告后反馈，原话照录+背景注记）
-
-1. **净现比图的 FCF/归母指标意义**——用户：「FCF/归母 指标我觉得意义不大，如有特殊意义请告诉我，
-   建议加入现金与短债比这种偿债指标」。
-   背景注记：FCF=OCF−Capex 是「收获段」叙事的核心证据（卫星 figtitle「Capex 低位下自由现金流
-   充裕」正靠它坐实）；现金/短债比底稿已有（ratios.short_debt_cover，s7 健康检验表 4.83 倍在列）。
-   讨论点：现金卡主题是否从「造血质量」扩到「偿债安全」（与 s7 重复呈现？）、FCF 线去留、
-   或 FCF 保留但 figtitle 把指标含义写白（用户教育路径）。
-2. **周期定位判词的视觉权重**——用户：「判词放在小字注释了？判断周期位置的判词很重要，
-   尤其对于周期股，要重点显示」。
-   背景注记：v0.0.20 把判定句降级到趋势图卡 srcline（右卡整槽退役的连带）——对周期股确实
-   降权过度。候选：figtitle 收尾挂判词 / 卡内独立醒目声明行（.wv 大字风格）/ s1 独立判定标签位。
-   与第 3 条一并定。
-3. **判词与三线证据的团聚列示**——用户：「判词和收入、毛利、capex 增速在一起列示，现在 capex
-   在五年趋势图和收入和毛利是分开的，可否合并，需要讨论」。
-   背景注记：v0.0.20 拆开的理由=trendDual 缩放契约（量级悬殊不同轴：收入 307 亿 vs Capex 7.3 亿
-   同轴柱压扁；Capex 增速 % 与毛利率 % 共轴压平毛利率线）。可讨论折中：trendDual 支持第三序列+
-   独立右轴 / Capex 增速线与毛利率线共用右轴各自量程 / small-multiples 三小图并列。
-4. **桥图端点数值上画**——用户：「收入分部桥和 ocf 净利桥的图，是不是应该显示出期初和期末的数值」。
-   背景注记：端点值目前在 .brends 文字行（「净利润 X →（调节净额 ±Y）→ OCF Z」），SVG 内无
-   端点柱。候选：deltaBars 加首末端点柱（中性色）或端点竖线+数值标签。下轮定形态后回填模板。
-
-### 热核审计（用户触发，发布后补审；主线自审 + 独立评审子代理双轨）
-
-- **4 major 全修**：① calc bridge.ocf 空桥 WARN 按 report_type 分流（季报无附注属裁剪常态，
-  原文案「半年报强制」对季报系统性误报）；② fillsheet `mean:{R2(None)}` 产出非法 JS
-  `mean:None`（Python repr 进字面量=整页图表全灭，ncrLine 的 null 守卫根本接不到——
-  json.dumps 包裹 + 构造断言锚，回归 108→109）；③ 模板 NCR_TS 演示值竟是卫星真实数据
-  前三位（漏填无任何门禁能发现→交付可信度假图，改全 0 风格与 TREND 一致）；
-  ④ SKILL Phase 0.5 残留「周期股照旧三线呈现」从句（与整槽退役矛盾——单行替换漏执行一行）
-- **主线自审补 1 条**：fillsheet TREND 六序列 `_aln` 对齐 labels（短前置补 null/长截尾——
-  原裸假设 hist 与 periods 同期数，期数不齐公司静默错位；四 fixture 全对齐幂等不变）
-- **3 minor 修**：`_hist/_r2l` 前移消重 / takeaway 素材「负值 n 年」改「OCF/FCF 为负 n 年」
-  （OCF<0 口径错挂净现比名下）/ check_html docstring 同步
-- **不成立项（双轨一致）**：ncrLine/combo/trendDual 折线段不抽共享助手（标签策略各异，
-  模板「函数间有意重复」契约）/ UNDISCLOSED_KW 单元素列表=文档化扩展点 /
-  NCR_TS.labels 与 TREND.labels 重复=槽位自足要求 / 正则误报漏报面记录为下轮扩词输入
+- **1 major 修（真 bug）**：deltaBars 的 ends 原按 filter 后位置取 ep[0]/ep[1]——
+  SEG_ENDS=[null, X]（基期收入缺数）时期末端点会错位画到顶行；改 st/en 固定槽位取
+  （okE 逐个守卫 ends[0]/ends[1]），顺带 code-judo：删共享 forEach 里的 k 标志与提前
+  return，端点柱独立 drawEnd 一趟（槽位 0 / n-1）；部分 null 场景浏览器复验=只期末在柱
+- **1 结构修**：v0.0.21 回归块原复用 v0.0.20 块产出的 _fs_text（那份茅台被改过 cash_ts）——
+  跨块隐式依赖，前块改动会静默断锚；改本块独立跑 write_fillsheet
+- **2 minor 修**：模板现金卡注释与 takeaway 残留 v0.0.20 旧措辞「声明句挂 srcline」→
+  判词声明行（.wv）
+- **stackH 退化守卫（用户拍板并入本轮）**：三效应全 0（demo 全零 / 真实 ΔROE≈0 被 fillsheet
+  舍入成 0.0）时 span 兜底为 1、所有段挤左缘同点，奇偶错层救不了同层同 x（模板 demo 11px
+  即此形态，真实报告同形态可达）——守卫后段标签改单行退化声明（「三因子贡献均≈0……」）、
+  柱与 tip 保留；双场景复验：非退化标签照画 / 退化声明行在位，两场景+模板 check_render 均 0 问题
+- **红线度量**：模板总行 1178 / 去注释 917（v0.0.18 基线去注释约 900，本轮 +约 17，1k 红线内）；
+  check_html_text.py 589 / check_html.py 550 / calc_models.py 456 均未越线
 
 ### 遗留（下轮关注）
 
-- 70% 升档阈值真实触发、激励线「有计划」取数流程仍待样本（承 v0.0.19）
-- N4 计数从本轮重新起算：连续两份新报告零结构性改动才重议 fill→render 脚本化
-- 美的快照（v0.0.18 版式）跑新门禁的预期命中再加 undisclosed 评估（存量 grep 零命中已验证）
-- write_fillsheet 现约 330 行（本轮 +20），维持「再涨按章节拆」记录项
-- 断言「❓ 须进数据缺口声明」规范与执行脱节（美的/卫星均缺集中落点）——下轮评估：
-  规范修订（降级为 figtitle 提示）或机检补集中落点
-- 卫星化学「效率治理第二份样本」已回填完毕，计时模板沿用（卫星化学-timing.md 修正段
-  为本轮复核留证）
+- 70% 升档阈值真实触发、激励线「有计划」取数流程仍待样本（承 v0.0.19）；候选已调研：
+  阈值首验=长安汽车 2026H1（无息占比≈0.98 全市场级极端样本，备选长城≈0.88），
+  激励线首验=益丰药房 2026H1（2026 限制性股票激励计划+考核管理办法已公告，无息占比≈0.88
+  有机会一份验两项，备选埃斯顿）——验证各需一份完整报告流程，单独会话执行
+- N4 冻结计数从 v0.0.20 重新起算后**本轮再次清零**（模板结构性改动：.wv 判词行 / deltaBars
+  端点柱 / SEG_ENDS 槽 / s4 声明行）；连续两份新报告零结构性改动才重议 fill→render 脚本化
+- write_fillsheet 记录项维持（本轮只加素材行与 SEG_ENDS 产出，函数未拆）
+- 存量快照的 ❓ 缺声明行不追溯（纪律 7）；下一份新报告起 gap-declaration 为交付硬门禁
 
 ## 五、下一步工作计划
 
@@ -452,7 +420,7 @@ push/PR 自动跑回归；首跑待本次 push 验证）
 ```bash
 # 1. 确认环境
 cd "D:/KimiCodeProject/Financial Report Analysis"
-python financial-report-analysis/tests/run_regression.py   # 应 106/106 通过
+python financial-report-analysis/tests/run_regression.py   # 应 112/112 通过
 
 # 2. 部署（如需让技能在当前机器生效）
 cmd //c deploy.cmd
@@ -482,3 +450,4 @@ cmd //c deploy.cmd
 | `supersede/v0.0.17_2026-09-28.md` | v0.0.17（工程化还账 + 方法论补全 + 热核审计整改） |
 | `supersede/v0.0.18_2026-09-29.md` | v0.0.18（万华首份周期股报告反馈轮：呈现层清洗 + 门禁补强 + 效率治理） |
 | `supersede/v0.0.19_2026-09-30.md` | v0.0.19（美的反馈轮：呈现文本族拆分 + 三新机检 + 图表版面 + hist_pool 豁免 + 效率治理计时模板） |
+| `supersede/v0.0.20_2026-09-30.md` | v0.0.20（卫星化学报告复核轮：OCF 桥失守模式根治 + s1 双卡改造 + 效率对照回填） |

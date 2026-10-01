@@ -310,14 +310,15 @@ html{scroll-behavior:smooth}
  <!-- ◆ 现金时序卡（单卡全宽；v0.0.20 起表格改双折线图：读数在图上、判断在文字）：
  「现金含量」层证据——净现比/FCF÷归母 五期走势。原右侧「周期定位证据卡」整槽退役：
  收入/毛利率读数本就在下方五年趋势图里，重复呈现无信息量（美的 2026H1 反馈）；唯一
- 独有的 Capex 线并入趋势图卡迷你柱条、阶段判定降级为该卡声明句（卫星化学 2026H1 反馈定稿） -->
+ 独有的 Capex 线并入趋势图卡迷你柱条、阶段判定挂该卡判词声明行（v0.0.21 升 .wv 大字；
+ 卫星化学 2026H1 反馈定稿） -->
  <div class="card">
- <div class="figtitle">{{结论式：现金含量一句话——只写异常/边际变化/风险点（如「净现比五年首度跌破 1」「负值 2 年、忽高忽低」）；「均值≥1 且无负值年」的正常形态禁止抒情占位（反面教材：「造血稳定是本报告最不需要担心的一层」=零信息量），正常时写边际读数即可（如「五年净现比均 ≥1，本期 1.4 持平」）}}</div>
+ <div class="figtitle">{{结论式：现金含量一句话——只写异常/边际变化/风险点（如「净现比五年首度跌破 1」「负值 2 年、忽高忽低」）；「均值≥1 且无负值年」的正常形态禁止抒情占位（反面教材：「造血稳定是本报告最不需要担心的一层」=零信息量），正常时写边际读数即可（如「五年净现比均 ≥1，本期 1.4 持平」）；提及 FCF 线时把指标含义写白（如「FCF=经营现金流−资本开支，即维持生产后真正可自由支配的现金」）——指标名不解释=低信息量（卫星 2026H1 用户反馈，v0.0.21）}}</div>
  <!-- ◆ 双折线（JS ncrLine 画，数据填 JS 区 NCR_TS 槽=derived.cash_ts 逐期数组照抄）：
   净现比 INK + FCF÷归母 C2 + y=1 造血参考虚线 + 均值虚线；null 跳点不硬连；
   hist<3 期整卡降级为「现金含量证据不足」声明（删 svg 与 figtitle 改写） -->
  <svg id="ncrline" viewBox="0 0 960 200" preserveAspectRatio="xMidYMid meet"></svg>
- <div class="takeaway">判定：{{✅ 稳定造血 / ⚠️ 忽高忽低——带均值与负值年读数（净现比均值 {{x.xx}}、FCF 均值 {{x.xx}}、负值 {{n}} 年）}}· 周期股护栏：下行年 OCF 恶化是周期属性而非造假，须挂周期定位解读（声明句见下方趋势图卡）</div>
+ <div class="takeaway">判定：{{✅ 稳定造血 / ⚠️ 忽高忽低——带均值与负值年读数（净现比均值 {{x.xx}}、FCF 均值 {{x.xx}}、负值 {{n}} 年）}}· 周期股护栏：下行年 OCF 恶化是周期属性而非造假，须挂周期定位解读（判词声明行见下方趋势图卡）</div>
  <div class="srcline">数据来源：各期现金流量表 · 净现比=OCF÷归母净利；FCF=OCF−Capex <span class="badge der">推算</span> · hist&lt;3 期时本卡降级为「现金含量证据不足」声明并注明</div>
  </div>
  <!-- ◆ 杜邦双卡：左卡=当期归因+因子下钻+ΔROE 堆叠条；右卡=五年累计归因（方案A）+因子分位
@@ -384,15 +385,17 @@ html{scroll-behavior:smooth}
  </div>
  <div class="fig">
  <div class="figtitle">{{结论式：五年趋势一句话，如「收入创新高、毛利率抬升、ROE 被摊薄——下期盯摊薄是否见底」}}</div>
+ <!-- ◆ 周期定位判词声明行（v0.0.21 用户定案：判词降级 srcline 小字对周期股降权过度，
+  改 .wv 大字独立声明行、置顶本卡）：填法二选一——周期股「上行/顶部/下行/底部（一句注解，
+  如「下行期（收获段）」）」/ 非周期股「非周期行业」；判定必须与底稿三线证据一致，
+  DOL/压力情景/因子分位的解读均挂本行（原右卡「不套档怎么解读」的例外项也写在这里） -->
+ <div class="wv">周期定位：{{上行/顶部/下行/底部（一句注解） / 非周期行业}} <span class="badge der">推算</span></div>
  <svg id="trend" viewBox="0 0 960 300" preserveAspectRatio="xMidYMid meet"></svg>
- <!-- ◆ Capex 迷你柱条 + 周期定位声明句（v0.0.20，原「周期定位证据卡」整槽退役并入本卡）：
+ <!-- ◆ Capex 迷你柱条（v0.0.20，原「周期定位证据卡」整槽退役并入本卡）：
   底条=购建固定资产等支付的现金逐期小柱（独立缩放——量级悬殊不画进 trendDual 主图同轴，
-  缩放契约见 trendDual 注释；数据填 TREND.capex=cashflow.capex hist 照抄，null 跳点）；
-  声明句=阶段判定唯一挂载点，填法二选一：周期股「周期定位：{{上行/顶部/下行/底部（一句注解，
-  如「上行期（收获段）」）}}」/ 非周期股「周期定位：非周期行业」；判定必须与底稿三线证据一致，
-  DOL/压力情景/因子分位的解读均挂本句（原右卡「不套档怎么解读」的例外项也写在这里） -->
+  缩放契约见 trendDual 注释；数据填 TREND.capex=cashflow.capex hist 照抄，null 跳点） -->
  <svg id="capexbars" viewBox="0 0 960 90" preserveAspectRatio="xMidYMid meet"></svg>
- <div class="srcline">周期定位：{{判定+一句注解 / 非周期行业}}——依据：收入/毛利率见上图，Capex 节奏见下条 · 数据来源：{{…}} · 左面板=收入柱+毛利率线 · 右面板=归母净利+扣非净利柱、ROE 线（扣非/ROE 缺数据时右板降级为归母净利单柱、ROE 线跳过）· 底条=购建固定资产等支付的现金（亿元，各期）</div>
+ <div class="srcline">判定依据：收入/毛利率见上图、Capex 节奏见下条 · 数据来源：{{…}} · 左面板=收入柱+毛利率线 · 右面板=归母净利+扣非净利柱、ROE 线（扣非/ROE 缺数据时右板降级为归母净利单柱、ROE 线跳过）· 底条=购建固定资产等支付的现金（亿元，各期）</div>
  </div>
  </div>
 
@@ -450,7 +453,9 @@ html{scroll-behavior:smooth}
  <div class="secthead" id="s3"><span class="no">03</span><span class="t">因素分析</span><span class="line"></span><span class="tag">收入 · 成本 · 净利润桥</span></div>
  <p class="lede">{{一句话：本期利润变化的第一驱动是……}}</p>
  <!-- ◆ 收入桥：正负贡献 delta 条形图（OCF 桥同款 deltaBars），
- 水平值（基期/本期收入）不画条、填 .brends 端点行；数据填 JS 区 SEG_BRIDGE。
+ v0.0.21 起画首末端点柱（中性色，钉在排序列表首尾）：基期/本期收入填 JS 区 SEG_ENDS 槽，
+ 端点超贡献项量程时满幅截断+双斜线断口（贡献项永不被压扁）；.brends 端点行保留（文字证据）。
+ 贡献项数据填 JS 区 SEG_BRIDGE。
  分组轴规则：优先与商业模式叙事同构的轴（industry-profiles.md 该模式
  声明的收入轴，如医药=创新药/仿制药/license-out），不机械照搬附注分产品表；
  多产品公司能拆量价必拆量/价/结构三因素（SEG_BRIDGE 填三行效应）；
@@ -489,8 +494,9 @@ html{scroll-behavior:smooth}
  <div class="fig">
  <div class="figtitle">{{结论式：经营现金流净额（OCF）与净利润的关系一句话，如「OCF 反超净利润：应付预收放大是主因」或「OCF 远低于净利润：营运资本吞噬在应收」}}</div>
  <!-- ◆ 端点行 + delta 条形图：水平值（净利润/OCF）与调整项量级
- 悬殊时瀑布图会把调整项压成细线——水平值不画柱，以文字端点呈现；SVG 只画调整项
- delta 条（按 |delta| 降序，零轴居中、右绿左红）。viewBox 固定 960×200 与收入桥同尺寸
+ 悬殊时瀑布图会把调整项压成细线——纵轴量程只由调整项决定；v0.0.21 起首末端点以中性色
+ 端点柱呈现（钉在排序列表首尾，端点超量程时满幅截断+双斜线断口，调整项永不被压扁）；
+ 调整项按 |delta| 降序、零轴居中、右绿左红。viewBox 固定 960×200 与收入桥同尺寸
  （v0.0.19 两桥同尺寸纪律；密度靠项数纪律 ≤6 控制，不加高）
  ◆ figtitle 真实示范（万科 2026H1）：「OCF +4.95 亿转正：存货去化 +279.6 亿与应付
  压降 -327.4 亿对撞出来的止血——释放项都是收缩动作不可再生，盯存货去化放缓后
@@ -552,10 +558,13 @@ html{scroll-behavior:smooth}
  现金流与分红……），每组一行 .group 标题行开头 -->
  <tr class="group"><td colspan="4">{{科目组名，如：收入与量价}}</td></tr>
  <tr><td>{{如：收入下降主要系系列酒结构调整}}</td><td class="txt">{{量/价/结构三效应检验：价-38.6亿为主因，与断言一致/矛盾}}</td><td class="txt"><span class="badge {{g|y|r}}">{{✅通过/❌不成立/❓无法验证}}</span></td><td class="txt">{{MD&A 章节}}</td></tr>
- <!-- ◆ ❌ 不成立的断言自动进风险清单；❓ 必须写明缺什么数据 -->
+ <!-- ◆ ❌ 不成立的断言自动进风险清单；❓ 必须写明缺什么数据，且逐条进下方「数据缺口声明」行
+ （v0.0.21 集中落点，check_html gap-declaration 机检：有 ❓ 无声明行即 FAIL——
+ 美的/卫星 2026H1 规范与执行脱节的实证） -->
  </table>
  <div class="takeaway">汇总：共 {{N}} 条断言：✅ {{a}} / ❌ {{b}} / ❓ {{c}}；未解释的大幅变动 {{d}} 项；指引兑现率 {{e}}——计数与 figtitle 同源（text-mining.md 第七节呈现规范）</div>
  <div class="srcline">「❌ 不成立」= 管理层解释与数据矛盾，重大信号 · ❓ 必须写明缺什么数据才能验证</div>
+ <div class="srcline">数据缺口声明：{{❓ 断言逐条「断言——缺什么数据（何处能补：公告/第三方库/待下期披露）」，分号分隔；无 ❓ 断言时整行删除}}</div>
  </div>
  <!-- ◆ SLOT：解释缺口清单（变动>30% 但 MD&A 未解释的科目）与指引兑现率 -->
  <div class="card">
@@ -869,15 +878,20 @@ function capexBars(id,labels,vals){
  });
  el(s,'line',{x1:L,y1:H-B,x2:W-R,y2:H-B,stroke:GRID,'stroke-width':1});
 }
-/* ocfbridge：净利→经营现金流调节桥（间接法，亿元）——首项「净利润」为水平值（不画柱，
- 与 OCF_END 一起填上方 .brends 端点行），其余为调节项，Σ=OCF；OCF_END=经营现金流净额。
+/* ocfbridge：净利→经营现金流调节桥（间接法，亿元）——首项「净利润」与 OCF_END（经营现金流
+ 净额）为水平值：v0.0.21 起画作首末端点柱（中性色，超量程断线截断），同时填上方 .brends
+ 端点行；其余为调节项，Σ=OCF。
  ◆ 项数纪律（check_html ocf-bridge-shape 机检）：调节柱 ≤6 根——单列门槛 |Δ|≥调节净额 10%
  或 ≥3 亿，其余并入「其他」；「其他」桶超 Σ|Δ|×30% 时须把桶内最大项拆出单列 */
 const OCF_BRIDGE=[['净利润',0],['折旧摊销',0],['减值',0],['递延税',0],['Δ应收',0],['Δ存货',0],['Δ应付',0],['其他',0]];
 const OCF_END=0;
-/* segbridge：收入桥——只填贡献项（量/价/结构三效应，或无量价时各分部贡献），基期/本期
- 收入为水平值填 HTML .brends 端点行（不画条）；项数纪律同 OCF 桥；三效应之和=Δ收入（calc bridge.rev 卡口） */
+/* segbridge：收入桥——只填贡献项（量/价/结构三效应，或无量价时各分部贡献）；项数纪律同
+ OCF 桥；三效应之和=Δ收入（calc bridge.rev 卡口）。基期/本期收入为水平值：v0.0.21 起画作
+ 首末端点柱（SEG_ENDS 槽，中性色、超量程断线截断），同时填 HTML .brends 端点行 */
 const SEG_BRIDGE=[['量效应',0],['价效应',0],['结构效应',0]];
+/* segbridge 端点柱数据（v0.0.21）：[基期收入, 本期收入]（亿元，与 .brends 端点行同源照抄，
+ fillsheet 已产出）；缺数填 null 该端点跳过 */
+const SEG_ENDS=[0,0];
 /* holders：股东户数（万户，柱）+ 户数环比增减(%,线，可留空；首期无环比填 null 跳点不画) */
 const HOLDERS={labels:[],num:[],px:[]};
 /* DUPONT_STACK：ΔROE 贡献堆叠条——三段效应照抄 derived.dupont 三效应 ×100 转 pct
@@ -1054,14 +1068,21 @@ function trendDual(id,labels,rev,np,gm,np_dt,roe){
  });
 }
 
-/* delta 条形图：只画调整项（水平值与调整项量级悬殊时瀑布图会压扁调整项），按 |delta| 降序
- 横排，零轴居中、右绿左红、条端标数值；水平值在 HTML .brends 端点行呈现（零轴不截断）。 */
-function deltaBars(id,steps){
+/* delta 条形图：调整项按 |delta| 降序横排，零轴居中、右绿左红、条端标数值；纵轴量程只由
+ 调整项决定（水平值与调整项量级悬殊时瀑布图会压扁调整项）。v0.0.21 起支持端点柱
+ （ends=[[期初标签,值],[期末标签,值]]，缺省或值 null 跳过、向后兼容旧报告）：期初行钉顶、
+ 期末行钉底、中性 MUT 色、不参与排序与缩放；端点值超量程时满幅截断+双斜线断口（断轴记号）、
+ 数值标签移入条内白字；HTML .brends 端点行保留（数字文字证据，与端点柱同源）。 */
+function deltaBars(id,steps,ends){
  const s=document.getElementById(id);if(!s||!steps.length)return;
  const W=+s.viewBox.baseVal.width,H=+s.viewBox.baseVal.height,L=86,R=54,T=14,B=8;
- const rows=[...steps].sort((a,b)=>Math.abs(b[1])-Math.abs(a[1]));
- const n=rows.length,rh=(H-T-B)/n;
- const vmax=Math.max(...rows.map(r=>Math.abs(r[1])))*1.12||1;
+ /* 端点槽位固定取 ends[0]/ends[1]（期初/期末），值 null 则该端点跳过——不按过滤后
+  位置取，防 [null, X] 时期末错位画到顶行 */
+ const okE=e=>e&&e[1]!=null&&!isNaN(e[1]);
+ const st=okE((ends||[])[0])?ends[0]:null, en=okE((ends||[])[1])?ends[1]:null;
+ const mid=[...steps].sort((a,b)=>Math.abs(b[1])-Math.abs(a[1]));
+ const n=mid.length+(st?1:0)+(en?1:0),rh=(H-T-B)/n;
+ const vmax=Math.max(...steps.map(r=>Math.abs(r[1])))*1.12||1;
  const x0=L+(W-L-R)/2; /* 零轴居中：左右等幅量程，正负可比 */
  const sx=v=>x0+(W-L-R)/2*v/vmax;
  const step=niceStep(vmax/2);
@@ -1071,8 +1092,30 @@ function deltaBars(id,steps){
  }
  }
  el(s,'line',{x1:x0,y1:T,x2:x0,y2:H-B,stroke:GRID,'stroke-width':1});
- rows.forEach(([nm,v],i)=>{
- const y=T+i*rh+rh*.18,h=rh*.64;
+ const rowY=i=>T+i*rh+rh*.18,rowH=rh*.64;
+ /* 端点柱独立一趟（v0.0.21）：中性 MUT 色钉首尾、不参与排序与缩放；超量程满幅+双斜线
+  断口（断轴记号）、数值标签条内白字 */
+ const drawEnd=([nm,v],i)=>{
+ const y=rowY(i),h=rowH,pos=v>=0,broken=Math.abs(v)>vmax;
+ const ve=broken?(pos?vmax:-vmax):v;
+ const x=pos?x0:sx(ve),w=Math.abs(sx(ve)-x0);
+ const r=el(s,'rect',{x:x,y:y,width:Math.max(w,.5),height:h,fill:MUT,rx:Math.min(h/2,7)});
+ tip(r,`${nm}：${fmt(v)}${broken?'（超调节项量程，断线截断）':''}`);
+ txt(s,{x:L-8,y:y+h/2+3.5,'font-size':9.5,'font-weight':700,fill:INK,'text-anchor':'end'},nm);
+ if(broken){
+ const bx=pos?x+w-9:x+5;
+ for(const d of[0,5]){
+ el(s,'line',{x1:bx+d,y1:y+h,x2:bx+d+4,y2:y,stroke:'#fff','stroke-width':1.6});
+ }
+ txt(s,{x:pos?bx-6:bx+14,y:y+h/2+3.5,'font-size':9.5,'font-weight':800,fill:'#fff',
+ 'text-anchor':pos?'end':'start'},fmt(v));
+ }else{
+ txt(s,{x:pos?x+w+5:x-5,y:y+h/2+3.5,'font-size':9.5,'font-weight':800,fill:INK,
+ 'text-anchor':pos?'start':'end'},fmt(v));
+ }
+ };
+ mid.forEach(([nm,v],j)=>{
+ const y=rowY(j+(st?1:0)),h=rowH;
  const pos=v>=0;
  const x=pos?x0:sx(v),w=Math.abs(sx(v)-x0);
  const r=el(s,'rect',{x:x,y:y,width:w,height:h,fill:pos?GOOD:BAD,rx:Math.min(h/2,7)});
@@ -1083,6 +1126,8 @@ function deltaBars(id,steps){
  txt(s,{x:inBar?x+5:(pos?x+w+5:x-5),y:y+h/2+3.5,'font-size':9.5,'font-weight':800,
  fill:inBar?'#fff':(pos?GOOD:BAD),'text-anchor':(pos||inBar)?'start':'end'},(v>0?'+':'')+fmt(v));
  });
+ if(st)drawEnd(st,0);
+ if(en)drawEnd(en,n-1);
 }
 
 /* ΔROE 贡献堆叠条：正贡献从零轴向右累叠、负贡献向左累叠，closure_gap≠0 必须画灰色口径差段
@@ -1103,12 +1148,17 @@ function stackH(id,steps,gap,unit){
  const x=v=>L+(W-L-R)*(v-lo)/span;
  const y=T,h=H-T-B;
  const FC=[C1,C3,DERC]; /* 三因子固定分色：净利率/周转率/杠杆 */
+ /* 退化守卫（v0.0.21 热核审计）：三效应全 0（demo 全零、或真实 ΔROE≈0 被 fillsheet
+ 舍入成 0.0）时 span 兜底为 1、所有段挤左缘同点，奇偶错层救不了同层同 x——段标签
+ 改单行退化声明（读数全零本无信息量），柱与 tip 保留 */
+ const deg=rows.every(([,v])=>Math.abs(v||0)<1e-9);
  el(s,'line',{x1:x(0),y1:T-4,x2:x(0),y2:T+h+2,stroke:GRID,'stroke-width':1});
  segs.forEach(([nm,v,isGap,idx,a,b])=>{
  const rx=Math.min(x(a),x(b)),rw=Math.abs(x(b)-x(a))||0.5;
  const r=el(s,'rect',{x:rx,y:y,width:rw,height:h,rx:Math.min(h/2,6),
  fill:isGap?FAINT:FC[idx%3],...(isGap?{opacity:.6}:{})});
  tip(r,`${nm}：${v>0?'+':''}${fmt(v)}${unit||''}`);
+ if(deg)return;
  /* 标签奇偶错层（check_render 实测：相邻异向窄段的段中心挤在共享边界附近，
  同层标签重叠——「杠杆」×「口径差」11px 教训）；名称+数值合并单行 */
  /* 双向累叠后窄段可能贴左右边缘（如 −0.02pct 口径差），标签 x 钳入 [44, W−44] 防出界 */
@@ -1117,6 +1167,10 @@ function stackH(id,steps,gap,unit){
  fill:isGap?MUT:FC[idx%3],'text-anchor':'middle',...HALO},
  `${nm} ${v>0?'+':''}${fmt(v)}${unit||''}`);
  });
+ if(deg){
+ txt(s,{x:(L+W-R)/2,y:T+h+13,'font-size':9.5,'font-weight':600,fill:MUT,
+ 'text-anchor':'middle',...HALO},'三因子贡献均≈0——ΔROE 近似无变动，逐因子读数见上表');
+ }
  /* 末端竖线=ΔROE 摊薄（正负两侧合计净值）：标签放线上方避让末段标签 */
  const xe=x(net);
  el(s,'line',{x1:xe,y1:T-4,x2:xe,y2:T+h+2,stroke:INK,'stroke-width':1.8});
@@ -1131,8 +1185,8 @@ ncrLine('ncrline',NCR_TS.labels,NCR_TS.ncr,NCR_TS.fcf,NCR_TS.mean);
 spark('spark-gm',SPARK.gm,INK);spark('spark-nm',SPARK.nm,INK);spark('spark-da',SPARK.da,INK);
 spark('spark-dio',SPARK.dio,INK);spark('spark-dso',SPARK.dso,INK);spark('spark-c2s',SPARK.c2s,INK);
 spark('spark-ccc',SPARK.ccc,INK);spark('spark-dol',SPARK.dol,INK);spark('spark-dfl',SPARK.dfl,INK);
-deltaBars('ocfbridge',OCF_BRIDGE.slice(1));
-deltaBars('segbridge',SEG_BRIDGE);
+deltaBars('ocfbridge',OCF_BRIDGE.slice(1),[['期初·净利润',OCF_BRIDGE[0][1]],['期末·经营现金流',OCF_END]]);
+deltaBars('segbridge',SEG_BRIDGE,[['基期·收入',SEG_ENDS[0]],['本期·收入',SEG_ENDS[1]]]);
 stackH('dupontstack',DUPONT_STACK.steps,DUPONT_STACK.gap,'pct');
 combo('holders',HOLDERS.labels,HOLDERS.num,[],HOLDERS.px,'环比增减','股东户数(万户)','');
 </script>

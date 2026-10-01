@@ -47,10 +47,10 @@
 | 门禁 | 位置 | 校验内容 | 失败后果 |
 |---|---|---|---|
 | `scripts/calc.py` | Phase 7.5，写报告前 | 结构/出处、核心科目覆盖、恒等式与三座桥闭合、比率复算（14 项趋势逐期 + 8 项单期含 ROIC/内生增长率）、勾稽三态一致、杜邦三口径复算、破产双模型（含年化卡口）、压力情景、现金时序、分部自洽、断言结构、`--min-recon` 覆盖硬门禁 | exit 非 0 禁止写报告 |
-| `scripts/check_html.py` | Phase 8，交付前 | 占位符残留、裸数字启发式、数据来源标注、模板硬规则、必备要素、锚点完整性、章节形态（s1 杜邦双卡/s2 瘦身/s8 阈值）、**T8 数字回验**（`--json`：HTML↔data.json 笔误检测 + data.json↔原文行号回核） | exit 非 0 禁止交付 |
+| `scripts/check_html.py` | Phase 8，交付前 | 占位符残留、裸数字启发式、数据来源标注、模板硬规则、必备要素、锚点完整性、章节形态（s1 杜邦双卡/s2 瘦身/s8 阈值）、数据缺口声明集中落点（gap-declaration）、**T8 数字回验**（`--json`：HTML↔data.json 笔误检测 + data.json↔原文行号回核） | exit 非 0 禁止交付 |
 | `scripts/check_render.py` | Phase 8，交付前 | headless Chrome/Edge 真渲染测量：SVG 文本重叠 / HTML 溢出 / 横向裁剪；`--png` 按章分片截图供视觉验收 | 发现问题 exit 1 |
 | `scripts/gate.py` | 单入口 | 上三条一条命令串完（`--png`/`--verbose`/`--min-recon` 透传） | 统一退出码 |
-| `tests/run_regression.py` | 任何改动后 | 金标准四例（茅台干净样本零误报 / 康得新造假样本须命中 / 万科连亏地产样本扣非双版与双驱动真实触发 / 万华周期股样本双驱动第二样本与白描分位锚点）+ check_html/T8 冒烟 + md_clean 合成样本 + `--fill` 幂等（字符串叶精确比对）+ 构造用例，共 108 条断言 | 不绿不许提交 |
+| `tests/run_regression.py` | 任何改动后 | 金标准四例（茅台干净样本零误报 / 康得新造假样本须命中 / 万科连亏地产样本扣非双版与双驱动真实触发 / 万华周期股样本双驱动第二样本与白描分位锚点）+ check_html/T8 冒烟 + md_clean 合成样本 + `--fill` 幂等（字符串叶精确比对）+ 构造用例，共 112 条断言 | 不绿不许提交 |
 
 ## 三、目录结构
 
@@ -80,7 +80,7 @@ Financial Report Analysis/          本仓库（技能唯一真源）
 │   │   ├── calc_models.py          --fill 编排层 + fillsheet 速查表产出（不含公式）
 │   │   ├── check_html.py           Phase 8 报告层门禁入口（结构/硬规则族+主流程）
 │   │   ├── check_html_common.py    报告机检共享助手
-│   │   ├── check_html_text.py      呈现文本族 14 条检查（v0.0.19 拆出；PCTILE_LABEL 居此）
+│   │   ├── check_html_text.py      呈现文本族 15 条检查（v0.0.19 拆出；PCTILE_LABEL 居此）
 │   │   ├── check_html_t8.py        T8 数字回验整族（①级笔误检测 + hist_pool 豁免 + ②级行号回核）
 │   │   ├── check_render.py         渲染测量门禁（headless Chrome/Edge）
 │   │   ├── gate.py                 三道门禁单入口
@@ -93,7 +93,7 @@ Financial Report Analysis/          本仓库（技能唯一真源）
 │   │   ├── wanhua_2026h1.json      周期股样本（双驱动第二样本/ROIC·SGR 首验/白描分位锚点）
 │   │   ├── md_clean_synth.md       md_clean 合成金标准（自包含，覆盖四类历史病理）
 │   │   ├── t8_demo.html / t8_demo_bad.html  T8 数字回验验收样例（正确版/改错版）
-│   │   └── run_regression.py       唯一回归入口（108 断言，全部门禁冒烟 + 构造用例）
+│   │   └── run_regression.py       唯一回归入口（112 断言，全部门禁冒烟 + 构造用例）
 │   └── examples/                   标杆样本（万科A 2026H1，现行模板全槽位真实报告）+ lookback-demo/
 ├── reports/                        产出目录。顶层只放成品 HTML（每公司最新版；PDF/md 不入库，json 入库）
 │   └── archive/                    原始报告（PDF/md，不入库）+ json 底稿（入库）
@@ -161,6 +161,9 @@ cmd //c deploy.cmd
 | 0.0.16 | 2026-09-28 | trendDual 负值柱支持（连亏公司趋势图）+ 万科A 2026H1 报告 |
 | 0.0.17 | 2026-09-28 | 工程化还账轮：回归自包含 / CI / ROIC+内生增长率落地 / --min-recon 硬门禁 / 万科金标准固化 |
 | 0.0.18 | 2026-09-29 | 呈现层清洗轮：内部引用清零 / 分位白描化 / 版面横铺+右侧目录+分部桥图 / check_html 三新 FAIL 规则 / fillsheet 全槽位契约+派发窗分块落盘 / 万华金标准固化 |
+| 0.0.19 | 2026-09-30 | 美的反馈轮：check_html 拆分（呈现文本族独立模块）/ 三新机检（assertion-count FAIL 等）/ 分位白描 X/5 / 可见数字 ≤2 位小数三层堵口 |
+| 0.0.20 | 2026-09-30 | 卫星复核轮：OCF 桥失守模式三层堵口（派单必提项+--min-recon 接线+undisclosed 机检）/ s1 双卡改造（现金时序双折线+周期定位证据卡退役） |
+| 0.0.21 | 2026-10-01 | 卫星四项反馈定案轮：s1 判词 .wv 大字声明行 / 桥图首末端点柱（SEG_ENDS 槽+断线截断）/ FCF 指标含义写白 / gap-declaration 机检（❓ 进数据缺口声明行） |
 
 ## 八、免责声明
 

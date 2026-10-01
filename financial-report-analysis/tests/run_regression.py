@@ -398,6 +398,8 @@ def main():
     # v0.0.19：三态措辞 / 小数位 / 断言计数 三条新检查必须真的被执行到
     smoke_v19 = all(c in (smoke.stdout or "") for c in
                     ("recon-label", "decimal-places", "assertion-count"))
+    # v0.0.21：数据缺口声明集中落点检查必须被执行到
+    smoke_v21 = "gap-declaration" in (smoke.stdout or "")
     print(f"\n【报告机检冒烟】check_html.py 跑模板："
           f"{'✅' if smoke_run else '❌'} 可运行（exit {smoke.returncode}）· "
           f"{'✅' if smoke_s8 else '❌'} s8-shape 检查存活 · "
@@ -405,11 +407,12 @@ def main():
           f"{'✅' if smoke_v12 else '❌'} v0.0.12 四检查存活 · "
           f"{'✅' if smoke_v15 else '❌'} v0.0.15 s1-v15-shape 存活 · "
           f"{'✅' if smoke_v18 else '❌'} v0.0.18 两检查存活 · "
-          f"{'✅' if smoke_v19 else '❌'} v0.0.19 三检查存活")
+          f"{'✅' if smoke_v19 else '❌'} v0.0.19 三检查存活 · "
+          f"{'✅' if smoke_v21 else '❌'} v0.0.21 gap-declaration 存活")
     if not (smoke_run and smoke_s8 and smoke_fig and smoke_v12 and smoke_v15
-            and smoke_v18 and smoke_v19):
+            and smoke_v18 and smoke_v19 and smoke_v21):
         print("❌ 回归未通过：check_html.py 无法正常运行或 s8-shape / figtitle-style / "
-              "v0.0.12 / v0.0.15 / v0.0.18 / v0.0.19 检查缺失。")
+              "v0.0.12 / v0.0.15 / v0.0.18 / v0.0.19 / v0.0.21 检查缺失。")
         return 1
 
     # ── T8 数字回验三断言（v0.0.6）──
@@ -590,6 +593,46 @@ def main():
         passed += ok
     if not all(ok for ok, _ in v20_checks):
         print("❌ 回归未通过：v0.0.20 新规则构造用例失败，逐条核对上方 ❌。")
+        return 1
+
+    # ── v0.0.21 新规则构造用例（gap-declaration：❓ 断言须进数据缺口声明行）──
+    _S4_CARD = ('<div class="card">'
+                '<div class="figtitle">2 条重点断言：1 通过 / 0 不成立 / 1 无法验证</div>'
+                '<table class="data"><tr><th>断言</th><th>三态</th></tr>'
+                '<tr><td>断言甲</td><td><span class="badge g">✅ 通过</span></td></tr>'
+                '<tr><td>断言乙</td><td><span class="badge y">❓ 无法验证</span></td></tr>'
+                '</table><div class="srcline">断言表演示</div>')
+    bad_gap = _run_html_str(_SECT4 + _S4_CARD + '</div>')
+    ok_gap = _run_html_str(
+        _SECT4 + _S4_CARD +
+        '<div class="srcline">数据缺口声明：断言乙——缺分部收入口径（分部附注可补）</div></div>')
+    # SEG_ENDS 槽锚（v0.0.21）：fillsheet 必须产出合法 JS 数组字面量
+    # （json.dumps 包裹，None→null——mean:None 整页图表全灭教训的同型防线）；
+    # 本块独立跑 write_fillsheet，不复用前块文本（防跨块隐式依赖静默断裂）
+    with tempfile.NamedTemporaryFile("w", suffix=".md", delete=False, encoding="utf-8") as f:
+        _fs21 = f.name
+    try:
+        write_fillsheet(json.loads(MOUTAI.read_text(encoding="utf-8")), _fs21)
+        _seg_slot = open(_fs21, encoding="utf-8").read().split("const SEG_ENDS=[", 1)
+        seg_ends_ok = (len(_seg_slot) == 2
+                       and "None" not in _seg_slot[1].split("];", 1)[0])
+    finally:
+        os.unlink(_fs21)
+    v21_checks = [
+        (bad_gap.returncode == 1 and "未见「数据缺口声明」行" in (bad_gap.stdout or ""),
+         "v0.0.21 构造用例：❓ 断言无数据缺口声明行必 FAIL（gap-declaration）"),
+        ("gap-declaration" in (ok_gap.stdout or "") and "声明行在位" in (ok_gap.stdout or ""),
+         "v0.0.21 构造用例：❓ 断言带数据缺口声明行判 OK（不误报）"),
+        (seg_ends_ok,
+         "v0.0.21 构造用例：fillsheet 产出 const SEG_ENDS=[…] 合法 JS（无 Python None 泄漏）"),
+    ]
+    print("\n【v0.0.21 新规则构造用例】")
+    for ok, desc in v21_checks:
+        print(f"  {'✅' if ok else '❌'} {desc}")
+        total += 1
+        passed += ok
+    if not all(ok for ok, _ in v21_checks):
+        print("❌ 回归未通过：v0.0.21 新规则构造用例失败，逐条核对上方 ❌。")
         return 1
 
     # ── 分位白描映射双写契约锁（v0.0.18）：check_html_text.py 与 calc_models.py 各持一份

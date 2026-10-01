@@ -227,11 +227,13 @@ def write_fillsheet(data, path):
         L.append(f"- takeaway 判定语素材：净现比均值 {_m(cts.get('ncr_mean5'))}（OCF 为负 "
                  f"{cts.get('ncr_neg_years')} 年）· FCF 均值 {_m(cts.get('fcf_to_np_mean5'))}（FCF 为负 "
                  f"{cts.get('fcf_neg_years')} 年）")
+        L.append("- figtitle 纪律（v0.0.21 用户定案）：提及 FCF 线须写白指标含义——"
+                 "「FCF=经营现金流−资本开支，即维持生产后真正可自由支配的现金」，指标名不解释=低信息量")
     cv = (data.get("derived") or {}).get("cycle_evidence") or {}
     if cv.get("periods"):
-        L.append("\n## 周期定位声明句素材（v0.0.20：周期定位证据卡整槽退役，判定句挂趋势图卡"
-                 " srcline——「周期定位：X（一句注解）」，非周期股填「非周期行业」；"
-                 "三线读数留底稿不进报告）\n")
+        L.append("\n## 周期定位判词声明行素材（v0.0.21：判定句挂趋势图卡 .wv 大字声明行"
+                 "——srcline 小字降权过度用户定案；「周期定位：X（一句注解）」，非周期股填"
+                 "「非周期行业」；三线读数留底稿不进报告）\n")
         L.append(f"- meta.cycle_stage={((data.get('meta') or {}).get('cycle_stage'))}（分析师判定）"
                  f" · 三线读数（底稿备查）：收入增速={cv.get('rev_growth')} / "
                  f"毛利率={cv.get('gross_margin')} / Capex 增速={cv.get('capex_growth')}")
@@ -330,7 +332,8 @@ def write_fillsheet(data, path):
     elif rec:
         L.append(f"- 勾稽全部闭合（{len(rec)} 条），正文一行汇总即可")
 
-    L.append("\n## S3 SEG_BRIDGE 槽（JS 区粘贴；端点行：基期收入→合计→本期收入）\n")
+    L.append("\n## S3 SEG_BRIDGE / SEG_ENDS 槽（JS 区粘贴；SEG_ENDS=端点柱数据 v0.0.21，"
+             "端点行 .brends：基期收入→合计→本期收入）\n")
     rf = (data.get("derived") or {}).get("rev_factors") or {}
     if any(rf.get(k) is not None for k in ("volume", "price", "mix")):
         seg = [["量效应", rf.get("volume") or 0], ["价效应", rf.get("price") or 0],
@@ -340,7 +343,8 @@ def write_fillsheet(data, path):
         L.append(f"// 无量价（rev_factors 全 null）→ 分部轴降级，各分部贡献照 rev_factors.note 手填：")
         L.append(f"// {rf.get('note') or '（note 未填分部拆解，回 Phase 7 补）'}")
         L.append("const SEG_BRIDGE=[['分部A',0],['分部B',0],['其他',0]];")
-    L.append(f"// 端点行：基期收入 {R2(_v(inc, 'revenue', 'prev'))} 亿 →（合计 "
+    L.append(f"const SEG_ENDS={json.dumps([R2(_v(inc, 'revenue', 'prev')), R2(_v(inc, 'revenue'))])};")
+    L.append(f"// 端点行（.brends 与 SEG_ENDS 同源）：基期收入 {R2(_v(inc, 'revenue', 'prev'))} 亿 →（合计 "
              f"{None if _v(inc, 'revenue') is None or _v(inc, 'revenue', 'prev') is None else round(_v(inc, 'revenue') - _v(inc, 'revenue', 'prev'), 2)} 亿）"
              f"→ 本期收入 {R2(_v(inc, 'revenue'))} 亿")
 
@@ -444,7 +448,8 @@ def write_fillsheet(data, path):
     L.append("- 全部 figtitle（结论式：标题即判断，数字只许在表格里）与 takeaway（一句话读法）")
     L.append("- S1 指标表「评价」列注脚（≤15 字）；阶段判定行（只放结论，依据进 takeaway）")
     L.append("- S2 观察行「担心→本案」（signals[].concern/evidence 压缩，禁「属正常波动」式空话）")
-    L.append("- S3 lede（第一驱动）；S4 全章（断言验证素材=assertions 块，措辞/语气自己读）")
+    L.append("- S3 lede（第一驱动）；S4 全章（断言验证素材=assertions 块，措辞/语气自己读；"
+             "❓ 断言逐条进「数据缺口声明」行——v0.0.21 集中落点，机检 gap-declaration）")
     L.append("- S5 lede；S6 figtitle；S7 预期对照表（券商一致预期取 Tushare report_rc）")
     L.append("- S8 各卡 figtitle；页脚")
 
