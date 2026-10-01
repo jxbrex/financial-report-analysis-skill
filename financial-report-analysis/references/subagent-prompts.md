@@ -60,8 +60,10 @@ ar_factoring`）/存货明细（`inventory_mix/inventory_provision`）/在建工
 读【公司名】（【代码】）【报告期】MD&A 全文，按 text-mining.md 三层读法提取管理层断言：
 每条落 `statement`（原句压缩）/断言类型/可证伪性/验证路径（对应哪个报表科目可验）。
 重点关注：经营计划中的量化承诺、对异常波动的解释性措辞、与上期措辞的语气迁移。
-落盘骨架：`{"assertions": [{"id": "A1", "text": "…", "account": "…", "verdict": null, "evidence": "…", "src": "L…"}]}`
-（verdict 留 null，验证判定归主线 Phase 5；**text/evidence 必填不许留空**——evidence 写
+落盘骨架：`{"assertions": [{"id": "A1", "text": "…", "account": "…", "verdict": null, "evidence": "…", "source": "L…"}]}`
+（字段名是 **source** 不是 src——calc 卡口按 schema 认 source；verdict 留 null，验证判定归主线
+Phase 5，**主线回填 verdict（通过/不成立/无法验证）后才跑 calc**——verdict/source 空缺直接 FAIL
+（v0.0.23 海康轮首轮返工实证）；**text/evidence 必填不许留空**——evidence 写
 验证证据或「缺什么数、去哪拿」；v0.0.22 热核审计：12/13 报告存在底稿空 evidence，长城 A10
 呈现层因此自撰文本截断出院——assert-trunc 对底稿空字段出 WARN 点名）
 

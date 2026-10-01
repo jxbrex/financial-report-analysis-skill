@@ -239,7 +239,9 @@ def write_fillsheet(data, path):
     st = (data.get("derived") or {}).get("stress") or {}
     L.append("\n## S7 健康检验数值行\n")
     L.append("- 行序纪律（v0.0.22 用户定案）：固定主题序=模板行序照抄，不按判定重排——"
-             "判定分布由徽章色 + figtitle 汇总（「N 项：x 过 y 注意 z 异常」）传达")
+             "判定分布由徽章色 + figtitle 汇总传达；figtitle 汇总口径（v0.0.23 用户定案）="
+             "计数 + 按固定主题逐类点到（盈利与研发 / 偿债与压力 / 营运效率·费用 ROI / 披露项），"
+             "各类不缺席、营运效率类必须有名字（海康 2026H1 漏报实证）")
     L.append(f"- 短债覆盖 {ratios.get('short_debt_cover', {}).get('cur')} 倍 · "
              f"X6 {ratios.get('ocf_to_liab', {}).get('cur')}")
     L.append(f"- Altman {rm.get('altman_z') or 'null（市值缺）'} · Ohlson {rm.get('ohlson_o') or 'null'}")
@@ -450,7 +452,9 @@ def write_fillsheet(data, path):
     L.append("\n## 判断槽位清单（fillsheet 不给值，自己写；写法约束在模板注释）\n")
     L.append("- S0 亮点/风险 TOP3、lede、分歧锚、异常线索追查（锚点指向下方各章）")
     L.append("- 全部 figtitle（结论式：标题即判断，数字只许在表格里）与 takeaway（一句话读法）")
-    L.append("- S1 指标表「评价」列注脚（≤15 字）；阶段判定行（只放结论，依据进 takeaway）")
+    L.append("- S1 指标表「评价」列注脚（≤15 字，写本期 vs 上期变动的原因/定性，"
+             "禁「五年 H1 最高」族五年位置断言——v0.0.23 用户定案，五年表述归趋势图卡/杜邦分位卡）；"
+             "阶段判定行（只放结论，依据进 takeaway）")
     L.append("- S2 观察行「担心→本案」（signals[].concern/evidence 压缩，禁「属正常波动」式空话）")
     L.append("- S3 lede（第一驱动）；S4 全章（断言验证素材=assertions 块，措辞/语气自己读；"
              "❓ 断言逐条进「数据缺口声明」行——v0.0.21 集中落点，机检 gap-declaration）")

@@ -660,6 +660,23 @@ def main():
                   "v0.0.22 新规则构造用例失败，逐条核对上方 ❌。"):
         return 1
 
+    # ── v0.0.23 新规则构造用例（海康回填轮：四宫格混入非 svg 撑破 2×2）──
+    _GRID4_OK = ('<div class="grid2"><svg id="revchart"></svg><svg id="npchart"></svg>'
+                 '<svg id="effline"></svg><svg id="capexbars"></svg></div>')
+    bad_grid4 = _run_html_str(
+        _SECT + '<div class="grid2"><svg id="revchart"></svg>'
+        '<div class="takeaway">读法行混进来了</div><svg id="capexbars"></svg></div></div>')
+    ok_grid4 = _run_html_str(_SECT + _GRID4_OK + '</div>')
+    v23_checks = [
+        (bad_grid4.returncode == 1 and "[FAIL] s1-grid4" in (bad_grid4.stdout or ""),
+         "v0.0.23 构造用例：四宫格 grid2 混入 takeaway/表格必 FAIL（s1-grid4，海康回填实证）"),
+        ("㗊型在位" in (ok_grid4.stdout or ""),
+         "v0.0.23 构造用例：四宫格纯 svg 四件判 OK（不误报；降级删 svg 同构合法）"),
+    ]
+    if not _block("v0.0.23 新规则构造用例", v23_checks,
+                  "v0.0.23 新规则构造用例失败，逐条核对上方 ❌。"):
+        return 1
+
     # ── 分位白描映射双写契约锁（v0.0.18）：check_html_text.py 与 calc_models.py 各持一份
     # PCTILE_LABEL（跨家族 import 会造成耦合，故双写；check_html.py 再导出本锁的 import 锚点），
     # 本断言防单边漂移
@@ -687,6 +704,49 @@ def main():
                       f"check_render.py 跑 t8_demo.html：exit {render_smoke.returncode}")],
                     "渲染测量冒烟未绿，看上方 check_render 输出。"):
         return 1
+
+    # ── effline 标签堆栈避让构造用例（v0.0.23）──
+    # 海康 2026H1 真实缠绕数据（DIO/DSO/CCC 挤 224~389 天、同期三标签同 x）：
+    # v0.0.22 两档固定槽实证 5 处重叠、viewBox 拉高无效。从模板实时抽取 <script> 并换入
+    # 缠绕 EFF_TS 构造最小页面（只含 effline svg，其余图表调用因元素缺席自动 no-op），
+    # check_render 期望 0 问题；无浏览器时随渲染门禁一并 SKIP 不计断言
+    if "渲染门禁跳过" in render_out:
+        print("\n【effline 标签避让构造用例】SKIP（本机无 Chrome/Edge，随渲染门禁一并跳过）")
+    else:
+        import re as _re
+        _tpl = (SKILL / "assets" / "report-template.html").read_text(encoding="utf-8")
+        _js = _re.search(r"<script>(.*?)</script>", _tpl, _re.S).group(1)
+        _eff = ("const EFF_TS={labels:['2022H1','2023H1','2024H1','2025H1','2026H1'],"
+                "dio:[332.98,342.02,308.27,304.46,389.21],"
+                "dso:[270.82,298.9,321.51,317.49,224.49],"
+                "ccc:[321.51,356.38,337.93,321.31,285.93]};")
+        _js = _re.sub(r"const EFF_TS=\{.*?\};", _eff, _js, count=1)
+        assert "332.98" in _js, "模板 EFF_TS 槽替换失败——槽形态变了？"
+        _page = ("<!doctype html><html lang=\"zh-Hans\"><head><meta charset=\"utf-8\"><style>"
+                 ":root{--bg:#fff;--ink:rgb(58,42,28);--muted:rgba(58,42,28,.6);"
+                 "--faint:rgba(58,42,28,.32);--grid:rgba(58,42,28,.16);--card:#fff;"
+                 "--data:rgb(171,94,38);--data2:rgb(203,158,108);--faintdata:rgb(233,213,187);"
+                 "--der:rgb(122,84,52);--good:#0F7B4F;--warn:#B8860B;--bad:#C0392B}"
+                 "body{padding:40px 20px}.sheet{width:100%;max-width:1040px;margin:0 auto}"
+                 "svg{width:100%;height:auto;display:block}</style></head><body>"
+                 "<div class=\"sheet\"><svg id=\"effline\" viewBox=\"0 0 460 250\" "
+                 "preserveAspectRatio=\"xMidYMid meet\"></svg></div>"
+                 f"<script>{_js}</script></body></html>")
+        _tmp = HERE / "_effline_avoid_demo.html"
+        _tmp.write_text(_page, encoding="utf-8")
+        try:
+            _r = subprocess.run([sys.executable, str(SKILL / "scripts" / "check_render.py"),
+                                 str(_tmp)], capture_output=True, text=True,
+                                encoding="utf-8", errors="replace")
+            _eff_ok = _r.returncode == 0 and "渲染测量 0 问题" in (_r.stdout or "")
+            if not _eff_ok:
+                print(_r.stdout)
+        finally:
+            _tmp.unlink(missing_ok=True)
+        if not _block("effline 标签避让构造用例（v0.0.23，海康缠绕数据）",
+                      [(_eff_ok, "check_render 0 问题——同期标签无互撞、零轴不误画")],
+                      "effline 避让失效，看上方 check_render 输出。"):
+            return 1
 
     # ── --fill 幂等金标准（v0.0.13；v0.0.17 起字符串叶含 note/src 纳入精确比对）──
     # 数值容差 5e-4；字符串叶（driver/zone/note/src 等）必须逐字不变——万科轮实证：

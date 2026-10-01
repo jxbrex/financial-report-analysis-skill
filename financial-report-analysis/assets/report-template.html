@@ -277,7 +277,10 @@ html{scroll-behavior:smooth}
   单期指标无序列致半列空格、趋势已由下方趋势图卡组覆盖；趋势呈现归 trend/effline/capexbars 图区）
  ◆ figtitle 真实示范（万科 2026H1）：「四维比率全数承压：毛利率探底、亏损率扩大、杠杆
  被动抬升——唯一改善是收现比与 OCF 止血」；takeaway 示范：「十项中九项承压或失真，唯一
- 真改善是收现比——它改善的原因不是销售回暖，而是结算收入降得比收现更快」（敢说「改善是假的」） -->
+ 真改善是收现比——它改善的原因不是销售回暖，而是结算收入降得比收现更快」（敢说「改善是假的」）
+ ◆ 评价列纪律（v0.0.23 用户定案）：写「本期 vs 上期变动的原因/定性」（如毛利率提升的归因），
+  禁五年位置断言（「五年 H1 最高」族——本表只呈现本期/上期，五年断言在此无证据支撑；
+  五年位置表述归趋势图卡 figtitle 与杜邦分位卡等五年证据实际呈现处） -->
  <table class="data">
  <tr><th>指标</th><th>本期</th><th>上期</th><th class="txt">较上期</th><th class="txt">评价</th></tr>
  <!-- ◆ 分组行：类别标题行 .group，顺序固定=盈利→成长→营运→偿债与杠杆→收入质量 -->
@@ -393,7 +396,9 @@ html{scroll-behavior:smooth}
   序列动态生成）、左下=营运效率三线（effline：DIO/DSO/CCC 同轴，CCC 可负画零轴实线）、
   右下=Capex·研发双柱（capexbars，研发 hist 缺数降级单柱并注明）。
   数据：revchart/npchart/capexbars 填 TREND 槽、effline 填 EFF_TS 槽（均五期 hist 照抄，
-  null 跳点）；某图数据全缺时删对应 svg 并在 srcline 注明（effline hist<3 期同） -->
+  null 跳点）；某图数据全缺时删对应 svg 并在 srcline 注明（effline hist<3 期同）。
+  grid2 直接子元素只许这 4 个 svg（降级只许删 svg，禁止混入 table/takeaway 等占位元素——
+  多一个 div 即破 2×2 㗊型，海康回填轮实证）；takeaway/srcline 一律放 grid2 外 -->
  <div class="grid2">
  <svg id="revchart" viewBox="0 0 460 250" preserveAspectRatio="xMidYMid meet"></svg>
  <svg id="npchart" viewBox="0 0 460 250" preserveAspectRatio="xMidYMid meet"></svg>
@@ -657,12 +662,13 @@ html{scroll-behavior:smooth}
  <div class="srcline">数据来源：东方财富（妙想）/ Tushare 批量取数（{{取数日期}}），同一报告期（{{所属申万行业}}；币种/准则/口径差异须注明）· 同业比率口径尽量与本公司一致（净利率归母、ROE 摊薄），不可对齐处在本行声明</div>
  </div>
  <div class="card">
- <div class="figtitle">{{结论式：健康检验汇总，如「8 项：6 过 2 注意——税率与汇率是本期利润的隐形放大器」}}</div>
+ <div class="figtitle">{{结论式：健康检验汇总——计数 + 按固定主题逐类点到（盈利与研发 / 偿债与压力 / 营运效率·费用 ROI / 披露项），各类不缺席、营运效率类必须有名字（海康 2026H1 只写偿债+披露、漏掉费用 ROI 两项的实证）；如「10 项：8 过 2 披露——盈利无剪刀差、双模型安全、每 1 元费用换 2.49 元毛利，隐形变量在汇率税率」}}</div>
  <!-- ◆ ：检验类卡片必须有判定列（扫颜色即知结果，治「全文字缺重点」）；
  ✅ 通过 / ⚠️ 注意 / ❌ 异常；纯披露项（税率汇率等无检验性质的）填「—」，不许硬凑 ✅
  ◆ 行序规则（v0.0.22 用户定案）：固定主题序=下方模板行序，填充照抄不重排——与四维表/断言表
- 同款（位置固定、跨报告可比）；判定分布由徽章色扫读 + figtitle 汇总（「N 项：x 过 y 注意 z 异常」）
- 传达，不靠排序（v0.0.21 前曾按判定分组置顶，分组重排破坏位置记忆、与同型表不一致，废） -->
+ 同款（位置固定、跨报告可比）；判定分布由徽章色扫读 + figtitle 汇总传达，不靠排序
+ （v0.0.21 前曾按判定分组置顶，分组重排破坏位置记忆、与同型表不一致，废）；
+ figtitle 汇总口径 v0.0.23 起=计数 + 固定主题逐类点到（见上方 figtitle 槽注释） -->
  <table class="data">
  <tr><th>检验项</th><th>读数</th><th class="txt">判定</th><th class="txt">结论（≤30字，长解释挪 srcline）</th></tr>
  <tr><td>收入增速 vs 净利增速</td><td>{{x%}} vs {{y%}}</td><td class="txt"><span class="badge {{g|y|r}}">{{✅|⚠️|❌}}</span></td><td class="txt">{{是否存在剪刀差 + 原因}}</td></tr>
@@ -869,18 +875,22 @@ function capexBars(id,labels,vals,vals2){
  [['Capex',INK],has2?['研发费用',C2]:null].filter(Boolean));
 }
 /* effline：营运效率三线（v0.0.22）——DIO INK / DSO C2 / CCC C3 同轴（单位均为天）；
- 值域强制含 0（CCC 可为负——负值=占用上游资金），零轴实线；null 跳点不硬连（同 ncrLine 约定）；
- DIO/DSO 标签点上、CCC 标签点下防互撞；某序列非空点不足 2 个整线不画、图例不列 */
-/* debt: 标签避让只有点上/点下两档（DIO/DSO 同上、CCC 同下）——两线数值贴近时标签可互撞，
- check_render 机检兜底；真实报告撞面出现时再升级为 labelY 式互相避让 */
+ null 跳点不硬连（同 ncrLine 约定）；某序列非空点不足 2 个整线不画、图例不列；
+ 值域含 0 与零轴实线仅当有负值（CCC 可负——负值=占用上游资金）；全正时不强拉零轴——
+ 否则三条百天级线被压进上半区互撞（海康 2026H1 实证：0 基线使量程 505 天、三线挤 62px 带）；
+ 标签同期堆栈避让（v0.0.23，海康 2026H1 实证：两档固定槽在三线缠绕时同 x 互撞 5 处、
+ viewBox 拉高无效——重叠位置随量程漂移）：同期各线标签按点 y 排序，统一从点上 -8 起、
+ 相邻最小间距 17px 顺序下推（文本盒高≈16px：font 9 + halo 描边 2.5，11px 间距实测仍撞）、
+ 整组钳入绘图区；不画引线，同 x + 上下顺序即线序对应 */
 function effLine(id,labels,dio,dso,ccc){
  const s=document.getElementById(id);if(!s||!labels.length)return;
- const series=[['存货周转天数',dio||[],INK,-7],['应收周转天数',dso||[],C2,-7],['CCC',ccc||[],C3,13]]
+ const series=[['存货周转天数',dio||[],INK],['应收周转天数',dso||[],C2],['CCC',ccc||[],C3]]
  .filter(([,v])=>v.filter(x=>x!=null).length>=2);
  if(!series.length)return;
  const all=series.flatMap(([,v])=>v).filter(v=>v!=null);
  const W=+s.viewBox.baseVal.width,H=+s.viewBox.baseVal.height,L=44,R=14,B=30,T=30;
- let lo=Math.min(...all,0),hi=Math.max(...all,0);
+ let lo=Math.min(...all),hi=Math.max(...all);
+ if(lo<0||hi<0){lo=Math.min(lo,0);hi=Math.max(hi,0);}
  const span=(hi-lo)||1;lo-=span*.15;hi+=span*.15;
  const bw=(W-L-R)/labels.length;
  const y=v=>T+(H-B-T)*(1-(v-lo)/(hi-lo));
@@ -892,9 +902,10 @@ function effLine(id,labels,dio,dso,ccc){
   el(s,'line',{x1:L,y1:gy,x2:W-R,y2:gy,stroke:FAINT,'stroke-width':.7,'stroke-dasharray':'3 3'});
   txt(s,{x:L-8,y:gy+3,'font-size':8.5,'font-weight':600,fill:MUT,'text-anchor':'end'},fmt(v));
  }
- /* 零轴实线：CCC 负值参照（占用上游资金形态的分界） */
- el(s,'line',{x1:L,y1:y(0),x2:W-R,y2:y(0),stroke:MUT,'stroke-width':1});
- series.forEach(([name,vals,color,dy])=>{
+ /* 零轴实线：CCC 负值参照（占用上游资金形态的分界）——仅当 0 在值域内（有负值）才画 */
+ if(lo<0&&hi>0)el(s,'line',{x1:L,y1:y(0),x2:W-R,y2:y(0),stroke:MUT,'stroke-width':1});
+ const buckets=labels.map(()=>[]);
+ series.forEach(([name,vals,color])=>{
   let run=[];
   const flush=()=>{
    if(run.length>1){el(s,'path',{d:'M'+run.map(i=>[cx(i),y(vals[i])]).map(p=>p.join(' ')).join(' L '),fill:'none',stroke:color,'stroke-width':1.8});}
@@ -905,9 +916,19 @@ function effLine(id,labels,dio,dso,ccc){
    run.push(i);
    const c=el(s,'circle',{cx:cx(i),cy:y(v),r:3,fill:color,stroke:'#fff','stroke-width':1.5});
    tip(c,`${labels[i]} ${name}：${fmt(v)} 天`);
-   txt(s,{x:cx(i),y:y(v)+dy,'font-size':9,'font-weight':700,fill:MUT,'text-anchor':'middle',...HALO},fmt(v));
+   buckets[i].push({py:y(v),v:v});
   });
   flush();
+ });
+ /* 同期标签堆栈避让：按点 y 排序后从点上 -8 起顺序下推（间距 17px=文本盒高 16+1 余量），整组钳入绘图区 */
+ buckets.forEach((grp,i)=>{
+  if(!grp.length)return;
+  grp.sort((a,b)=>a.py-b.py);
+  let yy=-Infinity;
+  grp.forEach(g=>{g.ly=Math.max(g.py-8,yy+17);yy=g.ly;});
+  const over=grp[grp.length-1].ly-(H-B-6);
+  if(over>0)grp.forEach(g=>g.ly-=over);
+  grp.forEach(g=>txt(s,{x:cx(i),y:g.ly,'font-size':9,'font-weight':700,fill:MUT,'text-anchor':'middle',...HALO},fmt(g.v)));
  });
  labels.forEach((lb,i)=>{txt(s,{x:cx(i),y:H-B+18,'font-size':10,'font-weight':600,fill:MUT,'text-anchor':'middle'},lb);});
  el(s,'line',{x1:L,y1:H-B,x2:W-R,y2:H-B,stroke:GRID,'stroke-width':1});

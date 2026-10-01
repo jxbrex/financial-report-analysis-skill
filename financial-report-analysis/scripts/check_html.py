@@ -52,6 +52,10 @@ calc.py 只校验数据层（data.json）；报告 HTML 层此前没有任何机
                   全部 SVG 图表空白。判据只认 <script> 内的行首顶层声明；建图
                   函数体内的局部 const（各函数都有 const W=…）是合法块级作用域
                   重名，不计。
+  23. s1-grid4 [FAIL] 㗊四宫格形态（v0.0.23，海康回填轮实证）：含 revchart/npchart
+                  的 .grid2 直接子元素只许 svg——降级只许删 svg，混入 table/div
+                  （如 takeaway 读法行）即撑破 2×2 㗊型。v0.0.22 前版式（无 revchart）
+                  不适用、不查。
 
 呈现文本族（check_html_text.py，本入口调用）：
   2. bare-number  [WARN] ★ 关键数字没有挂证据等级徽章（.badge.disc/der/est）。
@@ -337,6 +341,29 @@ def check_s2_shape(text, rep):
         rep.add(OK, "s2-shape", "排雷章符合瘦身形态：无反向可见行、未触发未逐条展开、观察 ≤6 行")
 
 
+# ─────────────────────────── 10·二. s1 㗊四宫格形态（v0.0.23） ───────────────────────────
+
+def check_s1_grid4(text, rep):
+    """四宫格 grid2 直接子元素只许 svg（FAIL）——降级删卡只许减少 svg，混入 table/div
+    （如 takeaway 读法行）即撑破 2×2 㗊型（海康回填轮实证：effline 降级表格留在 grid2
+    内，capexbars 被挤到左列下一行）。v0.0.22 前版式无 revchart/npchart，不适用不查。"""
+    m = re.search(r'<div class="grid2">\s*<svg id="(?:revchart|npchart)"', text)
+    if not m:
+        rep.add(OK, "s1-grid4", "未见四宫格 grid2（v0.0.22 前版式或整卡降级），不适用")
+        return
+    open_end = text.index(">", m.start()) + 1
+    end = text.find("</div>", open_end)          # 子元素只有 svg，无嵌套 div
+    inner = text[open_end:end]
+    rest = re.sub(r"<svg\b.*?</svg>", "", inner, flags=re.S)
+    rest = re.sub(r"<!--.*?-->", "", rest, flags=re.S).strip()
+    if rest:
+        rep.add(FAIL, "s1-grid4",
+                f"四宫格 grid2 混入非 svg 直接子元素（{rest[:30]}…）——㗊 2×2 被撑破；"
+                f"降级只许删 svg，takeaway/表格放 grid2 外")
+    else:
+        rep.add(OK, "s1-grid4", "四宫格 grid2 直接子元素全部为 svg（2×2 㗊型在位）")
+
+
 # ─────────────────────────── 11. s8 阈值化与回看归因 ───────────────────────────
 
 # 数字阈值形态：>46 / <43 / ≥2 / -20% / 1.5 倍
@@ -554,6 +581,7 @@ def main():
     check_required(body, rep)
     check_structure(body, rep, secs)
     check_s2_shape(body, rep)
+    check_s1_grid4(body, rep)
     check_s8_shape(body, rep)
     check_review_shape(body, rep)
     check_figtitle_style(body, rep, secs)
