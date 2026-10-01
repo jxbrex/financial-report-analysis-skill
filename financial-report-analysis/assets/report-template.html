@@ -104,8 +104,7 @@ table.data tr.group td{font-size:11px;font-weight:800;letter-spacing:.14em;color
 /* 杜邦因子下钻子行：浅灰底小字、只放证据，判断只在 figtitle/takeaway；每因子 ≤1 行（防「正文承载完整性」回潮），锚点链接把杜邦变成全报告导航枢纽 */
 .drillrow td{background:rgba(58,42,28,.03);font-size:12px;color:var(--muted);
  padding:4px 10px 8px;line-height:1.6}
-/* 迷你折线：每格一个 64×16 内嵌 SVG，JS spark() 画 polyline + 末点圆；线色由填充者按 frameworks.md 方向语义表对「本期 vs 上期」的好坏选 GOOD/BAD/INK */
-.spark{width:64px;height:16px;vertical-align:middle}
+/* 营运效率三线图/趋势图 JS 绘制，表格不再内嵌迷你折线（v0.0.22 起 spark 列退役） */
 /* OCF 调节桥端点行：净利润 →（调节净额）→ 经营现金流净额（水平值不画柱） */
 .brends{font-size:12.5px;font-weight:800;margin:2px 0 8px}
 
@@ -274,34 +273,33 @@ html{scroll-behavior:smooth}
  </div>
  <div class="card">
  <div class="figtitle">{{结论式：四维比率总判一句话，如「营运三维全面改善，负债率升系预收非恶化」}}</div>
- <!-- ◆ 四维表全宽：「近5期趋势」列每格一个 64×16 SVG（JS spark() 画 polyline +末点圆，
- 数据填 JS 区 SPARK 槽=ratios 五期 hist 同类型滚动），线色由填充者按 frameworks.md
- 方向语义表对「本期 vs 上期」的好坏选 GOOD/BAD/INK；禁填数字链
+ <!-- ◆ 四维表全宽五列（v0.0.22 起「近5期趋势」spark 迷你折线列退役——64×16 太小不可读、
+  单期指标无序列致半列空格、趋势已由下方趋势图卡组覆盖；趋势呈现归 trend/effline/capexbars 图区）
  ◆ figtitle 真实示范（万科 2026H1）：「四维比率全数承压：毛利率探底、亏损率扩大、杠杆
  被动抬升——唯一改善是收现比与 OCF 止血」；takeaway 示范：「十项中九项承压或失真，唯一
  真改善是收现比——它改善的原因不是销售回暖，而是结算收入降得比收现更快」（敢说「改善是假的」） -->
  <table class="data">
- <tr><th>指标</th><th>本期</th><th>上期</th><th class="txt">较上期</th><th class="txt">近5期趋势</th><th class="txt">评价</th></tr>
+ <tr><th>指标</th><th>本期</th><th>上期</th><th class="txt">较上期</th><th class="txt">评价</th></tr>
  <!-- ◆ 分组行：类别标题行 .group，顺序固定=盈利→成长→营运→偿债与杠杆→收入质量 -->
- <tr class="group"><td colspan="6">盈利能力</td></tr>
- <tr><td>毛利率 <span class="badge der">推算</span></td><td>{{}}</td><td>{{}}</td><td class="txt">{{▲|▼|→ +Δ值；好坏语义色：利好多用 up、利空用 dn、语境中性不染色}}</td><td class="txt"><svg class="spark" id="spark-gm" viewBox="0 0 64 16" preserveAspectRatio="none"></svg></td><td class="txt">{{≤15字注脚}}</td></tr>
- <tr><td>净利率</td><td>{{}}</td><td>{{}}</td><td class="txt">{{▲|▼ + Δ值}}</td><td class="txt"><svg class="spark" id="spark-nm" viewBox="0 0 64 16" preserveAspectRatio="none"></svg></td><td class="txt">{{≤15字注脚}}</td></tr>
- <!-- ◆ N1/N2 单期指标行：较上期/趋势列填「—」（ROIC 上期需 T-2 不可得；
+ <tr class="group"><td colspan="5">盈利能力</td></tr>
+ <tr><td>毛利率 <span class="badge der">推算</span></td><td>{{}}</td><td>{{}}</td><td class="txt">{{▲|▼|→ +Δ值；好坏语义色：利好多用 up、利空用 dn、语境中性不染色}}</td><td class="txt">{{≤15字注脚}}</td></tr>
+ <tr><td>净利率</td><td>{{}}</td><td>{{}}</td><td class="txt">{{▲|▼ + Δ值}}</td><td class="txt">{{≤15字注脚}}</td></tr>
+ <!-- ◆ N1/N2 单期指标行：较上期列填「—」（ROIC 上期需 T-2 不可得；
  SGR 亏损期不算）；口径与判读见 frameworks.md 第一节 -->
- <tr><td>ROIC 投入资本回报率 <span class="badge der">推算</span></td><td>{{}}</td><td>—</td><td class="txt">—（单期指标）</td><td class="txt">—（不序列化）</td><td class="txt">{{≤15字注脚}}</td></tr>
- <tr class="group"><td colspan="6">成长质量</td></tr>
- <tr><td>内生增长率（留存率×ROE） <span class="badge der">推算</span></td><td>{{亏损期或分红未披露填「—（不适用）」}}</td><td>—</td><td class="txt">—（单期指标）</td><td class="txt">—（不序列化）</td><td class="txt">{{≤15字注脚}}</td></tr>
- <tr class="group"><td colspan="6">营运效率</td></tr>
- <tr><td>存货周转天数</td><td>{{}}</td><td>{{}}</td><td class="txt">{{▲|▼ + Δ值}}</td><td class="txt"><svg class="spark" id="spark-dio" viewBox="0 0 64 16" preserveAspectRatio="none"></svg></td><td class="txt">{{≤15字注脚}}</td></tr>
- <tr><td>应收周转天数</td><td>{{}}</td><td>{{}}</td><td class="txt">{{▲|▼ + Δ值}}</td><td class="txt"><svg class="spark" id="spark-dso" viewBox="0 0 64 16" preserveAspectRatio="none"></svg></td><td class="txt">{{≤15字注脚}}</td></tr>
- <tr><td>收现比</td><td>{{}}</td><td>{{}}</td><td class="txt">{{▲|▼ + Δ值}}</td><td class="txt"><svg class="spark" id="spark-c2s" viewBox="0 0 64 16" preserveAspectRatio="none"></svg></td><td class="txt">{{≤15字注脚}}</td></tr>
- <tr><td>现金转换周期 CCC（应收周转天数 DSO＋存货周转天数 DIO−应付周转天数 DPO，天）</td><td>{{}}</td><td>{{}}</td><td class="txt">{{▲|▼ + Δ值}}</td><td class="txt"><svg class="spark" id="spark-ccc" viewBox="0 0 64 16" preserveAspectRatio="none"></svg></td><td class="txt">{{≤15字注脚}}</td></tr>
- <tr class="group"><td colspan="6">偿债与杠杆</td></tr>
- <tr><td>资产负债率</td><td>{{}}</td><td>{{}}</td><td class="txt">{{▲|▼ + Δ值}}</td><td class="txt"><svg class="spark" id="spark-da" viewBox="0 0 64 16" preserveAspectRatio="none"></svg></td><td class="txt">{{≤15字注脚}}</td></tr>
- <tr><td>经营杠杆 DOL <span class="badge der">推算</span></td><td>{{}}</td><td>{{}}</td><td class="txt">{{▲|▼ + Δ值；方向须落到周期定位后定性，语境中性不染色}}</td><td class="txt"><svg class="spark" id="spark-dol" viewBox="0 0 64 16" preserveAspectRatio="none"></svg></td><td class="txt">{{≤15字注脚}}</td></tr>
- <tr><td>财务杠杆 DFL <span class="badge der">推算</span></td><td>{{}}</td><td>{{}}</td><td class="txt">{{▲|▼ + Δ值；接近 1 = 利息负担轻，语境中性不染色}}</td><td class="txt"><svg class="spark" id="spark-dfl" viewBox="0 0 64 16" preserveAspectRatio="none"></svg></td><td class="txt">{{≤15字注脚}}</td></tr>
- <tr class="group"><td colspan="6">收入质量</td></tr>
- <tr><td>非主营业务收入占比 <span class="badge der">推算</span></td><td>{{}}</td><td>{{}}</td><td class="txt">{{▲|▼ + Δ值；升 = 需拆解构成（投资/公允/营业外）再定性，语境中性不染色}}</td><td class="txt">—（单期专用，不序列化）</td><td class="txt">{{≤15字注脚}}</td></tr>
+ <tr><td>ROIC 投入资本回报率 <span class="badge der">推算</span></td><td>{{}}</td><td>—</td><td class="txt">—（单期指标）</td><td class="txt">{{≤15字注脚}}</td></tr>
+ <tr class="group"><td colspan="5">成长质量</td></tr>
+ <tr><td>内生增长率（留存率×ROE） <span class="badge der">推算</span></td><td>{{亏损期或分红未披露填「—（不适用）」}}</td><td>—</td><td class="txt">—（单期指标）</td><td class="txt">{{≤15字注脚}}</td></tr>
+ <tr class="group"><td colspan="5">营运效率</td></tr>
+ <tr><td>存货周转天数</td><td>{{}}</td><td>{{}}</td><td class="txt">{{▲|▼ + Δ值}}</td><td class="txt">{{≤15字注脚}}</td></tr>
+ <tr><td>应收周转天数</td><td>{{}}</td><td>{{}}</td><td class="txt">{{▲|▼ + Δ值}}</td><td class="txt">{{≤15字注脚}}</td></tr>
+ <tr><td>收现比</td><td>{{}}</td><td>{{}}</td><td class="txt">{{▲|▼ + Δ值}}</td><td class="txt">{{≤15字注脚}}</td></tr>
+ <tr><td>现金转换周期 CCC（应收周转天数 DSO＋存货周转天数 DIO−应付周转天数 DPO，天）</td><td>{{}}</td><td>{{}}</td><td class="txt">{{▲|▼ + Δ值}}</td><td class="txt">{{≤15字注脚}}</td></tr>
+ <tr class="group"><td colspan="5">偿债与杠杆</td></tr>
+ <tr><td>资产负债率</td><td>{{}}</td><td>{{}}</td><td class="txt">{{▲|▼ + Δ值}}</td><td class="txt">{{≤15字注脚}}</td></tr>
+ <tr><td>经营杠杆 DOL <span class="badge der">推算</span></td><td>{{}}</td><td>{{}}</td><td class="txt">{{▲|▼ + Δ值；方向须落到周期定位后定性，语境中性不染色}}</td><td class="txt">{{≤15字注脚}}</td></tr>
+ <tr><td>财务杠杆 DFL <span class="badge der">推算</span></td><td>{{}}</td><td>{{}}</td><td class="txt">{{▲|▼ + Δ值；接近 1 = 利息负担轻，语境中性不染色}}</td><td class="txt">{{≤15字注脚}}</td></tr>
+ <tr class="group"><td colspan="5">收入质量</td></tr>
+ <tr><td>非主营业务收入占比 <span class="badge der">推算</span></td><td>{{}}</td><td>{{}}</td><td class="txt">{{▲|▼ + Δ值；升 = 需拆解构成（投资/公允/营业外）再定性，语境中性不染色}}</td><td class="txt">{{≤15字注脚}}</td></tr>
  </table>
  <div class="takeaway">读法：{{一句话总判——哪几项在改善、哪几项承压、最大的一项怎么定性}}</div>
  <div class="srcline">数据来源：公司{{报告期}}{{报告类型}}、Tushare · CCC/平均余额口径期初取上年末 12-31</div>
@@ -390,12 +388,19 @@ html{scroll-behavior:smooth}
   如「下行期（收获段）」）」/ 非周期股「非周期行业」；判定必须与底稿三线证据一致，
   DOL/压力情景/因子分位的解读均挂本行（原右卡「不套档怎么解读」的例外项也写在这里） -->
  <div class="wv">周期定位：{{上行/顶部/下行/底部（一句注解） / 非周期行业}} <span class="badge der">推算</span></div>
- <svg id="trend" viewBox="0 0 960 300" preserveAspectRatio="xMidYMid meet"></svg>
- <!-- ◆ Capex 迷你柱条（v0.0.20，原「周期定位证据卡」整槽退役并入本卡）：
-  底条=购建固定资产等支付的现金逐期小柱（独立缩放——量级悬殊不画进 trendDual 主图同轴，
-  缩放契约见 trendDual 注释；数据填 TREND.capex=cashflow.capex hist 照抄，null 跳点） -->
- <svg id="capexbars" viewBox="0 0 960 90" preserveAspectRatio="xMidYMid meet"></svg>
- <div class="srcline">判定依据：收入/毛利率见上图、Capex 节奏见下条 · 数据来源：{{…}} · 左面板=收入柱+毛利率线 · 右面板=归母净利+扣非净利柱、ROE 线（扣非/ROE 缺数据时右板降级为归母净利单柱、ROE 线跳过）· 底条=购建固定资产等支付的现金（亿元，各期）</div>
+ <!-- ◆ 㗊字四宫格（v0.0.22 用户定案）：四图等大 2×2——左上=收入柱+毛利率线（revchart）、
+  右上=归母/扣非/经营现金流柱组+ROE 线（npchart，柱数 1~3 自适应、面板标题随实际绘制
+  序列动态生成）、左下=营运效率三线（effline：DIO/DSO/CCC 同轴，CCC 可负画零轴实线）、
+  右下=Capex·研发双柱（capexbars，研发 hist 缺数降级单柱并注明）。
+  数据：revchart/npchart/capexbars 填 TREND 槽、effline 填 EFF_TS 槽（均五期 hist 照抄，
+  null 跳点）；某图数据全缺时删对应 svg 并在 srcline 注明（effline hist<3 期同） -->
+ <div class="grid2">
+ <svg id="revchart" viewBox="0 0 460 250" preserveAspectRatio="xMidYMid meet"></svg>
+ <svg id="npchart" viewBox="0 0 460 250" preserveAspectRatio="xMidYMid meet"></svg>
+ <svg id="effline" viewBox="0 0 460 250" preserveAspectRatio="xMidYMid meet"></svg>
+ <svg id="capexbars" viewBox="0 0 460 250" preserveAspectRatio="xMidYMid meet"></svg>
+ </div>
+ <div class="srcline">判定依据：收入/毛利率（左上）、利润与现金流对照（右上）、营运效率（左下）、Capex 与研发投入节奏（右下） · 数据来源：{{…}} · 柱线缺数据时对应序列跳过（npchart 标题随实际绘制生成）· 金额单位均为亿元，CCC/周转天数为天</div>
  </div>
  </div>
 
@@ -655,8 +660,9 @@ html{scroll-behavior:smooth}
  <div class="figtitle">{{结论式：健康检验汇总，如「8 项：6 过 2 注意——税率与汇率是本期利润的隐形放大器」}}</div>
  <!-- ◆ ：检验类卡片必须有判定列（扫颜色即知结果，治「全文字缺重点」）；
  ✅ 通过 / ⚠️ 注意 / ❌ 异常；纯披露项（税率汇率等无检验性质的）填「—」，不许硬凑 ✅
- ◆ 行序规则：❌⚠️ 问题项置顶（❌ 先于 ⚠️），✅ 与 — 披露项殿后；
- 同判定内保持下方默认主题序——读者先看到雷（比亚迪轮 10 项即兴混排的教训） -->
+ ◆ 行序规则（v0.0.22 用户定案）：固定主题序=下方模板行序，填充照抄不重排——与四维表/断言表
+ 同款（位置固定、跨报告可比）；判定分布由徽章色扫读 + figtitle 汇总（「N 项：x 过 y 注意 z 异常」）
+ 传达，不靠排序（v0.0.21 前曾按判定分组置顶，分组重排破坏位置记忆、与同型表不一致，废） -->
  <table class="data">
  <tr><th>检验项</th><th>读数</th><th class="txt">判定</th><th class="txt">结论（≤30字，长解释挪 srcline）</th></tr>
  <tr><td>收入增速 vs 净利增速</td><td>{{x%}} vs {{y%}}</td><td class="txt"><span class="badge {{g|y|r}}">{{✅|⚠️|❌}}</span></td><td class="txt">{{是否存在剪刀差 + 原因}}</td></tr>
@@ -779,34 +785,26 @@ function niceStep(raw){const p=Math.pow(10,Math.floor(Math.log10(raw)));const n=
 
 /* ════ DATA ◆ SLOT：只填这里 ════
  （发丝网格、刻度、胶囊圆角、标签避让均由绘图函数自动生成，填数即可） */
-/* trend：多期标签 + 收入 + 归母净利 + 扣非净利 + ROE(小数) + 毛利率线(%)——等宽双面板：
- 左=收入柱+毛利率线，右=归母净利柱（+扣非净利柱）+ROE 线。可缺省：np_dt 整列留空或某期
- 为 null 该期不画扣非柱、图例不列扣非（右板降级单柱）；roe 整列留空则整线跳过。
+/* trend：多期标签 + 收入 + 归母净利 + 扣非净利 + 经营现金流 + ROE(小数) + 毛利率线(%)——
+ 㗊四宫格（v0.0.22）：revchart=收入柱+毛利率线；npchart=归母净利柱（+扣非净利柱+OCF 柱，
+ 均可缺省）+ROE 线。可缺省：np_dt/ocf 整列留空或某期为 null 该期不画对应柱、图例不列
+ （柱数自适应 1~3）；roe 整列留空则整线跳过。
  roe 存小数绘图 ×100；**gm 填百分数**（如 20.46——绘图不做 ×100，填小数会显示成 0.2%）；
- capex=购建固定资产等支付的现金（亿元，v0.0.20 起——趋势图卡底部迷你柱条，cashflow.capex
- hist 照抄，缺期填 null 跳点） */
-const TREND={labels:['2022','2023','2024'],rev:[0,0,0],np:[0,0,0],np_dt:[],roe:[],gm:[0,0,0],capex:[0,0,0]};
+ ocf=cashflow.ocf hist 照抄（亿元，可负——负值柱向下）；
+ capex=购建固定资产等支付的现金（亿元，cashflow.capex hist 照抄，缺期填 null 跳点）、
+ rd=研发费用费用化口径（亿元，income.rd_exp hist 照抄，缺期填 null；整列空则右下图降级 Capex 单柱） */
+const TREND={labels:['2022','2023','2024'],rev:[0,0,0],np:[0,0,0],np_dt:[],ocf:[0,0,0],roe:[],gm:[0,0,0],capex:[0,0,0],rd:[0,0,0]};
 /* ncrline：现金时序双折线（现金时序卡）——labels=期间（derived.cash_ts.periods 照抄）、
  ncr=净现比逐期、fcf=FCF÷归母逐期（短序列前置 null 跳点）、mean=净现比均值（均值虚线+小字；
  fcf 均值写进卡 takeaway 判定语）；hist<3 期整卡降级声明，本槽留空 */
 const NCR_TS={labels:['2022','2023','2024'],ncr:[0,0,0],fcf:[0,0,0],mean:0};
-/* spark：四维表「近5期趋势」迷你折线——vals 填 ratios 五期 hist（同类型滚动，旧→新）；
- color 由填充者按方向语义表对本期 vs 上期的好坏选 GOOD/BAD/INK；不足 2 期不画（该格留空并注明） */
-const SPARK={gm:[],nm:[],da:[],dio:[],dso:[],c2s:[],ccc:[],dol:[],dfl:[]};
-function spark(id,vals,color){
- const s=document.getElementById(id);
- if(!s||!vals||vals.length<2)return;
- const W=64,H=16,P=2.5;
- const lo=Math.min(...vals),hi=Math.max(...vals),span=(hi-lo)||1;
- const x=i=>P+(W-2*P)*i/(vals.length-1);
- const y=v=>H-P-(H-2*P)*(v-lo)/span;
- el(s,'polyline',{points:vals.map((v,i)=>x(i)+','+y(v)).join(' '),fill:'none',
- stroke:color,'stroke-width':1.6,'stroke-linejoin':'round','stroke-linecap':'round'});
- el(s,'circle',{cx:x(vals.length-1),cy:y(vals[vals.length-1]),r:1.9,fill:color});
-}
+/* effline：营运效率三线（v0.0.22，接替退役的四维表 spark 列）——labels=期间，
+ dio/dso/ccc=存货/应收周转天数与现金转换周期五期 hist（ratios hist 照抄，同类型滚动，
+ 旧→新；单位均为天可同轴，CCC 可负）；某序列不足 2 期整线不画、图例不列 */
+const EFF_TS={labels:['2022','2023','2024'],dio:[120,135,128],dso:[33,35,31],ccc:[-180,-165,-172]};
 /* ncrline：现金时序双折线——净现比 INK / FCF÷归母 C2 合并量程（双向 1.15 余量，
  值域强制含 1：造血参考线必须在画布内）；y=1 参考虚线 + mean 均值虚线（右端小字）；
- null 跳点不硬连（与 combo/trendDual 同一约定）；ncr 标签点上、fcf 标签点下（防互撞） */
+ null 跳点不硬连（与 combo/_panelLine 同一约定）；ncr 标签点上、fcf 标签点下（防互撞） */
 function ncrLine(id,labels,ncr,fcf,mean){
  const s=document.getElementById(id);if(!s||!labels.length)return;
  ncr=ncr||[];fcf=fcf||[];
@@ -829,7 +827,9 @@ function ncrLine(id,labels,ncr,fcf,mean){
  txt(s,{x:W-R+4,y:y(1)+3,'font-size':8.5,'font-weight':700,fill:MUT},'1');
  if(mean!=null){
   el(s,'line',{x1:L,y1:y(mean),x2:W-R,y2:y(mean),stroke:INK,'stroke-width':1,'stroke-dasharray':'2 2'});
-  txt(s,{x:W-R+4,y:y(mean)+3,'font-size':8.5,'font-weight':700,fill:INK},'均值'+fmt(mean));
+  /* 均值小字与 y=1 小字同贴右缘：垂直间距不足 12px 时下移到线下方，防 1px 级重叠（埃斯顿 2026H1 窄视口实测） */
+  const mdy=Math.abs(y(mean)-y(1))<12?13:3;
+  txt(s,{x:W-R+4,y:y(mean)+mdy,'font-size':8.5,'font-weight':700,fill:INK},'均值'+fmt(mean));
  }
  const draw=(vals,color,name,dy)=>{
   let run=[];
@@ -854,29 +854,68 @@ function ncrLine(id,labels,ncr,fcf,mean){
   txt(s,{x:L+i*130+15,y:17,'font-size':10,'font-weight':600,fill:MUT},n);
  });
 }
-/* capexbars：Capex 节奏迷你柱条（趋势图卡底部）——购建付现逐期小柱（亿元，独立缩放），
- null 跳点不画；柱顶数值标签 R2；中性 INK 柱（扩张/收缩是节奏读数，不按好坏染色） */
-function capexBars(id,labels,vals){
+/* capexbars：㗊四宫格右下=Capex·研发双柱（v0.0.22 由 Capex 单柱升级，热核审计后改为
+ _panelBars/_panelTitle 复用实现——四宫格等大后不再是迷你条，独立实现的柱几何/图例/标题
+ 与面板件近重复，删除）——购建付现 INK + 研发费用（费用化口径）C2 逐期双柱（亿元）；
+ vals2 缺省或整列 null 时降级 Capex 单柱；null 跳点不画；中性色（节奏读数不按好坏染色）；
+ 全部序列都标数字标签（labelAll——研发投入读数是用户点名要看的） */
+function capexBars(id,labels,vals,vals2){
  const s=document.getElementById(id);if(!s||!labels.length)return;
- vals=vals||[];
- const vv=vals.filter(v=>v!=null);
- if(!vv.length)return;
- const W=+s.viewBox.baseVal.width,H=+s.viewBox.baseVal.height,L=54,R=54,B=22,T=24;
- const max=Math.max(...vv)*1.15||1;
+ vals=vals||[];vals2=vals2||[];
+ if(!vals.concat(vals2).some(v=>v!=null))return;
+ const dom=_panelBars(s,labels,vals,INK,[[vals2,C2,'研发费用']],true);
+ const has2=dom.drawnSubs.includes('研发费用');
+ _panelTitle(s,dom,has2?'Capex 购建付现 + 研发费用（亿元）':'Capex 购建付现（亿元）',
+ [['Capex',INK],has2?['研发费用',C2]:null].filter(Boolean));
+}
+/* effline：营运效率三线（v0.0.22）——DIO INK / DSO C2 / CCC C3 同轴（单位均为天）；
+ 值域强制含 0（CCC 可为负——负值=占用上游资金），零轴实线；null 跳点不硬连（同 ncrLine 约定）；
+ DIO/DSO 标签点上、CCC 标签点下防互撞；某序列非空点不足 2 个整线不画、图例不列 */
+/* debt: 标签避让只有点上/点下两档（DIO/DSO 同上、CCC 同下）——两线数值贴近时标签可互撞，
+ check_render 机检兜底；真实报告撞面出现时再升级为 labelY 式互相避让 */
+function effLine(id,labels,dio,dso,ccc){
+ const s=document.getElementById(id);if(!s||!labels.length)return;
+ const series=[['存货周转天数',dio||[],INK,-7],['应收周转天数',dso||[],C2,-7],['CCC',ccc||[],C3,13]]
+ .filter(([,v])=>v.filter(x=>x!=null).length>=2);
+ if(!series.length)return;
+ const all=series.flatMap(([,v])=>v).filter(v=>v!=null);
+ const W=+s.viewBox.baseVal.width,H=+s.viewBox.baseVal.height,L=44,R=14,B=30,T=30;
+ let lo=Math.min(...all,0),hi=Math.max(...all,0);
+ const span=(hi-lo)||1;lo-=span*.15;hi+=span*.15;
  const bw=(W-L-R)/labels.length;
- txt(s,{x:L,y:12,'font-size':9.5,'font-weight':700,fill:MUT},'Capex 购建付现（亿元）');
- vals.forEach((v,i)=>{
-  const lb=labels[i];
-  const x=L+i*bw+bw*.3,w=bw*.4;
-  if(v!=null){
-   const ha=(H-B-T)*v/max;
-   const r1=capsule(s,x,H-B-ha,w,ha,w/2,INK);
-   tip(r1,`${lb} Capex：${fmt(v)} 亿`);
-   txt(s,{x:x+w/2,y:H-B-ha-5,'font-size':9.5,'font-weight':700,fill:INK,'text-anchor':'middle'},fmt(v));
-  }
-  txt(s,{x:x+w/2,y:H-B+14,'font-size':10,'font-weight':600,fill:MUT,'text-anchor':'middle'},lb);
+ const y=v=>T+(H-B-T)*(1-(v-lo)/(hi-lo));
+ const cx=i=>L+i*bw+bw/2;
+ const step=niceStep((hi-lo)/4);
+ for(let v=Math.ceil(lo/step)*step;v<hi;v+=step){
+  if(Math.abs(v)<1e-9)continue;
+  const gy=y(v);
+  el(s,'line',{x1:L,y1:gy,x2:W-R,y2:gy,stroke:FAINT,'stroke-width':.7,'stroke-dasharray':'3 3'});
+  txt(s,{x:L-8,y:gy+3,'font-size':8.5,'font-weight':600,fill:MUT,'text-anchor':'end'},fmt(v));
+ }
+ /* 零轴实线：CCC 负值参照（占用上游资金形态的分界） */
+ el(s,'line',{x1:L,y1:y(0),x2:W-R,y2:y(0),stroke:MUT,'stroke-width':1});
+ series.forEach(([name,vals,color,dy])=>{
+  let run=[];
+  const flush=()=>{
+   if(run.length>1){el(s,'path',{d:'M'+run.map(i=>[cx(i),y(vals[i])]).map(p=>p.join(' ')).join(' L '),fill:'none',stroke:color,'stroke-width':1.8});}
+   run=[];
+  };
+  vals.forEach((v,i)=>{
+   if(v==null){flush();return;}
+   run.push(i);
+   const c=el(s,'circle',{cx:cx(i),cy:y(v),r:3,fill:color,stroke:'#fff','stroke-width':1.5});
+   tip(c,`${labels[i]} ${name}：${fmt(v)} 天`);
+   txt(s,{x:cx(i),y:y(v)+dy,'font-size':9,'font-weight':700,fill:MUT,'text-anchor':'middle',...HALO},fmt(v));
+  });
+  flush();
  });
+ labels.forEach((lb,i)=>{txt(s,{x:cx(i),y:H-B+18,'font-size':10,'font-weight':600,fill:MUT,'text-anchor':'middle'},lb);});
  el(s,'line',{x1:L,y1:H-B,x2:W-R,y2:H-B,stroke:GRID,'stroke-width':1});
+ txt(s,{x:L,y:12,'font-size':9.5,'font-weight':700,fill:MUT},'营运效率（天）');
+ series.forEach(([name,,color],i)=>{
+  el(s,'rect',{x:W-R-series.length*85+i*85,y:4,width:10,height:10,fill:color,rx:2});
+  txt(s,{x:W-R-series.length*85+i*85+14,y:13,'font-size':9.5,'font-weight':600,fill:MUT},name);
+ });
 }
 /* ocfbridge：净利→经营现金流调节桥（间接法，亿元）——首项「净利润」与 OCF_END（经营现金流
  净额）为水平值：v0.0.21 起画作首末端点柱（中性色，超量程断线截断），同时填上方 .brends
@@ -893,7 +932,7 @@ const SEG_BRIDGE=[['量效应',0],['价效应',0],['结构效应',0]];
  fillsheet 已产出）；缺数填 null 该端点跳过 */
 const SEG_ENDS=[0,0];
 /* holders：股东户数（万户，柱）+ 户数环比增减(%,线，可留空；首期无环比填 null 跳点不画) */
-const HOLDERS={labels:[],num:[],px:[]};
+const HOLDERS={labels:['2025-12','2026-03','2026-06'],num:[15.3,16.6,17.0],px:[null,8.5,2.4]};
 /* DUPONT_STACK：ΔROE 贡献堆叠条——三段效应照抄 derived.dupont 三效应 ×100 转 pct
  （一位小数）；gap=closure_gap×100，≠0 必须保留第四段（灰色口径差段），不许删段让视觉自行闭合 */
 const DUPONT_STACK={steps:[['净利率',0],['周转率',0],['杠杆',0]],gap:0};
@@ -935,7 +974,7 @@ function combo(id,labels,barA,barB,line,lineName,aName,bName){
  const lT=T+18,lB=H-B-16; /* 线域上下留白：避开图例与柱底 */
  const yv=v=>lT+(lB-lT)*(1-(v-lmin)/(lmax-lmin||1));
  const cx=i=>L+i*bw+bw/2;
- /* null 期跳点不画，只连连续非空段（与 trendDual ROE 线同一约定：断点不硬连） */
+ /* null 期跳点不画，只连连续非空段（与 _panelLine 同一约定：断点不硬连） */
  let run=[];
  const flush=()=>{
  if(run.length>1){
@@ -961,111 +1000,115 @@ function combo(id,labels,barA,barB,line,lineName,aName,bName){
  });
 }
 
-/* 趋势双面板：左=收入柱+毛利率线，右=归母净利柱（+扣非净利柱，可缺省）+ROE 线，
- 两面板等宽、各自独立缩放（量级悬殊时同轴双柱会压扁矮柱，断轴又违反「柱=长度」契约）。
- 右板可缺省：np_dt 留空或某期为 null 该期不画扣非柱；roe 整列留空则整线跳过（存小数 ×100）。
- 支持负值柱：值域强制含 0、零轴为基线，负值柱向下、圆端朝下、标签随柱向（正上负下）。 */
-function trendDual(id,labels,rev,np,gm,np_dt,roe){
- const s=document.getElementById(id);if(!s||!labels.length)return;
- const W=+s.viewBox.baseVal.width,H=+s.viewBox.baseVal.height,B=44,T=52;
- const L=54,R=16,GAP=52;
- const pw=(W-L-R-GAP)/2; /* 左右面板等宽（中缝对称各半），不再 62/38 */
- const x2=L+pw+GAP,n=labels.length;
- np_dt=np_dt||[];roe=roe||[];
- const has_dt=np_dt.some(v=>v!=null);
- /* drawPanel：单柱或双柱（vals2 传 null 即单柱）；双柱成组仿 combo 几何（w=bw*.24），
- 有副序列时布局按双柱统一（缺数只跳画扣非柱，柱位不漂移），标签只标主序列；返回 {hi,lo} 供 ROE 线标签避让取柱端点 */
- const drawPanel=(px0,vals,color,vals2,color2)=>{
- const has2=!!vals2&&vals2.some(v=>v!=null);
- const pool=has2?vals.concat(vals2.filter(v=>v!=null)):vals;
+/* _panelBars：单面板 1~3 柱成组（extra=[[序列,颜色,tip 名],...]，整列全空的序列被过滤；
+ 组居中布局，某期缺数只跳画该柱、柱位不漂移）；labelAll=true 时全部序列都标数字标签
+ （默认只标主序列）；支持负值柱（值域强制含 0、零轴为基线，负值柱向下、圆端朝下、
+ 标签随柱向正上负下）。返回 {lo,hi,T,B,W,H,L,R,cxOf,yOf,drawnSubs}——cxOf=柱组中心、
+ yOf=柱端点 y（供线标签避让），drawnSubs=实际绘制的副序列 tip 名（供标题/图例缺省）。
+ v0.0.22 由 trendDual 内嵌 drawPanel 抽出——㗊四宫格拆双面板为两张独立图后两图共用。 */
+function _panelBars(s,labels,vals,color,extra,labelAll){
+ const W=+s.viewBox.baseVal.width,H=+s.viewBox.baseVal.height,L=44,R=12,B=40,T=48;
+ const n=labels.length;
+ const subs=(extra||[]).filter(([a])=>a&&a.some(v=>v!=null));
+ const ns=1+subs.length;
+ const pool=vals.concat(subs.flatMap(([a])=>a.filter(v=>v!=null)));
  const hi=Math.max(0,...pool)*1.15||1, lo=Math.min(0,...pool)*1.15;
  const span=hi-lo, y0=H-B-(H-B-T)*(0-lo)/span;
  const step=niceStep(span/5);
  for(let gv=Math.ceil(lo/step)*step;gv<hi;gv+=step){
  const gy=T+(H-B-T)*(1-(gv-lo)/span);
- el(s,'line',{x1:px0,y1:gy,x2:px0+pw,y2:gy,stroke:FAINT,'stroke-width':.7,'stroke-dasharray':'3 3'});
- txt(s,{x:px0-8,y:gy+3,'font-size':8.5,'font-weight':600,fill:MUT,'text-anchor':'end'},Math.round(gv));
+ el(s,'line',{x1:L,y1:gy,x2:W-R,y2:gy,stroke:FAINT,'stroke-width':.7,'stroke-dasharray':'3 3'});
+ txt(s,{x:L-8,y:gy+3,'font-size':8.5,'font-weight':600,fill:MUT,'text-anchor':'end'},Math.round(gv));
  }
- el(s,'line',{x1:px0,y1:y0,x2:px0+pw,y2:y0,stroke:GRID,'stroke-width':1});
- const bw=pw/n;
+ el(s,'line',{x1:L,y1:y0,x2:W-R,y2:y0,stroke:GRID,'stroke-width':1});
+ const bw=(W-L-R)/n;
+ const w=ns==1?bw*.4:ns==2?bw*.24:bw*.18;
+ const gw=ns*w+(ns-1)*3;
+ const gx=i=>L+i*bw+(bw-gw)/2;
  vals.forEach((v,i)=>{
- const w=has2?bw*.24:bw*.4;
- const x=has2?px0+i*bw+bw*.18:px0+i*bw+(bw-w)/2;
+ const x=gx(i);
  const yv=T+(H-B-T)*(1-(v-lo)/span);
  const top=Math.min(yv,y0),hh=Math.abs(yv-y0);
  const r=capsule(s,x,top,w,hh,w/2,color,v<0?'down':undefined);
  tip(r,`${labels[i]}：${fmt(v)}`);
  txt(s,{x:x+w/2,y:v>=0?top-6:top+hh+13,'font-size':10,'font-weight':800,fill:INK,'text-anchor':'middle'},fmt(v));
- if(has2&&vals2[i]!=null){
- const yv2=T+(H-B-T)*(1-(vals2[i]-lo)/span);
- const top2=Math.min(yv2,y0),hh2=Math.abs(yv2-y0);
- const r2=capsule(s,x+w+3,top2,w,hh2,w/2,color2,vals2[i]<0?'down':undefined);
- tip(r2,`${labels[i]} 扣非净利：${fmt(vals2[i])}`);
- }
+ subs.forEach(([a,c2,nm],k)=>{
+ if(a[i]==null)return;
+ const xk=x+(k+1)*(w+3);
+ const yk=T+(H-B-T)*(1-(a[i]-lo)/span);
+ const tk=Math.min(yk,y0),hk=Math.abs(yk-y0);
+ const rk=capsule(s,xk,tk,w,hk,w/2,c2,a[i]<0?'down':undefined);
+ tip(rk,`${labels[i]} ${nm}：${fmt(a[i])}`);
+ if(labelAll)txt(s,{x:xk+w/2,y:a[i]>=0?tk-6:tk+hk+13,'font-size':9,'font-weight':700,fill:c2,'text-anchor':'middle'},fmt(a[i]));
  });
- return {hi:hi,lo:lo};
- };
- /* 左面板：收入（柱）+ 毛利率（线，独立缩放） */
- drawPanel(L,rev,C1);
- const lT=T+14,lB=H-B-16;
- const lspan=Math.max(...gm)-Math.min(...gm)||1;
- const lmax=Math.max(...gm)+lspan*.5,lmin=Math.min(...gm)-lspan*.5;
- const pts=gm.map((v,i)=>{
- const x=L+i*(pw/n)+pw/n/2,y=lT+(lB-lT)*(1-(v-lmin)/(lmax-lmin||1));
- return [x,y];
  });
- el(s,'path',{d:'M'+pts.map(p=>p.join(' ')).join(' L '),fill:'none',stroke:INK,'stroke-width':1.8});
- const lmaxBar=Math.max(...rev)*1.15||1; /* 与 drawPanel 全正形态量程同式，供线标签避让柱顶数字 */
- pts.forEach((p,i)=>{
- el(s,'circle',{cx:p[0],cy:p[1],r:3,fill:INK,stroke:'#fff','stroke-width':1.5});
- const barTop=H-B-(H-B-T)*rev[i]/lmaxBar;
- const ly=labelY(p[1],barTop);
- txt(s,{x:p[0],y:ly,'font-size':9,'font-weight':700,fill:MUT,'text-anchor':'middle',...HALO},fmt(gm[i])+'%');
+ labels.forEach((lb,i)=>{
+ txt(s,{x:gx(i)+gw/2,y:H-B+18,'font-size':9.5,'font-weight':600,fill:MUT,'text-anchor':'middle'},lb);
  });
- /* 右面板：归母净利柱（+扣非净利柱，可缺省）；dom=柱值域，供 ROE 线标签避让 */
- const dom=drawPanel(x2,np,C1,has_dt?np_dt:null,C2);
- /* 右面板 ROE 线：小数 ×100 呈现 %，独立缩放（[min−span/2, max+span/2] 映射到线区），
- 样式与左板毛利率线一致；null 期跳点不画，只连连续非空段（断点不硬连，避免误读为连续趋势） */
- const rv=roe.map(v=>v==null?null:v*100);
- if(rv.some(v=>v!=null)){
- const vals=rv.filter(v=>v!=null);
- const span=Math.max(...vals)-Math.min(...vals)||1;
- const rmax=Math.max(...vals)+span*.5,rmin=Math.min(...vals)-span*.5;
- const cx=i=>has_dt?x2+i*(pw/n)+(pw/n)*.42+1.5:x2+i*(pw/n)+(pw/n)/2; /* 双柱时锚柱组中心 */
- const ry=v=>lT+(lB-lT)*(1-(v-rmin)/(rmax-rmin||1)); /* 分母必须=rmax−rmin（=2×span）：除以 span 会把上半区点顶出 SVG */
- const yOf=v=>T+(H-B-T)*(1-(v-dom.lo)/(dom.hi-dom.lo)); /* 柱端点 y（负值柱为底端） */
+ return {lo,hi,T,B,W,H,L,R,cxOf:i=>gx(i)+gw/2,yOf:v=>T+(H-B-T)*(1-(v-lo)/span),
+ drawnSubs:subs.map(([, ,nm])=>nm)};
+}
+/* _panelLine：柱面板上的独立缩放线（[min−span/2, max+span/2] 映射到线区）；null 期跳点不画、
+ 只连连续非空段（断点不硬连，避免误读为连续趋势）；点标签避让柱顶（labelY）。
+ 返回是否实际绘制（供标题/图例缺省）。 */
+function _panelLine(s,vals,dom,barTopOf,unit){
+ vals=vals||[];
+ const vv=vals.filter(v=>v!=null);
+ if(!vv.length)return false;
+ const lT=dom.T+14,lB=dom.H-dom.B-16;
+ const span=Math.max(...vv)-Math.min(...vv)||1;
+ const lmax=Math.max(...vv)+span*.5,lmin=Math.min(...vv)-span*.5;
+ const ry=v=>lT+(lB-lT)*(1-(v-lmin)/(lmax-lmin||1)); /* 分母必须=lmax−lmin（=2×span）：除以 span 会把上半区点顶出 SVG */
  let run=[];
  const flush=()=>{
  if(run.length>1){
- el(s,'path',{d:'M'+run.map(i=>[cx(i),ry(rv[i])]).map(p=>p.join(' ')).join(' L '),fill:'none',stroke:INK,'stroke-width':1.8});
+ el(s,'path',{d:'M'+run.map(i=>[dom.cxOf(i),ry(vals[i])]).map(p=>p.join(' ')).join(' L '),fill:'none',stroke:INK,'stroke-width':1.8});
  }
  run=[];
  };
- rv.forEach((v,i)=>{
+ vals.forEach((v,i)=>{
  if(v==null){flush();return;}
  run.push(i);
- el(s,'circle',{cx:cx(i),cy:ry(v),r:3,fill:INK,stroke:'#fff','stroke-width':1.5});
- const barTop=yOf(np[i]);
- const ly=labelY(ry(v),barTop);
- txt(s,{x:cx(i),y:ly,'font-size':9,'font-weight':700,fill:MUT,'text-anchor':'middle',...HALO},v.toFixed(2)+'%');
+ el(s,'circle',{cx:dom.cxOf(i),cy:ry(v),r:3,fill:INK,stroke:'#fff','stroke-width':1.5});
+ const ly=labelY(ry(v),barTopOf(i));
+ txt(s,{x:dom.cxOf(i),y:ly,'font-size':9,'font-weight':700,fill:MUT,'text-anchor':'middle',...HALO},fmt(v)+unit);
  });
  flush();
- }
- /* 面板分隔、标题与图例（扣非/ROE 无数据时图例相应缺省，右对齐避让面板标题） */
- el(s,'line',{x1:x2-GAP/2,y1:T-8,x2:x2-GAP/2,y2:H-B,stroke:FAINT,'stroke-width':.7,'stroke-dasharray':'2 3'});
- txt(s,{x:L,y:T-22,'font-size':10,'font-weight':700,fill:MUT},'营业收入（亿元）· 线=毛利率(%)');
- txt(s,{x:x2,y:T-22,'font-size':10,'font-weight':700,fill:MUT},'归母净利+扣非净利（亿元）· 线=ROE(%)');
- const lg=[['归母净利',C1],has_dt?['扣非净利',C2]:null,rv.some(v=>v!=null)?['ROE',INK]:null].filter(Boolean);
- let lx=W-R-lg.length*110;
+ return true;
+}
+/* 面板标题与图例（标题随实际绘制序列动态生成；图例置标题行下方右对齐，防与长标题互撞） */
+function _panelTitle(s,dom,title,lg){
+ txt(s,{x:dom.L,y:dom.T-22,'font-size':10,'font-weight':700,fill:MUT},title);
+ let lx=dom.W-dom.R-lg.length*88;
  lg.forEach(([nm,c])=>{
- el(s,'rect',{x:lx,y:6,width:10,height:10,fill:c,rx:2});
- txt(s,{x:lx+15,y:15,'font-size':10,'font-weight':600,fill:MUT},nm);
- lx+=110;
+ el(s,'rect',{x:lx,y:dom.T-18,width:10,height:10,fill:c,rx:2});
+ txt(s,{x:lx+14,y:dom.T-9,'font-size':9.5,'font-weight':600,fill:MUT},nm);
+ lx+=88;
  });
- labels.forEach((lb,i)=>{
- txt(s,{x:L+i*(pw/n)+pw/n/2,y:H-B+18,'font-size':9.5,'font-weight':600,fill:MUT,'text-anchor':'middle'},lb);
- txt(s,{x:x2+i*(pw/n)+pw/n/2,y:H-B+18,'font-size':9.5,'font-weight':600,fill:MUT,'text-anchor':'middle'},lb);
- });
+}
+/* revchart：㗊四宫格左上=收入柱+毛利率线（v0.0.22 由 trendDual 左板拆出；
+ gm 填百分数——绘图不做 ×100） */
+function trendRev(id,labels,rev,gm){
+ const s=document.getElementById(id);if(!s||!labels.length)return;
+ const dom=_panelBars(s,labels,rev,C1);
+ const drawn=_panelLine(s,gm,dom,i=>dom.yOf(rev[i]),'%');
+ _panelTitle(s,dom,'营业收入（亿元）'+(drawn?'· 线=毛利率(%)':''),
+ [['营业收入',C1],drawn?['毛利率',INK]:null].filter(Boolean));
+}
+/* npchart：㗊四宫格右上=归母净利柱（+扣非净利柱+经营现金流柱，均可缺省）+ROE 线
+ （v0.0.22 由 trendDual 右板拆出）；roe 存小数 ×100 呈现；标题随实际绘制序列动态生成
+ （旧版硬编码「归母+扣非·线=ROE」，扣非降级缺画时标题失真——埃斯顿 2026H1 实证）；
+ 序列是否绘制以 dom.drawnSubs 为准（单一判定源，不与 _panelBars 内部过滤两处各算） */
+function trendNp(id,labels,np,np_dt,ocf,roe){
+ const s=document.getElementById(id);if(!s||!labels.length)return;
+ const dom=_panelBars(s,labels,np,C1,[[np_dt||[],C2,'扣非净利'],[ocf||[],C3,'经营现金流']]);
+ const has_dt=dom.drawnSubs.includes('扣非净利'),has_ocf=dom.drawnSubs.includes('经营现金流');
+ const rv=(roe||[]).map(v=>v==null?null:v*100);
+ const has_roe=_panelLine(s,rv,dom,i=>dom.yOf(np[i]),'%');
+ const names=['归母净利'].concat(has_dt?['扣非净利']:[],has_ocf?['经营现金流']:[]);
+ _panelTitle(s,dom,names.join('+')+'（亿元）'+(has_roe?'· 线=ROE(%)':''),
+ [['归母净利',C1],has_dt?['扣非净利',C2]:null,has_ocf?['经营现金流',C3]:null,
+ has_roe?['ROE',INK]:null].filter(Boolean));
 }
 
 /* delta 条形图：调整项按 |delta| 降序横排，零轴居中、右绿左红、条端标数值；纵轴量程只由
@@ -1178,13 +1221,11 @@ function stackH(id,steps,gap,unit){
  'text-anchor':'middle',...HALO},`ΔROE ${net>0?'+':''}${Math.round(net*10)/10}${unit||''}`);
 }
 
-trendDual('trend',TREND.labels,TREND.rev,TREND.np,TREND.gm,TREND.np_dt,TREND.roe);
-capexBars('capexbars',TREND.labels,TREND.capex);
+trendRev('revchart',TREND.labels,TREND.rev,TREND.gm);
+trendNp('npchart',TREND.labels,TREND.np,TREND.np_dt,TREND.ocf,TREND.roe);
+capexBars('capexbars',TREND.labels,TREND.capex,TREND.rd);
+effLine('effline',EFF_TS.labels,EFF_TS.dio,EFF_TS.dso,EFF_TS.ccc);
 ncrLine('ncrline',NCR_TS.labels,NCR_TS.ncr,NCR_TS.fcf,NCR_TS.mean);
-/* 四维表迷你折线线色：由填充者按方向语义表对「本期 vs 上期」的好坏选 GOOD/BAD/INK——模板默认全 INK 占位，交付前必须逐行改对（同徽章纪律） */
-spark('spark-gm',SPARK.gm,INK);spark('spark-nm',SPARK.nm,INK);spark('spark-da',SPARK.da,INK);
-spark('spark-dio',SPARK.dio,INK);spark('spark-dso',SPARK.dso,INK);spark('spark-c2s',SPARK.c2s,INK);
-spark('spark-ccc',SPARK.ccc,INK);spark('spark-dol',SPARK.dol,INK);spark('spark-dfl',SPARK.dfl,INK);
 deltaBars('ocfbridge',OCF_BRIDGE.slice(1),[['期初·净利润',OCF_BRIDGE[0][1]],['期末·经营现金流',OCF_END]]);
 deltaBars('segbridge',SEG_BRIDGE,[['基期·收入',SEG_ENDS[0]],['本期·收入',SEG_ENDS[1]]]);
 stackH('dupontstack',DUPONT_STACK.steps,DUPONT_STACK.gap,'pct');

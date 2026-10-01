@@ -1,13 +1,15 @@
 # -*- coding: utf-8 -*-
 """check_html_t8.py — T8 数字回验（check_html.py --json 时启用的两级校验）：
-①级 HTML↔data.json 笔误检测（独特值 0.5% 窗口 FAIL）；②级 data.json↔原文 md 行号回核。
+①级 HTML↔data.json 笔误检测（独特值 0.5% 窗口 FAIL）；②级 data.json↔原文 md 行号回核；
+①级同侧：断言 text/evidence 填充截断检测（assert-trunc，v0.0.22）与未披露声明反向检索。
 """
 
+import html
 import json
 import re
 from pathlib import Path
 
-from check_html_common import FAIL, WARN, OK, DETAIL_CAP, line_of, mask_ranges
+from check_html_common import FAIL, WARN, OK, DETAIL_CAP, line_of, visible_text
 
 
 # ─────────────────────────── 12. 数字回验（T8，--json 时执行） ───────────────────────────
@@ -107,8 +109,7 @@ def check_numbers_vs_json(body, raw, data, rep, verbose=False):
     → FAIL 疑似笔误（报告行号 + 最接近的 json 字段）；其余无关数字跳过。
     阈值语境（&lt;x / &gt;y）、期次年份、序号小整数、外币（美元/欧元/港元）豁免。"""
     plain, pct, uniq_plain, uniq_pct, hist_pool = build_authority(data)
-    tag_spans = [(m.start(), m.end()) for m in re.finditer(r'<[^>]+>', body)]
-    text = mask_ranges(body, tag_spans)
+    text = visible_text(body)
     matched = 0
     suspects = []
     for m in PLAIN_NUM_RE.finditer(text):
@@ -289,5 +290,95 @@ def check_undisclosed_claims(visible, data, json_path, rep):
             rep.add(FAIL, "undisclosed", b)
     else:
         rep.add(OK, "undisclosed", "未见与原文矛盾的「未披露」声明")
+
+
+# ─────────── 断言填充截断检测（assert-trunc，T8①级同侧，v0.0.22） ───────────
+# 本段不占规则序号：check_html.py 头部清单的序号是全局唯一口径（12/13/14 已被呈现
+# 文本族与 dupont-stack 占用），T8 族在头部清单以「T8 回验族」一行整体登记。
+# 上方「12.」「13.」是历史编号、与呈现文本族重号，本轮不动——改号会牵连文档指代。
+
+# 截断判定下限：以 json 值前 ANCHOR_LEN 字为定位锚点，公共前缀达此长度才算「真前缀」
+# （更短的公共前缀区分不了「截断」与「正常改写」）。
+# debt: 天花板=HTML 侧呈现不足 ANCHOR_LEN 字时锚点找不到即漏检；调短锚点会抬高误报，
+#       真实报告出现「截到 10 字以内」的形态时再降。
+ANCHOR_LEN = 15
+
+
+def check_assert_truncation(body, data, rep, verbose=False):
+    """①级 HTML↔data.json 同侧：s4 断言表 text/evidence 填充截断检测（v0.0.22，
+    长城 2026H1 事故固化：s4 断言表 63 个单元格文本以「…」结尾，底稿 assertions 里
+    是完整句子，属填充方手工截断；T8 只比数字不比文本，全漏）。
+    判定：以 json 值前 ANCHOR_LEN 字为定位锚点，在可见文本中逐处算与 json 值的最长
+    公共前缀——达全长即完整呈现；真前缀紧接截断记号（全角「…」或 ASCII「...」）即
+    「真前缀 + 省略号」填充截断形态，FAIL（明细带 HTML 行号）。截断点在前 30 字之后
+    的（长城实证主流形态，如 evidence 第 58 字截断）同样命中。
+    不判：json 值本身以「…」结尾的（底稿就写省略号）；「真前缀 + 等」是合法中文
+    缩略形态，不纳入判据。
+    另出 WARN：底稿 text/evidence 缺失、空串或不足 ANCHOR_LEN 字的断言——这类字段
+    无锚点可判，且呈现层往往自撰文本（长城 A10：底稿 evidence 为空串、报告自撰 54 字
+    并以「…」收尾，是全表 63 个省略号单元格里唯一逃过 FAIL 的一个），须回填底稿才有依据。"""
+    items = data.get("assertions")
+    if not isinstance(items, list) or not items:
+        rep.add(OK, "assert-trunc", "底稿无 assertions 数组，填充截断检测跳过")
+        return
+    # 可见文本视图：标签等长屏蔽（保行号），实体还原后供前缀比较
+    text = html.unescape(visible_text(body))
+    hits = []
+    gaps = []
+    checked = 0
+    for it in items:
+        if not isinstance(it, dict):
+            continue
+        aid = it.get("id") or "?"
+        short = []
+        for field in ("text", "evidence"):
+            v = it.get(field)
+            if not isinstance(v, str) or len(v) < ANCHOR_LEN:
+                short.append(field)  # 底稿缺口：无锚点可判，转 WARN 清单
+                continue
+            if v.endswith("…"):
+                continue
+            checked += 1
+            anchor = v[:ANCHOR_LEN]
+            pos = text.find(anchor)
+            full = False
+            cut = cut_at = None
+            while pos != -1:
+                n = 0
+                while n < len(v) and pos + n < len(text) and text[pos + n] == v[n]:
+                    n += 1
+                if n == len(v):
+                    full = True
+                    break
+                # 截断记号：全角「…」或 ASCII「...」（切片越界得空串，无需边界判断）
+                if text[pos + n:pos + n + 1] == "…" or text[pos + n:pos + n + 3] == "...":
+                    cut, cut_at = n, pos  # 截断点即公共前缀长
+                pos = text.find(anchor, pos + 1)
+            if cut is not None and not full:
+                hits.append(f"L{line_of(text, cut_at)} 断言 {aid} 的 {field} 被截断于第 {cut} 字"
+                            f"（底稿全长 {len(v)} 字）：「{v[max(0, cut - 20):cut]}…」"
+                            "——报告文本必须整句呈现，不许手工加省略号")
+        if short:
+            gaps.append((aid, short))
+    if hits:
+        details = hits
+        if not verbose and len(details) > DETAIL_CAP:
+            details = details[:DETAIL_CAP] + [f"…另有 {len(hits) - DETAIL_CAP} 处，用 --verbose 查看全部"]
+        rep.add(FAIL, "assert-trunc",
+                f"①级 HTML↔data.json：{len(hits)} 处断言文本被填充截断（checked {checked} 个字段）"
+                "——底稿是完整句子，呈现层不许手工截断", details)
+    elif checked:
+        rep.add(OK, "assert-trunc",
+                f"①级 HTML↔data.json：{checked} 个断言 text/evidence 字段未见填充截断形态")
+    else:
+        rep.add(OK, "assert-trunc",
+                f"底稿无合格断言字段（text/evidence 缺失或不足 {ANCHOR_LEN} 字），填充截断检测跳过")
+    if gaps:
+        ids = "、".join(a for a, _ in gaps[:10])
+        more = f"…（其余 {len(gaps) - 10} 条见明细）" if len(gaps) > 10 else ""
+        rep.add(WARN, "assert-trunc",
+                f"底稿 text/evidence 为空或不足 {ANCHOR_LEN} 字（{len(gaps)} 条：{ids}{more}）——回填底稿后再判呈现；"
+                "呈现层文本须有底稿依据（长城 A10 自撰截断实证）",
+                [f"断言 {a}：{'/'.join(f)} 缺失或不足 {ANCHOR_LEN} 字" for a, f in gaps])
 
 

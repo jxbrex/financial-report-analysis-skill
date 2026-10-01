@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>JS 重复 const 声明 · 构造用例</title>
+<style>
+  body { font-family: "Zhuque Fangsong","FangSong","仿宋","STFangsong",serif; margin: 2em auto; max-width: 960px; color: #000; }
+  table.data { border-collapse: collapse; width: 100%; }
+  .data th, .data td { border: 1px solid #999; padding: 4px 8px; }
+  .badge { font-size: .85em; padding: 0 4px; border-radius: 3px; }
+  .badge.disc { background: #e6f0fa; }
+  .srcline { font-size: .8em; color: #666; }
+</style>
+</head>
+<body>
+
+<!-- js-dup-decl 验收用例（v0.0.22）：script 区复刻长城 2026H1 JS 团灭事故形态——
+     OCF_END 顶层重复声明两次（const 重复声明 → 整段 script SyntaxError → 图表全空）。
+     机检必须 FAIL 并给出两处行号；TREND 只声明一次不得误报。
+     函数体内的 const W 是块级作用域合法重名（每个建图函数各有一份），机检按
+     「行首顶层声明」判据不计入——本文件故意放两个函数各声明一次 const W 验证不误报。 -->
+
+<div class="sect">
+  <div class="secthead" id="s0"><span class="no">00</span><span class="t">核心结论</span><span class="line"></span><span class="tag">EXECUTIVE SUMMARY</span></div>
+  <p>JS 重复 const 声明机检演示（js-dup-decl 验收样本）。</p>
+</div>
+
+<div class="sect">
+  <div class="secthead" id="s1"><span class="no">01</span><span class="t">财务总览</span><span class="line"></span><span class="tag">数据槽演示</span></div>
+  <div class="card">
+    <div class="figtitle">数据槽常量声明形态演示</div>
+    <table class="data">
+      <tr><th>指标</th><th>本期</th><th class="txt">备注</th></tr>
+      <tr><td>经营现金流净额（亿元） <span class="badge disc">披露</span></td><td>104.4</td><td class="txt">演示</td></tr>
+    </table>
+    <div class="srcline">数据来源：构造样本（js-dup-decl 验收用例） · 仅用于机检测试</div>
+  </div>
+</div>
+
+<div class="sect">
+  <div class="secthead" id="s8"><span class="no">08</span><span class="t">下期跟踪清单</span><span class="line"></span><span class="tag">先行指标仪表盘</span></div>
+  <div class="card">
+    <table class="data">
+      <tr><th>先行指标</th><th class="txt">当前读数</th><th class="txt">观察方向</th><th class="txt">数据来源</th></tr>
+      <tr><td>合同负债（亿元） <span class="badge disc">披露</span></td><td class="txt">80.1</td><td class="txt">&gt; 90 打款意愿修复 / &lt; 70 需求走弱确认</td><td class="txt">资产负债表</td></tr>
+    </table>
+    <div class="srcline">watchlist 演示 · js-dup-decl 验收用例</div>
+  </div>
+</div>
+
+<div class="foot">
+  <span>JS 重复 const 声明验收样例 · 本样例仅用于机检测试，不构成投资建议</span>
+</div>
+
+<script>
+const TREND=[1,2,3];
+const OCF_END=104.36;
+const OCF_END=0;
+function drawTrend(){
+  const W=600,H=200;
+  return W+H;
+}
+function drawBridge(){
+  const W=500;
+  return W;
+}
+</script>
+
+</body>
+</html>

@@ -5,10 +5,13 @@
     python scripts/check_render.py 报告.html --png out目录/   # 按章分片截图（Phase 8 视觉验收）
     python scripts/check_render.py 报告.html --chrome 路径    # 指定浏览器二进制
 
-三项测量（渲染后状态，静态正则看不到）：
+测量项（渲染后状态，静态正则看不到；编号与注入 JS 里的分段注释一致）：
   1. SVG 文本重叠：每个 svg 内 <text> 两两 bounding rect 相交测试（两轴重叠均 >1px 才算）
   2. HTML 元素溢出 .sheet：文本后代右/左缘超出 .sheet boundingRect >1px（豁免 svg 内部元素）
-  3. 横向裁剪：scrollWidth > clientWidth + 2 且 computed overflowX ≠ visible
+  3. 横向裁剪：scrollWidth > clientWidth + 2 且 computed overflowX ≠ visible（含页面级）
+  4. 字体回退：朱雀仿宋不可用时正文回退系统仿宋（环境级降级，🟡 不计入门禁）
+  5. 关键 SVG 非空（v0.0.22）：KEY_SVG_IDS 内「存在但无任何子元素」的 svg → 计入门禁
+     （空图无元素可测，1~3 恰好全部漏检）
 
 门禁定位：可选门禁——找不到 Chrome/Edge（或 --chrome 路径不存在）→ 打印跳过声明 + exit 0，
 check_html.py 的静态硬门禁地位不动；发现问题 exit 1。
@@ -53,7 +56,20 @@ VIEWPORTS = ((DESKTOP_W, VIEW_H, "桌面"), (MOBILE_W, VIEW_H, "窄屏"))
 SKIP_NOTE = ("渲染门禁跳过：未找到 Chrome/Edge（check_html.py 静态硬门禁仍然生效，"
              "本项为可选门禁，不阻塞交付）")
 
-# 注入页面：测量三类呈现问题 + 章节高度（供 --png 分片用）
+# 关键 SVG 清单（v0.0.22，长城 2026H1 JS 团灭事故固化：数据槽区 const 重复声明 →
+# 整段 <script> SyntaxError → 建图代码全不执行 → 所有 SVG 空白；且「空图无元素可测」
+# 让重叠/溢出/裁剪三项测量恰好全部漏检，必须点名查子元素数）。
+# 页面中不存在的 id 不查——ncrline hist<3 期、holders 非 A 股等整卡降级删除是合法形态。
+# trend=旧版式双面板图（v0.0.22 前）、revchart/npchart=v0.0.22 四宫格拆出的左右图——
+# 「存在才查」逻辑兼容新旧版式，新旧 id 都留在清单里。
+# ◆ 为什么是白名单而不是「查页面全部 svg」（这条别在瘦身时简化掉）：存量版式的
+#   spark-* 迷你折线在数据不足时**合法留空**——万科A 2026H1 实测 spark-c2s/spark-dol
+#   两个空图，改查全部 svg 会对已交付报告误报；dupont5/bridge 等更早版式 id 不入册
+#   也无妨：JS 团灭打死的是全部图，每版式至少一个 id 在册即足以检出，清单不追穷举。
+KEY_SVG_IDS = ("trend", "revchart", "npchart", "ncrline", "capexbars", "effline",
+               "ocfbridge", "segbridge", "dupontstack", "holders")
+
+# 注入页面：测量上述五项呈现问题 + 章节高度（供 --png 分片用）
 MEASURE_JS = """
 <script id="fra-measure">
 window.addEventListener('load', () => setTimeout(() => {
@@ -79,6 +95,7 @@ window.addEventListener('load', () => setTimeout(() => {
       }
   }
 
+  /* 2. HTML 元素溢出 .sheet + 3. 横向裁剪（元素级与页面级）——分段判据见下方各注释 */
   const sheet = document.querySelector('.sheet');
   if (sheet) {
     const sb = sheet.getBoundingClientRect();
@@ -144,6 +161,18 @@ window.addEventListener('load', () => setTimeout(() => {
     if (!document.fonts.check('12px "Zhuque Fangsong"'))
       report.fontwarn.push('朱雀仿宋未加载，正文回退系统仿宋（可读性降级，非报告内容问题）');
   } catch (e) {}
+
+  /* 5. 关键 SVG 非空（v0.0.22，长城 2026H1 JS 团灭事故）：建图脚本 SyntaxError
+     未执行时这些 svg 存在但没有任何子元素——重叠/溢出测量恰好全部漏检。
+     id 清单由 Python 侧 KEY_SVG_IDS 注入；页面不存在的 id 不查（整卡降级合法）。
+     判据用 childElementCount 而非图形标签清单：本技能建图只产 path/rect/line/
+     circle/text，标签清单会漏掉将来新增的标签，且空 <g> 包装会被误判成已画 */
+  report.emptysvg = [];
+  for (const id of %KEYIDS%) {
+    const el = document.getElementById(id);
+    if (el && el.tagName.toLowerCase() === 'svg' && el.childElementCount === 0)
+      report.emptysvg.push(id);
+  }
 
   /* 本机 Edge 的 --dump-dom stdout 为空（实测），测量结果改由同步 XHR 回传本地端口 */
   const x = new XMLHttpRequest();
@@ -269,7 +298,8 @@ def measure(chrome: str, html: str, work: Path, view_w: int,
     threading.Thread(target=srv.serve_forever, daemon=True).start()
     try:
         page = work / f"measure-{view_w}.html"
-        page.write_text(variant(html, MEASURE_JS.replace("%PORT%", str(port))),
+        page.write_text(variant(html, MEASURE_JS.replace("%PORT%", str(port))
+                                .replace("%KEYIDS%", json.dumps(KEY_SVG_IDS))),
                         encoding="utf-8")
         # 终止机制用 --screenshot 探针：本机 Edge 的 --dump-dom 会空输出并提前退出，
         # 而 screenshot 通道实测可靠（渲染完成后写盘并退出）
@@ -361,9 +391,23 @@ def main() -> int:
             if tag == "桌面":  # 字体回退是环境级降级，与视口无关，报一次
                 for item in report.get("fontwarn") or []:
                     print(f"🟡 [font] {item}")
-            n = lambda k: len(report[k])
+                # 关键 SVG 空图与视口无关（JS 失败是确定性的），只报一次、计入门禁。
+                # 归因按命中数分支，别把两种成因混成一句话：多图齐空=建图脚本整体
+                # 没跑（const 重名团灭整段 <script>）；单图空=该图数据缺、按模板约定
+                # 本该删掉这个 svg（模板四宫格/现金时序卡的降级注释）
+                empty = report.get("emptysvg") or []
+                blame = ("建图 JS 未执行：数据槽区 const 重复声明会团灭整个 <script> 块"
+                         "（v0.0.22）" if len(empty) >= 2 else
+                         "该图数据缺：按模板约定删对应 svg 并在 srcline 注明"
+                         "（单图空不是 JS 团灭）")
+                for svg_id in empty:
+                    vp_problems += 1
+                    print(f"🔴 [{tag}·empty-svg] svg#{svg_id} 存在但无任何子元素——{blame}")
+            n = lambda k: len(report.get(k) or [])
+            # empty-svg 只在桌面视口计数与打印，窄屏不重复报一个没有明细的数字
+            es = str(n("emptysvg")) if tag == "桌面" else "—（桌面已报）"
             print(f"--- [{tag}] 汇总：overlap {n('overlaps')} · spill {n('spills')} · "
-                  f"clipped {n('clipped')} · pageclip {n('pageclip')} ---")
+                  f"clipped {n('clipped')} · pageclip {n('pageclip')} · empty-svg {es} ---")
             problems += vp_problems
 
         if args.png:

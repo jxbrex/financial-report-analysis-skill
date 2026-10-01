@@ -19,7 +19,8 @@ calc.py 只校验数据层（data.json）；报告 HTML 层此前没有任何机
 模块布局（v0.0.19 起）：
     check_html.py       本入口：结构/硬规则族 + 主流程
     check_html_text.py  呈现文本族（文风/标签/格式类检查，含 v0.0.19 三条新规则）
-    check_html_common.py 共享助手；check_html_t8.py T8 数字回验整族
+    check_html_common.py 共享助手；check_html_t8.py T8 数字回验整族 +
+                        断言填充截断检测（assert-trunc，v0.0.22）
 
 本模块直接实现的检查（★ = 启发式，有误报/漏报，输出「待人工确认」而非断言错误）：
   1. placeholder  [FAIL] 未替换的 {{占位}}。HTML 注释内的不算——模板的
@@ -46,6 +47,11 @@ calc.py 只校验数据层（data.json）；报告 HTML 层此前没有任何机
   11·二. review-shape [WARN] 回看章 ❌ 行复盘列必填误差归因（假设错/时点错/口径错）。
   14. dupont-stack [FAIL]（仅 --json）ΔROE 堆叠条数据槽 ↔ derived.dupont 三效应
                   与 closure_gap 一致性——口径差段不许视觉隐瞒。
+  22. js-dup-decl [FAIL] 数据槽区 const 重复声明（v0.0.22，长城 2026H1 JS 团灭
+                  事故）——同名顶层 const ≥2 次即整段 <script> SyntaxError，
+                  全部 SVG 图表空白。判据只认 <script> 内的行首顶层声明；建图
+                  函数体内的局部 const（各函数都有 const W=…）是合法块级作用域
+                  重名，不计。
 
 呈现文本族（check_html_text.py，本入口调用）：
   2. bare-number  [WARN] ★ 关键数字没有挂证据等级徽章（.badge.disc/der/est）。
@@ -75,6 +81,12 @@ calc.py 只校验数据层（data.json）；报告 HTML 层此前没有任何机
   21. gap-declaration [FAIL] v0.0.21 数据缺口声明集中落点：s4 有 ❓ 断言时必须
                   存在「数据缺口声明」行，❓ 逐条写明缺什么数据（text-mining.md
                   第七节呈现规范 2；美的/卫星规范与执行脱节实证）。无 s4 或 ❓=0 跳过。
+
+T8 回验族（check_html_t8.py，仅 --json 启用；整族不占上方序号——序号是全局唯一
+口径，跨模块重号会让「14」这类指代歧义）：
+  num-vs-json ①级 HTML↔json 数字笔误 · json-md ②级 json↔原文 md 行号回核 ·
+  undisclosed 未披露声明反向检索（v0.0.20）· assert-trunc 断言 text/evidence
+  填充截断 FAIL + 底稿空字段 WARN（v0.0.22）。
 
 启发式检查的边界（诚实声明，改判据前先读这段）：
   · bare-number 的判据是：在 <td> / KPI 卡 .v / .figtitle 里出现「3 位以上数字
@@ -117,7 +129,8 @@ for _s in (sys.stdout, sys.stderr):
 from check_html_common import (FAIL, WARN, OK, Report, DETAIL_CAP,
                                mask_ranges, tag_ranges, line_of, snippet,
                                Sections, _section_seg)
-from check_html_t8 import check_numbers_vs_json, check_json_vs_md, check_undisclosed_claims
+from check_html_t8 import (check_numbers_vs_json, check_json_vs_md,
+                           check_undisclosed_claims, check_assert_truncation)
 # 呈现文本族（v0.0.19 拆出）；PCTILE_LABEL 在此再导出——回归契约锁从本模块 import
 from check_html_text import (  # noqa: F401
     PCTILE_LABEL,
@@ -406,6 +419,43 @@ def check_review_shape(text, rep):
         rep.add(OK, "review-shape", "回看章 ❌ 行均带误差归因（T6）")
 
 
+# ─────────────────── v0.0.22：JS 重复 const 声明（FAIL） ───────────────────
+
+# 数据槽常量声明：只认 <script> 内的行首顶层形态（^const）——建图函数体内的局部
+# const（每个函数都有 const W=+s.viewBox…）是合法块级作用域重名，缩进即排除。
+# debt: 两条天花板——① 行首判据依赖「数据槽 const 顶格写」的模板约定，模板改成缩进
+#       声明会漏检；② 多声明者语句（const A=…,B=…;）只捕获首名，B 的重名漏检（模板
+#       框架常量 INK/C1 即一行多名形态）。数据槽约定一槽一句，真出现合并声明的数据槽
+#       再升级判据（按语句拆逗号取名），现在不预先写解析器。
+CONST_DECL_RE = re.compile(r"(?m)^const\s+([A-Z_][A-Z0-9_]*)\s*=")
+
+
+def check_js_dup_decl(raw, script_ranges, rep):
+    """数据槽区 const 重复声明（v0.0.22，长城 2026H1 JS 团灭事故固化）：
+    同名 const 顶层重复声明 → 整个 <script> 块 SyntaxError → 全部 SVG 图表空白。
+    占位符检查只认 {{}} 形态、渲染几何测量「空图无元素可测」，两道旧门禁全漏。
+    扫 raw 原文（script 区在 body 视图已被屏蔽）但只取 <script> 区间——main 已算好
+    script_ranges，与 check_hardrules 收窄到 css_ranges 同一形态；注释/CSS 里的
+    说明性 const 不计。"""
+    decls = {}
+    for a, b in script_ranges:
+        for m in CONST_DECL_RE.finditer(raw, a, b):
+            decls.setdefault(m.group(1), []).append(line_of(raw, m.start()))
+    dups = {k: v for k, v in decls.items() if len(v) >= 2}
+    if not dups:
+        rep.add(OK, "js-dup-decl",
+                (f"{len(decls)} 个顶层 const（含框架常量）无重名——重复声明会让整段 "
+                 "script SyntaxError、图表全空") if decls else
+                "无顶层 const 声明（无 <script> 区，或全为函数内局部量）")
+        return
+    details = [f"const {k} 声明 {len(v)} 次（第 {'、'.join(str(x) for x in v)} 行）"
+               "——JS const 禁同名重复声明，整个 <script> 块 SyntaxError、所有图表空白；"
+               "只保留数据槽区一处声明，降级值改写该处而不是再声明一遍"
+               for k, v in sorted(dups.items())]
+    rep.add(FAIL, "js-dup-decl",
+            f"{len(dups)} 个 const 重复声明——JS SyntaxError，全部 SVG 图表将空白", details)
+
+
 # ─────────────────── v0.0.15：ΔROE 堆叠条数据槽比对（FAIL，仅 --json） ───────────────────
 
 def check_dupont_stack(raw, data, rep):
@@ -500,6 +550,7 @@ def main():
     check_bare_numbers(body, rep, args.verbose, secs)
     check_srcline(body, rep, args.verbose, secs)
     check_hardrules(raw, css_ranges, rep)
+    check_js_dup_decl(raw, script_ranges, rep)
     check_required(body, rep)
     check_structure(body, rep, secs)
     check_s2_shape(body, rep)
@@ -521,6 +572,7 @@ def main():
     if data is not None:
         check_dupont_stack(raw, data, rep)
         check_percentile_map(body, data, rep)
+        check_assert_truncation(body, data, rep, args.verbose)
         check_numbers_vs_json(body, raw, data, rep, args.verbose)
         check_json_vs_md(data, Path(args.json_path).resolve(), rep, args.verbose)
         check_undisclosed_claims(body, data, Path(args.json_path).resolve(), rep)

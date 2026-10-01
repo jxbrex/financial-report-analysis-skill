@@ -58,6 +58,13 @@ def tag_ranges(text, tag):
     return out
 
 
+def visible_text(body):
+    """body（已屏蔽注释/style/script）再去掉标签 → 纯可见文本视图。
+    标签区间等长屏蔽、换行不动 → line_of 的行号仍与 raw 一致。
+    t8 的 num-vs-json 与 assert-trunc 共用此一处定义（v0.0.22 前各写一遍同型代码）。"""
+    return mask_ranges(body, [(m.start(), m.end()) for m in re.finditer(r"<[^>]+>", body)])
+
+
 def line_of(text, pos):
     return text.count("\n", 0, pos) + 1
 

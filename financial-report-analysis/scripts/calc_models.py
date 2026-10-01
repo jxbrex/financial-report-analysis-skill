@@ -127,20 +127,16 @@ def fill_derived(data):
     return n
 
 
-def _spark_key(name):
-    return {"gross_margin": "gm", "net_margin": "nm", "debt_to_assets": "da",
-            "cash_to_sales": "c2s"}.get(name, name)
-
-
 def write_fillsheet(data, path):
-    """填充速查表：P8 机械槽位的值+徽章+语义色+SPARK 数组，模型照抄不进算术。"""
+    """填充速查表：P8 机械槽位的值+徽章+语义色+JS 槽数组，模型照抄不进算术。"""
     ratios = ((data.get("derived") or {}).get("ratios")) or {}
     L = []
     L.append("# 填充速查表（calc.py --fill 产出——机械槽位照抄，判断槽位自己写）\n")
     L.append("> 徽章：der=两数运算；语义色：up=利好/dn=利空/不染=语境中性（方向语义表）。")
     L.append("> **本表是 Phase 8 唯一槽位契约（v0.0.18）**：填充只看本表，不需要对照 examples 标杆；"
              "数值一律从本表复制，禁凭记忆手写（check_html T8① 会回验 HTML↔json 一致性）。")
-    L.append("\n## S1 四维表（本期 / 上期 / 较上期 / SPARK hist）\n")
+    L.append("\n## S1 四维表（本期 / 上期 / 较上期；v0.0.22 起 spark 趋势列退役，"
+             "五期序列改由 EFF_TS/trend 图区呈现）\n")
     L.append("| 指标 | 本期 | 上期 | 较上期 | 语义色 | badge |")
     L.append("|---|---|---|---|---|---|")
     for name, label in ROW_LABEL.items():
@@ -155,10 +151,6 @@ def write_fillsheet(data, path):
         arrow = "—" if d is None else ("▲" if d > 0 else ("▼" if d < 0 else "→"))
         dv = "—" if d is None else f"{arrow} {abs(d):.4f}"
         L.append(f"| {label} | {cur} | {prev} | {dv} | {cls} | der |")
-    L.append("\nSPARK 槽（JS 区粘贴）：")
-    for name in ROW_LABEL:
-        hist = (ratios.get(name) or {}).get("hist") or []
-        L.append(f"- `SPARK.{_spark_key(name)}` = {hist}")
     du = (data.get("derived") or {}).get("dupont") or {}
     L.append("\n## S1 杜邦双卡（v1.3）\n")
     fragile = "，双驱动护栏命中→标「双驱动（%s/%s）」" % (du.get("driver"), du.get("driver_second")) \
@@ -246,6 +238,8 @@ def write_fillsheet(data, path):
     rm = (data.get("derived") or {}).get("risk_models") or {}
     st = (data.get("derived") or {}).get("stress") or {}
     L.append("\n## S7 健康检验数值行\n")
+    L.append("- 行序纪律（v0.0.22 用户定案）：固定主题序=模板行序照抄，不按判定重排——"
+             "判定分布由徽章色 + figtitle 汇总（「N 项：x 过 y 注意 z 异常」）传达")
     L.append(f"- 短债覆盖 {ratios.get('short_debt_cover', {}).get('cur')} 倍 · "
              f"X6 {ratios.get('ocf_to_liab', {}).get('cur')}")
     L.append(f"- Altman {rm.get('altman_z') or 'null（市值缺）'} · Ohlson {rm.get('ohlson_o') or 'null'}")
@@ -284,7 +278,8 @@ def write_fillsheet(data, path):
 
     L.append("\n## S1 TREND 槽（JS 区粘贴；np_dt/roe 缺 hist 留空数组；**gm 填百分数**"
              "（绘图不做 ×100，填小数会显示成 0.2%），**roe 存小数**（绘图 ×100）；"
-             "金额序列一律 R2 两位小数，v0.0.19；capex=趋势图卡底条，v0.0.20）\n")
+             "金额序列一律 R2 两位小数，v0.0.19；capex=四宫格右下 Capex·研发双柱图，v0.0.20；"
+             "ocf=npchart 经营现金流柱（可负）、rd=右下图研发费用柱，v0.0.22）\n")
     labels = cts.get("periods") or cv.get("periods") or []
     _aln = lambda arr: ([None] * (len(labels) - len(arr)) + arr)[-len(labels):] \
         if labels and arr else arr
@@ -294,9 +289,18 @@ def write_fillsheet(data, path):
              f"rev:{json.dumps(_r2l(_aln(_hist(inc.get('revenue')))))},"
              f"np:{json.dumps(_r2l(_aln(_hist(inc.get('np_at')))))},"
              f"np_dt:{json.dumps(_r2l(_aln(_hist(inc.get('np_dt')))))},"
+             f"ocf:{json.dumps(_r2l(_aln(_hist(cfs.get('ocf')))))},"
              f"roe:{json.dumps(_aln(_hist(roe_n)))},"
              f"gm:{json.dumps(_gm_pct)},"
-             f"capex:{json.dumps(_r2l(_aln(_hist(cfs.get('capex')))))}}};")
+             f"capex:{json.dumps(_r2l(_aln(_hist(cfs.get('capex')))))},"
+             f"rd:{json.dumps(_r2l(_aln(_hist(inc.get('rd_exp')))))}}};")
+
+    L.append("\n## S1 EFF_TS 槽（JS 区粘贴；v0.0.22 营运效率三线图——接替退役的四维表 "
+             "spark 列；dio/dso/ccc 单位均为天，CCC 可负；某序列不足 2 个非空点整线不画）\n")
+    L.append(f"const EFF_TS={{labels:{json.dumps(labels, ensure_ascii=False)},"
+             f"dio:{json.dumps(_r2l(_aln(_hist(ratios.get('dio')))))},"
+             f"dso:{json.dumps(_r2l(_aln(_hist(ratios.get('dso')))))},"
+             f"ccc:{json.dumps(_r2l(_aln(_hist(ratios.get('ccc')))))}}};")
 
     if du:
         _p1 = lambda x: None if x is None else round(x * 100, 1)

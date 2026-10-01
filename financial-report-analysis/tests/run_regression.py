@@ -343,7 +343,9 @@ def main():
     print(f"技能根：{SKILL}")
     print(f"门禁：  {CALC}")
 
-    missing = [p for p in (CALC, MOUTAI, KANGDEXIN, VANKE, WANHUA) if not p.exists()]
+    missing = [p for p in (CALC, MOUTAI, KANGDEXIN, VANKE, WANHUA,
+                           HERE / "dup_decl_demo.html", HERE / "assert_trunc_demo.html",
+                           HERE / "assert_trunc_demo.json") if not p.exists()]
     if missing:
         for p in missing:
             print(f"❌ 缺少文件：{p}")
@@ -351,6 +353,30 @@ def main():
         return 1
 
     total = passed = 0
+
+    def _block(title, checks, fail_msg):
+        """打印一个断言块（【title】+ 逐条 ✅/❌）并计入总数；全绿返回 True，否则打印
+        失败提示返回 False（调用方 return 1）。收编各版本构造块与 --fill/--min-recon/
+        md_clean/公式直测块共 11 份同型「print + for + if not all」样板。"""
+        nonlocal total, passed
+        print(f"\n【{title}】")
+        for ok, desc in checks:
+            print(f"  {'✅' if ok else '❌'} {desc}")
+            total += 1
+            passed += bool(ok)
+        if all(ok for ok, _ in checks):
+            return True
+        print(f"❌ 回归未通过：{fail_msg}")
+        return False
+
+    def _check_html(html, json_path=MOUTAI):
+        """跑 check_html.py（默认配茅台底稿走 --json/T8 路径；json_path=None 则不带 --json）。"""
+        cmd = [sys.executable, str(SKILL / "scripts" / "check_html.py"), str(html)]
+        if json_path:
+            cmd += ["--json", str(json_path)]
+        return subprocess.run(cmd, capture_output=True, text=True,
+                              encoding="utf-8", errors="replace")
+
     cases = []
     for title, fixture, checker in (
         ("贵州茅台 2025 年报 · 干净样本（抓误报）", MOUTAI, check_moutai),
@@ -417,14 +443,8 @@ def main():
 
     # ── T8 数字回验三断言（v0.0.6）──
     # ①级：故意改错一个数字必须 FAIL 且指出位置；②级：src 行号回原文核对必须被执行
-    def run_check_html(html):
-        return subprocess.run(
-            [sys.executable, str(SKILL / "scripts" / "check_html.py"),
-             str(html), "--json", str(MOUTAI)],
-            capture_output=True, text=True, encoding="utf-8", errors="replace")
-
-    t8_ok = run_check_html(HERE / "t8_demo.html")
-    t8_bad = run_check_html(HERE / "t8_demo_bad.html")
+    t8_ok = _check_html(HERE / "t8_demo.html")
+    t8_bad = _check_html(HERE / "t8_demo_bad.html")
     t8_checks = [
         (t8_ok.returncode == 0,
          f"T8：正确样例 exit 0（实际 {t8_ok.returncode}）"),
@@ -435,25 +455,18 @@ def main():
         ("dupont-stack" in (t8_ok.stdout or ""),
          "v0.0.15：dupont-stack 堆叠条数据槽校验被执行（--json 路径）"),
     ]
-    print("\n【T8 数字回验（check_html --json）】")
-    for ok, desc in t8_checks:
-        print(f"  {'✅' if ok else '❌'} {desc}")
-        total += 1
-        passed += ok
-    if not all(ok for ok, _ in t8_checks):
-        print("❌ 回归未通过：T8 数字回验断言失败，逐条核对上方 ❌。")
+    if not _block("T8 数字回验（check_html --json）", t8_checks,
+                  "T8 数字回验断言失败，逐条核对上方 ❌。"):
         return 1
 
     # ── v0.0.18 新规则构造用例（禁词 / 嵌套 srcline / 分位映射错配，各一反例）──
     def _run_html_str(s):
+        """HTML 片段写临时件跑机检（配茅台底稿）——各版本构造反例共用。"""
         with tempfile.NamedTemporaryFile("w", suffix=".html", delete=False, encoding="utf-8") as f:
             f.write(s)
             tmp = f.name
         try:
-            return subprocess.run(
-                [sys.executable, str(SKILL / "scripts" / "check_html.py"),
-                 tmp, "--json", str(MOUTAI)],
-                capture_output=True, text=True, encoding="utf-8", errors="replace")
+            return _check_html(tmp)
         finally:
             os.unlink(tmp)
 
@@ -484,13 +497,8 @@ def main():
          and "5/5" in (bad_pct.stdout or ""),
          "v0.0.18 构造用例：分位白描错配必 FAIL（percentile-map，茅台净利率 0 分位应标 5/5）"),
     ]
-    print("\n【v0.0.18 新规则构造用例】")
-    for ok, desc in v18_checks:
-        print(f"  {'✅' if ok else '❌'} {desc}")
-        total += 1
-        passed += ok
-    if not all(ok for ok, _ in v18_checks):
-        print("❌ 回归未通过：v0.0.18 新规则构造用例失败，逐条核对上方 ❌。")
+    if not _block("v0.0.18 新规则构造用例", v18_checks,
+                  "v0.0.18 新规则构造用例失败，逐条核对上方 ❌。"):
         return 1
 
     # ── v0.0.19 新规则构造用例（断言计数错配 FAIL / 旧长标签 WARN / 三位小数 WARN）──
@@ -521,13 +529,8 @@ def main():
          and "1826.61009" in (warn_dec.stdout or ""),
          "v0.0.19 构造用例：可见文本五位小数必出 WARN（decimal-places）"),
     ]
-    print("\n【v0.0.19 新规则构造用例】")
-    for ok, desc in v19_checks:
-        print(f"  {'✅' if ok else '❌'} {desc}")
-        total += 1
-        passed += ok
-    if not all(ok for ok, _ in v19_checks):
-        print("❌ 回归未通过：v0.0.19 新规则构造用例失败，逐条核对上方 ❌。")
+    if not _block("v0.0.19 新规则构造用例", v19_checks,
+                  "v0.0.19 新规则构造用例失败，逐条核对上方 ❌。"):
         return 1
 
     # ── v0.0.20 新规则构造用例（undisclosed 未披露声明反向检索：卫星化学失守模式固化）──
@@ -547,14 +550,27 @@ def main():
             json.dump(data, f, ensure_ascii=False)
             tmp_json = f.name
         try:
-            return subprocess.run(
-                [sys.executable, str(SKILL / "scripts" / "check_html.py"),
-                 tmp_html, "--json", tmp_json],
-                capture_output=True, text=True, encoding="utf-8", errors="replace")
+            return _check_html(tmp_html, tmp_json)
         finally:
             os.unlink(tmp_html)
             os.unlink(tmp_md)
             os.unlink(tmp_json)
+
+    sys.path.insert(0, str(SKILL / "scripts"))
+    from calc_models import write_fillsheet
+
+    def _fillsheet_slot(data, marker, terminator):
+        """独立跑一次 write_fillsheet（临时 md），返回 marker 与 terminator 之间的槽体；
+        marker 不存在返回 None。每次调用都重跑、不复用前块文本（防跨块隐式依赖静默
+        断裂，v0.0.21 纪律）。"""
+        with tempfile.NamedTemporaryFile("w", suffix=".md", delete=False, encoding="utf-8") as f:
+            tmp = f.name
+        try:
+            write_fillsheet(data, tmp)
+            seg = open(tmp, encoding="utf-8").read().split(marker, 1)
+            return seg[1].split(terminator, 1)[0] if len(seg) == 2 else None
+        finally:
+            os.unlink(tmp)
 
     _DECL = ('<div class="card"><table class="data"><tr><th>指标</th></tr>'
              '<tr><td>净现比 <span class="badge der">推算</span></td></tr></table>'
@@ -568,16 +584,8 @@ def main():
     # 守卫要求生产者产出合法的 null）
     _data = json.loads(MOUTAI.read_text(encoding="utf-8"))
     _data["derived"]["cash_ts"]["ncr_mean5"] = None
-    with tempfile.NamedTemporaryFile("w", suffix=".md", delete=False, encoding="utf-8") as f:
-        _fs = f.name
-    try:
-        sys.path.insert(0, str(SKILL / "scripts"))
-        from calc_models import write_fillsheet
-        write_fillsheet(_data, _fs)
-        _fs_text = open(_fs, encoding="utf-8").read()
-        mean_null_ok = "mean:None" not in _fs_text and "mean:null" in _fs_text
-    finally:
-        os.unlink(_fs)
+    _ncr_slot = _fillsheet_slot(_data, "const NCR_TS={", "};") or ""
+    mean_null_ok = "mean:None" not in _ncr_slot and "mean:null" in _ncr_slot
     v20_checks = [
         (bad_und.returncode == 1 and "undisclosed" in (bad_und.stdout or ""),
          "v0.0.20 构造用例：声明「无补充资料」但 md 检出补充资料必 FAIL（undisclosed）"),
@@ -586,13 +594,8 @@ def main():
         (mean_null_ok,
          "v0.0.20 构造用例：cash_ts 均值缺省时 fillsheet 产出 mean:null（JS 合法），不泄漏 Python repr（M2 锚）"),
     ]
-    print("\n【v0.0.20 新规则构造用例】")
-    for ok, desc in v20_checks:
-        print(f"  {'✅' if ok else '❌'} {desc}")
-        total += 1
-        passed += ok
-    if not all(ok for ok, _ in v20_checks):
-        print("❌ 回归未通过：v0.0.20 新规则构造用例失败，逐条核对上方 ❌。")
+    if not _block("v0.0.20 新规则构造用例", v20_checks,
+                  "v0.0.20 新规则构造用例失败，逐条核对上方 ❌。"):
         return 1
 
     # ── v0.0.21 新规则构造用例（gap-declaration：❓ 断言须进数据缺口声明行）──
@@ -607,17 +610,10 @@ def main():
         _SECT4 + _S4_CARD +
         '<div class="srcline">数据缺口声明：断言乙——缺分部收入口径（分部附注可补）</div></div>')
     # SEG_ENDS 槽锚（v0.0.21）：fillsheet 必须产出合法 JS 数组字面量
-    # （json.dumps 包裹，None→null——mean:None 整页图表全灭教训的同型防线）；
-    # 本块独立跑 write_fillsheet，不复用前块文本（防跨块隐式依赖静默断裂）
-    with tempfile.NamedTemporaryFile("w", suffix=".md", delete=False, encoding="utf-8") as f:
-        _fs21 = f.name
-    try:
-        write_fillsheet(json.loads(MOUTAI.read_text(encoding="utf-8")), _fs21)
-        _seg_slot = open(_fs21, encoding="utf-8").read().split("const SEG_ENDS=[", 1)
-        seg_ends_ok = (len(_seg_slot) == 2
-                       and "None" not in _seg_slot[1].split("];", 1)[0])
-    finally:
-        os.unlink(_fs21)
+    # （json.dumps 包裹，None→null——mean:None 整页图表全灭教训的同型防线）
+    _seg_slot = _fillsheet_slot(json.loads(MOUTAI.read_text(encoding="utf-8")),
+                                "const SEG_ENDS=[", "];")
+    seg_ends_ok = _seg_slot is not None and "None" not in _seg_slot
     v21_checks = [
         (bad_gap.returncode == 1 and "未见「数据缺口声明」行" in (bad_gap.stdout or ""),
          "v0.0.21 构造用例：❓ 断言无数据缺口声明行必 FAIL（gap-declaration）"),
@@ -626,13 +622,42 @@ def main():
         (seg_ends_ok,
          "v0.0.21 构造用例：fillsheet 产出 const SEG_ENDS=[…] 合法 JS（无 Python None 泄漏）"),
     ]
-    print("\n【v0.0.21 新规则构造用例】")
-    for ok, desc in v21_checks:
-        print(f"  {'✅' if ok else '❌'} {desc}")
-        total += 1
-        passed += ok
-    if not all(ok for ok, _ in v21_checks):
-        print("❌ 回归未通过：v0.0.21 新规则构造用例失败，逐条核对上方 ❌。")
+    if not _block("v0.0.21 新规则构造用例", v21_checks,
+                  "v0.0.21 新规则构造用例失败，逐条核对上方 ❌。"):
+        return 1
+
+    # ── v0.0.22 新规则构造用例（长城 2026H1 填充事故复盘：JS 团灭 + 断言截断）──
+    _dup = _check_html(HERE / "dup_decl_demo.html", json_path=None)
+    _trunc = _check_html(HERE / "assert_trunc_demo.html", HERE / "assert_trunc_demo.json")
+    # 不命中对照：顶层单份 const + 函数内局部 const W/H（块级作用域合法重名）不得误报
+    _nodup = _run_html_str(
+        _SECT + '<div class="card"><table class="data"><tr><th>指标</th></tr>'
+        '<tr><td>净利率</td></tr></table><div class="srcline">对照</div></div></div>'
+        '<script>\nconst TREND={a:1};\nfunction f(){\n const W=1;const H=2;\n return W+H;\n}\n</script>')
+    # EFF_TS/TREND 新槽锚：fillsheet 必须产出两槽且为合法 JS（无 Python None 泄漏）
+    _eff_slot = _fillsheet_slot(json.loads(MOUTAI.read_text(encoding="utf-8")),
+                                "const EFF_TS={", "};") or ""
+    eff_ok = all(k in _eff_slot for k in ("dio:", "dso:", "ccc:")) and "None" not in _eff_slot
+    _tr_slot = _fillsheet_slot(json.loads(MOUTAI.read_text(encoding="utf-8")),
+                               "const TREND={", "};") or ""
+    trend_ok = all(k in _tr_slot for k in ("ocf:", "rd:")) and "None" not in _tr_slot
+    v22_checks = [
+        # 断言钉「[FAIL] 规则名」整段而非只查 code：OK 行同样含 code，仅查 code 不具鉴别力
+        (_dup.returncode == 1 and "[FAIL] js-dup-decl" in (_dup.stdout or "")
+         and "OCF_END" in (_dup.stdout or ""),
+         "v0.0.22 构造用例：const 顶层重复声明必 FAIL（js-dup-decl，长城 JS 团灭复盘）"),
+        ("无重名" in (_nodup.stdout or ""),
+         "v0.0.22 构造用例：顶层单份 const + 函数内局部 const 不误报（js-dup-decl 判据=行首顶层）"),
+        # 计数锚带全角冒号前缀：裸「1 处」会被「11 处」子串命中
+        (_trunc.returncode == 1 and "[FAIL] assert-trunc" in (_trunc.stdout or "")
+         and "A1 的 text" in (_trunc.stdout or "")
+         and "：1 处断言文本被填充截断" in (_trunc.stdout or ""),
+         "v0.0.22 构造用例：断言 text 截断必 FAIL（assert-trunc；同 json 完整断言不误报）"),
+        (eff_ok and trend_ok,
+         "v0.0.22 构造用例：fillsheet 产出 EFF_TS/TREND（含 ocf/rd）槽合法 JS（无 None 泄漏）"),
+    ]
+    if not _block("v0.0.22 新规则构造用例", v22_checks,
+                  "v0.0.22 新规则构造用例失败，逐条核对上方 ❌。"):
         return 1
 
     # ── 分位白描映射双写契约锁（v0.0.18）：check_html_text.py 与 calc_models.py 各持一份
@@ -641,12 +666,10 @@ def main():
     sys.path.insert(0, str(SKILL / "scripts"))
     from check_html import PCTILE_LABEL as _PL_CHECK
     from calc_models import PCTILE_LABEL as _PL_FILL
-    pl_ok = _PL_CHECK == _PL_FILL
-    print(f"\n【分位白描映射契约锁】{'✅' if pl_ok else '❌'} check_html.PCTILE_LABEL == calc_models.PCTILE_LABEL")
-    total += 1
-    passed += pl_ok
-    if not pl_ok:
-        print("❌ 回归未通过：白描映射双写漂移，同步两处后再提交。")
+    if not _block("分位白描映射契约锁",
+                  [(_PL_CHECK == _PL_FILL,
+                    "check_html.PCTILE_LABEL == calc_models.PCTILE_LABEL")],
+                  "白描映射双写漂移，同步两处后再提交。"):
         return 1
 
     # ── 渲染测量条件冒烟（v0.0.9 L2）──
@@ -659,15 +682,11 @@ def main():
     render_out = render_smoke.stdout or ""
     if "渲染门禁跳过" in render_out:
         print("\n【渲染测量冒烟】check_render.py：SKIP（本机无 Chrome/Edge，可选门禁不阻塞）")
-    else:
-        render_ok = render_smoke.returncode == 0 and "渲染测量 0 问题" in render_out
-        print(f"\n【渲染测量冒烟】check_render.py 跑 t8_demo.html："
-              f"{'✅' if render_ok else '❌'} exit {render_smoke.returncode}")
-        total += 1
-        passed += render_ok
-        if not render_ok:
-            print("❌ 回归未通过：渲染测量冒烟未绿，看上方 check_render 输出。")
-            return 1
+    elif not _block("渲染测量冒烟",
+                    [(render_smoke.returncode == 0 and "渲染测量 0 问题" in render_out,
+                      f"check_render.py 跑 t8_demo.html：exit {render_smoke.returncode}")],
+                    "渲染测量冒烟未绿，看上方 check_render 输出。"):
+        return 1
 
     # ── --fill 幂等金标准（v0.0.13；v0.0.17 起字符串叶含 note/src 纳入精确比对）──
     # 数值容差 5e-4；字符串叶（driver/zone/note/src 等）必须逐字不变——万科轮实证：
@@ -715,25 +734,16 @@ def main():
             fill_checks.append((leak is None,
                                 f"--fill JS 槽形态 {fx[:4]}…：fillsheet 无元组 repr 泄漏"
                                 + (f"（命中 {leak.group(0)[:30]}…）" if leak else "")))
-    print("\n【--fill 幂等金标准（v0.0.13）】")
-    for ok, desc in fill_checks:
-        print(f"  {'✅' if ok else '❌'} {desc}")
-        total += 1
-        passed += ok
     gate_help = subprocess.run([sys.executable, str(SKILL / "scripts" / "gate.py"), "--help"],
                                capture_output=True, text=True, encoding="utf-8", errors="replace")
-    print(f"  {'✅' if gate_help.returncode == 0 else '❌'} gate.py 单入口可运行（--help exit 0）")
-    total += 1
-    passed += gate_help.returncode == 0
+    fill_checks.append((gate_help.returncode == 0, "gate.py 单入口可运行（--help exit 0）"))
     # v0.0.17：ts_fetch 冒烟——零测试短板补齐（只验可运行与用法文本，不触网）
     ts_help = subprocess.run([sys.executable, str(SKILL / "scripts" / "ts_fetch.py"), "--help"],
                              capture_output=True, text=True, encoding="utf-8", errors="replace")
-    ts_ok = ts_help.returncode == 0 and "api_name" in (ts_help.stdout or "")
-    print(f"  {'✅' if ts_ok else '❌'} ts_fetch.py 取数通道可运行（--help exit 0 且含 api_name）")
-    total += 1
-    passed += ts_ok
-    if not all(ok for ok, _ in fill_checks) or gate_help.returncode != 0 or not ts_ok:
-        print("❌ 回归未通过：--fill 幂等或 gate.py / ts_fetch.py 断言失败。")
+    fill_checks.append((ts_help.returncode == 0 and "api_name" in (ts_help.stdout or ""),
+                        "ts_fetch.py 取数通道可运行（--help exit 0 且含 api_name）"))
+    if not _block("--fill 幂等金标准（v0.0.13）+ 单入口冒烟", fill_checks,
+                  "--fill 幂等或 gate.py / ts_fetch.py 断言失败。"):
         return 1
 
     # ── --min-recon 硬门禁（v0.0.17，任务 5）：康得新 14/17——阈值 15 必 FAIL、14 通过 ──
@@ -748,13 +758,8 @@ def main():
          and parse_summary(mr15.stdout)["FAIL"] >= 1,
          "--min-recon 15：FAIL 计入汇总行（recon-coverage 升 FAIL）"),
     ]
-    print("\n【--min-recon 硬门禁（v0.0.17）】")
-    for ok, desc in mr_checks:
-        print(f"  {'✅' if ok else '❌'} {desc}")
-        total += 1
-        passed += ok
-    if not all(ok for ok, _ in mr_checks):
-        print("❌ 回归未通过：--min-recon 硬门禁断言失败。")
+    if not _block("--min-recon 硬门禁（v0.0.17）", mr_checks,
+                  "--min-recon 硬门禁断言失败。"):
         return 1
 
     # ── md_clean 金标准（v0.0.17 自包含化）：合成样本 tests/md_clean_synth.md ──
@@ -803,13 +808,8 @@ def main():
                                 capture_output=True, text=True, encoding="utf-8", errors="replace")
             print(f"  ℹ️ 加成（不计断言）：md_clean {md_name[:4]}… "
                   f"exit {rr.returncode}（本机存量真实 md）")
-    print("\n【md_clean 金标准（v0.0.17 合成样本，自包含）】")
-    for ok, desc in md_checks:
-        print(f"  {'✅' if ok else '❌'} {desc}")
-        total += 1
-        passed += ok
-    if not all(ok for ok, _ in md_checks):
-        print("❌ 回归未通过：md_clean 金标准断言失败。")
+    if not _block("md_clean 金标准（v0.0.17 合成样本，自包含）", md_checks,
+                  "md_clean 金标准断言失败。"):
         return 1
 
     # ── v0.0.15 构造用例（公式层直测，不动 fixture 文件）──
@@ -849,13 +849,8 @@ def main():
                         and ld3.get("quality_upgrade") is True,
                         f"构造·话语权型杠杆升档：杠杆主驱动+无息占比 {ld3.get('ni_share')} "
                         f"+ΔDFL {ld3.get('dfl_delta')} → quality_upgrade=True"))
-    print("\n【v0.0.15 构造用例（扣非双版/双驱动/升档）】")
-    for ok, desc in constructed:
-        print(f"  {'✅' if ok else '❌'} {desc}")
-        total += 1
-        passed += ok
-    if not all(ok for ok, _ in constructed):
-        print("❌ 回归未通过：v0.0.15 构造用例断言失败。")
+    if not _block("v0.0.15 构造用例（扣非双版/双驱动/升档）", constructed,
+                  "v0.0.15 构造用例断言失败。"):
         return 1
 
     failed = total - passed

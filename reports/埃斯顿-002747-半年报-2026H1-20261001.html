@@ -1,0 +1,1213 @@
+<!doctype html>
+<html lang="zh-Hans">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>埃斯顿 2026年半年报分析 — financial-report-analysis</title>
+<style>
+/* ═══════════════════════════════════════════════════════════════
+ 财报分析报告模板 · financial-report-analysis
+ 视觉基底：暖墨赭石色系（去蓝）+ 浅色卡片
+ 使用方式：复制本文件为最终报告文件名，替换 {{占位}} 与
+ 「◆ SLOT」注释标记的内容；JS 区只填数据数组，不改绘图逻辑。
+ 硬规则：不引入外部字体/CDN/JS；不用暗色背景、渐变、投影。字体栈为朱雀仿宋
+ （Zhuque Fangsong）→ 系统仿宋降级，不加载外部资源、不做 base64 内嵌。
+ 硬规则：关键数字必须带证据等级徽章，报告中不允许出现「裸数字」——
+ .badge.disc 披露（主表/附注直接披露，最硬）/ .badge.der 推算
+ （两数运算得来，如毛利率、净现比、周转天数）/ .badge.est 估算
+ （含假设，如情景测算）。KPI 卡、比率表、结论句里的关键数字都要挂。
+ 锚点约定：每个章节的 .secthead 带固定 id（s0~s8；可选回溯块为 review），
+ 不受章节增删影响；跨章引用一律写页内锚点 <a href="#s2">排雷扫描</a>，
+ 不写「见第 2 章」。
+ 读法层硬规则：figtitle 必须「结论式」——标题即判断
+ （如「Q4 无年末调节痕迹：减值贴线仅占归母 1%」），方法说明/口径注记
+ 挪 srcline，不占标题；复杂表（≥4 行或含多方向读数）在 srcline 前加
+ 一行 .takeaway 读法行。三层各归其位：标题说结论、表格给证据、
+ srcline 给出处。
+ srcline 纪律：每卡至多一条 srcline，禁止嵌套/相邻拼接两条；
+ srcline 只写对外数据来源（定期报告/公告/Tushare/东方财富等），
+ 内部过程产物（底稿文件名、方法库路径、脚本名、字段路径、技能版本号）
+ 一律不进用户可见文本——check_html 有禁词门禁。
+ ═══════════════════════════════════════════════════════════════ */
+:root{
+ --bg:rgb(247,242,235); --ink:rgb(58,42,28); --muted:rgba(58,42,28,.60);
+ --faint:rgba(58,42,28,.32); --grid:rgba(58,42,28,.16); --card:#fff;
+ --data:rgb(171,94,38); --data2:rgb(203,158,108); --faintdata:rgb(233,213,187);
+ --good:#0F7B4F; --warn:#B8860B; --bad:#C0392B; --der:rgb(122,84,52);
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:#000;
+ font-family:"Zhuque Fangsong","朱雀仿宋","FangSong","仿宋","STFangsong",serif;
+ -webkit-font-smoothing:antialiased;font-variant-numeric:tabular-nums lining-nums;
+ padding:40px 20px}
+.sheet{width:100%;max-width:1040px;margin:0 auto}
+
+/* ── 页眉 ── */
+.masthead{border-bottom:3px double var(--ink);padding-bottom:18px;margin-bottom:8px}
+.masthead .kicker{font-size:11px;font-weight:700;letter-spacing:.22em;color:var(--muted)}
+.masthead h1{font-size:34px;font-weight:900;letter-spacing:.02em;margin:6px 0 4px}
+.masthead .sub{font-size:14px;color:var(--muted)}
+.masthead .sub b{color:var(--ink)}
+
+/* ── 徽章 ── */
+.badge{display:inline-block;padding:2px 10px;border-radius:999px;font-size:11px;font-weight:800}
+.badge.g{background:rgba(15,123,79,.12);color:var(--good)}
+.badge.y{background:rgba(184,134,11,.14);color:var(--warn)}
+.badge.r{background:rgba(192,57,43,.12);color:var(--bad)}
+.dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px;vertical-align:1px}
+.dot.g{background:var(--good)}.dot.y{background:var(--warn)}.dot.r{background:var(--bad)}
+/* 证据等级徽章（P2-19）：披露 / 推算 / 估算，语义色低饱和，与 g/y/r 风险徽章可区分 */
+.badge.disc{background:rgba(58,42,28,.09);color:rgba(58,42,28,.82)}
+.badge.der{background:rgba(122,84,52,.13);color:var(--der)}
+.badge.est{background:rgba(58,42,28,.04);color:var(--muted);border:1px dashed rgba(58,42,28,.28)}
+/* 排雷四态之「反向未触发」：信号反向成立且含信息量，用主数据色（赭石）与 g/y/r 风险色区分 */
+.badge.rev{background:rgba(171,94,38,.12);color:var(--data)}
+
+/* ── 追查链接（P2-25）── */
+a{color:var(--data);text-decoration:none}
+a:hover{text-decoration:underline}
+.drill{font-size:11.5px;font-weight:700;white-space:nowrap}
+
+/* ── 章节 ── */
+.sect{margin-top:46px}
+.secthead{display:flex;align-items:baseline;gap:14px;margin-bottom:6px;
+ border-radius:6px;scroll-margin-top:24px}
+.secthead:target{background:rgba(171,94,38,.07)}
+.secthead .no{font-size:13px;font-weight:800;color:var(--data)}
+.secthead .t{font-size:19px;font-weight:800;letter-spacing:.06em}
+.secthead .line{flex:1;border-top:1px solid var(--ink)}
+.secthead .tag{font-size:11px;font-weight:700;letter-spacing:.1em;color:var(--faint)}
+.lede{font-size:14.5px;line-height:1.85;margin:10px 0 16px;max-width:980px}
+.lede b{font-weight:800}
+
+/* ── 卡片与表格 ── */
+.card{background:var(--card);border:1px solid var(--grid);border-radius:10px;
+ padding:18px 22px;margin:14px 0;overflow-x:auto}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+@media(max-width:860px){.grid2,.grid3{grid-template-columns:1fr}}
+table.data{width:100%;border-collapse:collapse;font-size:13.5px;margin:6px 0}
+table.data th{font-size:12px;font-weight:700;letter-spacing:.08em;color:var(--muted);
+ text-align:left;padding:8px 10px;border-bottom:1.5px solid var(--ink)}
+table.data td{padding:7px 10px;border-bottom:1px dotted var(--faint);line-height:1.5}
+table.data td:not(:first-child):not(.txt),table.data th:not(:first-child):not(.txt){text-align:right}
+table.data tr:last-child td{border-bottom:0}
+table.data tr.total td{font-weight:800;border-top:1.5px solid var(--ink);border-bottom:0}
+/* 指标表分组标题行：财务总览指标按类别分组，扫读有层级 */
+table.data tr.group td{font-size:11px;font-weight:800;letter-spacing:.14em;color:var(--data);
+ background:rgba(171,94,38,.05);border-bottom:1px solid var(--grid);padding:5px 10px}
+.up{color:var(--good);font-weight:700}.dn{color:var(--bad);font-weight:700}
+.srcline{font-size:10.5px;font-weight:600;letter-spacing:.1em;color:var(--faint);margin-top:8px}
+
+/* ── 读法层：复杂表/图的一句话读法，位于表格之后、srcline 之前 ── */
+.takeaway{font-size:12.5px;font-weight:700;margin-top:8px}
+/* 杜邦因子下钻子行：浅灰底小字、只放证据，判断只在 figtitle/takeaway；每因子 ≤1 行（防「正文承载完整性」回潮），锚点链接把杜邦变成全报告导航枢纽 */
+.drillrow td{background:rgba(58,42,28,.03);font-size:12px;color:var(--muted);
+ padding:4px 10px 8px;line-height:1.6}
+/* 迷你折线：每格一个 64×16 内嵌 SVG，JS spark() 画 polyline + 末点圆；线色由填充者按 frameworks.md 方向语义表对「本期 vs 上期」的好坏选 GOOD/BAD/INK */
+.spark{width:64px;height:16px;vertical-align:middle}
+/* OCF 调节桥端点行：净利润 →（调节净额）→ 经营现金流净额（水平值不画柱） */
+.brends{font-size:12.5px;font-weight:800;margin:2px 0 8px}
+
+/* ── s8 先行指标仪表盘：读数从简大字、阈值带长文小字（Rain hero-stat 同构） ── */
+.wv{font-size:22px;font-weight:800;line-height:1.25;margin:6px 0 4px}
+.wb{font-size:11.5px;line-height:1.7;color:var(--muted);margin-bottom:6px}
+
+/* ── 亮点/风险清单 ── */
+.flaglist{list-style:none}
+.flaglist li{display:flex;gap:10px;padding:10px 2px;border-bottom:1px dotted var(--faint);
+ font-size:14px;line-height:1.7}
+.flaglist li:last-child{border-bottom:0}
+.flaglist .body{flex:1}
+.flaglist .src{display:block;font-size:11.5px;color:var(--muted);margin-top:3px}
+
+/* ── KPI 行 ── */
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin:14px 0}
+@media(max-width:860px){.kpis{grid-template-columns:repeat(2,1fr)}}
+.kpi{background:var(--card);border:1px solid var(--grid);border-radius:10px;padding:14px 16px}
+.kpi .v{font-size:26px;font-weight:800;line-height:1.1}
+.kpi .r{font-size:12px;font-weight:700;margin-top:3px}
+.kpi .l{font-size:11px;font-weight:600;letter-spacing:.12em;color:var(--faint);margin-top:3px}
+
+/* ── 图 ── */
+.fig{background:var(--card);border:1px solid var(--grid);border-radius:10px;padding:16px}
+.fig svg{width:100%;height:auto;display:block}
+.card>svg{width:100%;height:auto;display:block}
+.figtitle{font-size:13.5px;font-weight:800;margin-bottom:4px}
+
+/* ── 桥式表强调 ── */
+.bridge td:first-child{font-weight:700}
+
+/* ── 右侧章节目录：fixed 浮层不占栅格，两字简称药丸按钮；
+ 视口 ≤1300px 与打印时隐藏（正文 1040px，侧栏需要约 130px 富余宽度） ── */
+html{scroll-behavior:smooth}
+.toc-side{position:fixed;right:10px;top:50%;transform:translateY(-50%);
+ display:flex;flex-direction:column;gap:4px;z-index:50}
+.toc-side a{font-size:11px;font-weight:700;color:var(--muted);text-decoration:none;
+ background:var(--card);border:1px solid var(--grid);border-radius:4px;
+ padding:2px 7px;text-align:center;opacity:.75}
+.toc-side a:hover{color:var(--ink);border-color:var(--data);opacity:1}
+@media(max-width:1300px){.toc-side{display:none}}
+@media print{.toc-side{display:none}}
+
+/* ── 页脚 ── */
+.foot{margin-top:52px;border-top:3px double var(--ink);padding-top:14px;
+ font-size:11px;font-weight:600;letter-spacing:.1em;color:var(--muted);
+ display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap;line-height:1.8}
+
+/* ── 动效 ── */
+.fade{animation:fade .7s ease both}
+@keyframes fade{from{opacity:0;transform:translateY(6px)}}
+@media (prefers-reduced-motion:reduce){.fade{animation:none}}
+/* ── 窄屏（手机）适配：骨架流式 + 宽表格卡片内横滑 + 字号内边距微调；图表 SVG 不重绘整图等比缩小（PC 为主、移动尽量可读） ── */
+@media(max-width:640px){
+ body{padding:20px 12px}
+ .masthead h1{font-size:24px}
+ .masthead .sub{font-size:13px}
+ .card{padding:14px}
+ table.data{font-size:12.5px}
+ table.data th,table.data td{padding:7px 8px}
+ .lede{font-size:14px}
+ .flaglist li{font-size:13.5px}
+ .drill{white-space:normal}
+ .kpi .v{font-size:22px}
+ .sect{margin-top:34px}
+}
+</style>
+</head>
+<body>
+<div class="sheet">
+
+ <!-- ══ 页眉 ◆ SLOT: 公司名/代码/报告类型/报告期 ══ -->
+ <div class="masthead fade">
+ <div class="kicker">FINANCIAL REPORT ANALYSIS · A股（A+H，H 股 02715.HK）</div>
+ <h1>埃斯顿（002747.SZ）</h1>
+ <div class="sub"><b>2026年半年报</b> 分析报告 · 报告发布于 2026-08-22 · 分析生成于 2026-10-01 · 半年度财务报告未经审计</div>
+ </div>
+
+ <!-- ══ 核心结论 ◆ SLOT: 三大亮点/三大风险 ══ -->
+ <div class="sect">
+ <div class="secthead" id="s0"><span class="no">00</span><span class="t">核心结论</span><span class="line"></span><span class="tag">EXECUTIVE SUMMARY</span></div>
+ <div class="grid2">
+ <div class="card">
+ <div class="figtitle" style="color:var(--good)">亮点 TOP 3</div>
+ <ul class="flaglist">
+ <li><span><span class="dot g"></span></span><div class="body">毛利率 +4.17pct 至 31.81%：两大分部毛利率同升（机器人 +4.69pct、部件 +1.82pct），境内毛利率 +7.04pct——「压降低毛利业务+降本增效」兑现，扣非归母 +498.6%<span class="src">出处：管理层讨论与分析（MD&A）经营情况分析；分产品/分地区收入毛利表</span></div></li>
+ <li><span><span class="dot g"></span></span><div class="body">H 股上市募资 12.83 亿到账：资产负债率 81.8%→68.2%、有息负债 47.4→34.9 亿、利息费用 -22%——三年来首次实质去杠杆<span class="src">出处：现金流量表「吸收投资收到的现金」；合并资产负债表两期</span></div></li>
+ <li><span><span class="dot g"></span></span><div class="body">海外收入 +25.1% 占比升至 36.3%（欧洲进入头部汽配客户名录、波兰基地投运）；经营现金流五年同期首次转正（+0.45 亿）<span class="src">出处：分地区收入表；合并现金流量表</span></div></li>
+ </ul>
+ </div>
+ <div class="card">
+ <div class="figtitle" style="color:var(--bad)">风险 TOP 3</div>
+ <ul class="flaglist">
+ <li><span><span class="dot r"></span></span><div class="body">利润成色：归母 +2314% 中 1.0 亿（占利润总额 50.7%）是南京工艺置换南京化纤的一次性公允价值重估，公司自认不可持续——扣非 0.70 亿才是底色<span class="src">出处：非经常性损益明细表；非主营业务分析</span></div></li>
+ <li><span><span class="dot y"></span></span><div class="body">商誉 9.75 亿占归母净资产 29.8% 贴线：克鲁斯（Cloos）持续亏损（本期 -0.15 亿）且中报未披露减值测试参数；期后收购酷卓（亏损中）并表再增约 4.4 亿商誉<span class="src">出处：商誉附注；期后收购公告（2026-09-08 并表）</span></div></li>
+ <li><span><span class="dot y"></span></span><div class="body">合同负债 -31.8% 与管理层「订单快速增长」表述背离；应收账款较年初 +15.5% 远超收入 +1.1%，1 年以上账龄占比 15.8%→18.1%<span class="src">出处：合并资产负债表；应收账款账龄附注</span></div></li>
+ </ul>
+ </div>
+ </div>
+ <p class="lede">埃斯顿 2026 上半年收入 25.78 亿基本持平（+1.1%），归母净利 1.61 亿暴增 23 倍——但利润的第一助推不是主业，而是南京工艺股权置换南京化纤带来的 1.0 亿一次性公允价值重估。真实主线是三件事：毛利率 +4.17pct 的盈利修复（扣非 0.70 亿、+498.6%）、H 股募资 12.83 亿带来的实质去杠杆、海外收入 +25.1%。最大隐忧：Cloos 商誉悬顶未解，期后又把亏损中的酷卓并进来继续堆商誉；合同负债 -31.8% 则给「订单快速增长」的说法打了一个问号。</p>
+ <!-- ◆ 分歧锚（默认保留；认为多余可删本卡）：只陈列同一事实的两种解读，
+ 不做倾向判断——多空立场构建归 stock-deep-analysis，本报告只到「可证伪的 if-then」为止；
+ 两种读法的验证条件进 s8 跟踪清单 -->
+ <div class="card">
+ <div class="figtitle">分歧锚：同一事实的两种解读，不做倾向裁决</div>
+ <table class="data">
+ <tr><th>事实</th><th class="txt">读法 A</th><th class="txt">读法 B</th></tr>
+ <tr><td>归母净利 1.61 亿（+2314.2%） <span class="badge der">推算</span></td><td class="txt">困境反转确立：扣非 +498.6% 同步暴增，毛利率/现金流/负债率三改善同向，激励二期考核净利线已达触发值——修复是经营性的</td><td class="txt">修复被一次性重估美化：剔除 1.0 亿公允收益后扣非仅 0.70 亿，全年要坐实 1.5 亿扣非 H2 需再赚 0.8 亿，而合同负债 -31.8% 预示国内需求仍弱——成色待 H2 验证</td></tr>
+ </table>
+ <div class="srcline">分歧锚不做倾向性裁决；两种读法的验证条件列入 <a href="#s8">08 下期跟踪清单</a></div>
+ </div>
+ <!-- ◆ 异常线索追查（P2-25）：从「哪里异常」一步跳到「哪一章解释」；按本期实际异常增删行 -->
+ <div class="card">
+ <div class="figtitle">异常线索追查：异常指标 → 结构定位 → 驱动因素</div>
+ <table class="data">
+ <tr><th>异常指标</th><th class="txt">结构定位</th><th class="txt">驱动因素</th></tr>
+ <tr><td>归母 +2314% vs 扣非 +499%（口径差 56.5%）</td><td class="txt"><a href="#s3">因素分析 · 净利桥</a></td><td class="txt">一次性公允价值重估 1.0 亿（南京工艺置换南京化纤）</td></tr>
+ <tr><td>商誉占归母净资产 29.8% + Cloos 亏损</td><td class="txt"><a href="#s7">外部校验 · 健康检验</a></td><td class="txt">中报未披露减值测试参数；期后亏损资产并表再堆商誉</td></tr>
+ <tr><td>应收 +15.5% vs 收入 +1.1%</td><td class="txt"><a href="#s2">排雷扫描 · 应收三维</a></td><td class="txt">账龄迁移加速；海外/产线账期结构</td></tr>
+ <tr><td>合同负债 -31.8%</td><td class="txt"><a href="#s2">排雷扫描 · 合同负债收缩</a></td><td class="txt">产线业务主动压降 or 需求走弱（待区分）</td></tr>
+ <tr><td>股东户数半年 +42%</td><td class="txt"><a href="#s6">股东结构</a></td><td class="txt">机器人行情下散户涌入，筹码快速分散</td></tr>
+ <tr><td>母公司其他应收款 10.72 亿（=合并 14 倍）</td><td class="txt"><a href="#s2">排雷扫描 · 母公司资金池</a></td><td class="txt">集团内部往来拆借，流向待跟踪</td></tr>
+ <!-- ◆ 每行「结构定位」必须是指向章节 secthead id 的页内锚点；本期无异常的章节不要凑行 -->
+ </table>
+ <div class="srcline">追查路径：异常指标 → 结构定位（哪张表 / 哪条等式）→ 驱动因素（谁造成的）· 锚点 id 见各章 secthead</div>
+ </div>
+ </div>
+
+ <!-- ══ S1 财务总览 ◆ SLOT ══ -->
+ <div class="sect">
+ <div class="secthead" id="s1"><span class="no">01</span><span class="t">财务总览</span><span class="line"></span><span class="tag">四维比率 · 杜邦</span></div>
+ <!-- ◆ 证据等级徽章示范（P2-19）：主表直接读数=disc，两数运算=der，含假设测算=est；
+ 其余槽位同样必须挂徽章，不留裸数字 -->
+ <div class="kpis">
+ <div class="kpi"><div class="v">25.78</div><div class="r up">+1.1% <span class="badge disc">披露</span></div><div class="l">营业收入（亿元）</div></div>
+ <div class="kpi"><div class="v">1.61</div><div class="r up">+2314.2% <span class="badge disc">披露</span></div><div class="l">归母净利润（亿元）</div></div>
+ <div class="kpi"><div class="v">0.45</div><div class="r">净现比 0.28 <span class="badge der">推算</span></div><div class="l">经营现金流净额（亿元）</div></div>
+ <div class="kpi"><div class="v">4.92%</div><div class="r up">较上期 +4.6pct <span class="badge der">推算</span></div><div class="l">ROE（摊薄）· <span class="dn">扣非 2.14%</span><!-- ◆ F-12：扣非对照小字，非经撑利润的第一眼盲区；与披露值差 >1pct 时本行染 dn 色；口径统一为摊薄（与杜邦表/fillsheet 同源），不写「加权」 --></div></div>
+ </div>
+ <div class="card">
+ <div class="figtitle">盈利与偿债两维显著改善：毛利率 +4.17pct、负债率 -13.62pct——唯一逆行的是应收周转再放慢 11 天</div>
+ <!-- ◆ 四维表全宽：「近5期趋势」列每格一个 64×16 SVG（JS spark() 画 polyline +末点圆，
+ 数据填 JS 区 SPARK 槽=ratios 五期 hist 同类型滚动），线色由填充者按 frameworks.md
+ 方向语义表对「本期 vs 上期」的好坏选 GOOD/BAD/INK；禁填数字链
+ ◆ figtitle 真实示范（万科 2026H1）：「四维比率全数承压：毛利率探底、亏损率扩大、杠杆
+ 被动抬升——唯一改善是收现比与 OCF 止血」；takeaway 示范：「十项中九项承压或失真，唯一
+ 真改善是收现比——它改善的原因不是销售回暖，而是结算收入降得比收现更快」（敢说「改善是假的」） -->
+ <table class="data">
+ <tr><th>指标</th><th>本期</th><th>上期</th><th class="txt">较上期</th><th class="txt">近5期趋势</th><th class="txt">评价</th></tr>
+ <!-- ◆ 分组行：类别标题行 .group，顺序固定=盈利→成长→营运→偿债与杠杆→收入质量 -->
+ <tr class="group"><td colspan="6">盈利能力</td></tr>
+ <tr><td>毛利率 <span class="badge der">推算</span></td><td>31.81%</td><td>27.64%</td><td class="txt"><span class="up">▲ +4.17pct</span></td><td class="txt"><svg class="spark" id="spark-gm" viewBox="0 0 64 16" preserveAspectRatio="none"></svg></td><td class="txt">结构优化+降本兑现</td></tr>
+ <tr><td>净利率</td><td>6.26%</td><td>0.26%</td><td class="txt"><span class="up">▲ +6.00pct</span></td><td class="txt"><svg class="spark" id="spark-nm" viewBox="0 0 64 16" preserveAspectRatio="none"></svg></td><td class="txt">含一次性重估 1.0 亿</td></tr>
+ <!-- ◆ N1/N2 单期指标行：较上期/趋势列填「—」（ROIC 上期需 T-2 不可得；
+ SGR 亏损期不算）；口径与判读见 frameworks.md 第一节 -->
+ <tr><td>投入资本回报率（ROIC，去杠杆口径的经营性回报） <span class="badge der">推算</span></td><td>3.55%</td><td>—</td><td class="txt">—（单期指标）</td><td class="txt">—（不序列化）</td><td class="txt">去杠杆口径仍偏弱</td></tr>
+ <tr class="group"><td colspan="6">成长质量</td></tr>
+ <tr><td>内生增长率（留存率×ROE） <span class="badge der">推算</span></td><td>—（不适用）</td><td>—</td><td class="txt">—（单期指标）</td><td class="txt">—（不序列化）</td><td class="txt">2025 年度不分配</td></tr>
+ <tr class="group"><td colspan="6">营运效率</td></tr>
+ <tr><td>存货周转天数</td><td>286.2</td><td>326.5</td><td class="txt"><span class="up">▼ -40.2</span></td><td class="txt"><svg class="spark" id="spark-dio" viewBox="0 0 64 16" preserveAspectRatio="none"></svg></td><td class="txt">主动去库存见效</td></tr>
+ <tr><td>应收周转天数</td><td>290.8</td><td>279.6</td><td class="txt"><span class="dn">▲ +11.2</span></td><td class="txt"><svg class="spark" id="spark-dso" viewBox="0 0 64 16" preserveAspectRatio="none"></svg></td><td class="txt">账期仍在拉长</td></tr>
+ <tr><td>收现比</td><td>1.01</td><td>—</td><td class="txt">—</td><td class="txt">—（单期）</td><td class="txt">含税口径合理</td></tr>
+ <tr><td>现金转换周期 CCC（应收周转天数 DSO＋存货周转天数 DIO−应付周转天数 DPO，天）</td><td>171.1</td><td>156.6</td><td class="txt"><span class="dn">▲ +14.5</span></td><td class="txt"><svg class="spark" id="spark-ccc" viewBox="0 0 64 16" preserveAspectRatio="none"></svg></td><td class="txt">应付收缩是主因</td></tr>
+ <tr class="group"><td colspan="6">偿债与杠杆</td></tr>
+ <tr><td>资产负债率</td><td>68.22%</td><td>81.84%</td><td class="txt"><span class="up">▼ -13.62pct</span></td><td class="txt"><svg class="spark" id="spark-da" viewBox="0 0 64 16" preserveAspectRatio="none"></svg></td><td class="txt">募资后实质去杠杆</td></tr>
+ <tr><td>经营杠杆 DOL <span class="badge der">推算</span></td><td>1.38</td><td>—</td><td class="txt">—</td><td class="txt">—（单期）</td><td class="txt">底部修复段弹性温和</td></tr>
+ <tr><td>财务杠杆 DFL <span class="badge der">推算</span></td><td>1.38</td><td>—</td><td class="txt">—</td><td class="txt">—（单期）</td><td class="txt">利息负担仍可见</td></tr>
+ <tr class="group"><td colspan="6">收入质量</td></tr>
+ <tr><td>非主营业务收入占比 <span class="badge der">推算</span></td><td>4.10%</td><td>—</td><td class="txt">—</td><td class="txt">—（单期专用，不序列化）</td><td class="txt">公允重估一次性为主</td></tr>
+ </table>
+ <div class="takeaway">读法：毛利率/净利率/负债率三支柱撑起本期，真正逆行的只有应收周转——它把「回款」打成下期第一验证项；净利率 6.26% 里约 3.9pct 由一次性重估与减值对冲后构成，成色看扣非净利率 2.72%</div>
+ <div class="srcline">数据来源：公司2026年半年报、Tushare · CCC/平均余额口径期初取上年末 12-31</div>
+ <div class="srcline">证据等级：<span class="badge disc">披露</span> 主表/附注直接披露 · <span class="badge der">推算</span> 两数运算（毛利率/净现比/周转天数）· <span class="badge est">估算</span> 含假设（情景测算）</div>
+ </div>
+ <!-- ◆ 现金时序卡（单卡全宽；v0.0.20 起表格改双折线图：读数在图上、判断在文字）：
+ 「现金含量」层证据——净现比/FCF÷归母 五期走势。原右侧「周期定位证据卡」整槽退役：
+ 收入/毛利率读数本就在下方五年趋势图里，重复呈现无信息量（美的 2026H1 反馈）；唯一
+ 独有的 Capex 线并入趋势图卡迷你柱条、阶段判定挂该卡判词声明行（v0.0.21 升 .wv 大字；
+ 卫星化学 2026H1 反馈定稿） -->
+ <div class="card">
+ <div class="figtitle">净现比五年四负后首次转正（0.28）：但 FCF（=经营现金流−资本开支，即维持生产后真正可自由支配的现金）五期全负——修复只走完上半场，本期转正靠的是收缩动作</div>
+ <!-- ◆ 双折线（JS ncrLine 画，数据填 JS 区 NCR_TS 槽=derived.cash_ts 逐期数组照抄）：
+  净现比 INK + FCF÷归母 C2 + y=1 造血参考虚线 + 均值虚线；null 跳点不硬连；
+  hist<3 期整卡降级为「现金含量证据不足」声明（删 svg 与 figtitle 改写） -->
+ <svg id="ncrline" viewBox="0 0 960 200" preserveAspectRatio="xMidYMid meet"></svg>
+ <div class="takeaway">判定：⚠️ 忽高忽低——净现比均值 -3.05（经营现金流净额（OCF）为负 4 年）· FCF 均值 -7.78（FCF 为负 5 年）；本期转正主因应付收缩放缓+存货释放，挂「底部（修复段）」解读：下行年 OCF 为负是周期属性，连续两期为正才是造血确认</div>
+ <div class="srcline">数据来源：各期现金流量表 · 净现比=OCF÷归母净利；FCF=OCF−Capex <span class="badge der">推算</span> · hist&lt;3 期时本卡降级为「现金含量证据不足」声明并注明</div>
+ </div>
+ <!-- ◆ 杜邦双卡：左卡=当期归因+因子下钻+ΔROE 堆叠条；右卡=五年累计归因（方案A）+因子分位
+ （方案D）。子行纪律：每因子 ≤1 行浅灰子行、只放证据，判断只在 figtitle/takeaway；
+ 下钻锚点把杜邦变成全报告交叉引用枢纽（净利率→#s3 / 周转率→#s1 / 杠杆→#s7）
+ ◆ 左卡 figtitle 四段式真实示范（万科 2026H1）：「ROE 再降 8.4pct 至 -14.6%：净利率与杠杆
+ 双主驱动各拖 5pct 级，周转率的小幅改善无力回天——这意味着修复主动权在结算毛利与净资产
+ 止血，盯结算毛利率能否止跌与归母净资产是否继续缩水」（方向→归因→含义→盯什么四段齐全） -->
+ <div class="grid2">
+ <div class="card">
+ <div class="figtitle">ROE 修复 +4.6pct：净利率独扛、杠杆随募资摊薄——修复靠盈利而非加杠杆，方向可信；但净利率里有一次性重估水分，盯扣非净利率能否站稳</div>
+ <!-- ◆ ΔROE 贡献堆叠条：正贡献从零轴向右累叠、负贡献向左累叠（v0.0.19 起——旧单一累加链
+ 在符号翻转时段间互相覆盖，负贡献段会被整段盖没），closure_gap≠0 必须画灰色口径差段
+ （不许视觉隐瞒——中免 +1.01+0.46−0.40≠+0.70pct 教训），末端竖线=ΔROE 摊薄；三因子固定分色
+ （净利率/周转率/杠杆各一色，口径差灰色），正负由 ± 号与零轴方向表达；数据填 JS 区 DUPONT_STACK -->
+ <svg id="dupontstack" viewBox="0 0 460 78" preserveAspectRatio="xMidYMid meet"></svg>
+ <!-- ◆ 方向列语义色 = 该因子变动对 ROE 的影响方向与质量：↑ 且抬升 ROE 用 <span class="up">；
+ ↑ 但属被动抬升/风险堆积（如靠加杠杆撑 ROE）用 <span class="dn"> 并注明；↓ 拖累 ROE 用 <span class="dn">
+ ◆ 贡献归因 = derived.dupont 连环替代闭合值（calc.py 复算卡口），三效应加和恒等于三因子积的 Δ——禁止自由手算（中免 2026H1 加和不闭合教训）
+ ◆ 下钻子行（.drillrow）= derived.dupont 的 margin_drill/turnover_drill/leverage_drill，只放证据不写判断；块缺失（老 json）时整行删除
+ ◆ 单位纪律（v0.0.19）：本期/上期列按行单位（净利率 %、周转率 次、权益乘数 倍，均 ≤2 位小数）；贡献归因列与堆叠条标签一律 ±x.xpct 一位小数，禁止裸小数裸单位混排 -->
+ <table class="data">
+ <tr><th>因子</th><th>本期</th><th>上期</th><th class="txt">方向 · 贡献归因</th></tr>
+ <tr><td>净利率（扣非 2.72% 对照）</td><td>6.26%</td><td>0.26%</td><td class="txt"><span class="up">▲ +8.2pct</span> 毛利修复与一次性重估双推 <a class="drill" href="#s3">净利桥</a></td></tr>
+ <tr class="drillrow"><td class="txt" colspan="4">└ 经营 +6.0pct · 税负 -0.7pct · 利息 +0.4pct · 少数股东 +0.3pct <span class="badge der">推算</span>（恒等分解，加和=Δ净利率）</td></tr>
+ <tr><td>总资产周转率</td><td>0.26</td><td>0.24</td><td class="txt"><span class="up">▲ +0.6pct</span> 收入持平而资产周转未摊薄 <a class="drill" href="#s1">四维表</a></td></tr>
+ <tr class="drillrow"><td class="txt" colspan="4">└ Δ总资产前二：货币资金 +86.5% / 金融资产 +36.5%；应收存货类 -13.0% · 产能类 -3.1% <span class="badge der">推算</span>（恶化接 <a href="#s2">排雷</a>，在建转固接 <a href="#s5">投产时点</a>）</td></tr>
+ <tr><td>权益乘数</td><td>3.20</td><td>5.63</td><td class="txt"><span class="up">▼ -4.0pct</span> H 股募资摊薄，被动降杠杆 <a class="drill" href="#s7">健康检验</a></td></tr>
+ <tr class="drillrow"><td class="txt" colspan="4">└ 有息/权益 1.88→1.06 · 无息/权益 0.73 <span class="badge der">推算</span>；无息占比 40.9% + ΔDFL — → 杠杆为负贡献（非主驱动），本行仅留拆解读数</td></tr>
+ <tr class="total"><td>ROE（摊薄）</td><td>4.92%</td><td>0.34%</td><td class="txt">主驱动=净利率（效应占比超 1.5 倍，非双驱动）</td></tr>
+ </table>
+ <div class="srcline">质量排序：净利率驱动优于周转率驱动，杠杆驱动排末——但杠杆若主要来自上下游占款（应付+合同负债占比超 70%），属「话语权型杠杆」，质量上调一档（提醒级）；有息主导维持最低并交叉 <a href="#s7">健康检验</a>（短债覆盖/利息保障）· 三效应加和与 ΔROE 差 -0.2pct 为口径差（周转率按平均余额、ROE 按期末余额），如实标注 · 无息口径=应付账款及票据+合同负债（不含其他应付款）</div>
+ <div class="takeaway">修复路径：净利率 1/5（五年最高）与周转率 1/5（五年最高）均剔除「回到中位」的假设方向、只盯回落；权益乘数 4/5 降杠杆是既定动作——维持条件=扣非净利率不跌破 2.72%（本期扣非口径） <span class="badge est">估算</span></div>
+ </div>
+ <div class="card">
+ <div class="figtitle">五年模式未迁移：三因子同向小步贡献——本轮是盈利弹性从底部回归而非结构升级，盯净利率 1/5（五年最高）的回落风险</div>
+ <!-- ◆ 方案A 五年累计归因：hist 首末端点一次连环替代，数据=derived.dupont5y
+ （calc 复算卡口）；hist<3 期（口径断裂）整卡降级两期归因并在标题注明
+ ◆ 「五年累计」列统一纪律（v0.0.19）：一律填该因子对 ΔROE 的累计贡献，±x.xxpct 两位小数
+ （fillsheet 五年归因行已 ×100 转好，照抄），三因子行可加、合计=Δ三因子积；禁止填因子自身
+ 水平变化（周转率「次」/乘数「倍」的差值不进本列）；ROE 行=ΔROE 摊薄（roe_end−roe_start ×100），
+ 口径差=closure_gap ×100 写在 ROE 行读法列 -->
+ <table class="data">
+ <tr><th>因子</th><th>2022H1</th><th>2026H1</th><th>五年累计</th><th class="txt">读法</th></tr>
+ <tr><td>净利率</td><td>4.61%</td><td>6.26%</td><td class="up">+1.08pct</td><td class="txt">主叙事：占 ΔROE 贡献 54%，底部盈利弹性回归</td></tr>
+ <tr><td>总资产周转率</td><td>0.23</td><td>0.26</td><td class="up">+0.57pct</td><td class="txt">次要：收入扩张消化了资产基数</td></tr>
+ <tr><td>权益乘数</td><td>2.88</td><td>3.20</td><td class="up">+0.52pct</td><td class="txt">拆解见左卡</td></tr>
+ <tr class="total"><td>ROE（摊薄）</td><td>2.91%</td><td>4.92%</td><td>+2.01pct</td><td class="txt">口径差 -0.16pct 如实标注</td></tr>
+ </table>
+ <div class="srcline">五年归因：各期年报比率首末端点复算（连环替代定序同左卡）· hist&lt;3 期（口径断裂）时整卡降级两期归因并在标题注明</div>
+ <!-- ◆ 方案D 因子分位：当前值在自身五年区间的位置读数——n=5 只有 0/25/50/75/100 五值，
+ 呈现一律白描 X/5（=五年从高到低第 X：0 分位→5/5、25→4/5、50→3/5、75→2/5、100→1/5，badge disc 中性；
+ v0.0.19 起旧措辞「5 期中第 2 高」族退役），不贴「上限区/下限区」判断性标签；判断写判读列与 takeaway；
+ 周期股分位必须挂周期定位解读（净利率 1/5（五年最高）在周期顶部=顶部特征而非经营上限） -->
+ <table class="data">
+ <tr><th>因子</th><th>当前值</th><th>五年位置</th><th class="txt">判读</th></tr>
+ <tr><td>净利率</td><td>6.26%</td><td><span class="badge disc">1/5</span></td><td class="txt">五年最高：底部修复+一次性重估叠加，只盯回落不假设再上</td></tr>
+ <tr><td>总资产周转率</td><td>0.26</td><td><span class="badge disc">1/5</span></td><td class="txt">五年最高：募资摊薄下仍守住周转，难得但同样只盯回落</td></tr>
+ <tr><td>权益乘数</td><td>3.20</td><td><span class="badge disc">4/5</span></td><td class="txt">五年第二低：去杠杆是既定方向，中枢随募资下移</td></tr>
+ </table>
+ <div class="takeaway">读法：净利率与周转率同处 1/5（五年最高）——两个因子都没有「回到中位」的合法修复假设，只能盯维持条件（扣非净利率站稳 2.72% 上方）；维持条件失守的验证进 <a href="#s8">跟踪清单</a></div>
+ <div class="srcline">数据来源：各期年报比率（五年首末端点复算）· 五年位置=X/5：当前值在自身五年区间从高到低排第 X（n=5，只有 1/5~5/5 五档）· 缺 hist（口径断裂）时整卡降级两期归因并在标题注明</div>
+ </div>
+ </div>
+ <div class="fig">
+ <div class="figtitle">收入三年上台阶后原地踏步、毛利率 V 型修复、ROE 从亏损线爬回 4.92%——下期盯扣非柱（本期缺序列）能否跟上归母柱</div>
+ <!-- ◆ 周期定位判词声明行（v0.0.21 用户定案：判词降级 srcline 小字对周期股降权过度，
+  改 .wv 大字独立声明行、置顶本卡）：填法二选一——周期股「上行/顶部/下行/底部（一句注解，
+  如「下行期（收获段）」）」/ 非周期股「非周期行业」；判定必须与底稿三线证据一致，
+  DOL/压力情景/因子分位的解读均挂本行（原右卡「不套档怎么解读」的例外项也写在这里） -->
+ <div class="wv">周期定位：底部（修复段） <span class="badge der">推算</span></div>
+ <svg id="trend" viewBox="0 0 960 300" preserveAspectRatio="xMidYMid meet"></svg>
+ <!-- ◆ Capex 迷你柱条（v0.0.20，原「周期定位证据卡」整槽退役并入本卡）：
+  底条=购建固定资产等支付的现金逐期小柱（独立缩放——量级悬殊不画进 trendDual 主图同轴，
+  缩放契约见 trendDual 注释；数据填 TREND.capex=cashflow.capex hist 照抄，null 跳点） -->
+ <svg id="capexbars" viewBox="0 0 960 90" preserveAspectRatio="xMidYMid meet"></svg>
+ <div class="srcline">判定依据：收入/毛利率见上图、Capex 节奏见下条 · 数据来源：公司 2022-2026 年各期半年报、Tushare · 左面板=收入柱+毛利率线 · 右面板=归母净利柱、ROE 线（扣非缺 5 期序列，本期降级不画扣非柱）· 底条=购建固定资产等支付的现金（亿元，各期）</div>
+ </div>
+ </div>
+
+ <!-- ══ S2 排雷扫描 ◆ SLOT：全量信号表 ══ -->
+ <div class="sect">
+ <div class="secthead" id="s2"><span class="no">02</span><span class="t">排雷扫描</span><span class="line"></span><span class="tag">经营背离与需解释项 · 信号库逐条对照</span></div>
+ <div class="card">
+ <table class="data">
+ <tr><th>信号（读数）</th><th class="txt">判定</th><th class="txt">担心 → 本案</th><th class="txt">追查</th></tr>
+ <!-- ◆ 分层呈现：① 命中 🔴 逐条展开；② 观察 🟡 两行形态（担心→本案），上限 6 条，超出并入汇总；
+ ③ 反向未触发不再保留可见行，与未触发一并压入表末汇总行（逐条读数落底稿）
+ ◆ 「担心 → 本案」列 = redflags.md 三问范式前两问的落地：
+ 担心 = 三问①「这信号若是真雷，经营上意味着什么、会出什么错」（signals[].concern）；
+ 本案 = 三问②「最可能的经营解释 + 区分证据」（signals[].evidence 压缩）——
+ 禁止并列可能性、禁止「属正常波动」式空话（空话的标准回应见 redflags.md 反驳表） -->
+ <tr><td>非经常性损益撑利润（扣非/归母 43.5% <span class="badge der">推算</span>）</td><td class="txt"><span class="badge y">🟡 观察</span></td><td class="txt"><b>担心</b>：若把一次性重估当常态盈利——1.61 亿归母里 0.91 亿是「股权置换彩票」，真实主业半年只赚 0.70 亿，全年激励考核与券商预期都建立在被污染的基数上<br><b>本案</b>：一次性三条件可指认（非经表有科目、金额明确、公司自认不可持续）；但南京化纤股票限售至 2027-03，其后公允价值波动仍扰动报表。关键对照：扣非 0.70 亿（+498.6%）本身也在修复，主业改善与一次性收益并存</td><td class="txt"><a class="drill" href="#s3">因素分析</a></td></tr>
+ <tr><td>合同负债大幅收缩（较年初 -31.8% <span class="badge der">推算</span>）</td><td class="txt"><span class="badge y">🟡 观察</span></td><td class="txt"><b>担心</b>：若客户打款意愿下降——这是先于收入的需求走弱信号，且与管理层「订单快速增长」说法方向相反<br><b>本案</b>：最可能是主动压降低毛利智能产线业务（预收制项目减少，合同履约成本同步 -29.2% 互证）+海外直销占比升（预收少）；收缩若集中在产线业务则良性，2026FY 机器人本体订单也弱则证伪</td><td class="txt"><a class="drill" href="#s8">跟踪清单</a></td></tr>
+ <tr><td>商誉堰塞湖（商誉/归母净资产 29.8% 贴线 <span class="badge der">推算</span>）</td><td class="txt"><span class="badge y">🟡 观察</span></td><td class="txt"><b>担心</b>：若 Cloos 盈利撑不住——7.9 亿商誉减值可一次吞掉 4 年以上扣非利润（本期扣非仅 0.70 亿）<br><b>本案</b>：本期无减值计提、变动全为欧元折算；但中报未披露测试参数，「无重大减值风险」无法核验；期后 9-8 酷卓并表（对价 4.87 亿 vs 净资产 0.49 亿）再增商誉约 4.4 亿且标的亏损中，2026FY 商誉/净资产大概率重回 35% 上方</td><td class="txt"><a class="drill" href="#s7">外部校验</a></td></tr>
+ <tr><td>应收账款异常（较年初 +15.5% vs 收入 +1.1% <span class="badge der">推算</span>）</td><td class="txt"><span class="badge y">🟡 观察</span></td><td class="txt"><b>担心</b>：若收入在「打白条」——账面出货第一，实际是没收到钱的赊销，后续是坏账和现金流双杀<br><b>本案</b>：最可能是收入结构变化（海外 +25% 跨境账期长+产线项目制验收回款慢）；账龄迁移确实加速（1 年以上占比 15.8%→18.1%，3-4 年段 ×2.5），但计提政策未放松且核销远小于计提；第一名欠款方占 26.7% 集中度偏高</td><td class="txt"><a class="drill" href="#s1">财务总览</a></td></tr>
+ <tr><td>债务覆盖不足（短债覆盖 0.83 倍 <span class="badge der">推算</span>）</td><td class="txt"><span class="badge y">🟡 观察</span></td><td class="txt"><b>担心</b>：若授信收紧——短期要还的钱比手上现金+半年造血多 3.9 亿，借新还旧链条不能断<br><b>本案</b>：募资到账与债务到期存在错配——H 股募资 3 月到账后已偿还部分借款（短借 12.78→10.60 亿），FY2025 OCF 5.07 亿年化口径覆盖 1.03 倍，期后无违约/展期公告；但一年内到期 11.97 亿集中，续贷依赖仍在</td><td class="txt"><a class="drill" href="#s7">外部校验</a></td></tr>
+ <tr><td>母公司内部资金池（其他应收款 10.72 亿=合并 14 倍 <span class="badge der">推算</span>）</td><td class="txt"><span class="badge y">🟡 观察</span></td><td class="txt"><b>担心</b>：若往来款流向亏损子公司（如 Cloos）——母公司报表是资金占用的最早暴露处<br><b>本案</b>：最可能是集团资金管理——母公司作为融资与调度中心（H 股募资落母公司 10.89 亿）向子公司拆借，合并抵销后净额仅 0.77 亿；母公司未分配利润为正、本期净利 0.58 亿有实体经营，非纯控股平台；但 10.72 亿往来对象未逐笔披露，跟踪其增减方向</td><td class="txt"><a class="drill" href="#s4">管理层在说什么</a></td></tr>
+ <tr class="total"><td colspan="4" class="txt">未触发汇总：已检 21 项——命中 0 · 观察 6 · 反向 2 组 · 未触发 13（反向=信号反向成立且含信息量：净现比修复、有息负债率持续下降；逐条读数落底稿，正文只承载有动作价值的条目）</td></tr>
+ <!-- ◆ 末列「追查」必填：指向解释该信号的证据链章节锚点
+ （s1 财务总览 / s3 因素分析 / s4 管理层在说什么 / s5 产能与在建工程 / s6 股东结构 / s7 外部校验）-->
+ </table>
+ <div class="srcline">判定口径：🔴 命中 / 🟡 观察 / ↩ 反向未触发 / 未触发（数字有波动但结论正常）——反向与未触发均不保留可见行，统一并入上方汇总行</div>
+ </div>
+ <!-- ◆ SLOT：勾稽异常分区（Phase 2.5 的 recon 三态结果）——只把 ⚠️/🔴 异常搬进正文，
+ ✅ 闭合项压缩为表下一行汇总（全量三态见 data.json recon 块；无异常时该行写「全部闭合」） -->
+ <div class="card">
+ <div class="figtitle">5 项可解释，全部指向口径与披露粒度，无粉饰指向</div>
+ <table class="data">
+ <tr><th>等式</th><th class="txt">三态</th><th>偏差额 / 偏差率</th><th class="txt">解释或追问</th><th class="txt">追查</th></tr>
+ <tr><td>A5 折旧摊销勾稽</td><td class="txt"><span class="badge y">⚠️ 可解释</span></td><td>+0.11 亿 / 12.2%</td><td class="txt">使用权资产折旧 0.11 亿单列（租赁准则不在固定资产折旧行），0.92+0.11=1.03 精确对上</td><td class="txt"><a class="drill" href="#s1">财务总览</a></td></tr>
+ <tr><td>A6 Capex 勾稽</td><td class="txt"><span class="badge y">⚠️ 可解释</span></td><td>+0.23 亿 / 33.7%</td><td class="txt">capex 0.93 亿含开发支出资本化投入 0.31 亿与无形/长期待摊投入，不在固定资产+在建口径内（口径不对称）</td><td class="txt"><a class="drill" href="#s5">产能与在建</a></td></tr>
+ <tr><td>B4 商誉 roll-forward</td><td class="txt"><span class="badge y">⚠️ 可解释</span></td><td>-0.55 亿 / 5.6%</td><td class="txt">变动全部为欧元汇率折算差（原值 -0.60、减值准备 -0.13 均汇率变动），本期无减值计提</td><td class="txt"><a class="drill" href="#s7">外部校验</a></td></tr>
+ <tr><td>D3 母公司其他应收款</td><td class="txt"><span class="badge y">⚠️ 可解释</span></td><td>13.95 vs 基准 0.50</td><td class="txt">母公司其他应收款 10.72 亿为合并 14 倍：抵销后净额仅 0.77 亿，差额=对子公司往来（内部资金池），跟踪流向</td><td class="txt"><a class="drill" href="#s2">排雷扫描</a></td></tr>
+ <tr><td>D5 母公司经营现金流</td><td class="txt"><span class="badge y">⚠️ 可解释</span></td><td>-0.70 亿 vs 基准 0</td><td class="txt">母公司 OCF 连续为负而合并转正：总部承担管理与研发费用，依赖子公司回款与外部融资（本期 H 股募资落母公司），与 D3 互证</td><td class="txt"><a class="drill" href="#s2">排雷扫描</a></td></tr>
+ <!-- ◆ 按 articulation.md 的 A1~A8 / B1~B4 逐条核对；本表只列 ⚠️可解释 / 🔴无法解释 两类，
+ ✅闭合项不进正文（C1/C2 归入 S1） -->
+ <!-- ◆ 末列「追查」必填：B1 应收/存货类指向 #s1，#s3 桥式偏差指向 #s3，与 MD&A 矛盾指向 #s4 -->
+ </table>
+ <div class="srcline">共核对 17 条勾稽等式（资产=负债+权益、现金/应收/存货滚动、三座桥等）：12 条闭合、5 条可解释、B2 存货 roll-forward 因附注未披露本期增加额跳过 · 偏差 ≠ 造假，先排除合理解释</div>
+ </div>
+ <!-- ◆ F-08：四线考核贴线检测（frameworks.md 第八节落地）——盈余管理常表现为
+ 「刚好达标」；贴线=实际÷目标 ∈ [0.95,1.05]，贴线即黄牌进观察层 -->
+ <div class="card">
+ <div class="figtitle">激励二期考核进度 99.3% 贴线——但进度值含一次性重估 1.0 亿「助攻」，含金量打折</div>
+ <table class="data">
+ <tr><th>检测线</th><th>读数</th><th>目标</th><th>距离</th><th class="txt">判定</th></tr>
+ <tr><td>保壳线</td><td>ROE 4.9% · 净利率 6.3%</td><td>ROE 6.5%</td><td>-1.6pct</td><td class="txt"><span class="badge g">✅ 远离</span></td></tr>
+ <tr><td>再融资线</td><td>ROE 4.9%</td><td>ROE 10%</td><td>-5.1pct</td><td class="txt"><span class="badge g">✅ 远离</span></td></tr>
+ <tr><td>股权激励考核线</td><td>进度 2.18 亿 vs 目标 2.2 亿</td><td>二期累计归母净利（剔股份支付）2.2 亿 / 触发 1.76 亿</td><td>达成率 99.3%</td><td class="txt"><span class="badge y">🟡 贴线</span></td></tr>
+ <tr><td>Q4 集中度</td><td>—</td><td>≤40%</td><td>—</td><td class="txt"><span class="badge g">—</span>（半年报无 Q4 拆季）</td></tr>
+ </table>
+ <div class="srcline">数据来源：公司定期报告与公告 · 保壳线须同时满足净利率落 0~3% 区间 · 激励线目标取自 2025 年股票期权与限制性股票激励计划考核办法（2025-06-20 授予），本期股份支付摊销 0.12 亿已压低利润——达成率按剔除摊销口径；进度值含一次性公允价值收益 1.0 亿；期后 9-29 新推 2026 年草案（2026-2028 扣非累计 2/5.2/11 亿，口径明显更严）</div>
+ </div>
+ </div>
+
+ <!-- ══ S3 因素分析 ◆ SLOT：三座桥 ══ -->
+ <div class="sect">
+ <div class="secthead" id="s3"><span class="no">03</span><span class="t">因素分析</span><span class="line"></span><span class="tag">收入 · 成本 · 净利润桥</span></div>
+ <p class="lede">本期利润变化的第一驱动是毛利（+1.16 亿，毛利率 +4.17pct 的结构性修复），第二驱动是一次性公允价值重估（+0.85 亿净增）——主业修复与「彩票」约六四开，减值计提 -0.56 亿是最大回吐项</p>
+ <!-- ◆ 收入桥：正负贡献 delta 条形图（OCF 桥同款 deltaBars），
+ v0.0.21 起画首末端点柱（中性色，钉在排序列表首尾）：基期/本期收入填 JS 区 SEG_ENDS 槽，
+ 端点超贡献项量程时满幅截断+双斜线断口（贡献项永不被压扁）；.brends 端点行保留（文字证据）。
+ 贡献项数据填 JS 区 SEG_BRIDGE。
+ 分组轴规则：优先与商业模式叙事同构的轴（industry-profiles.md 该模式
+ 声明的收入轴，如医药=创新药/仿制药/license-out），不机械照搬附注分产品表；
+ 多产品公司能拆量价必拆量/价/结构三因素（SEG_BRIDGE 填三行效应）；
+ 无量价数据时按分部轴降级（填各分部贡献），并在 figtitle 注明降级。
+ 项数纪律同 OCF 桥：条数 ≤6，其余并入「其他」
+ ◆ figtitle 真实示范（万科 2026H1，分部轴降级）：「收入 -351.5 亿全部来自开发结算萎缩
+ （-357.4 亿、占缺口 102%）：物业服务 +13.7 亿是唯一稳定器——这意味着结算口径而非
+ 当年销售在决定报表，盯开发结算规模何时见底、物业能否补上第二梯队」 -->
+ <div class="card">
+ <div class="figtitle">收入 +0.29 亿全部来自机器人（+0.46 亿），核心部件 -0.17 亿继续探底：增长引擎切换属实但量级尚小——盯海外订单能否把机器人线重新拉成增长曲线</div>
+ <div class="brends">基期收入 25.49 亿 →（分部合计 +0.29 亿）→ 本期收入 25.78 亿</div>
+ <svg id="segbridge" viewBox="0 0 960 200" preserveAspectRatio="xMidYMid meet"></svg>
+ <div class="srcline">数据来源：半年报分行业分产品收入表 · 各分部贡献之和 = Δ收入 · 无量价数据（未披露产销量）按分部轴降级呈现</div>
+ </div>
+ <!-- ◆ 净利润桥全宽：备注列 ≤30 字，只写口径/事由关键词，
+ 判断归 figtitle 与 takeaway；「隐形回吐项」（汇兑/税率类一次性因素）必须点名 -->
+ <div class="card">
+ <div class="figtitle">毛利 +1.16 亿与公允重估 +0.85 亿双驱动归母 +1.55 亿：减值 -0.56 亿是最大回吐——扣非口径下毛利独占九成驱动，盯减值是否继续放大</div>
+ <table class="data bridge">
+ <tr><th>环节</th><th>本期</th><th>上期</th><th>贡献额</th><th class="txt">备注（≤30字）</th></tr>
+ <tr><td>毛利</td><td>8.20</td><td>7.04</td><td class="up">+1.16</td><td class="txt">毛利率 27.6%→31.8%，两大分部同升</td></tr>
+ <tr><td>税金及附加</td><td>0.14</td><td>0.10</td><td>-0.04</td><td class="txt">随收入规模</td></tr>
+ <tr><td>期间费用合计</td><td>7.01</td><td>7.17</td><td class="up">+0.16</td><td class="txt">销售-0.14/管理+0.01/研发+0.06/财务-0.08</td></tr>
+ <tr><td>减值损失</td><td>-0.45</td><td>+0.10</td><td class="dn">-0.56</td><td class="txt">应收/存货从严计提（管理层明示谨慎）</td></tr>
+ <tr><td>非经常性损益</td><td>1.37</td><td>0.43</td><td class="up">+0.93</td><td class="txt">公允重估 1.0 亿+其他收益 0.33 亿</td></tr>
+ <tr><td>所得税</td><td>0.37</td><td>0.18</td><td class="dn">-0.19</td><td class="txt">有效税率 19.0%（重估形成递延税）</td></tr>
+ <tr><td>少数股东损益</td><td>-0.02</td><td>0.06</td><td class="up">+0.08</td><td class="txt">亏损子公司少数股东分担</td></tr>
+ <tr class="total"><td>归母净利润</td><td>1.61</td><td>0.07</td><td>+1.55</td><td class="txt">第一驱动：毛利</td></tr>
+ </table>
+ <div class="takeaway">读法：第一驱动毛利（贡献占 75%）是结构性的——压降低毛利业务+降本；最大回吐项减值 -0.56 亿系主动从严计提，方向健康但会延续；一次性重估 +0.85 亿不可再生——下期盯扣非口径下毛利能否单独扛起利润，验证条件进 <a href="#s8">08 跟踪清单</a></div>
+ <div class="srcline">正贡献记 + / 负贡献记 − · 单位：亿元 · 数据来源：公司2026年半年报合并利润表、Tushare 交叉核对</div>
+ </div>
+ <!-- ◆ SLOT：第二座桥（净利→经营现金流，间接法）全宽独占 + Q4 单季透视卡紧随其后
+ （v0.0.19 起不再组 grid2 双列——半宽容器下 960 宽 viewBox 文字缩放不可读）。
+ Q4 卡为年报专属槽位：半年报/季报时整卡删除（含 srcline），不留降级小字 -->
+ <div class="fig">
+ <div class="figtitle">OCF +0.45 亿五年同期首次转正：净利润 1.59 亿被营运资本吞掉 2.80 亿——主吞噬是主动偿付应付（募资后降杠杆动作不可再生），盯下期应收回款能否接棒</div>
+ <!-- ◆ 端点行 + delta 条形图：水平值（净利润/OCF）与调整项量级
+ 悬殊时瀑布图会把调整项压成细线——纵轴量程只由调整项决定；v0.0.21 起首末端点以中性色
+ 端点柱呈现（钉在排序列表首尾，端点超量程时满幅截断+双斜线断口，调整项永不被压扁）；
+ 调整项按 |delta| 降序、零轴居中、右绿左红。viewBox 固定 960×200 与收入桥同尺寸
+ （v0.0.19 两桥同尺寸纪律；密度靠项数纪律 ≤6 控制，不加高）
+ ◆ figtitle 真实示范（万科 2026H1）：「OCF +4.95 亿转正：存货去化 +279.6 亿与应付
+ 压降 -327.4 亿对撞出来的止血——释放项都是收缩动作不可再生，盯存货去化放缓后
+ OCF 是否重回负值」（点破「止血不可再生」才是真判断） -->
+ <div class="brends">净利润 1.59 亿 →（调节净额 -1.14 亿）→ 经营现金流净额 0.45 亿</div>
+ <svg id="ocfbridge" viewBox="0 0 960 200" preserveAspectRatio="xMidYMid meet"></svg>
+ <div class="srcline">OCF（经营活动现金流量净额，即公司做生意实际收到的现金）调节桥 · 营运资本吞噬额 2.80 亿（占净利润 176.1%，负值=净释放）· 主吞噬项：应付收缩 2.87 亿（H 股募资后主动偿付/票据兑付）+应收增加 1.45 亿，存货释放 1.63 亿对冲 · 数据来源：现金流量表补充资料</div>
+ </div>
+ <!-- ◆ Q4 卡（年报专属）：非年报整卡删除，见上方 SLOT 注释 -->
+ </div>
+
+ <!-- ══ S4 文字部分分析 ◆ SLOT ══ -->
+ <div class="sect">
+ <div class="secthead" id="s4"><span class="no">04</span><span class="t">管理层在说什么</span><span class="line"></span><span class="tag">管理层讨论与分析（MD&A） · 措辞 · 赛道重合度</span></div>
+ <div class="grid2">
+ <div class="card">
+ <div class="figtitle">叙事三条主线两条有钱跟上：全球化与压降低毛利兑现，具身智能期前只有文字</div>
+ <ul class="flaglist">
+ <li><span><span class="dot g"></span></span><div class="body">全球化（Local for Global）：海外收入 +25.1% 占比 36.3%，波兰基地投运、境外在建 0.51 亿、进入欧洲头部汽配客户供应商名录——钱跟上了<span class="src">出处：MD&A 经营情况分析；在建工程附注</span></div></li>
+ <li><span><span class="dot g"></span></span><div class="body">高质量发展（主动压降低毛利业务）：国内收入 -8.8% 但境内毛利率 +7.04pct、存货 -13.5%、扣非 +498.6%——收入降是主动选择<span class="src">出处：MD&A 经营情况分析；分地区收入表</span></div></li>
+ <li><span><span class="dot y"></span></span><div class="body">具身智能：「加速具身智能工业场景部署」「构建多场景解决方案」全是方向性文字，无样机/订单/收入证据，「人形」二字全文 0 次出现——期后 9-8 收购酷卓 4.87 亿才算补上真金白银<span class="src">出处：MD&A 主要业务章节；税项附注（鼎汇实体）；期后收购公告</span></div></li>
+ </ul>
+ </div>
+ <div class="card">
+ <div class="figtitle">归因全部主动化：「主动优化」「有序压降」——下滑讲成选择，好转讲成实力；风险提示最担心需求与价格战，下期盯压档词是否从风险章蔓延到经营段</div>
+ <ul class="flaglist">
+ <li><span><span class="dot y"></span></span><div class="body">积极词高频（「显著提升」「再度位列榜首」「订单快速增长」）；国内收入 -8.8% 用主动语态框定（「主动优化客户结构」「有序压降低毛利业务」）——方向与数据互证（境内毛利率 +7.04pct），但框定方式值得留意<span class="src">出处：MD&A 经营情况分析（措辞对比为全文词频核查）</span></div></li>
+ <li><span><span class="dot y"></span></span><div class="body">研发投入承诺「持续多年保持 10% 左右」，本期 9.70% 已略低于承诺下沿<span class="src">出处：MD&A 研发投入章节</span></div></li>
+ <li><span><span class="dot r"></span></span><div class="body">风险提示 5 条：宏观/下游投资放缓、地缘政治与关税（境外占比 36.3% 敞口可量化）、市场竞争加剧、原材料波动、核心人才流失——「市场竞争加剧」与同文的「国产替代深化、头部优势凸显」乐观判断并存，管理层自己最清楚价格战没打完<span class="src">出处：风险提示章节</span></div></li>
+ </ul>
+ </div>
+ </div>
+ <div class="card">
+ <div class="figtitle">工业机器人=真布局（出货第一、收入占 83%），具身智能=期前只有文字、期后靠收购补票</div>
+ <table class="data">
+ <tr><th>宣称方向</th><th class="txt">对应热门概念</th><th class="txt">资本开支</th><th class="txt">产能/订单</th><th class="txt">研发</th><th class="txt">收入贡献</th><th class="txt">判定</th></tr>
+ <tr><td>工业机器人及智能制造</td><td class="txt">机器人产业 / 国产替代</td><td class="txt">有：成都基地 0.45 亿在建</td><td class="txt">全品牌出货量第一（MIR 第三方）、96 款型谱覆盖 3-1200kg</td><td class="txt">研发投入 2.50 亿占 9.70%</td><td class="txt">21.38 亿，占收入 83%</td><td class="txt"><span class="badge g">真布局</span></td></tr>
+ <tr><td>全球化（欧洲产能+客户）</td><td class="txt">出海</td><td class="txt">波兰基地投运+境外在建 0.51 亿</td><td class="txt">进入欧洲头部汽配客户名录，「订单快速增长」无量化</td><td class="txt">—</td><td class="txt">9.36 亿，占收入 36.3%</td><td class="txt"><span class="badge g">真布局</span></td></tr>
+ <tr><td>具身智能</td><td class="txt">人形机器人 / 具身智能</td><td class="txt">期前无；期后收购酷卓 4.87 亿（9-8 并表）</td><td class="txt">无样机/订单披露；鼎汇实体仅见税项附注</td><td class="txt">无专项披露</td><td class="txt">无收入贡献</td><td class="txt"><span class="badge y">观察：期前蹭热点、期后补票待整合</span></td></tr>
+ </table>
+ <div class="srcline">热门概念：Tushare 概念板块数据 · 判定口径：资本开支/产能订单/研发/收入贡献四问 · 重点宣称数字须给行业坐标（同行对比/行业占比/口径说明）</div>
+ </div>
+ <!-- ◆ SLOT：断言验证表（P1-12，text-mining.md 第七节） -->
+ <div class="card">
+ <div class="figtitle">31 条断言：25 通过 / 0 不成立 / 6 无法验证——无叙事裂缝，缺口集中在出货量、具身智能与商誉测试参数</div>
+ <table class="data">
+ <tr><th>管理层断言</th><th class="txt">数据检验</th><th class="txt">三态</th><th class="txt">出处</th></tr>
+ <tr class="group"><td colspan="4">收入与波动解释</td></tr>
+ <tr><td>营业收入 25.78 亿，与上年同期基本持平</td><td class="txt">合并利润表 25.78 亿（+1.14%），一致</td><td class="txt"><span class="badge g">✅ 通过</span></td><td class="txt">经营情况分析</td></tr>
+ <tr><td>机器人业务 +2.21%、核心部件 -3.78%</td><td class="txt">分部收入表：21.38 / 4.39 亿，一致</td><td class="txt"><span class="badge g">✅ 通过</span></td><td class="txt">经营情况分析</td></tr>
+ <tr><td>国内 -8.82%、海外 +25.06%</td><td class="txt">分地区表：16.41 / 9.36 亿，一致</td><td class="txt"><span class="badge g">✅ 通过</span></td><td class="txt">经营情况分析</td></tr>
+ <tr><td>全品牌出货量榜首，连续六季度领先、连续八年国产第一</td><td class="txt">引第三方 MIR 数据，报告无出货量科目可验</td><td class="txt"><span class="badge y">❓ 无法验证</span></td><td class="txt">经营情况分析</td></tr>
+ <tr><td>国产替代深化、下游需求持续释放、内资份额稳步提升</td><td class="txt">方向性判断，低可证伪；缺第三方对照</td><td class="txt"><span class="badge y">❓ 无法验证</span></td><td class="txt">经营情况分析</td></tr>
+ <tr><td>核心部件下滑系行业波动、市场竞争、转让控股子公司</td><td class="txt">部件收入 -3.78% 但毛利率 +1.82pct；扬州曙光 2025 年已出表=基数效应，非本期恶化</td><td class="txt"><span class="badge g">✅ 通过</span></td><td class="txt">经营情况分析；关联方附注</td></tr>
+ <tr><td>国内下滑系主动优化客户结构、有序压降低毛利业务</td><td class="txt">境内收入 -8.82% 同时境内毛利率 +7.04pct，方向互证</td><td class="txt"><span class="badge g">✅ 通过</span></td><td class="txt">经营情况分析</td></tr>
+ <tr><td>欧洲进入头部客户名录、订单快速增长、波兰基地投运</td><td class="txt">海外 +25.06% 兑现；订单与渗透率无量化数据，作定性参考</td><td class="txt"><span class="badge g">✅ 通过</span></td><td class="txt">经营情况分析</td></tr>
+ <tr class="group"><td colspan="4">毛利与盈利</td></tr>
+ <tr><td>毛利率 +4.17pct 系聚焦高毛利订单、供应链优化、原材料国产替代、精益制造</td><td class="txt">营业成本 -4.70% 快于收入，两大分部毛利率同升，方向一致；国产替代贡献无拆分</td><td class="txt"><span class="badge g">✅ 通过</span></td><td class="txt">经营情况分析</td></tr>
+ <tr><td>归母净利 1.61 亿 +2314%、扣非 0.70 亿 +498.64%</td><td class="txt">主要会计数据表一致</td><td class="txt"><span class="badge g">✅ 通过</span></td><td class="txt">主要会计数据</td></tr>
+ <tr><td>公允价值变动占利润总额 50.69%，系南京工艺置换南京化纤，不可持续</td><td class="txt">非经明细：公允价值变动 1.0 亿，占利润总额 50.7%，公司自认不可持续——扣非才是真实盈利</td><td class="txt"><span class="badge g">✅ 通过</span></td><td class="txt">非主营业务分析；非经明细</td></tr>
+ <tr><td>研发投入 2.50 亿占 9.70%，持续多年保持 10% 左右</td><td class="txt">本期 9.70%，略低于承诺下沿；费用化 87.7%</td><td class="txt"><span class="badge g">✅ 通过</span></td><td class="txt">研发投入章节</td></tr>
+ <tr class="group"><td colspan="4">现金流与营运</td></tr>
+ <tr><td>经营现金流 +137.27% 系从严信用管理、回款稳步增长</td><td class="txt">销售收现 +8.7% 确实增长；但应收账款较年初 +2.95 亿并存，「回款改善」只讲了一半</td><td class="txt"><span class="badge g">✅ 通过</span></td><td class="txt">经营情况分析</td></tr>
+ <tr class="group"><td colspan="4">承诺与目标</td></tr>
+ <tr><td>后服务市场正成为新的盈利增长点</td><td class="txt">未披露服务收入规模与占比</td><td class="txt"><span class="badge y">❓ 无法验证</span></td><td class="txt">经营情况分析</td></tr>
+ <tr><td>（核查项）经营计划有无数字化目标承诺</td><td class="txt">全文核查：MD&A 无任何收入/出货量/市占率数字化目标，仅定性表述</td><td class="txt"><span class="badge g">✅ 通过</span></td><td class="txt">经营计划章节</td></tr>
+ <tr class="group"><td colspan="4">赛道与产能</td></tr>
+ <tr><td>加速具身智能工业场景部署、构建多场景解决方案</td><td class="txt">无样机/量产/订单/客户/研发项目名任何证据句；「人形」全文 0 次出现</td><td class="txt"><span class="badge y">❓ 无法验证</span></td><td class="txt">主要业务章节</td></tr>
+ <tr><td>（具身智能实体）江苏鼎汇具身智能机器人创新中心</td><td class="txt">仅见于税项附注（销售商品纳税主体），无收入规模与产品披露</td><td class="txt"><span class="badge y">❓ 无法验证</span></td><td class="txt">税项附注</td></tr>
+ <tr><td>96 款机器人（3-1200kg），700kg 入选工信部首台套目录</td><td class="txt">产品型谱披露自洽，首台套目录公开可查</td><td class="txt"><span class="badge g">✅ 通过</span></td><td class="txt">主要业务章节</td></tr>
+ <tr><td>全球 75 个服务网点+欧洲生产基地</td><td class="txt">境外在建 0.51 亿与波兰基地投运互证；网点数为定性披露</td><td class="txt"><span class="badge g">✅ 通过</span></td><td class="txt">主要业务章节</td></tr>
+ <tr><td>（利润结构）机器人子公司净利 1.49 亿≈归母 92.5%</td><td class="txt">主要子公司表一致，利润高度集中于机器人主体</td><td class="txt"><span class="badge g">✅ 通过</span></td><td class="txt">主要子公司情况</td></tr>
+ <tr class="group"><td colspan="4">资产与子公司</td></tr>
+ <tr><td>专利 654 件、研发人员占 29.03%</td><td class="txt">员工表 915/3152=29.03%，一致</td><td class="txt"><span class="badge g">✅ 通过</span></td><td class="txt">核心竞争力分析</td></tr>
+ <tr><td>商誉 9.75 亿占总资产 9.30%</td><td class="txt">9.75/104.88=9.30%，一致；期内 -0.55 亿为欧元折算</td><td class="txt"><span class="badge g">✅ 通过</span></td><td class="txt">主要资产重大变化</td></tr>
+ <tr><td>Cloos 不存在重大减值风险</td><td class="txt">Cloos 本期净利 -0.15 亿持续亏损；中报未披露减值测试参数（增长率/折现率），无法核验</td><td class="txt"><span class="badge y">❓ 无法验证</span></td><td class="txt">主要境外资产表；商誉附注</td></tr>
+ <tr><td>南京化纤股份 1054.7 万股限售 12 个月、期末账面 1.48 亿</td><td class="txt">附注一致，本期确认损益 0.84 亿；2027-03 前不可变现</td><td class="txt"><span class="badge g">✅ 通过</span></td><td class="txt">非主营业务分析；金融资产附注</td></tr>
+ <tr class="group"><td colspan="4">风险与治理</td></tr>
+ <tr><td>风险：宏观及下游投资放缓</td><td class="txt">与国内收入 -8.82% 互证，如实</td><td class="txt"><span class="badge g">✅ 通过</span></td><td class="txt">风险提示章节</td></tr>
+ <tr><td>风险：地缘政治与关税</td><td class="txt">境外收入占比 36.33%，敞口量化可验，如实</td><td class="txt"><span class="badge g">✅ 通过</span></td><td class="txt">风险提示章节</td></tr>
+ <tr><td>风险：市场竞争加剧</td><td class="txt">与核心部件收入 -3.78%、行业价格战互证，如实</td><td class="txt"><span class="badge g">✅ 通过</span></td><td class="txt">风险提示章节</td></tr>
+ <tr><td>风险：原材料价格波动（「占比有限」）</td><td class="txt">「占比有限」无数据支撑，但存货中原材料降至 3.31 亿，敞口可控</td><td class="txt"><span class="badge g">✅ 通过</span></td><td class="txt">风险提示章节</td></tr>
+ <tr><td>风险：核心技术人才流失</td><td class="txt">研发人员 915 人占 29.03%，依赖度属实</td><td class="txt"><span class="badge g">✅ 通过</span></td><td class="txt">风险提示章节</td></tr>
+ <tr><td>已制定市值管理制度、发布「质量回报双提升」方案</td><td class="txt">方案 2026-03-31 已公告，互证</td><td class="txt"><span class="badge g">✅ 通过</span></td><td class="txt">公司治理章节</td></tr>
+ <tr><td>（语气核查）积极词高频、归因主动化</td><td class="txt">词频核查发现：积极词集中在业绩段、谨慎词集中在风险章，非公司断言</td><td class="txt"><span class="badge g">✅ 通过</span></td><td class="txt">全文词频核查</td></tr>
+ </table>
+ <div class="takeaway">汇总：共 31 条断言：✅ 25 / ❌ 0 / ❓ 6；未解释的大幅变动 3 项；指引兑现率 —（上期无量化指引）——计数与 figtitle 同源</div>
+ <div class="srcline">「❌ 不成立」= 管理层解释与数据矛盾，重大信号 · ❓ 必须写明缺什么数据才能验证</div>
+ <div class="srcline">数据缺口声明：出货量榜首——缺出货量/市占率口径数据（何处能补：MIR DATABANK 第三方报告）；行业景气判断——缺行业协会/第三方出货量对照（同前）；后服务增长点——缺服务收入规模与占比（何处能补：待年报分部披露）；具身智能布局——缺样机/订单/收入证据（何处能补：后续公告或年报专项）；鼎汇实体——缺经营规模披露（同前）；Cloos 无重大减值风险——缺减值测试增长率/折现率参数（何处能补：2026 年年报商誉附注）</div>
+ </div>
+ <!-- ◆ SLOT：解释缺口清单（变动>30% 但 MD&A 未解释的科目）与指引兑现率 -->
+ <div class="card">
+ <div class="figtitle">3 项大动未解释（均为票据/理财/预付类小科目）；本期与上期均无数字化指引可兑现</div>
+ <table class="data">
+ <tr><th>变动 &gt;30% 的科目</th><th>变动幅度</th><th class="txt">MD&A 是否解释</th></tr>
+ <tr><td>应收款项融资（期初 4.54→2.49 亿）</td><td>-45.1%</td><td class="txt">未提及（票据结算减少，与收现改善方向一致）</td></tr>
+ <tr><td>交易性金融资产（0.82→3.71 亿）</td><td>+352.1%</td><td class="txt">未提及（闲置募资购买理财，金额 2.89 亿）</td></tr>
+ <tr><td>预付款项（0.46→0.65 亿）</td><td>+42.6%</td><td class="txt">未提及（金额小，0.20 亿）</td></tr>
+ <tr class="total"><td>上期量化指引 vs 本期实际</td><td colspan="2" class="txt">—（上期与本期的经营计划均无量化目标承诺——「无指引可兑现」本身是 MD&A 透明度扣分项）</td></tr>
+ </table>
+ <div class="srcline">数字大动而文字不解释，本身就是信号（「该写而没写」的数字侧镜像）</div>
+ </div>
+ </div>
+
+ <!-- ══ S5 产能与在建工程 ◆ SLOT ══ -->
+ <div class="sect">
+ <div class="secthead" id="s5"><span class="no">05</span><span class="t">产能与在建工程</span><span class="line"></span><span class="tag">钱押在哪条线</span></div>
+ <!-- ◆ F-10：补判定列纪律漏网点——在建工程表加「预计转固时点」与判定列
+ （✅正常推进 / ⚠️进度停滞 / ❌长期挂账，沿用检验类四态），产能数据独立小表 -->
+ <div class="card">
+ <table class="data">
+ <tr><th>项目</th><th>预算（亿元）</th><th>累计投入</th><th>进度</th><th>预计转固时点</th><th class="txt">判定</th></tr>
+ <tr><td>成都市成华区埃斯顿工业机器人智能制造基地</td><td>0.65</td><td>0.45</td><td>75.0%</td><td>未披露</td><td class="txt"><span class="badge g">✅ 正常推进</span></td></tr>
+ <tr><td>境外公司生产设施建设（波兰等）</td><td>未披露</td><td>0.51</td><td>未披露</td><td>波兰基地本期已投运</td><td class="txt"><span class="badge g">✅ 正常推进</span></td></tr>
+ </table>
+ <div class="srcline">数据来源：在建工程附注 · 在建工程合计 0.96 亿仅占总资产 0.92%，无重大减值 · 判定依据：进度 vs 计划工期、连续两年进度增量</div>
+ </div>
+ <p class="lede">结论：在建工程 0.96 亿仅占总资产 0.9%，主押两条线——成都机器人智能制造基地（预算 0.65 亿、进度 75%、本期未转固）与境外生产设施（波兰基地已投运）；本期 Capex 0.93 亿（同比 -42.8%），扩张明显收敛，产能叙事在「全球化布局」而非国内扩产。半年报未披露产销量与产能利用率（本报告出货量判断引第三方 MIR 数据：全品牌第一）。</p>
+ </div>
+
+ <!-- ══ S6 股东结构 ◆ SLOT ══ -->
+ <div class="sect">
+ <div class="secthead" id="s6"><span class="no">06</span><span class="t">股东结构</span><span class="line"></span><span class="tag">户数 · 前十大 · 增减持</span></div>
+ <!-- ◆ 前十大表全宽横铺 -->
+ <div class="card">
+ <div class="figtitle">H 股上市带来 HKSCC 新进 10%；UBS/大摩/高盛集体增持，两只机器人 ETF 反向减持——外资行与内资 ETF 判断分歧</div>
+ <!-- ◆ F-10：质押率从 srcline 提为表列（>70% 徽章化并进风险清单）；
+ 高管增减持单列一行（与机构变动并列） -->
+ <table class="data">
+ <tr><th>股东</th><th>持股比例</th><th>质押率</th><th class="txt">变动</th></tr>
+ <tr><td>南京派雷斯特科技有限公司（控股股东）</td><td>26.34%</td><td>5.30%</td><td class="txt">持平</td></tr>
+ <tr><td>吴波（实控人）</td><td>11.47%</td><td>零质押</td><td class="txt">持平</td></tr>
+ <tr><td>HKSCC NOMINEES LIMITED（H 股名义持有人）</td><td>10.00%</td><td>—</td><td class="txt"><span class="up">新进（H 股上市）</span></td></tr>
+ <tr><td>香港中央结算有限公司（北向）</td><td>2.83%</td><td>—</td><td class="txt"><span class="up">增持 +353 万股</span></td></tr>
+ <tr><td>易方达国证机器人产业 ETF</td><td>1.82%</td><td>—</td><td class="txt"><span class="dn">减持 -77 万股</span></td></tr>
+ <tr><td>华夏中证机器人 ETF</td><td>0.80%</td><td>—</td><td class="txt"><span class="dn">减持 -859 万股（幅度大）</span></td></tr>
+ <tr><td>第一期暨 2022 年员工持股计划专户</td><td>0.70%</td><td>—</td><td class="txt">持平（第二解锁期考核未达标，60% 份额不能解锁）</td></tr>
+ <tr><td>UBS AG</td><td>0.42%</td><td>—</td><td class="txt"><span class="up">增持 +350 万股</span></td></tr>
+ <tr><td>MORGAN STANLEY & CO. INTERNATIONAL PLC.</td><td>0.41%</td><td>—</td><td class="txt"><span class="up">增持 +337 万股</span></td></tr>
+ <tr><td>高盛国际－自有资金</td><td>0.30%</td><td>—</td><td class="txt"><span class="up">增持 +269 万股</span></td></tr>
+ <tr><td>高管增减持（合计）</td><td>—</td><td>—</td><td class="txt">本期无董监高增减持（最近一次为 2025-01 集中增持）</td></tr>
+ </table>
+ <div class="srcline">数据来源：Tushare top10_holders / stk_holdertrade · 控股股东及一致行动人合计持股 37.94% · 质押率&gt;70% 徽章化并进 <a href="#s2">风险清单</a></div>
+ </div>
+ <div class="fig">
+ <div class="figtitle">户数 12.1→17.1 万户（半年 +42%）：机器人行情下散户加速涌入，筹码快速分散——与外资行增持同框，接力棒在换人</div>
+ <svg id="holders" viewBox="0 0 920 200" preserveAspectRatio="xMidYMid meet"></svg>
+ <div class="srcline">数据来源：Tushare stk_holdernumber（万户）· 户数骤降+价升 = 筹码集中；线=户数环比增减（%，首期无环比不画点）</div>
+ </div>
+ </div>
+
+ <!-- ══ S7 外部校验 ◆ SLOT ══ -->
+ <div class="sect">
+ <div class="secthead" id="s7"><span class="no">07</span><span class="t">外部校验</span><span class="line"></span><span class="tag">预期 · 同业 · 宏观 · 债务</span></div>
+ <div class="card">
+ <div class="figtitle">H1 归母 1.61 亿已达全年一致预期中值 64%：中报后券商预测上修至 2.1~2.85 亿——但预期口径含一次性重估，扣非兑现度才是考题</div>
+ <table class="data">
+ <tr><th>指标</th><th>实际</th><th>一致预期</th><th>偏离度</th></tr>
+ <tr><td>营业收入（亿元）</td><td>25.78（2026H1）</td><td>—（券商未给 H1 收入一致值）</td><td>—</td></tr>
+ <tr><td>归母净利（亿元）</td><td>1.61（2026H1）</td><td>2026E 中值约 2.5（区间 2.1~2.85）</td><td class="up">完成中值 64%</td></tr>
+ </table>
+ <div class="srcline">数据来源：Tushare report_rc、东方财富研报检索（中报后 5 家：买入 2 / 增持 2 / 持有 1，最新 2026-09）· 中报后预测明显上修（4 月申万曾由 4.63 亿下调至 1.67 亿）· 无券商给明确目标价 · 注意口径差：券商预测为归母口径（含 H1 非经 0.91 亿），隐含全年扣非仅 1.2~1.9 亿</div>
+ </div>
+ <!-- ◆ peers 对标表全宽横铺 -->
+ <div class="card">
+ <div class="figtitle">毛利率五家最高、净利率第二——但权益乘数 3.20 高于同业中位：超额 ROE 里有杠杆的份，盯扣非后盈利坐标能否前移</div>
+ <!-- ◆ F-11：从比率对照升级为结构对照——扩杜邦四列（净利率/周转率/权益乘数/ROE），
+ 回答「同业怎么赚 ROE、本公司超额来自哪个因子」；本公司行各因子列填 vs 中位数差并染色
+ （优 up / 劣 dn）；数据=data.json peers 块（mx 批量取数落库，T8① 回验覆盖本表） -->
+ <table class="data">
+ <tr><th>公司</th><th>毛利率</th><th>研发费率</th><th>资产负债率</th><th>净利率</th><th>周转率</th><th>权益乘数</th><th>ROE</th></tr>
+ <tr><td><b>埃斯顿</b></td><td>31.81%</td><td>9.70%</td><td>68.22%</td><td>6.26%</td><td>0.26</td><td>3.20</td><td>4.92%</td></tr>
+ <tr><td>汇川技术</td><td>29.74%</td><td>—</td><td>48.04%</td><td>11.35%</td><td>0.34</td><td>1.92</td><td>7.69%</td></tr>
+ <tr><td>埃夫特</td><td>15.32%</td><td>—</td><td>65.54%</td><td>-15.09%</td><td>0.19</td><td>2.90</td><td>-4.78%</td></tr>
+ <tr><td>新时达</td><td>17.87%</td><td>—</td><td>67.91%</td><td>-0.50%</td><td>0.48</td><td>3.12</td><td>-0.90%</td></tr>
+ <tr><td>机器人（新松）</td><td>16.53%</td><td>—</td><td>64.62%</td><td>-13.19%</td><td>0.12</td><td>2.83</td><td>-4.61%</td></tr>
+ <tr class="total"><td>本公司 vs 中位数</td><td>+14.6pct</td><td>—</td><td class="dn">+3.1pct</td><td class="up">+13.1pct</td><td class="dn">-0.01 次</td><td class="dn">+0.34</td><td class="up">+7.7pct</td></tr>
+ </table>
+ <div class="takeaway">读法：超额 ROE 的主贡献是净利率（高出中位 13.1pct），但净利率在五家里只排第二（汇川 11.35% 在前）且本期含一次性重估；权益乘数高于中位 0.34——杠杆仍在替 ROE 出力，与 <a href="#s1">杜邦杠杆拆解</a> 交叉验证；三家内资同行（埃夫特/新时达/新松）全亏，行业分化极端</div>
+ <div class="srcline">数据来源：东方财富（妙想）批量取数（2026-10-01），同一报告期（均 A 股人民币、中国企业会计准则——同口径）· 同业 ROE 为加权口径，本公司另按摊薄 4.92% 见 S1；同业研发费率未取到（本公司研发投入占比 9.70% 为披露值）· 权益乘数=1/(1−资产负债率) 推算</div>
+ </div>
+ <div class="card">
+ <div class="figtitle">10 项：6 过 4 注意——唯一实质问题是短债覆盖 0.83 倍；双模型分歧，税率与汇率是本期利润的隐形放大器</div>
+ <!-- ◆ ：检验类卡片必须有判定列（扫颜色即知结果，治「全文字缺重点」）；
+ ✅ 通过 / ⚠️ 注意 / ❌ 异常；纯披露项（税率汇率等无检验性质的）填「—」，不许硬凑 ✅
+ ◆ 行序规则：❌⚠️ 问题项置顶（❌ 先于 ⚠️），✅ 与 — 披露项殿后；
+ 同判定内保持下方默认主题序——读者先看到雷（比亚迪轮 10 项即兴混排的教训） -->
+ <table class="data">
+ <tr><th>检验项</th><th>读数</th><th class="txt">判定</th><th class="txt">结论（≤30字，长解释挪 srcline）</th></tr>
+ <tr><td>收入增速 vs 净利增速</td><td>+1.1% vs +2314.2%</td><td class="txt"><span class="badge y">⚠️</span></td><td class="txt">剪刀差=一次性重估+毛利修复+低基数，钱去哪了见净利桥</td></tr>
+ <tr><td>短债覆盖倍数</td><td>0.83 倍</td><td class="txt"><span class="badge y">⚠️</span></td><td class="txt">(货币资金+OCF)÷(短借+一年内到期)；FY2025 OCF 年化口径 1.03 倍，错配可解</td></tr>
+ <tr><td>现金流偿债口径（X6）</td><td>0.01（≈ 164 年）</td><td class="txt"><span class="badge y">⚠️</span></td><td class="txt">OCF÷平均总负债——半年 OCF 基数小；FY2025 口径约 14 年仍长</td></tr>
+ <tr><td>破产风险双模型 <span class="badge der">推算</span></td><td>Altman Z=3.05（安全区）· Ohlson P=0.58（高）</td><td class="txt"><span class="badge y">⚠️</span></td><td class="txt">模型分歧，均作辅助参考（美国样本系数；O 模型对高杠杆敏感）</td></tr>
+ <tr><td>研发费用（费率 / 资本化率）</td><td>2.50 亿（9.70% / 12.3%）</td><td class="txt"><span class="badge g">✅</span></td><td class="txt">费率高且 87.7% 费用化，会计政策保守</td></tr>
+ <tr><td>流动性压力情景 <span class="badge est">估算</span></td><td>收入-10/20/30% → 净利 1.29/0.98/0.68 亿</td><td class="txt"><span class="badge g">✅</span></td><td class="txt">三档均保持盈利（情景推演、非预测），安全垫可见</td></tr>
+ <tr><td>增量费用效率（Δ毛利÷Δ期间费用）</td><td>-7.35</td><td class="txt"><span class="badge g">✅</span></td><td class="txt">费用绝对额下降（-0.16 亿）同时毛利 +1.16 亿=管控增效</td></tr>
+ <tr><td>销售费用获客效率（Δ收入÷Δ销售费用）</td><td>-2.09</td><td class="txt"><span class="badge g">✅</span></td><td class="txt">收入 +0.29 亿而销售费用 -0.14 亿，非「增长变贵」</td></tr>
+ <tr><td>大宗/税率/汇率敏感性</td><td>—</td><td class="txt">—（披露项）</td><td class="txt">成本要素构成未披露；欧元敞口显著（商誉折算 -0.55 亿、汇兑损失 0.12 亿）；有效税率 19.0%（重估递延税拉高，常态约 15%）</td></tr>
+ <tr><td>费用率上升归因</td><td>—</td><td class="txt">—（披露项）</td><td class="txt">期间费用率 27.2% vs 28.1% 下降——预算管控驱动（中性）</td></tr>
+ </table>
+ <div class="srcline">费用 ROI 诊断经营效率，不进排雷清单 · 判定列规则：✅ 过 / ⚠️ 注意 / ❌ 异常 / — 披露项（不硬凑判定）</div>
+ </div>
+ <!-- ◆ SLOT：期后事项（P1-11，核验期末余额真实性） -->
+ <div class="card">
+ <div class="figtitle">期后 5 事项：2 项改变报表结构（酷卓并表堆商誉、2.51 亿买少数股权），无违约/减持/诉讼</div>
+ <table class="data">
+ <tr><th>日期</th><th class="txt">事件</th><th class="txt">判定</th><th class="txt">验证了什么</th></tr>
+ <tr><td>2026-08-31</td><td class="txt">临时股东会通过：4.87 亿现金收购酷卓 100% 股权（协作+人形机器人）；回购注销 32.23 万股限制性股票</td><td class="txt"><span class="badge y">⚠️</span></td><td class="txt">期末合并范围与商誉——标的 2025 年亏 0.53 亿，对价 vs 净资产 0.49 亿，将新增商誉约 4.4 亿</td></tr>
+ <tr><td>2026-08-31</td><td class="txt">2025 年激励计划第一期考核达标：行权 86.76 万份（20.53 元/份）+解锁 107.37 万股，9-2 上市流通</td><td class="txt"><span class="badge g">✅</span></td><td class="txt">验证激励线判定——一期收入线达标兑现（2025 收入 +21.93%≥15%）</td></tr>
+ <tr><td>2026-09-08</td><td class="txt">酷卓交割完成并表</td><td class="txt"><span class="badge y">⚠️</span></td><td class="txt">期后商誉与利润结构——Q3 起亏损标的并表，商誉/净资产大概率重回 35% 上方</td></tr>
+ <tr><td>2026-09-23</td><td class="txt">拟 2.51 亿收购江苏智能 44.86% 少数股权（持股 50.15%→95.01%，评估增值率 88.15%，未签正式合同）</td><td class="txt"><span class="badge y">⚠️</span></td><td class="txt">少数股东权益与货币资金——2.51 亿现金支出待付，评估溢价偏高</td></tr>
+ <tr><td>2026-09-29</td><td class="txt">新推 2026 年限制性股票激励草案：299 万股（14.92 元/股、209 人），考核 2026-2028 扣非累计 2/5.2/11 亿</td><td class="txt"><span class="badge g">✅</span></td><td class="txt">管理层对扣非修复的自我加压——考核口径从归母切到扣非，明显更严</td></tr>
+ <!-- ◆ 无期后事项时写「已检查，无重大期后事项」——不悄悄缺席 -->
+ </table>
+ <div class="srcline">数据来源：期后公告时间线（交易所/巨潮披露，检索至 2026-10-01）· 另已检查：无诉讼仲裁/债务违约/董监高减持/新增质押/退货解约；无分红兑付（2025 年度不分配） · 与 <a href="#s2">02 排雷扫描</a> 应收滚动勾稽联动</div>
+ </div>
+ </div>
+
+ <!-- ══ S8 下期跟踪清单（P2-18）◆ SLOT ══
+ ◆ 按 meta.industry_profile 从 references/industry-profiles.md 取该模式「先行指标建议集」
+ （3~5 项）定制，无法归类时用通用缺省集；入选标准：报表出来前就能观察到的公开信息。
+ ◆ 每条必须写成条件化触发线（if-then），禁止无条件预测；语料同步写入同目录同名 .json
+ 的 watchlist 块，回看读 JSON 不解析本表；读数凡含假设的一律挂 .badge.est 并写明假设。 -->
+ <div class="sect">
+ <div class="secthead" id="s8"><span class="no">08</span><span class="t">下期跟踪清单</span><span class="line"></span><span class="tag">先行指标仪表盘 · 下份报告之前可观察</span></div>
+ <p class="lede">下一期最先看扣非归母——它同时裁决「修复成色」与「新激励考核线」；其次是合同负债，它最早暴露国内需求方向</p>
+ <!-- ◆ 按模式定制 3~5 卡（见本节文件头注释）；读数槽从简（值 + 证据等级徽章），
+ 长文本进阈值带槽；阈值带 = >upper 含义 / <lower 含义（至少一侧），阈值必须有依据
+ （历史中枢 / 同业水平 / 管理层指引，依据写 data.json source/note）；
+ 无法数字化阈值的指标在阈值带槽写「若…则…」条件句；
+ 5 卡时第 5 卡移出 grid2 全宽横铺（两列栅格放奇数卡末行空缺，视觉不平衡） -->
+ <div class="grid2">
+ <div class="card">
+ <div class="figtitle">扣非归母净利润（全年）</div>
+ <div class="wv">2026H1 扣非 0.70 亿（+498.6%） <span class="badge der">推算</span></div>
+ <div class="wb">&gt; 2.0 亿 达到 2 亿=摸到期后新激励草案 2026 考核线，修复成色坐实 / &lt; 1.5 亿 低于 1.5 亿=剔除一次性收益后修复停滞（阈值依据：2026 激励草案考核 2026 扣非累计 2 亿；Q2 单季扣非 0.51 亿×2）· 若 2026FY 扣非低于 1.5 亿，则「高质量盈利修复」不成立</div>
+ <div class="srcline">数据来源：定期报告主要会计数据表扣非归母</div>
+ </div>
+ <div class="card">
+ <div class="figtitle">合同负债增速 vs 收入增速（剪刀差）</div>
+ <div class="wv">合同负债较年初 -31.8%（4.00 亿）vs 收入 +1.1% <span class="badge der">推算</span></div>
+ <div class="wb">&gt; 4.5 亿 回升至 4.5 亿上方=压降产线业务解释成立、打款意愿修复 / &lt; 3.5 亿 跌破 3.5 亿（较 2025FY -40%）=需求走弱确认（阈值依据：2025FY 5.86 亿与本期 4.00 亿的中枢）· 若 2026FY 合同负债未回升且收入增速转负，则需求走弱成立</div>
+ <div class="srcline">数据来源：定期报告合并资产负债表「合同负债」</div>
+ </div>
+ <div class="card">
+ <div class="figtitle">商誉/归母净资产 + Cloos 盈亏</div>
+ <div class="wv">29.8%；Cloos 2026H1 净利 -0.15 亿 <span class="badge der">推算</span></div>
+ <div class="wb">&gt; 35% 升破 35%（期后酷卓新增约 4.4 亿商誉路径）=堰塞湖警戒线 / &lt; 30% 维持 30% 下方且 Cloos 扭亏=风险降级（阈值依据：排雷信号库商誉阈值 30%+期后酷卓并表测算）· 若 2026FY Cloos 全年亏损且商誉/归母净资产重回 35% 上方，则商誉减值风险升级为红色</div>
+ <div class="srcline">数据来源：商誉附注、期后收购公告、2026 年报减值测试参数</div>
+ </div>
+ <div class="card">
+ <div class="figtitle">应收账龄 1 年以上占比</div>
+ <div class="wv">18.10%（期初 15.84%） <span class="badge der">推算</span></div>
+ <div class="wb">&lt; 16% 回落 16% 下方=海外/产线账期解释成立，回款改善 / &gt; 20% 升破 20%=账龄恶化确认，计提压力显性化（阈值依据：期初 15.84% 与账龄迁移加速判定）· 若应收增速连续两期高于收入增速 15pct 以上且 1 年以上占比升破 20%，则收入质量恶化成立</div>
+ <div class="srcline">数据来源：应收账款账龄附注（各期半年报/年报）</div>
+ </div>
+ </div>
+ <div class="card">
+ <div class="figtitle">海外收入增速与占比（Local for Global）</div>
+ <div class="wv">海外 +25.1%、占比 36.3% <span class="badge der">推算</span></div>
+ <div class="wb">&gt; 40% 占比升破 40%=全球化兑现，估值叙事成立 / &lt; 10% 增速跌破 10%=欧洲开拓减速，回到国内内卷逻辑（阈值依据：本期 36.3% 占比与 25% 增速的半程外推）· 若 2026FY 海外增速降至 10% 下方且国内收入未转正，则「海外第二增长引擎」证伪</div>
+ <div class="srcline">数据来源：分地区收入表（各期半年报/年报）；欧洲客户/订单公告</div>
+ </div>
+ </div>
+
+ <!-- ══ 页脚 ◆ SLOT ══ -->
+ <div class="foot">
+ <span>埃斯顿（002747.SZ）2026年半年报分析 · 生成于 2026-10-01</span>
+ <span>数据：公司报告原文（双源核对：Tushare / 东方财富）· 本报告仅为信息分析，不构成投资建议</span>
+ </div>
+</div>
+
+<!-- ══ 右侧章节目录：视口 ≤1300px 与打印自动隐藏；
+ 「回顾」为条件项——无回看章（review 块）时删除对应 a 标签 ══ -->
+<nav class="toc-side">
+ <a href="#s0" title="00 核心结论">结论</a>
+ <a href="#s1" title="01 财务总览">总览</a>
+ <a href="#s2" title="02 排雷扫描">排雷</a>
+ <a href="#s3" title="03 因素分析">因素</a>
+ <a href="#s4" title="04 管理层在说什么">管理</a>
+ <a href="#s5" title="05 产能与在建工程">产能</a>
+ <a href="#s6" title="06 股东结构">股东</a>
+ <a href="#s7" title="07 外部校验">校验</a>
+ <a href="#s8" title="08 下期跟踪清单">跟踪</a>
+</nav>
+
+<script>
+/* ── 内联绘图助手：模型只改 DATA 区数组，不改绘图逻辑 ── */
+const NS='http://www.w3.org/2000/svg';
+/* 单一色源：全部色值读 :root CSS 变量，换色只改 :root 一处。
+ 映射注意：C2=--faintdata（不是零引用的 --data2）；getPropertyValue 带前导空格须 trim */
+const css=getComputedStyle(document.documentElement),v=n=>css.getPropertyValue(n).trim();
+const INK=v('--ink'),MUT=v('--muted'),GRID=v('--grid'),FAINT=v('--faint');
+const C1=v('--data'),C2=v('--faintdata'),C3=v('--data2'),DERC=v('--der'),GOOD=v('--good'),BAD=v('--bad');
+/* 线标签 halo：白描边垫底，文字压在柱身/网格线上仍可读 */
+const HALO={'paint-order':'stroke',stroke:'#fff','stroke-width':2.5};
+/* 线标签避让：与柱顶数字文本盒相交（点在柱顶上方 10px 内到下方 13px 内）移到点下方，否则点上方 */
+const labelY=(py,barTop)=>(py>barTop-10&&py<barTop+13)?py+16:py-8;
+const el=(p,t,a)=>{const n=document.createElementNS(NS,t);for(const k in a)n.setAttribute(k,a[k]);p.appendChild(n);return n};
+const txt=(p,a,s)=>{const n=el(p,'text',a);n.textContent=s;return n};
+const tip=(n,s)=>{const t=document.createElementNS(NS,'title');t.textContent=s;n.appendChild(t)};
+/* 呈现精度（v0.0.19）：可见数字最多两位小数、去尾零；原始精度留底稿，柱标签/提示/线标签统一走 fmt */
+const fmt=v=>{const r=Math.round(v*100)/100;return Object.is(r,-0)?0:r};
+
+/* 胶囊柱：竖柱圆上端（dir='down' 圆下端），h 不足时圆角自动收缩；零值不画实形 */
+function capsule(p,x,y,w,h,r,fill,dir,cls){
+ if(h<=0)return el(p,'rect',{x:x,y:y,width:w,height:0,fill:'none'});
+ const rr=Math.min(r,w/2,h/2);
+ const d=dir==='down'
+ ?`M${x},${y} V${y+h-rr} Q${x},${y+h} ${x+rr},${y+h} H${x+w-rr} Q${x+w},${y+h} ${x+w},${y+h-rr} V${y} Z`
+ :`M${x},${y+h} V${y+rr} Q${x},${y} ${x+rr},${y} H${x+w-rr} Q${x+w},${y} ${x+w},${y+rr} V${y+h} Z`;
+ return el(p,'path',{d:d,fill:fill,class:cls});
+}
+/* nice step：网格间距取 1/2/5×10ⁿ，刻度值不出现长尾小数 */
+function niceStep(raw){const p=Math.pow(10,Math.floor(Math.log10(raw)));const n=raw/p;return (n<=1?1:n<=2?2:n<=5?5:10)*p;}
+
+/* ════ DATA ◆ SLOT：只填这里 ════
+ （发丝网格、刻度、胶囊圆角、标签避让均由绘图函数自动生成，填数即可） */
+/* trend：多期标签 + 收入 + 归母净利 + 扣非净利 + ROE(小数) + 毛利率线(%)——等宽双面板：
+ 左=收入柱+毛利率线，右=归母净利柱（+扣非净利柱）+ROE 线。可缺省：np_dt 整列留空或某期
+ 为 null 该期不画扣非柱、图例不列扣非（右板降级单柱）；roe 整列留空则整线跳过。
+ roe 存小数绘图 ×100；**gm 填百分数**（如 20.46——绘图不做 ×100，填小数会显示成 0.2%）；
+ capex=购建固定资产等支付的现金（亿元，v0.0.20 起——趋势图卡底部迷你柱条，cashflow.capex
+ hist 照抄，缺期填 null 跳点） */
+const TREND={labels:['2022H1','2023H1','2024H1','2025H1','2026H1'],rev:[16.55,22.41,21.69,25.49,25.78],np:[0.76,0.97,-0.73,0.07,1.61],np_dt:[],roe:[0.0291,0.036,-0.0285,0.0034,0.0492],gm:[33.14,33.09,29.33,27.64,31.81],capex:[0.61,0.9,2.2,1.63,0.93]};
+/* ncrline：现金时序双折线（现金时序卡）——labels=期间（derived.cash_ts.periods 照抄）、
+ ncr=净现比逐期、fcf=FCF÷归母逐期（短序列前置 null 跳点）、mean=净现比均值（均值虚线+小字；
+ fcf 均值写进卡 takeaway 判定语）；hist<3 期整卡降级声明，本槽留空 */
+const NCR_TS={labels:['2022H1','2023H1','2024H1','2025H1','2026H1'],ncr:[-1.36,-0.95,4.66,-17.89,0.28],fcf:[-2.17,-1.87,7.65,-42.21,-0.3],mean:-3.05};
+/* spark：四维表「近5期趋势」迷你折线——vals 填 ratios 五期 hist（同类型滚动，旧→新）；
+ color 由填充者按方向语义表对本期 vs 上期的好坏选 GOOD/BAD/INK；不足 2 期不画（该格留空并注明） */
+const SPARK={gm:[0.3314,0.3309,0.2933,0.2764,0.3181],nm:[0.0461,0.0435,-0.0338,0.0026,0.0626],da:[0.614,0.7038,0.74,0.8184,0.6822],dio:[298.7089,298.3447,321.14,326.4725,286.2299],dso:[173.8642,225.2097,299.8709,279.5897,290.8096],c2s:[1.0055],ccc:[234.2441,184.0272,142.5256,156.6128,171.1451],dol:[1.3793],dfl:[1.3846]};
+function spark(id,vals,color){
+ const s=document.getElementById(id);
+ if(!s||!vals||vals.length<2)return;
+ const W=64,H=16,P=2.5;
+ const lo=Math.min(...vals),hi=Math.max(...vals),span=(hi-lo)||1;
+ const x=i=>P+(W-2*P)*i/(vals.length-1);
+ const y=v=>H-P-(H-2*P)*(v-lo)/span;
+ el(s,'polyline',{points:vals.map((v,i)=>x(i)+','+y(v)).join(' '),fill:'none',
+ stroke:color,'stroke-width':1.6,'stroke-linejoin':'round','stroke-linecap':'round'});
+ el(s,'circle',{cx:x(vals.length-1),cy:y(vals[vals.length-1]),r:1.9,fill:color});
+}
+/* ncrline：现金时序双折线——净现比 INK / FCF÷归母 C2 合并量程（双向 1.15 余量，
+ 值域强制含 1：造血参考线必须在画布内）；y=1 参考虚线 + mean 均值虚线（右端小字）；
+ null 跳点不硬连（与 combo/trendDual 同一约定）；ncr 标签点上、fcf 标签点下（防互撞） */
+function ncrLine(id,labels,ncr,fcf,mean){
+ const s=document.getElementById(id);if(!s||!labels.length)return;
+ ncr=ncr||[];fcf=fcf||[];
+ const all=[...ncr,...fcf].filter(v=>v!=null);
+ if(!all.length)return;
+ const W=+s.viewBox.baseVal.width,H=+s.viewBox.baseVal.height,L=54,R=64,B=30,T=30;
+ let lo=Math.min(...all,1),hi=Math.max(...all,1);
+ const span=(hi-lo)||1;lo-=span*.15;hi+=span*.15;
+ const bw=(W-L-R)/labels.length;
+ const y=v=>T+(H-B-T)*(1-(v-lo)/(hi-lo));
+ const cx=i=>L+i*bw+bw/2;
+ const step=niceStep((hi-lo)/4);
+ for(let v=Math.ceil(lo/step)*step;v<hi;v+=step){
+  if(Math.abs(v)<1e-9)continue;
+  const gy=y(v);
+  el(s,'line',{x1:L,y1:gy,x2:W-R,y2:gy,stroke:FAINT,'stroke-width':.7,'stroke-dasharray':'3 3'});
+  txt(s,{x:L-8,y:gy+3,'font-size':8.5,'font-weight':600,fill:MUT,'text-anchor':'end'},fmt(v));
+ }
+ el(s,'line',{x1:L,y1:y(1),x2:W-R,y2:y(1),stroke:MUT,'stroke-width':1,'stroke-dasharray':'5 3'});
+ txt(s,{x:W-R+4,y:y(1)+3,'font-size':8.5,'font-weight':700,fill:MUT},'1');
+ if(mean!=null){
+  el(s,'line',{x1:L,y1:y(mean),x2:W-R,y2:y(mean),stroke:INK,'stroke-width':1,'stroke-dasharray':'2 2'});
+  /* 均值小字与 y=1 小字同贴右缘：垂直间距不足 12px 时下移到线下方，防 1px 级重叠（埃斯顿 2026H1 窄视口实测） */
+  const mdy=Math.abs(y(mean)-y(1))<12?13:3;
+  txt(s,{x:W-R+4,y:y(mean)+mdy,'font-size':8.5,'font-weight':700,fill:INK},'均值'+fmt(mean));
+ }
+ const draw=(vals,color,name,dy)=>{
+  let run=[];
+  const flush=()=>{
+   if(run.length>1){el(s,'path',{d:'M'+run.map(i=>[cx(i),y(vals[i])]).map(p=>p.join(' ')).join(' L '),fill:'none',stroke:color,'stroke-width':1.8});}
+   run=[];
+  };
+  vals.forEach((v,i)=>{
+   if(v==null){flush();return;}
+   run.push(i);
+   const c=el(s,'circle',{cx:cx(i),cy:y(v),r:3,fill:color,stroke:'#fff','stroke-width':1.5});
+   tip(c,`${labels[i]} ${name}：${fmt(v)}`);
+   txt(s,{x:cx(i),y:y(v)+dy,'font-size':9,'font-weight':700,fill:MUT,'text-anchor':'middle',...HALO},fmt(v));
+  });
+  flush();
+ };
+ draw(ncr,INK,'净现比',-7);draw(fcf,C2,'FCF÷归母',13);
+ labels.forEach((lb,i)=>{txt(s,{x:cx(i),y:H-B+18,'font-size':10,'font-weight':600,fill:MUT,'text-anchor':'middle'},lb);});
+ el(s,'line',{x1:L,y1:H-B,x2:W-R,y2:H-B,stroke:GRID,'stroke-width':1});
+ [['净现比',INK],['FCF÷归母',C2]].forEach(([n,c],i)=>{
+  el(s,'rect',{x:L+i*130,y:8,width:10,height:10,fill:c,rx:2});
+  txt(s,{x:L+i*130+15,y:17,'font-size':10,'font-weight':600,fill:MUT},n);
+ });
+}
+/* capexbars：Capex 节奏迷你柱条（趋势图卡底部）——购建付现逐期小柱（亿元，独立缩放），
+ null 跳点不画；柱顶数值标签 R2；中性 INK 柱（扩张/收缩是节奏读数，不按好坏染色） */
+function capexBars(id,labels,vals){
+ const s=document.getElementById(id);if(!s||!labels.length)return;
+ vals=vals||[];
+ const vv=vals.filter(v=>v!=null);
+ if(!vv.length)return;
+ const W=+s.viewBox.baseVal.width,H=+s.viewBox.baseVal.height,L=54,R=54,B=22,T=24;
+ const max=Math.max(...vv)*1.15||1;
+ const bw=(W-L-R)/labels.length;
+ txt(s,{x:L,y:12,'font-size':9.5,'font-weight':700,fill:MUT},'Capex 购建付现（亿元）');
+ vals.forEach((v,i)=>{
+  const lb=labels[i];
+  const x=L+i*bw+bw*.3,w=bw*.4;
+  if(v!=null){
+   const ha=(H-B-T)*v/max;
+   const r1=capsule(s,x,H-B-ha,w,ha,w/2,INK);
+   tip(r1,`${lb} Capex：${fmt(v)} 亿`);
+   txt(s,{x:x+w/2,y:H-B-ha-5,'font-size':9.5,'font-weight':700,fill:INK,'text-anchor':'middle'},fmt(v));
+  }
+  txt(s,{x:x+w/2,y:H-B+14,'font-size':10,'font-weight':600,fill:MUT,'text-anchor':'middle'},lb);
+ });
+ el(s,'line',{x1:L,y1:H-B,x2:W-R,y2:H-B,stroke:GRID,'stroke-width':1});
+}
+/* ocfbridge：净利→经营现金流调节桥（间接法，亿元）——首项「净利润」与 OCF_END（经营现金流
+ 净额）为水平值：v0.0.21 起画作首末端点柱（中性色，超量程断线截断），同时填上方 .brends
+ 端点行；其余为调节项，Σ=OCF。
+ ◆ 项数纪律（check_html ocf-bridge-shape 机检）：调节柱 ≤6 根——单列门槛 |Δ|≥调节净额 10%
+ 或 ≥3 亿，其余并入「其他」；「其他」桶超 Σ|Δ|×30% 时须把桶内最大项拆出单列 */
+const OCF_BRIDGE=[["净利润",1.59],["Δ应付",-2.87],["Δ存货",1.63],["Δ应收",-1.45],["折旧摊销",1.03],["减值",0.45],["其他",0.06]];
+const OCF_END=0.45;
+/* segbridge：收入桥——只填贡献项（量/价/结构三效应，或无量价时各分部贡献）；项数纪律同
+ OCF 桥；三效应之和=Δ收入（calc bridge.rev 卡口）。基期/本期收入为水平值：v0.0.21 起画作
+ 首末端点柱（SEG_ENDS 槽，中性色、超量程断线截断），同时填 HTML .brends 端点行 */
+const SEG_BRIDGE=[['工业机器人及智能制造',0.46],['自动化核心部件',-0.17]];
+/* segbridge 端点柱数据（v0.0.21）：[基期收入, 本期收入]（亿元，与 .brends 端点行同源照抄，
+ fillsheet 已产出）；缺数填 null 该端点跳过 */
+const SEG_ENDS=[25.49,25.78];
+/* holders：股东户数（万户，柱）+ 户数环比增减(%,线，可留空；首期无环比填 null 跳点不画) */
+const HOLDERS={labels:['2022H1','2023H1','2024H1','2025H1','2026H1'],num:[6.81,5.99,9.47,12.41,17.15],px:[null,-12.0,58.0,31.1,38.2]};
+/* DUPONT_STACK：ΔROE 贡献堆叠条——三段效应照抄 derived.dupont 三效应 ×100 转 pct
+ （一位小数）；gap=closure_gap×100，≠0 必须保留第四段（灰色口径差段），不许删段让视觉自行闭合 */
+const DUPONT_STACK={steps:[['净利率',8.2],['周转率',0.6],['杠杆',-4.0]],gap:-0.2};
+
+/* 柱线组合图：柱（C1 主数据 / C2 次序列）+ 可选线（INK，独立缩放），传空数组即跳过；视觉语法=胶囊柱端、发丝网格+左刻度、线标签点上居中+halo。 */
+function combo(id,labels,barA,barB,line,lineName,aName,bName){
+ const s=document.getElementById(id);if(!s||!labels.length)return;
+ barB=barB||[];line=line||[];
+ const W=+s.viewBox.baseVal.width,H=+s.viewBox.baseVal.height,L=54,R=54,B=44,T=30;
+ const max=Math.max(...barA,...barB)*1.15||1;
+ const lv=line.filter(v=>v!=null); /* null 期跳点：不参与量程（环比首期无值） */
+ const lspan=lv.length?Math.max(...lv)-Math.min(...lv)||1:1;
+ const lmax=lv.length?Math.max(...lv)+lspan*.5:1,lmin=lv.length?Math.min(...lv)-lspan*.5:0;
+ const bw=(W-L-R)/labels.length;
+ /* 发丝网格 + 刻度：柱顶数字是精确值，网格刻度只管量级 */
+ const step=niceStep(max/4);
+ for(let v=step;v<max;v+=step){
+ const gy=T+(H-B-T)*(1-v/max);
+ el(s,'line',{x1:L,y1:gy,x2:W-R,y2:gy,stroke:FAINT,'stroke-width':.7,'stroke-dasharray':'3 3'});
+ txt(s,{x:L-8,y:gy+3,'font-size':8.5,'font-weight':600,fill:MUT,'text-anchor':'end'},Math.round(v));
+ }
+ labels.forEach((lb,i)=>{
+ const w=bw*.24;
+ const x=barB.length?L+i*bw+bw*.18:L+i*bw+(bw-w)/2; /* 双柱成组，单柱居中 */
+ const ha=(H-B-T)*barA[i]/max;
+ const r1=capsule(s,x,H-B-ha,w,ha,w/2,C1);
+ tip(r1,`${lb} ${aName}：${fmt(barA[i])}`);
+ if(barB.length){
+ const hb=(H-B-T)*barB[i]/max;
+ const r2=capsule(s,x+w+3,H-B-hb,w,hb,w/2,C2);
+ tip(r2,`${lb} ${bName}：${fmt(barB[i])}`);
+ }
+ const tx=barB.length?x+w:x+w/2;
+ txt(s,{x:tx,y:H-B-ha-6,'font-size':10,'font-weight':800,fill:INK,'text-anchor':'middle'},fmt(barA[i]));
+ txt(s,{x:L+i*bw+bw/2,y:H-B+18,'font-size':10,'font-weight':600,fill:MUT,'text-anchor':'middle'},lb);
+ });
+ el(s,'line',{x1:L,y1:H-B,x2:W-R,y2:H-B,stroke:GRID,'stroke-width':1});
+ if(lv.length){
+ const lT=T+18,lB=H-B-16; /* 线域上下留白：避开图例与柱底 */
+ const yv=v=>lT+(lB-lT)*(1-(v-lmin)/(lmax-lmin||1));
+ const cx=i=>L+i*bw+bw/2;
+ /* null 期跳点不画，只连连续非空段（与 trendDual ROE 线同一约定：断点不硬连） */
+ let run=[];
+ const flush=()=>{
+ if(run.length>1){
+ el(s,'path',{d:'M'+run.map(i=>[cx(i),yv(line[i])]).map(p=>p.join(' ')).join(' L '),fill:'none',stroke:INK,'stroke-width':1.8});
+ }
+ run=[];
+ };
+ line.forEach((v,i)=>{
+ if(v==null){flush();return;}
+ run.push(i);
+ const c=el(s,'circle',{cx:cx(i),cy:yv(v),r:3,fill:INK,stroke:'#fff','stroke-width':1.5});
+ tip(c,`${labels[i]} ${lineName}：${fmt(v)}%`);
+ const barTop=H-B-(H-B-T)*barA[i]/max;
+ const ly=labelY(yv(v),barTop);
+ txt(s,{x:cx(i),y:ly,'font-size':9,'font-weight':700,fill:MUT,'text-anchor':'middle',...HALO},fmt(v)+'%');
+ });
+ flush();
+ }
+ const lg=[[aName,C1],barB.length?[bName,C2]:null,lv.length?[lineName,INK]:null].filter(Boolean);
+ lg.forEach(([n,c],i)=>{
+ el(s,'rect',{x:L+i*130,y:8,width:10,height:10,fill:c,rx:2});
+ txt(s,{x:L+i*130+15,y:17,'font-size':10,'font-weight':600,fill:MUT},n);
+ });
+}
+
+/* 趋势双面板：左=收入柱+毛利率线，右=归母净利柱（+扣非净利柱，可缺省）+ROE 线，
+ 两面板等宽、各自独立缩放（量级悬殊时同轴双柱会压扁矮柱，断轴又违反「柱=长度」契约）。
+ 右板可缺省：np_dt 留空或某期为 null 该期不画扣非柱；roe 整列留空则整线跳过（存小数 ×100）。
+ 支持负值柱：值域强制含 0、零轴为基线，负值柱向下、圆端朝下、标签随柱向（正上负下）。 */
+function trendDual(id,labels,rev,np,gm,np_dt,roe){
+ const s=document.getElementById(id);if(!s||!labels.length)return;
+ const W=+s.viewBox.baseVal.width,H=+s.viewBox.baseVal.height,B=44,T=52;
+ const L=54,R=16,GAP=52;
+ const pw=(W-L-R-GAP)/2; /* 左右面板等宽（中缝对称各半），不再 62/38 */
+ const x2=L+pw+GAP,n=labels.length;
+ np_dt=np_dt||[];roe=roe||[];
+ const has_dt=np_dt.some(v=>v!=null);
+ /* drawPanel：单柱或双柱（vals2 传 null 即单柱）；双柱成组仿 combo 几何（w=bw*.24），
+ 有副序列时布局按双柱统一（缺数只跳画扣非柱，柱位不漂移），标签只标主序列；返回 {hi,lo} 供 ROE 线标签避让取柱端点 */
+ const drawPanel=(px0,vals,color,vals2,color2)=>{
+ const has2=!!vals2&&vals2.some(v=>v!=null);
+ const pool=has2?vals.concat(vals2.filter(v=>v!=null)):vals;
+ const hi=Math.max(0,...pool)*1.15||1, lo=Math.min(0,...pool)*1.15;
+ const span=hi-lo, y0=H-B-(H-B-T)*(0-lo)/span;
+ const step=niceStep(span/5);
+ for(let gv=Math.ceil(lo/step)*step;gv<hi;gv+=step){
+ const gy=T+(H-B-T)*(1-(gv-lo)/span);
+ el(s,'line',{x1:px0,y1:gy,x2:px0+pw,y2:gy,stroke:FAINT,'stroke-width':.7,'stroke-dasharray':'3 3'});
+ txt(s,{x:px0-8,y:gy+3,'font-size':8.5,'font-weight':600,fill:MUT,'text-anchor':'end'},Math.round(gv));
+ }
+ el(s,'line',{x1:px0,y1:y0,x2:px0+pw,y2:y0,stroke:GRID,'stroke-width':1});
+ const bw=pw/n;
+ vals.forEach((v,i)=>{
+ const w=has2?bw*.24:bw*.4;
+ const x=has2?px0+i*bw+bw*.18:px0+i*bw+(bw-w)/2;
+ const yv=T+(H-B-T)*(1-(v-lo)/span);
+ const top=Math.min(yv,y0),hh=Math.abs(yv-y0);
+ const r=capsule(s,x,top,w,hh,w/2,color,v<0?'down':undefined);
+ tip(r,`${labels[i]}：${fmt(v)}`);
+ txt(s,{x:x+w/2,y:v>=0?top-6:top+hh+13,'font-size':10,'font-weight':800,fill:INK,'text-anchor':'middle'},fmt(v));
+ if(has2&&vals2[i]!=null){
+ const yv2=T+(H-B-T)*(1-(vals2[i]-lo)/span);
+ const top2=Math.min(yv2,y0),hh2=Math.abs(yv2-y0);
+ const r2=capsule(s,x+w+3,top2,w,hh2,w/2,color2,vals2[i]<0?'down':undefined);
+ tip(r2,`${labels[i]} 扣非净利：${fmt(vals2[i])}`);
+ }
+ });
+ return {hi:hi,lo:lo};
+ };
+ /* 左面板：收入（柱）+ 毛利率（线，独立缩放） */
+ drawPanel(L,rev,C1);
+ const lT=T+14,lB=H-B-16;
+ const lspan=Math.max(...gm)-Math.min(...gm)||1;
+ const lmax=Math.max(...gm)+lspan*.5,lmin=Math.min(...gm)-lspan*.5;
+ const pts=gm.map((v,i)=>{
+ const x=L+i*(pw/n)+pw/n/2,y=lT+(lB-lT)*(1-(v-lmin)/(lmax-lmin||1));
+ return [x,y];
+ });
+ el(s,'path',{d:'M'+pts.map(p=>p.join(' ')).join(' L '),fill:'none',stroke:INK,'stroke-width':1.8});
+ const lmaxBar=Math.max(...rev)*1.15||1; /* 与 drawPanel 全正形态量程同式，供线标签避让柱顶数字 */
+ pts.forEach((p,i)=>{
+ el(s,'circle',{cx:p[0],cy:p[1],r:3,fill:INK,stroke:'#fff','stroke-width':1.5});
+ const barTop=H-B-(H-B-T)*rev[i]/lmaxBar;
+ const ly=labelY(p[1],barTop);
+ txt(s,{x:p[0],y:ly,'font-size':9,'font-weight':700,fill:MUT,'text-anchor':'middle',...HALO},fmt(gm[i])+'%');
+ });
+ /* 右面板：归母净利柱（+扣非净利柱，可缺省）；dom=柱值域，供 ROE 线标签避让 */
+ const dom=drawPanel(x2,np,C1,has_dt?np_dt:null,C2);
+ /* 右面板 ROE 线：小数 ×100 呈现 %，独立缩放（[min−span/2, max+span/2] 映射到线区），
+ 样式与左板毛利率线一致；null 期跳点不画，只连连续非空段（断点不硬连，避免误读为连续趋势） */
+ const rv=roe.map(v=>v==null?null:v*100);
+ if(rv.some(v=>v!=null)){
+ const vals=rv.filter(v=>v!=null);
+ const span=Math.max(...vals)-Math.min(...vals)||1;
+ const rmax=Math.max(...vals)+span*.5,rmin=Math.min(...vals)-span*.5;
+ const cx=i=>has_dt?x2+i*(pw/n)+(pw/n)*.42+1.5:x2+i*(pw/n)+(pw/n)/2; /* 双柱时锚柱组中心 */
+ const ry=v=>lT+(lB-lT)*(1-(v-rmin)/(rmax-rmin||1)); /* 分母必须=rmax−rmin（=2×span）：除以 span 会把上半区点顶出 SVG */
+ const yOf=v=>T+(H-B-T)*(1-(v-dom.lo)/(dom.hi-dom.lo)); /* 柱端点 y（负值柱为底端） */
+ let run=[];
+ const flush=()=>{
+ if(run.length>1){
+ el(s,'path',{d:'M'+run.map(i=>[cx(i),ry(rv[i])]).map(p=>p.join(' ')).join(' L '),fill:'none',stroke:INK,'stroke-width':1.8});
+ }
+ run=[];
+ };
+ rv.forEach((v,i)=>{
+ if(v==null){flush();return;}
+ run.push(i);
+ el(s,'circle',{cx:cx(i),cy:ry(v),r:3,fill:INK,stroke:'#fff','stroke-width':1.5});
+ const barTop=yOf(np[i]);
+ const ly=labelY(ry(v),barTop);
+ txt(s,{x:cx(i),y:ly,'font-size':9,'font-weight':700,fill:MUT,'text-anchor':'middle',...HALO},v.toFixed(2)+'%');
+ });
+ flush();
+ }
+ /* 面板分隔、标题与图例（扣非/ROE 无数据时图例相应缺省，右对齐避让面板标题） */
+ el(s,'line',{x1:x2-GAP/2,y1:T-8,x2:x2-GAP/2,y2:H-B,stroke:FAINT,'stroke-width':.7,'stroke-dasharray':'2 3'});
+ txt(s,{x:L,y:T-22,'font-size':10,'font-weight':700,fill:MUT},'营业收入（亿元）· 线=毛利率(%)');
+ txt(s,{x:x2,y:T-22,'font-size':10,'font-weight':700,fill:MUT},'归母净利+扣非净利（亿元）· 线=ROE(%)');
+ const lg=[['归母净利',C1],has_dt?['扣非净利',C2]:null,rv.some(v=>v!=null)?['ROE',INK]:null].filter(Boolean);
+ let lx=W-R-lg.length*110;
+ lg.forEach(([nm,c])=>{
+ el(s,'rect',{x:lx,y:6,width:10,height:10,fill:c,rx:2});
+ txt(s,{x:lx+15,y:15,'font-size':10,'font-weight':600,fill:MUT},nm);
+ lx+=110;
+ });
+ labels.forEach((lb,i)=>{
+ txt(s,{x:L+i*(pw/n)+pw/n/2,y:H-B+18,'font-size':9.5,'font-weight':600,fill:MUT,'text-anchor':'middle'},lb);
+ txt(s,{x:x2+i*(pw/n)+pw/n/2,y:H-B+18,'font-size':9.5,'font-weight':600,fill:MUT,'text-anchor':'middle'},lb);
+ });
+}
+
+/* delta 条形图：调整项按 |delta| 降序横排，零轴居中、右绿左红、条端标数值；纵轴量程只由
+ 调整项决定（水平值与调整项量级悬殊时瀑布图会压扁调整项）。v0.0.21 起支持端点柱
+ （ends=[[期初标签,值],[期末标签,值]]，缺省或值 null 跳过、向后兼容旧报告）：期初行钉顶、
+ 期末行钉底、中性 MUT 色、不参与排序与缩放；端点值超量程时满幅截断+双斜线断口（断轴记号）、
+ 数值标签移入条内白字；HTML .brends 端点行保留（数字文字证据，与端点柱同源）。 */
+function deltaBars(id,steps,ends){
+ const s=document.getElementById(id);if(!s||!steps.length)return;
+ const W=+s.viewBox.baseVal.width,H=+s.viewBox.baseVal.height,L=86,R=54,T=14,B=8;
+ /* 端点槽位固定取 ends[0]/ends[1]（期初/期末），值 null 则该端点跳过——不按过滤后
+  位置取，防 [null, X] 时期末错位画到顶行 */
+ const okE=e=>e&&e[1]!=null&&!isNaN(e[1]);
+ const st=okE((ends||[])[0])?ends[0]:null, en=okE((ends||[])[1])?ends[1]:null;
+ const mid=[...steps].sort((a,b)=>Math.abs(b[1])-Math.abs(a[1]));
+ const n=mid.length+(st?1:0)+(en?1:0),rh=(H-T-B)/n;
+ const vmax=Math.max(...steps.map(r=>Math.abs(r[1])))*1.12||1;
+ const x0=L+(W-L-R)/2; /* 零轴居中：左右等幅量程，正负可比 */
+ const sx=v=>x0+(W-L-R)/2*v/vmax;
+ const step=niceStep(vmax/2);
+ for(let v=step;v<vmax;v+=step){
+ for(const sg of[-1,1]){
+ el(s,'line',{x1:sx(sg*v),y1:T,x2:sx(sg*v),y2:H-B,stroke:FAINT,'stroke-width':.7,'stroke-dasharray':'3 3'});
+ }
+ }
+ el(s,'line',{x1:x0,y1:T,x2:x0,y2:H-B,stroke:GRID,'stroke-width':1});
+ const rowY=i=>T+i*rh+rh*.18,rowH=rh*.64;
+ /* 端点柱独立一趟（v0.0.21）：中性 MUT 色钉首尾、不参与排序与缩放；超量程满幅+双斜线
+  断口（断轴记号）、数值标签条内白字 */
+ const drawEnd=([nm,v],i)=>{
+ const y=rowY(i),h=rowH,pos=v>=0,broken=Math.abs(v)>vmax;
+ const ve=broken?(pos?vmax:-vmax):v;
+ const x=pos?x0:sx(ve),w=Math.abs(sx(ve)-x0);
+ const r=el(s,'rect',{x:x,y:y,width:Math.max(w,.5),height:h,fill:MUT,rx:Math.min(h/2,7)});
+ tip(r,`${nm}：${fmt(v)}${broken?'（超调节项量程，断线截断）':''}`);
+ txt(s,{x:L-8,y:y+h/2+3.5,'font-size':9.5,'font-weight':700,fill:INK,'text-anchor':'end'},nm);
+ if(broken){
+ const bx=pos?x+w-9:x+5;
+ for(const d of[0,5]){
+ el(s,'line',{x1:bx+d,y1:y+h,x2:bx+d+4,y2:y,stroke:'#fff','stroke-width':1.6});
+ }
+ txt(s,{x:pos?bx-6:bx+14,y:y+h/2+3.5,'font-size':9.5,'font-weight':800,fill:'#fff',
+ 'text-anchor':pos?'end':'start'},fmt(v));
+ }else{
+ txt(s,{x:pos?x+w+5:x-5,y:y+h/2+3.5,'font-size':9.5,'font-weight':800,fill:INK,
+ 'text-anchor':pos?'start':'end'},fmt(v));
+ }
+ };
+ mid.forEach(([nm,v],j)=>{
+ const y=rowY(j+(st?1:0)),h=rowH;
+ const pos=v>=0;
+ const x=pos?x0:sx(v),w=Math.abs(sx(v)-x0);
+ const r=el(s,'rect',{x:x,y:y,width:w,height:h,fill:pos?GOOD:BAD,rx:Math.min(h/2,7)});
+ tip(r,`${nm}：${v>0?'+':''}${fmt(v)}`);
+ txt(s,{x:L-8,y:y+h/2+3.5,'font-size':9.5,'font-weight':600,fill:MUT,'text-anchor':'end'},nm);
+ /* 负值条左端逼近类目标签区（x < L+42）时，数值标签改画条内白字，避免与类目标签重叠 */
+ const inBar=!pos&&x<L+42;
+ txt(s,{x:inBar?x+5:(pos?x+w+5:x-5),y:y+h/2+3.5,'font-size':9.5,'font-weight':800,
+ fill:inBar?'#fff':(pos?GOOD:BAD),'text-anchor':(pos||inBar)?'start':'end'},(v>0?'+':'')+fmt(v));
+ });
+ if(st)drawEnd(st,0);
+ if(en)drawEnd(en,n-1);
+}
+
+/* ΔROE 贡献堆叠条：正贡献从零轴向右累叠、负贡献向左累叠，closure_gap≠0 必须画灰色口径差段
+ （不许视觉隐瞒加和缺口，中免教训），末端竖线=ΔROE 摊薄；三因子固定分色（v0.0.19：净利率 C1 赭石/
+ 周转率 C3 浅赭/杠杆 DERC 棕，口径差灰色 FAINT——正负由 ± 号与零轴左右方向表达，不再按正负双色）；
+ 段标签与端标签统一 ±x.xpct（段标签 v0.0.19 前裸小数无单位，美的轮反馈） */
+function stackH(id,steps,gap,unit){
+ const s=document.getElementById(id);if(!s||!steps.length)return;
+ const W=+s.viewBox.baseVal.width,H=+s.viewBox.baseVal.height,L=8,R=8,T=14,B=34;
+ const rows=steps.concat(Math.abs(gap||0)>1e-9?[['口径差',gap,true]]:[]);
+ let rp=0,rn=0;const segs=[];
+ rows.forEach(([nm,v,isGap],i)=>{
+ const a=v>=0?rp:rn;if(v>=0)rp+=v;else rn+=v;
+ segs.push([nm,v,isGap,i,a,a+v]);
+ });
+ const net=rp+rn;
+ const lo=Math.min(0,rn),hi=Math.max(0,rp),span=(hi-lo)||1;
+ const x=v=>L+(W-L-R)*(v-lo)/span;
+ const y=T,h=H-T-B;
+ const FC=[C1,C3,DERC]; /* 三因子固定分色：净利率/周转率/杠杆 */
+ /* 退化守卫（v0.0.21 热核审计）：三效应全 0（demo 全零、或真实 ΔROE≈0 被 fillsheet
+ 舍入成 0.0）时 span 兜底为 1、所有段挤左缘同点，奇偶错层救不了同层同 x——段标签
+ 改单行退化声明（读数全零本无信息量），柱与 tip 保留 */
+ const deg=rows.every(([,v])=>Math.abs(v||0)<1e-9);
+ el(s,'line',{x1:x(0),y1:T-4,x2:x(0),y2:T+h+2,stroke:GRID,'stroke-width':1});
+ segs.forEach(([nm,v,isGap,idx,a,b])=>{
+ const rx=Math.min(x(a),x(b)),rw=Math.abs(x(b)-x(a))||0.5;
+ const r=el(s,'rect',{x:rx,y:y,width:rw,height:h,rx:Math.min(h/2,6),
+ fill:isGap?FAINT:FC[idx%3],...(isGap?{opacity:.6}:{})});
+ tip(r,`${nm}：${v>0?'+':''}${fmt(v)}${unit||''}`);
+ if(deg)return;
+ /* 标签奇偶错层（check_render 实测：相邻异向窄段的段中心挤在共享边界附近，
+ 同层标签重叠——「杠杆」×「口径差」11px 教训）；名称+数值合并单行 */
+ /* 双向累叠后窄段可能贴左右边缘（如 −0.02pct 口径差），标签 x 钳入 [44, W−44] 防出界 */
+ const cx=Math.min(Math.max((x(a)+x(b))/2,44),W-44);
+ txt(s,{x:cx,y:T+h+13+(idx%2)*13,'font-size':9.5,'font-weight':600,
+ fill:isGap?MUT:FC[idx%3],'text-anchor':'middle',...HALO},
+ `${nm} ${v>0?'+':''}${fmt(v)}${unit||''}`);
+ });
+ if(deg){
+ txt(s,{x:(L+W-R)/2,y:T+h+13,'font-size':9.5,'font-weight':600,fill:MUT,
+ 'text-anchor':'middle',...HALO},'三因子贡献均≈0——ΔROE 近似无变动，逐因子读数见上表');
+ }
+ /* 末端竖线=ΔROE 摊薄（正负两侧合计净值）：标签放线上方避让末段标签 */
+ const xe=x(net);
+ el(s,'line',{x1:xe,y1:T-4,x2:xe,y2:T+h+2,stroke:INK,'stroke-width':1.8});
+ txt(s,{x:Math.min(Math.max(xe,44),W-44),y:T-5,'font-size':9.5,'font-weight':800,fill:INK,
+ 'text-anchor':'middle',...HALO},`ΔROE ${net>0?'+':''}${Math.round(net*10)/10}${unit||''}`);
+}
+
+trendDual('trend',TREND.labels,TREND.rev,TREND.np,TREND.gm,TREND.np_dt,TREND.roe);
+capexBars('capexbars',TREND.labels,TREND.capex);
+ncrLine('ncrline',NCR_TS.labels,NCR_TS.ncr,NCR_TS.fcf,NCR_TS.mean);
+/* 四维表迷你折线线色：由填充者按方向语义表对「本期 vs 上期」的好坏选 GOOD/BAD/INK——模板默认全 INK 占位，交付前必须逐行改对（同徽章纪律） */
+spark('spark-gm',SPARK.gm,INK);spark('spark-nm',SPARK.nm,INK);spark('spark-da',SPARK.da,INK);
+spark('spark-dio',SPARK.dio,INK);spark('spark-dso',SPARK.dso,INK);spark('spark-c2s',SPARK.c2s,INK);
+spark('spark-ccc',SPARK.ccc,INK);spark('spark-dol',SPARK.dol,INK);spark('spark-dfl',SPARK.dfl,INK);
+deltaBars('ocfbridge',OCF_BRIDGE.slice(1),[['期初·净利润',OCF_BRIDGE[0][1]],['期末·经营现金流',OCF_END]]);
+deltaBars('segbridge',SEG_BRIDGE,[['基期·收入',SEG_ENDS[0]],['本期·收入',SEG_ENDS[1]]]);
+stackH('dupontstack',DUPONT_STACK.steps,DUPONT_STACK.gap,'pct');
+combo('holders',HOLDERS.labels,HOLDERS.num,[],HOLDERS.px,'环比增减','股东户数(万户)','');
+</script>
+</body>
+</html>

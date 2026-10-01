@@ -1,16 +1,29 @@
 # tests/ — 金标准回归样本
 
-Phase 7.5 门禁 `scripts/calc.py` 的冻结样本。跑法（任意目录均可）：
+Phase 7.5/8 门禁的冻结样本。跑法（任意目录均可）：
 `python tests/run_regression.py`（加 `--verbose` 附带 calc.py 原始输出）。
 
-## 两个 fixture 各测什么
+## 四个 fixture 各测什么
 
 | 文件 | 样本 | 用途 | 期望值 |
 |---|---|---|---|
-| `moutai_2025.json` | 茅台 2025 年报 | 干净样本，抓**误报** | exit 0 · FAIL 0 · WARN 0 · OK 24 · SKIP 2；recon 无未闭合条目 |
-| `kangdexin_2018.json` | 康得新 2018 年报 | 造假样本，抓**漏报** | exit 0 · FAIL 0 · WARN 3 · OK 30 · SKIP 1；signals 11 条（9 红 1 黄 1 绿）；recon 命中 3（A4 收现缺口 20.05%、A6 capex 异常 326.6%、B1 应收 roll 缺口 12.9%） |
+| `moutai_2025.json` | 茅台 2025 年报 | 干净样本，抓**误报** | exit 0 · FAIL 0 · WARN 0；recon 无未闭合条目 |
+| `kangdexin_2018.json` | 康得新 2018 年报 | 造假样本，抓**漏报** | exit 0 · FAIL 0 · WARN 3；signals ≥11 条且红色 ≥6；recon 命中 ≥3 |
+| `vanke_2026h1.json` | 万科 2026 半年报 | 连亏地产样本（v0.0.17 固化） | 扣非双版/双驱动真实触发；WARN==2 |
+| `wanhua_2026h1.json` | 万华 2026 半年报 | 周期股样本（v0.0.18 固化） | 双驱动第二样本/ROIC·SGR/白描分位锚点；WARN==2 |
 
-断言 = calc.py 退出码 + 上表阈值（干净样本零 WARN、零未闭合勾稽；造假样本 signals ≥ 11、红色 ≥ 6、recon 命中 ≥ 3）；OK/SKIP 数只供人读，不作断言。
+断言明细以 `run_regression.py` 为准（当前 116 条，含 calc 四例 + check_html/T8/渲染冒烟 + 构造用例）。
+
+## 构造用例（门禁规则的正面/反面样本）
+
+| 文件 | 验证的规则 |
+|---|---|
+| `md_clean_synth.md` | md_clean 合成金标准（自包含，四类病理） |
+| `t8_demo.html` / `t8_demo_bad.html` | T8 数字回验（正确版 / 改错版） |
+| `dup_decl_demo.html` | js-dup-decl：const 顶层重复声明必 FAIL + 函数内局部 const 不误报（v0.0.22） |
+| `assert_trunc_demo.html` / `.json` | assert-trunc：断言填充截断必 FAIL + 完整断言不误报（v0.0.22） |
+
+`*.fillsheet.md` 是 `calc.py --fill` 的生成物（gitignored），回归会自行产出，勿提交、勿对 fixture 直接跑 --fill（会重排 json 整文件）。
 
 ## 怎么新增 fixture
 
@@ -25,4 +38,4 @@ Phase 7.5 门禁 `scripts/calc.py` 的冻结样本。跑法（任意目录均可
 
 ## 纪律
 
-**改 `scripts/calc.py` 或 `references/extraction-schema.md` 后必须跑本回归，双例必须全绿。** 反例自检：改错一个比率、删掉某个 `src`、破坏任一桥闭合，门禁都应 exit 1；若本脚本仍全绿，说明门禁被改钝了——修 calc.py，不要改 fixture 数值。
+**改 `scripts/calc.py` 或 `references/extraction-schema.md` 后必须跑本回归，四例必须全绿。** 反例自检：改错一个比率、删掉某个 `src`、破坏任一桥闭合，门禁都应 exit 1；若本脚本仍全绿，说明门禁被改钝了——修 calc.py，不要改 fixture 数值。
