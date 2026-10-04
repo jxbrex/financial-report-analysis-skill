@@ -4,9 +4,8 @@
 > 没有这一步，redflags.md 的阈值就是「一套框架打天下」：工程建造的完工百分比、渠道零售的压货、
 > 农业的生物资产盘点，勾稽重点与雷型完全不同，用同一把尺子会**同时误报**（把行业属性判成雷）与
 > **漏报**（该模式的核弹级线索没进勾稽清单）。
-> 定位：redflags.md 判「结果层」（比率异常），articulation.md 判「过程层」（差额从哪个科目来），
-> 本手册决定**用哪把尺子去量**。定级仍服从三态 🟢/🟡/🔴，本手册只调整
-> 「阈值 × 勾稽异常 × 行业模式」三维中的**模式轴**（Phase 3 判定升级为三维，模式轴此前无落点）。
+> 定位：本手册决定**用哪把尺子去量**——只调整「阈值 × 勾稽异常 × 行业模式」三维中的
+> **模式轴**（Phase 3 判定升级为三维，模式轴此前无落点）；定级仍服从三态 🟢/🟡/🔴。
 
 ## 识别流程（Phase 2 起始动作）
 
@@ -247,19 +246,9 @@
 | #4 应收异常 | 工程建造 | 三维齐中 + B1 roll-forward 偏差 > 5% + 完工百分比政策 → 升级**高危 🔴** | redflags #4 定级规则已含「三维齐中 + 行业模式吻合」，本手册补模式判据 |
 
 降级不等于不判：降级项仍写入报告，只是把定级从「单条阈值」改为「阈值 × 勾稽 × 模式」三维判定；
-**降级后必须写明降级理由与出处**，否则视为漏报。
-
-### 与其余模块的分工
-
-- `redflags.md`：提供信号清单与基准阈值；本手册只做定级调整，**不改阈值数字**
-- `articulation.md`：本手册「重点勾稽」列引用的等式编号（A3/A4/A5/A6/B1/B2/B3）一律以该手册
-  的公式、阈值、三态规则为准；模式识别结果写入 `recon[*].explanation` 作为「合理解释」的依据
-- `frameworks.md`：四维比率的行业对照基准由 `mx_stocks_screener` / `index_member_all`
-  （申万行业）取同行样本计算；本手册的识别结论决定选哪一组同行
-- `extraction-schema.md`：本手册涉及的字段路径（`statements.balance.contract_liab` /
-  `ar` / `inventory` / `cip` / `fixed_assets`、`statements.income.by_segment`、
-  `notes.inventory_mix` / `cip_projects` / `ar_aging` / `capacity` / `subsequent_events`、
-  `derived.ratios.dso` / `dio` / `dpo` / `ccc`、`derived.wc_devour`）均以该文件为准
+**降级后必须写明降级理由与出处**，否则视为漏报。模式识别结果写入 `recon[*].explanation`
+作为「合理解释」的依据；四维比率的行业对照取 `mx_stocks_screener` / `index_member_all`
+（申万行业）同行样本，识别结论决定选哪一组同行。
 
 ### 写入报告的声明（一句话）
 

@@ -21,7 +21,6 @@ from __future__ import annotations
 
 import argparse
 import json
-import re
 import shutil
 import subprocess
 import sys
@@ -51,6 +50,7 @@ VIRTUAL_TIME_BUDGET = 8000
 # 窄屏 = 390px（iPhone 12/13/14 逻辑宽），验证流式骨架与页面级横向溢出（v0.0.11）
 VIEW_H = 2000
 DESKTOP_W, MOBILE_W = 1100, 390
+SCALE = 2                       # 截图像素密度（--png 分片截图用）
 VIEWPORTS = ((DESKTOP_W, VIEW_H, "桌面"), (MOBILE_W, VIEW_H, "窄屏"))
 
 SKIP_NOTE = ("渲染门禁跳过：未找到 Chrome/Edge（check_html.py 静态硬门禁仍然生效，"
@@ -343,7 +343,6 @@ def main() -> int:
     ap.add_argument("--chrome", default=None, help="Chrome/Edge 二进制路径（不存在则跳过）")
     ap.add_argument("--png", type=Path, default=None,
                     help="按章分片截图输出目录（Phase 8 视觉验收用）")
-    ap.add_argument("--scale", type=int, default=2, help="截图像素密度（默认 2）")
     args = ap.parse_args()
 
     if not args.source.exists():
@@ -415,9 +414,9 @@ def main() -> int:
             for i, sec in enumerate(sections):
                 name = sec["id"] or f"{sec['cls']}-{i:02d}"
                 dest = args.png / f"{args.source.stem}-{name}.png"
-                ok = shoot(chrome, html, work, i, sec["h"], dest, args.scale)
+                ok = shoot(chrome, html, work, i, sec["h"], dest, SCALE)
                 print(f"  {'✅' if ok else '🔴'} 分片截图 {dest.name} "
-                      f"({DESKTOP_W}x{sec['h'] + 40} @x{args.scale})")
+                      f"({DESKTOP_W}x{sec['h'] + 40} @x{SCALE})")
                 if not ok:
                     problems += 1
 

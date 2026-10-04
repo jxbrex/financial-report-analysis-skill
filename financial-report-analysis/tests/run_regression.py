@@ -4,7 +4,7 @@
 run_regression.py — financial-report-analysis 的金标准回归测试
 
 【它在测什么】
-三个冻结样本（fixture）经 Phase 7.5 门禁 scripts/calc.py 后，必须同时满足门禁结论
+四个冻结样本（fixture）经 Phase 7.5 门禁 scripts/calc.py 后，必须同时满足门禁结论
 与样本语义，用来抓「改坏门禁」这一类回归：
   · tests/moutai_2025.json     贵州茅台 2025 年报 —— 干净样本，抓**误报**（假阳性）
   · tests/kangdexin_2018.json  康得新 2018 年报   —— 造假样本，抓**漏报**（假阴性）
@@ -51,10 +51,8 @@ from pathlib import Path
 
 # Windows 控制台默认 GBK，中文/emoji 会触发 UnicodeEncodeError；强制 UTF-8 输出。
 for _s in (sys.stdout, sys.stderr):
-    try:
-        _s.reconfigure(encoding="utf-8")
-    except (AttributeError, ValueError):
-        pass
+    try: _s.reconfigure(encoding="utf-8")
+    except (AttributeError, ValueError): pass
 
 HERE = Path(__file__).resolve().parent          # …/financial-report-analysis/tests
 SKILL = HERE.parent                             # …/financial-report-analysis
@@ -116,6 +114,22 @@ def load_json(path):
         return json.load(f)
 
 
+def _prologue(case, proc, data, warn=None):
+    """四例公共序言：exit 0 + 汇总行可解析 + FAIL==0 + schema 1.5（可选 WARN 数锚，
+    warn=(期望值, 合法性说明)）。汇总行不可解析返回 None（调用方直接 return）。"""
+    case.expect(proc.returncode == 0, f"calc.py exit 0（实际 {proc.returncode}）")
+    summary = parse_summary(proc.stdout)
+    if not case.expect(summary is not None, "汇总行可解析（calc.py 输出格式未变）"):
+        return None
+    case.expect(summary["FAIL"] == 0, f"FAIL == 0（实际 {summary['FAIL']}）")
+    if warn is not None:
+        case.expect(summary["WARN"] == warn[0],
+                    f"WARN == {warn[0]}（{warn[1]}，实际 {summary['WARN']}）")
+    case.expect((data.get("meta") or {}).get("schema_version") == "1.5",
+                f"schema_version == 1.5（实际 {((data.get('meta') or {}).get('schema_version'))}）")
+    return summary
+
+
 def recon_hits(data):
     """verdict != 闭合 的 recon 条目（即门禁认定的勾稽异常）。"""
     return [(k, v.get("verdict")) for k, v in (data.get("recon") or {}).items()
@@ -124,14 +138,8 @@ def recon_hits(data):
 
 def check_moutai(case, proc, data):
     """干净样本：抓误报。"""
-    case.expect(proc.returncode == 0,
-                f"calc.py exit 0（实际 {proc.returncode}）")
-    summary = parse_summary(proc.stdout)
-    if not case.expect(summary is not None, "汇总行可解析（calc.py 输出格式未变）"):
+    if _prologue(case, proc, data, (0, "干净样本零误报")) is None:
         return
-    case.expect(summary["FAIL"] == 0, f"FAIL == 0（实际 {summary['FAIL']}）")
-    case.expect(summary["WARN"] == 0,
-                f"WARN == 0 —— 干净样本零误报（实际 {summary['WARN']}）")
 
     loose = [(k, v) for k, v in recon_hits(data) if v in ("无法解释", "可解释")]
     case.expect(not loose,
@@ -151,8 +159,6 @@ def check_moutai(case, proc, data):
     for code in ("dupont-dt", "dupont5y", "cycle-evidence", "threshold-check", "peers"):
         case.expect(code in (proc.stdout or ""),
                     f"新检查生效：calc.py 输出含 {code} 行（v0.0.15 检查被执行）")
-    case.expect((data.get("meta") or {}).get("schema_version") == "1.4",
-                f"schema_version == 1.4（实际 {((data.get('meta') or {}).get('schema_version'))}）")
 
     # v0.0.15：五年累计归因闭合 + 分位边界 + 杠杆拆解（茅台特征值）
     d5 = (data.get("derived") or {}).get("dupont5y") or {}
@@ -185,12 +191,8 @@ def check_moutai(case, proc, data):
 
 def check_kangdexin(case, proc, data):
     """造假样本：抓漏报。"""
-    case.expect(proc.returncode == 0,
-                f"calc.py exit 0（实际 {proc.returncode}）")
-    summary = parse_summary(proc.stdout)
-    if not case.expect(summary is not None, "汇总行可解析（calc.py 输出格式未变）"):
+    if _prologue(case, proc, data) is None:
         return
-    case.expect(summary["FAIL"] == 0, f"FAIL == 0（实际 {summary['FAIL']}）")
 
     sigs = data.get("signals") or []
     case.expect(len(sigs) >= 11, f"signals 条数 >= 11（实际 {len(sigs)}）")
@@ -219,8 +221,6 @@ def check_kangdexin(case, proc, data):
     case.expect(all(a.get("evidence") for a in bad),
                 f"判「不成立」的断言均带反证（{len(bad)} 条）")
     # v0.0.15（schema 1.3）：口径断裂样本的五年归因必须合法降级（整块缺失/null + SKIP 行）
-    case.expect((data.get("meta") or {}).get("schema_version") == "1.4",
-                f"schema_version == 1.4（实际 {((data.get('meta') or {}).get('schema_version'))}）")
     d5 = (data.get("derived") or {}).get("dupont5y") or {}
     case.expect(all(d5.get(k) is None for k in
                     ("margin_effect", "turnover_effect", "leverage_effect")),
@@ -231,17 +231,9 @@ def check_kangdexin(case, proc, data):
 
 def check_vanke(case, proc, data):
     """万科 2026H1 半年报（连亏地产）：扣非双版/双驱动护栏的真实触发样本（v0.0.17 固化）。"""
-    case.expect(proc.returncode == 0,
-                f"calc.py exit 0（实际 {proc.returncode}）")
-    summary = parse_summary(proc.stdout)
-    if not case.expect(summary is not None, "汇总行可解析（calc.py 输出格式未变）"):
-        return
-    case.expect(summary["FAIL"] == 0, f"FAIL == 0（实际 {summary['FAIL']}）")
     # 已知合法 WARN 恰好 2 条：interest_arrears（单期付息错期）+ recon-coverage（B2/B3 附注未披露）
-    case.expect(summary["WARN"] == 2,
-                f"WARN == 2（interest_arrears + recon-coverage 合法两条，实际 {summary['WARN']}）")
-    case.expect((data.get("meta") or {}).get("schema_version") == "1.4",
-                f"schema_version == 1.4（实际 {((data.get('meta') or {}).get('schema_version'))}）")
+    if _prologue(case, proc, data, (2, "interest_arrears + recon-coverage 合法两条")) is None:
+        return
     dd = data.get("derived") or {}
     case.expect((dd.get("dupont_dt") or {}).get("triggered") is True,
                 "扣非双版真实触发（净利率口径差 1.59pct>1pct 路径；非经仅 7.4%）")
@@ -274,16 +266,10 @@ def check_wanhua(case, proc, data):
     """万华化学 2026H1（v0.0.18 固化，N3 落地）：首份周期股报告底稿——
     周期证据链可复算 + 双驱动护栏第二真实样本 + ROIC/内生增长率首验锚点 +
     白描分位映射锚点（0.5/0.25/0.5 → 居中/第 2 低/居中）。"""
-    case.expect(proc.returncode == 0, f"calc.py exit 0（实际 {proc.returncode}）")
-    sm = parse_summary(proc.stdout or "")
-    case.expect(sm is not None, "汇总行可解析（calc.py 输出格式未变）")
-    if sm:
-        case.expect(sm["FAIL"] == 0, f"FAIL == 0（实际 {sm['FAIL']}）")
-        case.expect(sm["WARN"] == 2,
-                    f"WARN == 2（interest_arrears 单期 + recon-coverage 16/17 合法两条，实际 {sm['WARN']}）")
+    if _prologue(case, proc, data,
+                 (2, "interest_arrears 单期 + recon-coverage 16/17 合法两条")) is None:
+        return
     meta = data.get("meta") or {}
-    case.expect(meta.get("schema_version") == "1.4",
-                f"schema_version == 1.4（实际 {meta.get('schema_version')}）")
     case.expect(meta.get("cycle_stage") == "上行" and meta.get("industry_profile") == "资源周期",
                 f"周期股锚点：cycle_stage=上行 + industry_profile=资源周期"
                 f"（实际 {meta.get('cycle_stage')}/{meta.get('industry_profile')}）")
@@ -315,6 +301,18 @@ def check_wanhua(case, proc, data):
     case.expect(isinstance(il, dict) and all(il.get(k) is None for k in
                 ("actual", "target", "ratio", "share_payment", "hit")),
                 "激励线「无计划」形态统一：全 null 对象（对齐 schema 与万科实践，v0.0.18 修）")
+    # v1.5：segment_quadrant 首验锚点——delta 口径四行 + 象限归属 + 石化错位度 2（资源错配信号）
+    sq = dd.get("segment_quadrant") or {}
+    rows = sq.get("rows") or []
+    case.expect(sq.get("y_mode") == "delta" and len(rows) == 4,
+                f"segment_quadrant 落库：delta 口径 4 行（实际 {len(rows)} 行，y_mode={sq.get('y_mode')}）")
+    case.expect([r.get("quadrant") for r in rows]
+                == ["现金牛/潜力", "以量换价", "以量换价", "现金牛/潜力"],
+                f"四象限归属锚点（实际 {[r.get('quadrant') for r in rows]}）")
+    case.expect(len(rows) > 1 and rows[1].get("rank_gap") == 2,
+                f"石化系列错位度 rank_gap=2（资源错配信号锚点，实际 {rows[1].get('rank_gap') if len(rows) > 1 else None}）")
+    case.expect("segment-quadrant" in (proc.stdout or ""),
+                "新检查生效：calc.py 输出含 segment-quadrant 行（v1.5 检查被执行）")
     for code in ("cycle-evidence", "dupont5y", "cash-ts"):
         case.expect(code in (proc.stdout or ""),
                     f"检查被执行：calc.py 输出含 {code} 行")
@@ -339,13 +337,11 @@ def main():
     ap.add_argument("--verbose", action="store_true", help="附带 calc.py 的完整原始输出")
     args = ap.parse_args()
 
-    print("=== financial-report-analysis 金标准回归 · calc.py 三例 ===")
+    print("=== financial-report-analysis 金标准回归 · calc.py 四例 ===")
     print(f"技能根：{SKILL}")
     print(f"门禁：  {CALC}")
 
-    missing = [p for p in (CALC, MOUTAI, KANGDEXIN, VANKE, WANHUA,
-                           HERE / "dup_decl_demo.html", HERE / "assert_trunc_demo.html",
-                           HERE / "assert_trunc_demo.json") if not p.exists()]
+    missing = [p for p in (CALC, MOUTAI, KANGDEXIN, VANKE, WANHUA) if not p.exists()]
     if missing:
         for p in missing:
             print(f"❌ 缺少文件：{p}")
@@ -402,49 +398,50 @@ def main():
             total += 1
             passed += ok
 
-    # 报告机检冒烟测试（P2 遗留项）：只确认 check_html.py 可运行，不校验内容，
-    # 防止脚本语法错误/路径写死在无人察觉的情况下失效
+    # 报告机检冒烟（P2 遗留项）：确认 check_html.py 可运行且各版本新检查存活——
+    # 只断言输出中检查行的存在（防静默失效），不校验内容
     smoke = subprocess.run(
         [sys.executable, str(SKILL / "scripts" / "check_html.py"),
          str(SKILL / "assets" / "report-template.html")],
         capture_output=True, text=True, encoding="utf-8", errors="replace",
     )
-    smoke_run = smoke.returncode in (0, 1) and "汇总" in (smoke.stdout or "")
-    # v0.0.6 T5：s8-shape（下期跟踪清单阈值化）新检查必须真的被执行到
-    smoke_s8 = "s8-shape" in (smoke.stdout or "")
-    # v0.0.7：figtitle-style（结论式标题）新检查必须真的被执行到
-    smoke_fig = "figtitle-style" in (smoke.stdout or "")
-    # v0.0.12：缩写展开 / 桥图项数 / 归因标题 / 检验判定列 四个新检查必须真的被执行到
-    smoke_v12 = all(c in (smoke.stdout or "") for c in
-                    ("abbrev", "ocf-bridge-shape", "figtitle-attribution", "inspection-verdict"))
-    # v0.0.15：s1 杜邦双卡形态检查必须被执行；dupont-stack 在 T8（--json）路径断言
-    smoke_v15 = "s1-v15-shape" in (smoke.stdout or "")
-    # v0.0.18：内部引用禁词 / srcline 拼接纪律 两条新 FAIL 规则必须被执行
-    smoke_v18 = all(c in (smoke.stdout or "") for c in ("internal-ref", "srcline-dup"))
-    # v0.0.19：三态措辞 / 小数位 / 断言计数 三条新检查必须真的被执行到
-    smoke_v19 = all(c in (smoke.stdout or "") for c in
-                    ("recon-label", "decimal-places", "assertion-count"))
-    # v0.0.21：数据缺口声明集中落点检查必须被执行到
-    smoke_v21 = "gap-declaration" in (smoke.stdout or "")
-    print(f"\n【报告机检冒烟】check_html.py 跑模板："
-          f"{'✅' if smoke_run else '❌'} 可运行（exit {smoke.returncode}）· "
-          f"{'✅' if smoke_s8 else '❌'} s8-shape 检查存活 · "
-          f"{'✅' if smoke_fig else '❌'} figtitle-style 检查存活 · "
-          f"{'✅' if smoke_v12 else '❌'} v0.0.12 四检查存活 · "
-          f"{'✅' if smoke_v15 else '❌'} v0.0.15 s1-v15-shape 存活 · "
-          f"{'✅' if smoke_v18 else '❌'} v0.0.18 两检查存活 · "
-          f"{'✅' if smoke_v19 else '❌'} v0.0.19 三检查存活 · "
-          f"{'✅' if smoke_v21 else '❌'} v0.0.21 gap-declaration 存活")
-    if not (smoke_run and smoke_s8 and smoke_fig and smoke_v12 and smoke_v15
-            and smoke_v18 and smoke_v19 and smoke_v21):
-        print("❌ 回归未通过：check_html.py 无法正常运行或 s8-shape / figtitle-style / "
-              "v0.0.12 / v0.0.15 / v0.0.18 / v0.0.19 / v0.0.21 检查缺失。")
+    _so = smoke.stdout or ""
+    smoke_checks = [
+        (smoke.returncode in (0, 1) and "汇总" in _so,
+         f"check_html.py 跑模板可运行（exit {smoke.returncode}）"),
+        ("s8-shape" in _so, "s8-shape 检查存活（v0.0.6 下期跟踪清单阈值化）"),
+        ("figtitle-style" in _so, "figtitle-style 检查存活（v0.0.7 结论式标题）"),
+        (all(c in _so for c in ("abbrev", "ocf-bridge-shape", "figtitle-attribution",
+                                "inspection-verdict")),
+         "v0.0.12 四检查存活（缩写/桥项数/归因标题/判定列）"),
+        ("s1-v15-shape" in _so, "s1-v15-shape 存活（v0.0.15；dupont-stack 走 T8 路径断言）"),
+        (all(c in _so for c in ("internal-ref", "srcline-dup")), "v0.0.18 两检查存活"),
+        (all(c in _so for c in ("recon-label", "decimal-places", "assertion-count")),
+         "v0.0.19 三检查存活"),
+        ("gap-declaration" in _so, "gap-declaration 存活（v0.0.21）"),
+    ]
+    if not _block("报告机检冒烟（check_html.py 跑模板）", smoke_checks,
+                  "check_html.py 无法正常运行或新检查缺失。"):
         return 1
+
+    def _run_html_str(s, json_path=MOUTAI):
+        """HTML 片段写临时件跑机检（默认配茅台底稿；json_path=None 则不走 --json）——
+        各版本构造反例共用。"""
+        with tempfile.NamedTemporaryFile("w", suffix=".html", delete=False, encoding="utf-8") as f:
+            f.write(s)
+            tmp = f.name
+        try:
+            return _check_html(tmp, json_path)
+        finally:
+            os.unlink(tmp)
 
     # ── T8 数字回验三断言（v0.0.6）──
     # ①级：故意改错一个数字必须 FAIL 且指出位置；②级：src 行号回原文核对必须被执行
+    # 改错版不落文件：运行时由正确版改数生成（两版唯一有效差异 1688.4 → 1688.9）
     t8_ok = _check_html(HERE / "t8_demo.html")
-    t8_bad = _check_html(HERE / "t8_demo_bad.html")
+    _t8_txt = (HERE / "t8_demo.html").read_text(encoding="utf-8")
+    assert ">1688.4<" in _t8_txt, "t8_demo.html 锚点数字形态变了？（着陆断言防 replace 落空）"
+    t8_bad = _run_html_str(_t8_txt.replace(">1688.4<", ">1688.9<"))
     t8_checks = [
         (t8_ok.returncode == 0,
          f"T8：正确样例 exit 0（实际 {t8_ok.returncode}）"),
@@ -460,16 +457,6 @@ def main():
         return 1
 
     # ── v0.0.18 新规则构造用例（禁词 / 嵌套 srcline / 分位映射错配，各一反例）──
-    def _run_html_str(s):
-        """HTML 片段写临时件跑机检（配茅台底稿）——各版本构造反例共用。"""
-        with tempfile.NamedTemporaryFile("w", suffix=".html", delete=False, encoding="utf-8") as f:
-            f.write(s)
-            tmp = f.name
-        try:
-            return _check_html(tmp)
-        finally:
-            os.unlink(tmp)
-
     _SECT = ('<div class="sect"><div class="secthead" id="s1"><span class="no">01</span>'
              '<span class="t">财务总览</span><span class="line"></span></div>')
     bad_ref = _run_html_str(
@@ -544,7 +531,7 @@ def main():
         with tempfile.NamedTemporaryFile("w", suffix=".md", delete=False, encoding="utf-8") as f:
             f.write(md_s)
             tmp_md = f.name
-        data = json.loads(MOUTAI.read_text(encoding="utf-8"))
+        data = load_json(MOUTAI)
         data.setdefault("meta", {})["source_md"] = tmp_md
         with tempfile.NamedTemporaryFile("w", suffix=".json", delete=False, encoding="utf-8") as f:
             json.dump(data, f, ensure_ascii=False)
@@ -582,7 +569,7 @@ def main():
     # M2 回归锚：cash_ts 均值缺省时 fillsheet 不得泄漏 Python repr
     # （`mean:None` 进 JS 字面量 = ReferenceError，整页图表全灭；ncrLine 的 mean!=null
     # 守卫要求生产者产出合法的 null）
-    _data = json.loads(MOUTAI.read_text(encoding="utf-8"))
+    _data = load_json(MOUTAI)
     _data["derived"]["cash_ts"]["ncr_mean5"] = None
     _ncr_slot = _fillsheet_slot(_data, "const NCR_TS={", "};") or ""
     mean_null_ok = "mean:None" not in _ncr_slot and "mean:null" in _ncr_slot
@@ -611,7 +598,7 @@ def main():
         '<div class="srcline">数据缺口声明：断言乙——缺分部收入口径（分部附注可补）</div></div>')
     # SEG_ENDS 槽锚（v0.0.21）：fillsheet 必须产出合法 JS 数组字面量
     # （json.dumps 包裹，None→null——mean:None 整页图表全灭教训的同型防线）
-    _seg_slot = _fillsheet_slot(json.loads(MOUTAI.read_text(encoding="utf-8")),
+    _seg_slot = _fillsheet_slot(load_json(MOUTAI),
                                 "const SEG_ENDS=[", "];")
     seg_ends_ok = _seg_slot is not None and "None" not in _seg_slot
     v21_checks = [
@@ -627,18 +614,61 @@ def main():
         return 1
 
     # ── v0.0.22 新规则构造用例（长城 2026H1 填充事故复盘：JS 团灭 + 断言截断）──
-    _dup = _check_html(HERE / "dup_decl_demo.html", json_path=None)
-    _trunc = _check_html(HERE / "assert_trunc_demo.html", HERE / "assert_trunc_demo.json")
+    # js-dup-decl 内联复刻长城事故形态：OCF_END 顶层重复声明（整段 script SyntaxError）；
+    # TREND 单份 + 两函数内局部 const W 为块级作用域合法重名，不得误报
+    _dup = _run_html_str(
+        _SECT + '<div class="card"><table class="data">'
+        '<tr><th>指标</th><th>本期</th></tr>'
+        '<tr><td>经营现金流净额（亿元） <span class="badge disc">披露</span></td><td>104.4</td></tr>'
+        '</table><div class="srcline">数据来源：构造样本（js-dup-decl 验收用例）</div></div></div>'
+        '<script>\nconst TREND=[1,2,3];\nconst OCF_END=104.36;\nconst OCF_END=0;\n'
+        'function drawTrend(){\n const W=600,H=200;\n return W+H;\n}\n'
+        'function drawBridge(){\n const W=500;\n return W;\n}\n</script>',
+        json_path=None)
+    # assert-trunc 内联复刻长城填充截断事故：A1 text 真前缀 24 字 +「…」截断（底稿完整句）
+    # 必 FAIL；A1 evidence 与 A2 text/evidence 完整呈现，不得误报
+    _trunc_json = {"meta": {"company": "构造样本", "code": "000000", "period": "2026H1",
+                            "report_type": "半年报", "unit": "亿元"},
+                   "assertions": [
+                       {"id": "A1",
+                        "text": "公司披露的海外收入创历史新高与分部附注增速及海关出口数据方向一致，宣称有多源交叉证据支撑。",
+                        "evidence": "分部附注海外收入同比增长四成以上，海关同期出口数据同向增长，两个来源口径一致。",
+                        "verdict": "通过"},
+                       {"id": "A2",
+                        "text": "管理层宣称的毛利率提升主要来自原材料成本下降与高端产品结构改善。",
+                        "evidence": "成本附注显示主要原材料采购价格回落，分部毛利率表显示高端产品线收入占比上升。",
+                        "verdict": "不成立"}]}
+    with tempfile.NamedTemporaryFile("w", suffix=".html", delete=False, encoding="utf-8") as f:
+        f.write(_SECT4 + '<div class="card">'
+                '<div class="figtitle">2 条断言：1 通过 / 1 不成立 / 0 无法验证</div>'
+                '<table class="data"><tr><th class="txt">断言</th><th class="txt">验证证据</th>'
+                '<th class="txt">判定</th><th class="txt">出处</th></tr>'
+                '<tr><td>A1 公司披露的海外收入创历史新高与分部附注增速及海关…</td>'
+                '<td class="txt">分部附注海外收入同比增长四成以上，海关同期出口数据同向增长，两个来源口径一致。</td>'
+                '<td class="txt"><span class="badge g">✅ 通过</span></td><td class="txt">分部附注</td></tr>'
+                '<tr><td>A2 管理层宣称的毛利率提升主要来自原材料成本下降与高端产品结构改善。</td>'
+                '<td class="txt">成本附注显示主要原材料采购价格回落，分部毛利率表显示高端产品线收入占比上升。</td>'
+                '<td class="txt"><span class="badge r">❌ 不成立</span></td><td class="txt">成本附注</td></tr>'
+                '</table><div class="srcline">数据来源：构造样本（assert-trunc 验收用例）</div></div></div>')
+        _th = f.name
+    with tempfile.NamedTemporaryFile("w", suffix=".json", delete=False, encoding="utf-8") as f:
+        json.dump(_trunc_json, f, ensure_ascii=False)
+        _tj = f.name
+    try:
+        _trunc = _check_html(_th, _tj)
+    finally:
+        os.unlink(_th)
+        os.unlink(_tj)
     # 不命中对照：顶层单份 const + 函数内局部 const W/H（块级作用域合法重名）不得误报
     _nodup = _run_html_str(
         _SECT + '<div class="card"><table class="data"><tr><th>指标</th></tr>'
         '<tr><td>净利率</td></tr></table><div class="srcline">对照</div></div></div>'
         '<script>\nconst TREND={a:1};\nfunction f(){\n const W=1;const H=2;\n return W+H;\n}\n</script>')
     # EFF_TS/TREND 新槽锚：fillsheet 必须产出两槽且为合法 JS（无 Python None 泄漏）
-    _eff_slot = _fillsheet_slot(json.loads(MOUTAI.read_text(encoding="utf-8")),
+    _eff_slot = _fillsheet_slot(load_json(MOUTAI),
                                 "const EFF_TS={", "};") or ""
     eff_ok = all(k in _eff_slot for k in ("dio:", "dso:", "ccc:")) and "None" not in _eff_slot
-    _tr_slot = _fillsheet_slot(json.loads(MOUTAI.read_text(encoding="utf-8")),
+    _tr_slot = _fillsheet_slot(load_json(MOUTAI),
                                "const TREND={", "};") or ""
     trend_ok = all(k in _tr_slot for k in ("ocf:", "rd:")) and "None" not in _tr_slot
     v22_checks = [
@@ -679,8 +709,7 @@ def main():
 
     # ── 分位白描映射双写契约锁（v0.0.18）：check_html_text.py 与 calc_models.py 各持一份
     # PCTILE_LABEL（跨家族 import 会造成耦合，故双写；check_html.py 再导出本锁的 import 锚点），
-    # 本断言防单边漂移
-    sys.path.insert(0, str(SKILL / "scripts"))
+    # 本断言防单边漂移（sys.path 已在 fill 冒烟前插入）
     from check_html import PCTILE_LABEL as _PL_CHECK
     from calc_models import PCTILE_LABEL as _PL_FILL
     if not _block("分位白描映射契约锁",
@@ -713,14 +742,13 @@ def main():
     if "渲染门禁跳过" in render_out:
         print("\n【effline 标签避让构造用例】SKIP（本机无 Chrome/Edge，随渲染门禁一并跳过）")
     else:
-        import re as _re
         _tpl = (SKILL / "assets" / "report-template.html").read_text(encoding="utf-8")
-        _js = _re.search(r"<script>(.*?)</script>", _tpl, _re.S).group(1)
+        _js = re.search(r"<script>(.*?)</script>", _tpl, re.S).group(1)
         _eff = ("const EFF_TS={labels:['2022H1','2023H1','2024H1','2025H1','2026H1'],"
                 "dio:[332.98,342.02,308.27,304.46,389.21],"
                 "dso:[270.82,298.9,321.51,317.49,224.49],"
                 "ccc:[321.51,356.38,337.93,321.31,285.93]};")
-        _js = _re.sub(r"const EFF_TS=\{.*?\};", _eff, _js, count=1)
+        _js = re.sub(r"const EFF_TS=\{.*?\};", _eff, _js, count=1)
         assert "332.98" in _js, "模板 EFF_TS 槽替换失败——槽形态变了？"
         _page = ("<!doctype html><html lang=\"zh-Hans\"><head><meta charset=\"utf-8\"><style>"
                  ":root{--bg:#fff;--ink:rgb(58,42,28);--muted:rgba(58,42,28,.6);"
@@ -875,7 +903,6 @@ def main():
     # ── v0.0.15 构造用例（公式层直测，不动 fixture 文件）──
     # 扣非双版触发 / 双驱动护栏 / 话语权型杠杆升档——两条规则无真实 fixture 覆盖
     # （茅台非经 0.03% 不触发、杠杆非主驱动），用 deepcopy 构造临界场景验证
-    sys.path.insert(0, str(SKILL / "scripts"))
     import copy
     import calc_dupont
 
@@ -911,6 +938,27 @@ def main():
                         f"+ΔDFL {ld3.get('dfl_delta')} → quality_upgrade=True"))
     if not _block("v0.0.15 构造用例（扣非双版/双驱动/升档）", constructed,
                   "v0.0.15 构造用例断言失败。"):
+        return 1
+
+    # ── v1.5 构造用例（segment-quadrant：填错 quadrant 必 FAIL；选填缺省合法由
+    # 茅台/康得新/万科三例天然覆盖——它们无此键且 calc exit 0）──
+    import calc as _calc
+    from calc_common import Report as _Rep, FAIL as _FAIL
+    d4 = copy.deepcopy(load_json(WANHUA))
+    d4["derived"]["segment_quadrant"]["rows"][1]["quadrant"] = "明星"   # 石化复算=以量换价
+    rep4 = _Rep()
+    _calc.check_segment_quadrant(d4, rep4)
+    # 声明 delta 但 cost_prev 缺 null：期望按数据形态算（y_mode FAIL），不得崩溃
+    d5 = copy.deepcopy(load_json(WANHUA))
+    d5["statements"]["income"]["by_segment"][0]["cost_prev"] = None
+    rep5 = _Rep()
+    _calc.check_segment_quadrant(d5, rep5)
+    if not _block("v1.5 构造用例（segment-quadrant）",
+                  [(any(lv == _FAIL and "quadrant" in msg for lv, _, msg in rep4.rows),
+                    "v1.5 构造用例：四象限填错 quadrant 必 FAIL（segment-quadrant）"),
+                   (any(lv == _FAIL and "y_mode" in msg for lv, _, msg in rep5.rows),
+                    "v1.5 构造用例：声明 delta 但 cost_prev 缺 null → y_mode FAIL 且不 crash")],
+                  "v1.5 构造用例断言失败。"):
         return 1
 
     failed = total - passed

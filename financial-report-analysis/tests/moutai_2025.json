@@ -11,7 +11,7 @@
     "market_cap_src": "tushare daily_basic 20251231 total_mv=172,460,149.47 万元 ÷1e4",
     "source_md": "reports/archive/原始报告/贵州茅台2025年年度报告.md",
     "analyst_date": "2026-09-10",
-    "schema_version": "1.4"
+    "schema_version": "1.5"
   },
   "statements": {
     "income": {
@@ -580,6 +580,37 @@
         "delta": -68.0643
       }
     ],
+    "segment_quadrant": {
+      "y_mode": "delta",
+      "x0": -0.0108,
+      "y0": 0.9123,
+      "rows": [
+        {
+          "name": "茅台酒",
+          "g": 0.0039,
+          "m": 0.9353,
+          "dm": -0.0054,
+          "w": 0.868,
+          "p": 0.8899,
+          "quadrant": "明星",
+          "rank_gap": 0,
+          "p_minus_w": 0.0219
+        },
+        {
+          "name": "其他系列酒",
+          "g": -0.0976,
+          "m": 0.7611,
+          "dm": -0.0376,
+          "w": 0.132,
+          "p": 0.1101,
+          "quadrant": "衰退",
+          "rank_gap": 0,
+          "p_minus_w": -0.0219
+        }
+      ],
+      "src": "L726-728 产品情况表 + L366 分产品收入",
+      "note": ""
+    },
     "rev_factors": {
       "volume": 36.2662,
       "price": -38.6304,

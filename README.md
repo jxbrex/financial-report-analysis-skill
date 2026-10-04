@@ -72,7 +72,7 @@ Financial Report Analysis/          本仓库（技能唯一真源）
 │   │   ├── report-types.md         年报/半年报/季报/招股书/港美股的差异与裁剪规则
 │   │   └── subagent-prompts.md     并行派发窗的 5 份子代理派单模板
 │   ├── scripts/
-│   │   ├── calc.py                 Phase 7.5 数据层门禁入口（--fill 预填 / --min-recon / --strict）
+│   │   ├── calc.py                 Phase 7.5 数据层门禁入口（--fill 预填 / --min-recon）
 │   │   ├── calc_common.py          共享层：取值助手 + 比率公式唯一定义处 + 批量比对助手
 │   │   ├── calc_dupont.py          杜邦族：连环替代三口径 / 因子下钻 / 五年归因与分位
 │   │   ├── calc_evidence.py        周期证据 / 四线贴线 / peers 结构
@@ -92,9 +92,8 @@ Financial Report Analysis/          本仓库（技能唯一真源）
 │   │   ├── vanke_2026h1.json       连亏地产样本（扣非双版/双驱动真实触发锚点）
 │   │   ├── wanhua_2026h1.json      周期股样本（双驱动第二样本/ROIC·SGR 首验/白描分位锚点）
 │   │   ├── md_clean_synth.md       md_clean 合成金标准（自包含，覆盖四类历史病理）
-│   │   ├── t8_demo.html / t8_demo_bad.html  T8 数字回验验收样例（正确版/改错版）
-│   │   └── run_regression.py       唯一回归入口（112 断言，全部门禁冒烟 + 构造用例）
-│   └── examples/                   标杆样本（万科A 2026H1，现行模板全槽位真实报告）+ lookback-demo/
+│   │   ├── t8_demo.html            T8 数字回验验收样例（改错版由回归运行时改数生成）
+│   │   └── run_regression.py       唯一回归入口（132 断言，全部门禁冒烟 + 构造用例）
 ├── reports/                        产出目录。顶层只放成品 HTML（每公司最新版；PDF/md 不入库，json 入库）
 │   └── archive/                    原始报告（PDF/md，不入库）+ json 底稿（入库）
 ├── .github/workflows/              CI：push 自动跑金标准回归

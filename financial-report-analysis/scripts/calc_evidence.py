@@ -157,3 +157,53 @@ def check_peers(data, rep):
         rep.add(OK, "peers", f"{len(peers)} 家同业结构合法（杜邦四列+原三指标）")
 
 
+
+
+# 四象限标签（等号归正侧：g≥x0 增长侧、m≥y0 高毛利侧——schema v1.5 约定）
+QUADRANT = {(True, True): "明星", (True, False): "以量换价",
+            (False, True): "现金牛/潜力", (False, False): "衰退"}
+
+
+def compute_segment_quadrant(data):
+    """收入-毛利业务组合四象限（factor-analysis.md 第六节）机械复算，fill/check 共用。
+    by_segment <2 条返回 None（单产品裁剪路径）；x0=Σrev_cur÷Σrev_prev−1，
+    任一分部 rev_prev 为 null 则 x0/g/quadrant 全 null；y_mode=delta 要求
+    rev_prev/cost_prev 全部非 null，否则 level（dm 同 null）；rows 与 by_segment 同序。"""
+    segs = ((data.get("statements") or {}).get("income") or {}).get("by_segment") or []
+    if not isinstance(segs, list) or len(segs) < 2:
+        return None
+    revs = [num(s.get("rev_cur")) for s in segs]
+    costs = [num(s.get("cost_cur")) for s in segs]
+    prevs = [num(s.get("rev_prev")) for s in segs]
+    costps = [num(s.get("cost_prev")) for s in segs]
+    srev = sum(r or 0 for r in revs)
+    sprofit = sum((r or 0) - (c or 0) for r, c in zip(revs, costs))
+    prev_ok = all(p is not None for p in prevs)
+    delta_ok = prev_ok and all(c is not None for c in costps)
+    x0 = (srev / sum(prevs) - 1) if prev_ok and sum(prevs) else None
+    y0 = (1 - sum(c or 0 for c in costs) / srev) if srev else None
+    ws = [(r / srev if r is not None and srev else None) for r in revs]
+    ps = [(((r or 0) - (c or 0)) / sprofit if sprofit else None) for r, c in zip(revs, costs)]
+
+    def _rank(vals):
+        order = sorted(range(len(vals)),
+                       key=lambda i: (-(vals[i] if vals[i] is not None else float("-inf")),
+                                      segs[i].get("name") or ""))
+        rk = [0] * len(vals)
+        for pos, i in enumerate(order):
+            rk[i] = pos + 1
+        return rk
+
+    w_rank, p_rank = _rank(ws), _rank(ps)
+    rows = []
+    for i in range(len(segs)):
+        rev, cost, prev = revs[i], costs[i], prevs[i]
+        g = (rev / prev - 1) if (rev is not None and prev) else None
+        m = ((rev - cost) / rev) if (rev and cost is not None) else None
+        dm = (m - (prev - costps[i]) / prev) if (delta_ok and m is not None and prev) else None
+        q = None if None in (g, m, x0, y0) else QUADRANT[(g >= x0, m >= y0)]
+        rows.append({"name": segs[i].get("name"), "g": g, "m": m, "dm": dm,
+                     "w": ws[i], "p": ps[i], "quadrant": q,
+                     "rank_gap": abs(w_rank[i] - p_rank[i]),
+                     "p_minus_w": (ps[i] - ws[i]) if (ps[i] is not None and ws[i] is not None) else None})
+    return {"y_mode": "delta" if delta_ok else "level", "x0": x0, "y0": y0, "rows": rows}

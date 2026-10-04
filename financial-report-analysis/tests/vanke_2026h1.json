@@ -10,7 +10,7 @@
     "source_md": "reports/archive/原始报告/万科A-000002-半年报-2026H1.clean.md",
     "analyst_date": "2026-09-28",
     "market_cap_cur": 467.68,
-    "schema_version": "1.4",
+    "schema_version": "1.5",
     "currency": "CNY",
     "accounting_standard": "CAS",
     "industry_profile": "通用",
@@ -1258,6 +1258,48 @@
       "exp_ratio_q1q3": null,
       "src": "",
       "note": "半年报无 Q4 透视"
+    },
+    "segment_quadrant": {
+      "y_mode": "delta",
+      "x0": -0.3338,
+      "y0": 0.0794,
+      "rows": [
+        {
+          "name": "房地产开发及相关资产经营",
+          "g": -0.4233,
+          "m": 0.0606,
+          "dm": -0.0264,
+          "w": 0.694,
+          "p": 0.5298,
+          "quadrant": "衰退",
+          "rank_gap": 0,
+          "p_minus_w": -0.1642
+        },
+        {
+          "name": "物业服务",
+          "g": 0.0801,
+          "m": 0.1267,
+          "dm": -0.0127,
+          "w": 0.2631,
+          "p": 0.4199,
+          "quadrant": "明星",
+          "rank_gap": 0,
+          "p_minus_w": 0.1568
+        },
+        {
+          "name": "其他业务(养殖等)",
+          "g": -0.2065,
+          "m": 0.093,
+          "dm": -0.1094,
+          "w": 0.0429,
+          "p": 0.0503,
+          "quadrant": "明星",
+          "rank_gap": 0,
+          "p_minus_w": 0.0074
+        }
+      ],
+      "src": "L7731-L7733 主营业务分行业表",
+      "note": ""
     },
     "rev_factors": {
       "volume": null,

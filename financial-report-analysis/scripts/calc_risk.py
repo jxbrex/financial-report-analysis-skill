@@ -5,12 +5,12 @@
 
 import math
 
-from calc_common import (FAIL, WARN, OK, SKIP, num, val, series_of,
+from calc_common import (FAIL, OK, SKIP, num, val, series_of,
                          build_ratio_calcs, hist_periods, cmp_series)
 
 # 中期报告流量年化因子（frameworks.md 〇 口径总则；复算本身即口径卡口——
 # derived 填了未年化的流量分量就会复算不符 FAIL）
-ANNUALIZE = {"年报": 1.0, "半年报": 2.0, "一季报": 4.0, "三季报": 4.0 / 3.0, "季报": 4.0 / 3.0}
+ANNUALIZE = {"年报": 1.0, "半年报": 2.0, "一季报": 4.0, "三季报": 4.0 / 3.0}
 
 def compute_altman(data):
     """Altman Z（X4 市值/总负债，市值单位=亿元；中期报告流量项年化）。

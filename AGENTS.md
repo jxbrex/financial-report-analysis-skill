@@ -8,8 +8,8 @@
 
 ## 结构
 
-- `financial-report-analysis/` — 技能源（SKILL.md + references/×10 + assets/ + scripts/ + tests/ + examples/），**只改这里**
-  - `scripts/calc.py` — Phase 7.5 计算自检门禁（桥闭合/比率复算/勾稽三态/分部自洽/断言结构），exit 0 才允许写报告；
+- `financial-report-analysis/` — 技能源（SKILL.md + references/×10 + assets/ + scripts/ + tests/），**只改这里**
+  - `scripts/calc.py` — Phase 7.5 计算自检门禁（桥闭合/比率复算/勾稽三态/分部自洽+四象限复算/断言结构），exit 0 才允许写报告；
     模块布局（v0.0.12 起 1k 红线整改、v0.0.15 再拆）：`calc_common.py`（共享助手 + 比率公式唯一定义处 +
     hist_periods/批量比对助手）+ `calc_dupont.py`（杜邦族：连环替代三口径/因子下钻/五年归因与分位）+
     `calc_evidence.py`（周期证据/四线贴线/peers 结构）+ `calc_risk.py`（破产双模型/压力情景/现金时序）+
@@ -23,9 +23,7 @@
     `kangdexin_2018.json`（造假样本，应命中）、`vanke_2026h1.json`（连亏地产样本，
     扣非双版/双驱动真实触发）、`wanhua_2026h1.json`（周期股样本，双驱动第二样本/
     ROIC·SGR 首验/白描分位锚点；v0.0.18 固化）、`md_clean_synth.md`（md_clean 合成金标准，自包含）；
-    `run_regression.py` 是唯一回归入口（119 断言，含 check_html/T8/渲染冒烟与构造用例）
-  - `examples/` — 构造样本（lookback-demo 回看机制演示）；标杆样本 v0.0.18 起退役
-    （槽位契约归 fillsheet、文风示范归模板注释「真实示范」条目，不再随模板改动维护副本）
+    `run_regression.py` 是唯一回归入口（132 断言，含 check_html/T8/渲染冒烟与构造用例）
 - `reports/` — 产出目录。顶层只放成品 HTML（每公司只留最新版；`贵州茅台-600519-年报-2025FY-20260904.html`
   是黄金样本，改流程/模板后用它做回归对比）；原始报告（PDF/md）存 `reports/archive/原始报告/`，
   data.json 底稿存 `reports/archive/json/`

@@ -27,10 +27,8 @@ from pathlib import Path
 
 # Windows 控制台默认 GBK，emoji 与中文会触发 UnicodeEncodeError；强制 UTF-8 输出。
 for _s in (sys.stdout, sys.stderr):
-    try:
-        _s.reconfigure(encoding="utf-8")
-    except (AttributeError, ValueError):
-        pass
+    try: _s.reconfigure(encoding="utf-8")
+    except (AttributeError, ValueError): pass
 
 NUM_RE = re.compile(r"\d[\d,]*(?:\.\d+)?")
 SEP_RE = re.compile(r"^\s*\|[\s:|-]*-[\s:|-]*\|\s*$")  # | --- | 分隔行（必须含 dash；空单元格值行不算）

@@ -5,7 +5,6 @@ calc.py — financial-report-analysis 的计算自检门禁（Phase 7.5）
 
 用法：
     python scripts/calc.py reports/xxx.json
-    python scripts/calc.py reports/xxx.json --strict    # 警告也判失败
 
 退出码：0 = QC 全绿，允许进入 Phase 8 写报告；1 = 存在 FAIL，禁止写报告。
 
@@ -29,11 +28,6 @@ calc.py — financial-report-analysis 的计算自检门禁（Phase 7.5）
 
 import argparse
 import json
-import math
-import sys
-
-import argparse
-import json
 import sys
 from pathlib import Path
 
@@ -45,12 +39,11 @@ for _s in (sys.stdout, sys.stderr):
         pass
 
 
-from calc_common import (FAIL, WARN, OK, SKIP, Report, num, leaf, val, rel_dev,
-                         tol_bridge, safe_div, avg, series_of, series_of_ye,
-                         RATIO_HIST_SPECS, ratio_hist_expect, build_ratio_calcs,
+from calc_common import (FAIL, WARN, OK, SKIP, Report, num, val, rel_dev,
+                         tol_bridge, RATIO_HIST_SPECS, build_ratio_calcs,
                          ratio_hist_series)
 from calc_dupont import check_dupont, check_dupont_dt, check_dupont5y
-from calc_evidence import check_cycle_evidence, check_threshold_check, check_peers
+from calc_evidence import check_cycle_evidence, check_threshold_check, check_peers, compute_segment_quadrant
 from calc_risk import check_risk_models, check_stress, check_cash_ts
 from calc_models import fill_derived, write_fillsheet
 
@@ -551,6 +544,54 @@ def check_segments(data, rep):
                                       f"——检查分部成本口径、内部交易抵销或成本分摊变更")
 
 
+def check_segment_quadrant(data, rep):
+    """derived.segment_quadrant 自洽（schema v1.5）：选填块——填则全字段与
+    compute_segment_quadrant 复算值比对，缺省合法 SKIP。公式/边界规则见
+    factor-analysis.md 第六节与 extraction-schema.md；容差与 check_ratios 同规。"""
+    sq = (data.get("derived") or {}).get("segment_quadrant")
+    if sq is None:
+        rep.add(SKIP, "segment-quadrant", "segment_quadrant 未落库（选填块；现算或不适用合法）")
+        return
+    expect = compute_segment_quadrant(data)
+    if expect is None:
+        rep.add(SKIP, "segment-quadrant", "by_segment<2 条（单产品裁剪路径，整块应缺省）")
+        return
+    fails0 = rep.counts()[FAIL]
+    rows, erows = sq.get("rows") or [], expect["rows"]
+    if len(rows) != len(erows):
+        rep.add(FAIL, "segment-quadrant", f"rows 条数 {len(rows)} ≠ by_segment {len(erows)}")
+        return
+
+    def _cmp(field, got, want, label):
+        if want is None:
+            if got is not None:
+                rep.add(FAIL, "segment-quadrant", f"{label} {field} 应为 null（口径不可算），实际 {got}")
+        elif got is None or abs(got - want) > max(0.02 * abs(want), 0.005):
+            rep.add(FAIL, "segment-quadrant",
+                    f"{label} {field}={got} 与复算值 {want:.4f} 不符")
+
+    _cmp("x0", num(sq.get("x0")), expect["x0"], "整体")
+    _cmp("y0", num(sq.get("y0")), expect["y0"], "整体")
+    ym = sq.get("y_mode")
+    if ym != expect["y_mode"]:
+        rep.add(FAIL, "segment-quadrant",
+                f"y_mode={ym} 与数据形态不符（prev 齐备应 {expect['y_mode']}）")
+    for i, (row, erow) in enumerate(zip(rows, erows)):
+        if row.get("name") != erow["name"]:
+            rep.add(FAIL, "segment-quadrant",
+                    f"rows[{i}].name={row.get('name')!r} 与 by_segment 序不符（应 {erow['name']!r}）")
+            continue
+        label = f"分部「{erow['name']}」"
+        for f in ("g", "m", "dm", "w", "p", "p_minus_w"):
+            _cmp(f, num(row.get(f)), erow[f], label)
+        for f in ("rank_gap", "quadrant"):
+            if row.get(f) != erow[f]:
+                rep.add(FAIL, "segment-quadrant",
+                        f"{label} {f}={row.get(f)} 与复算 {erow[f]} 不符")
+    if rep.counts()[FAIL] == fails0:
+        rep.add(OK, "segment-quadrant", f"四象限 {len(rows)} 行全字段复算自洽（y_mode={ym}）")
+
+
 ASSERT_VERDICTS = {"通过", "不成立", "无法验证"}
 
 
@@ -628,9 +669,8 @@ ICON = {FAIL: "🔴", WARN: "🟡", OK: "✅", SKIP: "⚪"}
 def main():
     ap = argparse.ArgumentParser(description="financial-report-analysis 计算自检门禁")
     ap.add_argument("json_path", help="data.json 路径")
-    ap.add_argument("--strict", action="store_true", help="警告也判失败")
     ap.add_argument("--fill", action="store_true",
-                    help="预填 derived 机械字段（ratios/dupont/risk_models/stress/cash_ts/单期六项）"
+                    help="预填 derived 机械字段（ratios/杜邦族/cycle_evidence/threshold_check/risk_models/stress/cash_ts/segment_quadrant/单期八项）"
                          "并产出 {stem}.fillsheet.md 填充速查表；判断字段（桥/rev_factors/recon/notes）不动")
     ap.add_argument("--min-recon", type=int, default=None, metavar="N",
                     help="recon 已判定等式条数下限（建议：年报 15、半年报 13、季报 8，共 17 条）；"
@@ -675,6 +715,7 @@ def main():
     check_recon(data, rep)
     check_recon_coverage(data, rep, min_recon=args.min_recon)
     check_segments(data, rep)
+    check_segment_quadrant(data, rep)
     check_assertions(data, rep)
     check_interest_arrears(data, rep)
     check_signals(data, rep)
@@ -687,12 +728,12 @@ def main():
         print(f"{ICON[lv]} [{lv:<4}] {code:<14} {msg}")
 
     c = rep.counts()
-    failed = c[FAIL] + (c[WARN] if args.strict else 0)
+    failed = c[FAIL]
     print(f"\n--- 汇总：FAIL {c[FAIL]} · WARN {c[WARN]} · OK {c[OK]} · SKIP {c[SKIP]} ---")
     if failed:
         print("❌ QC 未通过：修正上述 FAIL 后重跑，禁止带病写报告（Phase 8）。")
         return 1
-    print("✅ QC 全绿：可进入 Phase 8 写报告。" + ("（--strict 模式）" if args.strict else ""))
+    print("✅ QC 全绿：可进入 Phase 8 写报告。")
     return 0
 
 

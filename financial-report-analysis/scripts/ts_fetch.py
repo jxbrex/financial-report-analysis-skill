@@ -30,10 +30,8 @@ import urllib.request
 
 # Windows 控制台默认 GBK，中文会触发 UnicodeEncodeError；强制 UTF-8 输出。
 for _s in (sys.stdout, sys.stderr):
-    try:
-        _s.reconfigure(encoding="utf-8")
-    except (AttributeError, ValueError):
-        pass
+    try: _s.reconfigure(encoding="utf-8")
+    except (AttributeError, ValueError): pass
 
 TS_API = "https://api.tushare.pro"
 TIMEOUT = 30

@@ -11,7 +11,7 @@ import statistics
 
 from calc_common import build_ratio_calcs, ratio_hist_series, RATIO_HIST_SPECS
 from calc_dupont import compute_dupont, compute_dupont_dt, compute_dupont5y
-from calc_evidence import compute_cycle_evidence, compute_threshold_check
+from calc_evidence import compute_cycle_evidence, compute_threshold_check, compute_segment_quadrant
 from calc_risk import compute_altman, compute_ohlson, compute_stress, compute_cash_ts
 
 R4 = lambda x: None if x is None else round(x, 4)
@@ -123,6 +123,11 @@ def fill_derived(data):
     if cts:
         der["cash_ts"] = _filled({k: _r4deep(v) for k, v in cts.items()},
                                  der.get("cash_ts") or {}, "note")
+        n += 1
+    sq = compute_segment_quadrant(data)
+    if sq:
+        der["segment_quadrant"] = _filled({k: _r4deep(v) for k, v in sq.items()},
+                                          der.get("segment_quadrant") or {}, "src", "note")
         n += 1
     return n
 

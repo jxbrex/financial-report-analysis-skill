@@ -8,13 +8,12 @@ calc.py 只校验数据层（data.json）；报告 HTML 层此前没有任何机
 硬规则」「必备章节缺失」这类硬伤，并把可疑之处列成待人工确认清单。
 
 用法：
-    python scripts/check_html.py reports/xxx.html [--verbose] [--warn-only] [--strict]
+    python scripts/check_html.py reports/xxx.html [--verbose]
 
 退出码：
     0 = 通过
     1 = 有 FAIL
-    默认仅 FAIL 影响退出码（与 calc.py 一致）；--strict 让 WARN 也判失败；
-    --warn-only 转纯提示模式：任何发现（含 FAIL）都不影响退出码，仅打印清单。
+    仅 FAIL 影响退出码（与 calc.py 一致）；WARN 列待人工确认清单。
 
 模块布局（v0.0.19 起）：
     check_html.py       本入口：结构/硬规则族 + 主流程
@@ -124,10 +123,8 @@ from pathlib import Path
 
 # Windows 控制台默认 GBK，emoji 与中文会触发 UnicodeEncodeError；强制 UTF-8 输出。
 for _s in (sys.stdout, sys.stderr):
-    try:
-        _s.reconfigure(encoding="utf-8")
-    except (AttributeError, ValueError):
-        pass
+    try: _s.reconfigure(encoding="utf-8")
+    except (AttributeError, ValueError): pass
 
 
 from check_html_common import (FAIL, WARN, OK, Report, DETAIL_CAP,
@@ -536,8 +533,6 @@ def main():
     ap.add_argument("--json", dest="json_path", default=None,
                     help="data.json 路径：启用 T8 数字回验（①级 HTML↔json 笔误检测 + ②级 json↔原文 md 核对）")
     ap.add_argument("--verbose", action="store_true", help="打印全部明细，不截断")
-    ap.add_argument("--warn-only", action="store_true", help="纯提示模式：任何发现都不影响退出码")
-    ap.add_argument("--strict", action="store_true", help="WARN 也判失败")
     args = ap.parse_args()
 
     path = Path(args.html_path)
@@ -615,14 +610,10 @@ def main():
     c = rep.counts()
     print(f"\n--- 汇总：FAIL {c[FAIL]} · WARN {c[WARN]} · OK {c[OK]} ---")
 
-    if args.warn_only:
-        print("✅ 通过（--warn-only 提示模式：上述发现仅供人工复核，不影响退出码）")
-        return 0
-    failed = c[FAIL] + (c[WARN] if args.strict else 0)
-    if failed:
+    if c[FAIL]:
         print("❌ 未通过：先修 FAIL 项再交付；WARN 项逐条人工确认。")
         return 1
-    print("✅ 通过。" + ("（--strict 模式：WARN 亦已清零）" if args.strict else ""))
+    print("✅ 通过。")
     return 0
 
 

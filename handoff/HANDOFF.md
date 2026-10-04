@@ -24,7 +24,7 @@
 
 ## 二、技能构成与三道门禁
 
-### 技能现在的构成（27 个源文件）
+### 技能现在的构成（34 个源文件）
 
 ```
 financial-report-analysis/
@@ -36,13 +36,13 @@ financial-report-analysis/
 │   ├── factor-analysis.md      #   三因素分解 + 净利润桥 + OCF 调节桥 + 四象限
 │   ├── text-mining.md          #   MD&A 三层读法 + 断言验证矩阵（F1/F2/F3）
 │   ├── industry-profiles.md    #   八类商业模式调焦 + 客户价值五维 + 经销商压货三条件
-│   ├── extraction-schema.md    #   data.json 数据契约（schema 1.4）
+│   ├── extraction-schema.md    #   data.json 数据契约（schema 1.5）
 │   ├── data-sources.md         #   markitdown / tushare / 妙想 接口速查 + 港股路径 + OCR 降级
 │   ├── report-types.md         #   年报/半年报/季报/招股书/港美股 差异
 │   └── subagent-prompts.md     #   并行派发窗派单模板 ×5（v0.0.14）
 ├── assets/report-template.html # 10 章单文件报告模板（内联 SVG 绘图函数族、锚点 s0~s8 + review、置信度徽章）
 ├── scripts/                    # 14 个脚本
-│   ├── calc.py                 #   Phase 7.5 数据层门禁入口（--fill / --min-recon / --strict）
+│   ├── calc.py                 #   Phase 7.5 数据层门禁入口（--fill / --min-recon）
 │   ├── calc_common.py          #   共享层：取值助手 + 比率公式唯一定义处 + hist_periods/批量比对
 │   ├── calc_dupont.py          #   杜邦族：连环替代三口径 / 因子下钻 / 五年归因与分位
 │   ├── calc_evidence.py        #   周期证据 / 四线贴线 / peers 结构
@@ -57,16 +57,13 @@ financial-report-analysis/
 │   ├── md_clean.py             #   财报 md 确定性清洗 + 章节索引
 │   └── ts_fetch.py             #   tushare HTTP 取数通道
 ├── tests/                      # 金标准 fixtures + 回归入口
-│   ├── moutai_2025.json        #   干净样本（应零误报；schema 1.4）
+│   ├── moutai_2025.json        #   干净样本（应零误报；schema 1.5）
 │   ├── kangdexin_2018.json     #   造假样本（应命中；含 parent_statements + D 组判定）
 │   ├── vanke_2026h1.json       #   连亏地产样本（v0.0.17 固化：扣非双版/双驱动真实触发）
 │   ├── wanhua_2026h1.json      #   周期股样本（v0.0.18 固化：双驱动第二样本/ROIC·SGR 首验/白描分位锚点）
 │   ├── md_clean_synth.md       #   md_clean 合成金标准（自包含，四类病理；v0.0.17 起不再依赖原始 md）
-│   ├── t8_demo.html / t8_demo_bad.html  # T8 数字回验验收样例（正确版 / 改错版）
-│   ├── dup_decl_demo.html      #   js-dup-decl 构造用例（const 顶层重复声明，v0.0.22）
-│   ├── assert_trunc_demo.html/.json  #   assert-trunc 构造用例（断言填充截断，v0.0.22）
-│   └── run_regression.py       #   唯一回归入口：116 条断言 + check_html/T8/渲染冒烟 + 构造用例
-└── examples/                   # lookback-demo 构造样本（标杆样本 v0.0.18 退役：槽位归 fillsheet、文风归模板注释）
+│   ├── t8_demo.html            #   T8 数字回验验收样例（改错版由回归运行时改数生成）
+│   └── run_regression.py       #   唯一回归入口：132 条断言 + check_html/T8/渲染冒烟 + 构造用例
 ```
 
 ### 三道机器门禁 + 一条回归
@@ -209,46 +206,54 @@ financial-report-analysis/
 
 ---
 
-## 四·五、当前未发布轮：v0.0.23（2026-10-01，海康威视报告反馈轮）
+## 四·五、当前未发布轮：v0.0.24（2026-10-03~04，全库审计清理 + 四象限落地轮）
 
-> 触发：用户读海康报告四项反馈——用时 1 小时+、effline 折线图缺失（只有表格）、
-> s7 检验 figtitle 漏营运效率类、四维表评价列「五年 H1 最高」突兀。
-> 定位=模板 effLine 两档固定槽 debt 到期（局限 12 撞面实证）+ 两处文案纪律缺口 + 效率解剖；
-> 回填时又引入四宫格 5 子元素事故（用户当场抓出），一并落门禁。
+> 触发：ponytail-audit 全库过度工程审计（用户触发）→ 按风险分三档执行；四象限节用户定案
+> 「补 schema 落地」；收尾前轮内热核审计抓出 1 Blocker + 5 Major 一并修复。
 
-### 修订（全部落地，回归 116→119 全绿）
+### 修订（全部落地，回归 119→133 全绿）
 
-1. **effline 标签同期堆栈避让**（模板 JS）：同期各线标签按点 y 排序、点上 -8 起、
-   间距 17px 顺序下推（文本盒高≈16px：font 9+halo 2.5，11px 实测仍撞 3-5px）、整组钳入
-   绘图区；**值域含 0 与零轴仅在有负值时**（全正强拉 0 基线使量程 505 天、三线挤 62px 带
-   ——结构性互撞温床）。局限 12 关闭。
-2. **海康报告回填 effline 图**（用户定案，v0.0.16 万科回填先例）：内联 effLine 同步新版 +
-   四宫格左下表格换回 svg（EFF_TS 槽与调用原是死代码，复活）+ takeaway 移出 grid2；
-   gate 三道全绿（check_render 0 重叠）+ 分片目检 㗊型恢复。文案类不动（纪律 7）。
-3. **s1-grid4 新 FAIL 门禁**：四宫格 grid2 直接子元素只许 svg（降级只许删 svg）——回填时
-   把 takeaway 留在 grid2 内撑破 2×2（用户反馈「说过了又忘记」）；模板注释同步。
-4. **s7 检验 figtitle 口径**：计数 + 按固定主题逐类点到（盈利与研发/偿债与压力/
-   营运效率·费用 ROI/披露项），各类不缺席、营运效率类必须有名字——旧示例「只挑一类写」
-   教错（海康「10 项全过」漏营运效率类实证）。模板注释+fillsheet+SKILL 三处同步。
-5. **四维表评价列纪律**（用户定案）：写本期 vs 上期变动的原因/定性（如毛利率提升归因），
-   禁「五年 H1 最高」族五年位置断言——本表只呈现本期/上期，五年表述归趋势图卡
-   figtitle/杜邦分位卡。模板注释+fillsheet+SKILL 三处同步。文本规则不入机检。
-6. **派单 ③ 骨架修字段名**（海康 calc 首轮 FAIL 根因）：`src`→`source`（calc 按 schema
-   认 source）+ 注明 verdict 由主线 Phase 5 回填后才跑 calc；SKILL Phase 2.5 补
-   「偏差阈值内一律判闭合」机械口径（海康 A2 偏差 0.00% 判可解释=过度立案 FAIL 实证）。
+1. **三档清理（净删约 260 行，31 文件）**：
+   - 一档（死资产）：examples/ 整目录退役（回看形态由模板 SLOT+schema 承载）；tests 三个
+     demo 文件内联进回归（dup_decl 内联 / t8_demo_bad 运行时改数生成 / assert_trunc 内联）；
+     死 import 与重复 import 块、ANNUALIZE「季报」死键、模板 .badge.rev 死 CSS、SKILL:455
+     与 v0.0.19 小数纪律矛盾的过期残片、factor-analysis「schema 待补」失效承诺
+   - 二档（回归脚本收编）：四例公共序言收 `_prologue()`、冒烟块循环化并计入断言
+     （修「冒烟不计数」口径不一致，119→127）、t8 改错版运行时生成 + 着陆断言
+   - 三档（收敛）：四个零接线 flag 全删（--warn-only/--strict×2/--scale）；文档复述按
+     「唯一出处」原则收敛——模板注释管版面、references 管规则、schema 只管字段与落库约定
+     （SKILL -43 / schema -15 / references -60 行）；frameworks.md 删 Beneish/Benford 后
+     节号重编号（五~九→四~八）+ 12 处引用同步；SKILL 版本记录表压一句话短表
+     （详情归 supersede/git tag 唯一真源）
+2. **四象限落地（schema 1.5）**：`derived.segment_quadrant` 选填块（填则 calc 全字段复算
+   比对、缺省合法 SKIP；边界等号归正侧、y_mode delta/level 降级、排名等值规则写死）；
+   calc.py 新增 segment-quadrant 检查；fill 接线（compute_segment_quadrant 提取到
+   calc_evidence.py，fill/check 共用——机械字段不再要求分析师手算）；万华/万科/茅台
+   fixture 补锚点（茅台 by_segment 实为 2 条：茅台酒明星/系列酒衰退；万科地产衰退/物业
+   明星；万华石化错位度 2 = 资源错配信号实证）；schema_version 1.4→1.5 六处同步；
+   v1.5 构造用例 ×2（填错 quadrant 必 FAIL + 声明 delta 但 cost_prev null 不 crash）
+3. **热核审计修复（本轮内闭环）**：
+   - Blocker：check_segment_quadrant 按声明 y_mode 算 dm，声明 delta 但 cost_prev 缺 null
+     时 TypeError 崩溃（门禁在该说话的场景说不出话）——compute/check 分层后消失
+   - Major：nonlocal ok 副作用累积改 FAIL 计数差；load_moutai 同义 helper 删除
+     （load_json(MOUTAI) 等价）；四处悬空引用清尾（README/HANDOFF 的 --strict 残留、
+     AGENTS 的 examples/ 残留、SKILL 的「第九节」漏改 + Beneish 宣称脱节）；
+     articulation A3 share_of_np 分母漂移修正（np_at→np_total，对齐 calc 既有行为）
+   - Minor：QUADRANT dict 一处定义、check_render SCALE=2 常量、t8 着陆断言
 
 ### 验证
 
-- 回归 116→119 全绿（+1 effline 缠绕数据 check_render 0 重叠、+2 s1-grid4 命中/不误报）；
-- 海康报告 gate 三道全绿 + 四宫格分片目检 㗊型恢复；茅台黄金样本无新增 WARN
-  （评价列/figtitle 纪律是文本规则，无机检面）。
+- 回归 132→133 全绿；fill 幂等四例全过（fixture 补齐后为 fill 不动点）；
+- 黄金样本茅台 gate 对照：改动前后 FAIL 逐字一致（internal-ref/num-vs-json/required 三条
+  均为报告产出后新增规则的旧快照现象，纪律 8 不重出）。
 
 ### 遗留（下轮关注）
 
-- N4 冻结计数**再再次清零**（effline 避让+grid4 注释）；新口径（用户定案）：此后连续两份
-  报告模板零结构改动即启动 fill→render 脚本化（原口径与「每轮报告反馈必改模板」死锁；
-  海康轮 Phase 8 手写 615s/30.2k tok 为最新证据）。
-- 模板总行 1256（贴 1k 红线口径按去注释计，下轮加图先瘦身）。
+- 审计清单未做项（用户未选）：data-sources.md OCR 降级路径、text-mining 姜富伟词典段、
+  vanke derived.q4 全 null 块（其 note「半年报无 Q4 透视」是有意置灰声明，非死数据，
+  确认保留）、run_regression Case 类与 _block 双汇报机制（用户定案不统一）。
+- SKILL.md 为 CRLF/LF 混合行尾（488 CRLF + 少量 LF），Edit 跨行替换易失败——本轮用
+  Python bytes 级补丁脚本处理；下轮可考虑一次性统一行尾。
 
 ## 五、下一步工作计划
 
@@ -289,8 +294,8 @@ v0.0.14 否决脚本化的理由是「模板每轮在变，维护税超收益」
 - 验收：industry-profiles.md 中该模式的重点勾稽项被真实触发；该降级的信号确实降级（不误报）
 
 **任务 4：回看模式真实数据实测（局限 5，等披露季）**
-- 机制层（T6）已完成：schema review 子块 + 冻结纪律 + 模板归因列 + check_html review-shape +
-  examples/lookback-demo 构造样本（✅/❌/⏳ 全形态 + 反面例 WARN 触发实测）
+- 机制层（T6）已完成：schema review 子块 + 冻结纪律 + 模板归因列 + check_html review-shape
+  （examples/lookback-demo 构造样本已随清理轮退役，形态由模板 SLOT 与 schema 承载）
 - 剩余：2026Q3/2026FY 披露后，对特变/移动/恒瑞之一做新报告，验收回顾章照抄 tripwire
   原文 + 逐条 ✅/❌/⏳ + 归因 + review 子块落库
 
@@ -314,7 +319,7 @@ v0.0.14 否决脚本化的理由是「模板每轮在变，维护税超收益」
 ```bash
 # 1. 确认环境
 cd "D:/KimiCodeProject/Financial Report Analysis"
-python financial-report-analysis/tests/run_regression.py   # 应 116/116 通过
+python financial-report-analysis/tests/run_regression.py   # 应 133/133 通过
 
 # 2. 部署（如需让技能在当前机器生效）
 cmd //c deploy.cmd
@@ -347,3 +352,4 @@ cmd //c deploy.cmd
 | `supersede/v0.0.20_2026-09-30.md` | v0.0.20（卫星化学报告复核轮：OCF 桥失守模式根治 + s1 双卡改造 + 效率对照回填） |
 | `supersede/v0.0.21_2026-10-01.md` | v0.0.21（卫星化学四项反馈定案轮：.wv 判词行 / 桥图端点柱 / SEG_ENDS 槽 / gap-declaration 机检 + 热核审计整改） |
 | `supersede/v0.0.22_2026-10-01.md` | v0.0.22（长城·埃斯顿双报告复盘轮：三条新门禁 js-dup-decl/assert-trunc/empty-svg + s1 㗊四宫格 + 派发窗 7 代理 + 流程治理） |
+| `supersede/v0.0.23_2026-10-01.md` | v0.0.23（海康反馈轮：effline 标签避让、s1-grid4 机检、s7 汇总口径、四维表评价列纪律） |

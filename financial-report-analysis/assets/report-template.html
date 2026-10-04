@@ -60,8 +60,6 @@ body{background:var(--bg);color:#000;
 .badge.disc{background:rgba(58,42,28,.09);color:rgba(58,42,28,.82)}
 .badge.der{background:rgba(122,84,52,.13);color:var(--der)}
 .badge.est{background:rgba(58,42,28,.04);color:var(--muted);border:1px dashed rgba(58,42,28,.28)}
-/* 排雷四态之「反向未触发」：信号反向成立且含信息量，用主数据色（赭石）与 g/y/r 风险色区分 */
-.badge.rev{background:rgba(171,94,38,.12);color:var(--data)}
 
 /* ── 追查链接（P2-25）── */
 a{color:var(--data);text-decoration:none}
@@ -104,7 +102,6 @@ table.data tr.group td{font-size:11px;font-weight:800;letter-spacing:.14em;color
 /* 杜邦因子下钻子行：浅灰底小字、只放证据，判断只在 figtitle/takeaway；每因子 ≤1 行（防「正文承载完整性」回潮），锚点链接把杜邦变成全报告导航枢纽 */
 .drillrow td{background:rgba(58,42,28,.03);font-size:12px;color:var(--muted);
  padding:4px 10px 8px;line-height:1.6}
-/* 营运效率三线图/趋势图 JS 绘制，表格不再内嵌迷你折线（v0.0.22 起 spark 列退役） */
 /* OCF 调节桥端点行：净利润 →（调节净额）→ 经营现金流净额（水平值不画柱） */
 .brends{font-size:12.5px;font-weight:800;margin:2px 0 8px}
 
@@ -443,7 +440,7 @@ html{scroll-behavior:smooth}
  </table>
  <div class="srcline">共核对 {{N}} 条勾稽等式（资产=负债+权益、现金/应收/存货滚动、三座桥等）：{{全部闭合 / 其余 M 条闭合}} · 偏差 ≠ 造假，先排除合理解释</div>
  </div>
- <!-- ◆ F-08：四线考核贴线检测（frameworks.md 第八节落地）——盈余管理常表现为
+ <!-- ◆ F-08：四线考核贴线检测（frameworks.md 第七节落地）——盈余管理常表现为
  「刚好达标」；贴线=实际÷目标 ∈ [0.95,1.05]，贴线即黄牌进观察层 -->
  <div class="card">
  <div class="figtitle">{{结论式：四线考核一句话，如「四线均远离，无达标动机痕迹」或「ROE 贴再融资线——盯利润调节证据」}}</div>
@@ -676,7 +673,7 @@ html{scroll-behavior:smooth}
  <tr><td>短债覆盖倍数</td><td>{{x}} 倍</td><td class="txt"><span class="badge {{g|y}}">{{✅|⚠️}}</span></td><td class="txt">{{(货币资金+OCF)÷(短借+一年内到期)}}</td></tr>
  <tr><td>现金流偿债口径（X6）</td><td>{{x}}（≈ {{y}} 年）</td><td class="txt"><span class="badge {{g|y}}">{{✅|⚠️}}</span></td><td class="txt">{{OCF÷平均总负债——与上行短债覆盖并列看，不替代}}</td></tr>
  <tr><td>破产风险双模型 <span class="badge der">推算</span></td><td>Altman Z={{x}}（{{安全|灰色|危险}}区）· Ohlson P={{y}}（{{低|中|高}}）</td><td class="txt"><span class="badge {{g|y|r}}">{{✅|⚠️|❌}}</span></td><td class="txt">{{同向→按强度下措辞；分歧→「模型分歧，均作辅助参考」；美国样本系数仅辅助参考，金融/地产跳过本行并注明}}</td></tr>
- <tr><td>流动性压力情景 <span class="badge est">估算</span></td><td>收入-10/20/30% → 净利 {{x}}/{{y}}/{{z}} 亿</td><td class="txt"><span class="badge {{g|y}}">{{✅|⚠️}}</span></td><td class="txt">{{p=10% 受压净利<0 不直接🔴，进 watchlist「安全垫薄」；结论挂周期定位解读（frameworks.md 第九节）}}</td></tr>
+ <tr><td>流动性压力情景 <span class="badge est">估算</span></td><td>收入-10/20/30% → 净利 {{x}}/{{y}}/{{z}} 亿</td><td class="txt"><span class="badge {{g|y}}">{{✅|⚠️}}</span></td><td class="txt">{{p=10% 受压净利<0 不直接🔴，进 watchlist「安全垫薄」；结论挂周期定位解读（frameworks.md 第八节）}}</td></tr>
  <tr><td>大宗/税率/汇率敏感性</td><td>—</td><td class="txt">—（披露项）</td><td class="txt">{{原材料占成本比 + 对应品种价格趋势 + 所得税率变化（注明价格数据来源，如百川盈孚/隆众/EIA）}}</td></tr>
  <tr><td>增量费用效率（Δ毛利÷Δ期间费用）</td><td>{{x}}</td><td class="txt"><span class="badge {{g|y|r}}">{{✅|⚠️|❌}}</span></td><td class="txt">{{&gt;1 费用换来更多毛利 / &lt;0.5 且费用率上升=效率恶化}}</td></tr>
  <tr><td>销售费用获客效率（Δ收入÷Δ销售费用）</td><td>{{x}}</td><td class="txt"><span class="badge {{g|y}}">{{✅|⚠️}}</span></td><td class="txt">{{趋势下降=增长越来越贵，增收不增利前兆}}</td></tr>

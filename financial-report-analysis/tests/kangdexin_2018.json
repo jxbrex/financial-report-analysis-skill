@@ -11,7 +11,7 @@
     "market_cap_src": "tushare daily_basic 20181228 total_mv=2,705,247.82 万元 ÷1e4",
     "source_md": "reports/archive/原始报告/康得新2018年年度报告.md",
     "analyst_date": "2026-09-10",
-    "schema_version": "1.4"
+    "schema_version": "1.5"
   },
   "statements": {
     "income": {

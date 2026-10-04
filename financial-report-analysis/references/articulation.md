@@ -88,7 +88,7 @@ updated: 2026-09-10
   `amount = −(Σ「Δ应收」「Δ存货」「Δ应付」「其他营运资本」四项 delta)`。
   **禁止用 `balance.ar` 等科目余额差直接代入**：补充资料行的「经营性应收」是宽口径
   （含财务公司发放贷款、拆出资金），与 `balance.ar` 差额可能相差数十亿。
-  `wc_devour.share_of_np = amount ÷ np_at.cur`；**吞噬额 > 净利润 50% → 盈利质量警示**，
+  `wc_devour.share_of_np = amount ÷ np_total.cur`（净利润含少数股东，与 calc.py 复算口径一致）；**吞噬额 > 净利润 50% → 盈利质量警示**，
   为 redflags #3 净现比提供量化依据（写进 signals）
 - **异常含义**：净现比只告诉你「利润和现金不匹配」，调节表告诉你**「差在 Δ应收还是 Δ存货、
   各吞了多少现金」**——这是把结果层升级为过程层的关键。典型读数：
@@ -292,19 +292,18 @@ updated: 2026-09-10
 判读规则在 frameworks.md 营运能力节，本组只给**勾稽口径**；第三条是「口径与算法」而非「lhs / rhs」。
 
 ### C1 CCC 现金转换周期
-- **公式**：`CCC = DSO + DIO − DPO`，三期趋势 + 行业对照
+- **公式与判读规则**：见 frameworks.md 营运能力节（`CCC = DSO + DIO − DPO` 及 DSO/DIO/DPO
+  口径、三期趋势 + 同业对照、判读三条），本节不重复维护。勾稽侧补充一条判读：
+  **CCC 拉长但收入停滞 = 单纯运营恶化**（🔴）；「以营运资本换增长」成立须配合 A3 的
+  `wc_devour.share_of_np` > 50% 互证（🟡，扣成长质量维度分）
 - **数据位置**：资产负债表应收账款/应收票据/存货/应付账款/应付票据两期 + 利润表收入、成本；
   data.json: `derived.ratios.dso` / `dio` / `dpo` / `ccc`（带 `cur` / `prev`，三期看 `hist`），
   原始科目取 `statements.balance.ar` / `inventory`、`statements.income.revenue` / `cost`
-- **口径与算法**（平均余额法，与 calc.py `build_ratio_calcs` 一致）：
-  - `DSO = avg(ar) × 365 ÷ revenue.cur`（含 `ar_notes` 更保守；calc.py 现只用 `ar`，
-    改合并口径须在 `derived.ratios.dso` 的 note 里说明差异）
-  - `DIO = avg(inventory) × 365 ÷ cost.cur`（分母用营业成本，不是收入）
-  - `DPO = avg(payable) × 365 ÷ cost.cur`（`payable` = 应付账款+应付票据，schema 字段
-    `balance.payable`；calc.py 已用它自动复算 dpo/ccc，无需手工回填）
-- **阈值 / 判读规则**：**CCC 持续拉长 + 收入高增 = 以营运资本换增长**（配合 A3 的
-  `wc_devour.share_of_np` > 50% 互证，🟡，扣成长质量维度分）；**CCC 收窄 = 造血改善**（🟢）；
-  **CCC 拉长但收入停滞 = 单纯运营恶化**（🔴）
+- **calc 口径注记**（平均余额法，与 calc.py `build_ratio_calcs` 一致）：
+  - DSO 含 `ar_notes` 更保守；calc.py 现只用 `ar`，改合并口径须在
+    `derived.ratios.dso` 的 note 里说明差异
+  - DPO 的 `payable` = 应付账款+应付票据（schema 字段 `balance.payable`）；calc.py
+    已用它自动复算 dpo/ccc，无需手工回填
 - **异常含义**：CCC 拉长说明每一元收入占用更多营运资本，与 A3 的 Δ应收/Δ存货吞噬现金互证时
   「增长靠垫资」成立；单看 DSO 或 DIO 任一项无法区分行业性账期延长与本公司信用政策放松
 - **合理解释**：业务模式切换（直销转经销、增加票据结算）、并购并表带入不同账期的应收、
@@ -339,14 +338,7 @@ updated: 2026-09-10
   `verdict` ∈ {`闭合`, `可解释`, `无法解释`} / `explanation`（非「闭合」必填，写口径差或风险定性）/
   `src`（出处，附注章节名+行号，禁止空串）
 - **阈值与类型已内置**（`scripts/calc.py` 的 `RECON_RULES`，勿在本手册重复维护数字）：
-
-| recon 键 | 类型 | 阈值 |
-|---|---|---|
-| `A1_cash` / `A4_rev_cash` / `A6_capex` | closure | 10% |
-| `A5_dep_amort` / `B1_ar_roll` / `B2_inv_roll` / `B3_cip_roll` | closure | 5% |
-| `A2_retained` / `A3_indirect`（另有 `bridge.ocf` 容差 2%×OCF 与 0.5%×净利取大） | closure | 2% |
-| `B4_goodwill_roll` | closure | 1% |
-| `A7_implied_rate`（rhs 基准 0.05/0.08/0.10）/ `A8_invest_income`（rhs 基准 0.04~0.10） | **level** | lhs > rhs |
+  各键阈值与 closure / level 类型归属以 calc.py 及上文各条目「阈值」行为准
 
 - **closure 型**：`dev = |lhs − rhs| ÷ |rhs|`。`dev ≤ 阈值` 而 `verdict ≠ 闭合` → **FAIL（过度立案）**；
   `dev > 阈值` 而 `verdict = 闭合` → **FAIL（掩盖异常）**；`dev > 阈值` 且 `verdict = 无法解释`

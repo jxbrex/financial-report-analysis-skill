@@ -46,7 +46,7 @@
     "period": "20251231", "report_type": "年报", "disclose_date": "2026-04-16",
     "unit": "亿元", "source_md": "reports/xxx.md", "analyst_date": "2026-09-10",
     "market_cap_cur": null,
-    "schema_version": "1.3",
+    "schema_version": "1.5",
     "currency": "CNY",
     "accounting_standard": "CAS",
     "industry_profile": "通用",
@@ -196,19 +196,18 @@
                                     "ib_to_equity_cur": null, "ni_to_equity_cur": null,
                                     "ni_share": null, "dfl_delta": null, "quality_upgrade": null },
                 "src": "",
-                "note": "连环替代（定序：净利率→周转率→权益乘数），三效应加和恒等于三因子积的 Δ；closure_gap = ΔROE摊薄 − Δ三因子积（周转率平均余额口径 vs ROE 期末口径之差），报告 srcline 如实标注；缺同口径上期（口径断裂）整块 null。"
-                        "v1.3 因子下钻（子行只放证据，判断在 figtitle/takeaway）："
-                        "margin_drill=净利率恒等四项分解 op/tax/interest/minority（ΔEBIT率 −Δ财务费用率 −Δ有效税负率 −Δ少数股东率，加和恒等于 Δ净利率）；"
-                        "turnover_drill=Δ总资产科目贡献前二 + 聚合份额（wc_share=Δ应收类+Δ存货 ÷ Δ总资产，capex_share=Δ在建+Δ固定资产 ÷ Δ总资产；|ΔTA|/TA<1% 时整块 null=总资产未动，定位无意义；不含其他应付款等未提取科目，口径声明在报告 srcline）；"
-                        "leverage_drill=有息 ib=st_debt+noncur_due_1y+lt_debt（null 按 0 计，三字段全 null 才整块 null）/ 无息 ni=payable+contract_liab（同规则；不含其他应付款）；"
-                        "quality_upgrade=话语权型杠杆升档判定：杠杆为主驱动且 ni_share>0.7 且 |dfl_delta|<0.1 → true，杠杆非主驱动时 null（不适用）——阈值为经验起点，随样本校准，只触发提醒级呈现；"
-                        "driver_fragile=双驱动护栏：第一、二大 |效应| 之比 effects_ratio<1.5 → true，报告标「双驱动（X/Y）」替代单一主驱动" },
+                "note": "连环替代定序、closure_gap 口径、因子下钻判读与双驱动护栏一律见 frameworks.md 第二节；本 note 只约定落库：缺同口径上期（口径断裂）整块 null。"
+                        "margin_drill 四键 op/tax/interest/minority_effect = 净利率恒等四项分解的四效应；"
+                        "turnover_drill 的 wc_share=Δ应收类+Δ存货 ÷ Δ总资产，capex_share=Δ在建+Δ固定资产 ÷ Δ总资产；|ΔTA|/TA<1% 时整块 null（总资产未动，定位无意义）；未提取科目不参与；"
+                        "leverage_drill 的 ib=st_debt+noncur_due_1y+lt_debt，ni=payable+contract_liab（单项 null 按 0 计，三字段全 null 才整块 null）；"
+                        "quality_upgrade 三态：杠杆非主驱动时 null=不适用，true/false 判定口径同出处；"
+                        "driver_fragile=双驱动护栏触发位（口径同出处），driver_second=第二驱动因子名" },
     "dupont_dt": { "driver": null, "margin_effect": null, "turnover_effect": null,
                    "leverage_effect": null, "roe_product_cur": null, "roe_product_prev": null,
                    "closure_gap": null, "triggered": null, "src": "",
-                   "note": "v1.3 扣非口径双版归因（F-04）：扣非净利率（np_dt÷revenue）替换净利率因子重跑连环替代；"
-                           "触发条件 nonrecurring_share>0.2 或 |净利率−扣非净利率|>0.01——未触发时 triggered=false 其余 null（不占版面）；"
-                           "触发时全字段机械可复算（roe 两版同口径摊薄值，closure_gap 同 dupont 语义）" },
+                   "note": "v1.3 扣非口径双版归因（F-04），替换因子与触发条件见 frameworks.md 第二节；"
+                           "落库约定：未触发时 triggered=false、其余字段全 null（不占版面）；"
+                           "触发时全字段机械可复算（closure_gap 语义同 dupont）" },
     "dupont5y": { "margin_effect": null, "turnover_effect": null, "leverage_effect": null,
                   "roe_start": null, "roe_end": null, "closure_gap": null,
                   "driver": null, "driver_fragile": null, "effects_ratio": null,
@@ -216,23 +215,21 @@
                   "period_start": "", "period_end": "",
                   "percentile": { "net_margin": null, "asset_turnover": null, "equity_multiplier": null },
                   "src": "",
-                  "note": "v1.3 五年累计归因（方案A）+ 因子分位（方案D）：ratios hist 首末两期端点间一次连环替代，定序与 dupont 一致；"
-                          "period_start/end 由 meta.period 与 report_type 按同类型滚动倒推（年报对 FY、半年报对 H1）；"
-                          "percentile=(rank(cur,hist)−1)÷(len(hist)−1)，n=5 为位置读数（离散步长 25%），呈现禁用统计显著性措辞、周期股须挂周期定位解读；"
+                  "note": "v1.3 五年累计归因（方案A）+ 因子分位（方案D），连环替代定序、分位算法与判读见 frameworks.md 第二节；"
+                          "落库约定：period_start/end 由 meta.period 与 report_type 按同类型滚动倒推（年报对 FY、半年报对 H1）；"
                           "hist<3 期整块 null（口径断裂合法，报告降级两期归因）" },
     "cycle_evidence": { "rev_growth": [], "gross_margin": [], "capex_growth": [], "periods": [],
                         "src": "",
-                        "note": "v1.3 周期定位证据读数（frameworks.md 第六节）：收入增速/毛利率/Capex 增速逐期序列（旧→新，与 ratios hist 对齐），"
-                                "让 meta.cycle_stage 的阶段判定从「声明」变「可核验前提」；本块只供读数，stage 判定仍是分析师判断（填 meta.cycle_stage）；"
+                        "note": "v1.3 周期定位证据读数（阶段判定规则见 frameworks.md 第五节）：收入增速/毛利率/Capex 增速逐期序列（旧→新，与 ratios hist 对齐）；"
+                                "本块只供读数，stage 判定仍是分析师判断（填 meta.cycle_stage）；"
                                 "hist<2 期（增速不可算）整块 null" },
     "threshold_check": {
       "shell_line":     { "roe": null, "target": 0.065, "net_margin": null, "hit": null },
       "refinance_line": { "roe": null, "target": 0.10, "hit": null },
       "incentive_line": { "target_desc": "", "actual": null, "target": null, "ratio": null,
                           "share_payment": null, "hit": null, "src": "" },
-      "note": "v1.3 四线考核贴线检测（frameworks.md 第八节）：保壳线=ROE 贴 6.5% 且净利率落 0~3% 收入区间；"
-              "再融资线=ROE 贴 10%；贴线=实际÷目标 ∈ [0.95,1.05]；incentive_line 的 target 取自股权激励公告"
-              "（src 必填，mx_finance_search_notice 查「股权激励计划/考核目标/行权条件」），share_payment=本期股份支付摊销"
+      "note": "v1.3 四线考核贴线检测（阈值、贴线窗口与取数指引见 frameworks.md 第七节）；落库约定："
+              "incentive_line 的 target 取自股权激励公告（src 必填），share_payment=本期股份支付摊销"
               "（激励压低当期利润的读数参考，未披露填 null）；无激励计划时 incentive_line 全 null。"
               "Q4 集中度见 derived.q4，本块不重复" },
     "risk_models": { "altman_z": { "cur": null, "zone": null, "annualized": null },
@@ -241,13 +238,26 @@
     "stress": { "scenarios": [ { "p": 0.1, "np_stressed": null, "cover_stressed": null },
                                { "p": 0.2, "np_stressed": null, "cover_stressed": null },
                                { "p": 0.3, "np_stressed": null, "cover_stressed": null } ],
-                "note": "v1.2 流动性压力情景（frameworks.md 第九节）：受压EBIT=EBIT×(1−p×DOL)，受压税前=受压EBIT−fin_exp，受压净利=受压税前×(1−有效税率)，受压短债覆盖=(cash+ocf×(1−p))÷(st_debt+noncur_due_1y)；est 估算口径，不进 T8①" },
+                "note": "v1.2 流动性压力情景，受压口径与判级纪律见 frameworks.md 第八节；本块为 est 估算口径，不进 T8①" },
     "cash_ts": { "ncr_mean5": null, "ncr_neg_years": null, "fcf_to_np_mean5": null, "fcf_neg_years": null,
                  "ncr": [], "fcf_to_np": [], "periods": [],
-                 "note": "v1.2 现金验证时序读数（frameworks.md 第五节）：净现比与 FCF=OCF−capex 的 5 期均值/负值年数，分母用归母净利 np_at；"
+                 "note": "v1.2 现金验证时序读数（指标口径与判读护栏见 frameworks.md 第四节）：各比率分母=np_at（归母净利）；"
                          "v1.3 扩逐期数组 ncr/fcf_to_np/periods（S1 现金时序表数据源，旧→新与 ratios hist 对齐；"
                          "fcf_to_np 需 capex hist ≥3 期，不足则整块为空数组——不足 3 期的逐期读数无趋势意义，不凑数）；"
                          "hist <3 期整块 null（口径断裂合法）" },
+    "segment_quadrant": { "y_mode": "level|delta", "x0": null, "y0": null,
+                          "rows": [ { "name": "", "g": null, "m": null, "dm": null,
+                                      "w": null, "p": null, "quadrant": null,
+                                      "rank_gap": null, "p_minus_w": null } ],
+                          "src": "",
+                          "note": "v1.5 收入-毛利业务组合四象限（象限判读、双排名表与联动规则见 factor-analysis.md 第六节）；落库约定："
+                                  "本块选填——填则全字段机械可复算（calc 复算比对），整块缺省合法（现算或不适用，calc SKIP）；"
+                                  "by_segment <2 条（单产品裁剪）时整块缺省；rows 顺序与 by_segment 一致；"
+                                  "x0=Σrev_cur÷Σrev_prev−1（任一分部 rev_prev null 则 x0=null 且各行 g=null、quadrant=null），"
+                                  "y0=1−Σcost_cur÷Σrev_cur；w=rev_curᵢ÷Σrev_cur，p=(rev_curᵢ−cost_curᵢ)÷Σ(rev_cur−cost_cur)；"
+                                  "quadrant ∈ 明星|以量换价|现金牛/潜力|衰退——边界等号归正侧：g≥x0 算增长侧、m≥y0 算高毛利侧；"
+                                  "y_mode=delta 要求全部 rev_prev/cost_prev 非 null，否则 level；dm=mᵢ−mᵢ(prev) 仅 delta 口径填、level 口径 null；"
+                                  "rank_gap=|w 排名−p 排名|（降序排名，等值按 name 字典序定先后），p_minus_w=p−w" },
     "q4": { "rev": null, "np": null, "rev_share": null, "gm_q4": null, "gm_q1q3": null,
             "impair_share": null, "exp_ratio_q4": null, "exp_ratio_q1q3": null, "src": "" },
     "rev_factors": { "volume": null, "price": null, "mix": null, "src": "",
@@ -320,9 +330,7 @@
   asset_turnover/equity_multiplier/dso/dio/dpo/ccc/dfl/dol）hist 为 **5 期同类型滚动**（年报对 FY、
   半年报对 H1），旧→新；**末位必须等于 cur**（报告提取值）；prev = 倒数第 2 期
 - avg 类比率（asset_turnover/dso/dio/dpo/ccc）首期无期初余额不可机复算，由 calc.py 跳过；
-  **期初一律取「该期所在年度的上一年 12-31」**（平均余额窗口必须与收入期间匹配）——
-  年报期初=hist 前一期（天然满足）；半年报期初=hist_ye 同位元素（hist_ye[i]=第 i 期 H1 的上年末），
-  缺 hist_ye 时退化为 hist 前一期（期初=上年 6-30，窗口错配，该期趋势不做）
+  期初口径（上一年 12-31）与半年报 `hist_ye` 的填写/退化规则见二节叶子表 `hist_ye` 行
 - 历史重述（如康得新 2019 追溯重述）致口径断裂时允许缺 hist 并在 note 说明，
   报告趋势降级两期呈现
 - 单期专用比率（short_debt_cover/incr_expense_eff/incr_sales_eff/nonrecurring_share/non_main_rev_share/ocf_to_liab）不序列化
@@ -334,23 +342,16 @@
 - `src` 必填（取数接口+日期）；calc.py 只做结构校验（src 非空 FAIL、比率超合理区间 WARN），
   外部取数无公式可复算，真伪靠双源核对纪律
 
-**`signals[]` 字段说明**：
-- `verdict ∈ 命中/观察/未触发/反向未触发`（**呈现四态**，判定标准见 redflags.md 第一节课后「判定分类」）；
-  `level ∈ g/y/r`（**严重度**，用于计数与排序）。两者对应：命中→`r`、观察→`y`、
-  未触发→`g`、反向未触发→`g`（不是风险，但含信息量）。报告正文按四态分层呈现（v0.2.0 起）：
-  命中逐条展开；观察两行形态（担心→本案）、上限 6 条（v0.0.7 起，取代单行 ≤30 字）；
-  反向未触发不再有可见行，与未触发一并压入表末 total 汇总行（只给四计数；逐条读数落底稿，报告不附指引）
-- `concern`（v0.0.7，**选填不 FAIL**，calc.py 不校验）：一句话「担心什么」——三问①
-  （这信号若是真雷，经营上意味着什么），供报告 s2「担心 → 本案」列的「担心」半行；
+**`signals[]` 字段说明**（四态判定标准与呈现分层、severity 口径见 redflags.md 〇节「判定分类」；本处只约定字段）：
+- `verdict ∈ 命中/观察/未触发/反向未触发`（**呈现四态**）；`level ∈ g/y/r`（**严重度**，用于计数与排序）。
+  两者对应：命中→`r`、观察→`y`、未触发→`g`、反向未触发→`g`（不是风险，但含信息量）
+- `concern`（v0.0.7，**选填不 FAIL**，calc.py 不校验）：供报告 s2「担心 → 本案」列的「担心」半行；
   `evidence` 对应「本案」半行。观察/命中条目应填
-- `severity`（v1.2，**选填，试点期仅 #4 应收/#5 存货两条信号填**）：0~1 连续严重度，
-  `min(1, (实际超幅 − 阈值) ÷ 参考窗)`（参考窗 40pct，见 redflags.md 〇节）；只用于
-  观察行排序 / 汇总行措辞 / watchlist 优先级，**禁止加总总分**；calc.py 校验 ∈[0,1]
+- `severity`（v1.2，**选填**）：0~1 连续严重度，calc.py 校验 ∈[0,1]
 - `type ∈ signal/assertion`（`signal` = 财务信号；`assertion` = MD&A 断言不实，
-  见 text-mining.md 第七节）
-- ⚠️ redflags.md 使用纪律第 2 条「红色信号 ≥2 条即提示财务真实性风险聚集」**只统计
-  `type=signal`** 的红色条目——归因不实与财务真实性是两类问题，不可混计。`type` 缺省视为 `signal`；
-  `verdict` 缺省按 `level` 反推（r→命中 / y→观察 / g→未触发）。
+  见 text-mining.md 第七节），缺省视为 `signal`；红色计数只统计 `type=signal` 的红色条目
+  （计数规则见 redflags.md 第四节使用纪律第 2 条）
+- `verdict` 缺省按 `level` 反推（r→命中 / y→观察 / g→未触发）
 
 **`watchlist[]` 字段说明**（P2-18 下期跟踪清单落库）：
 - `indicator`：先行指标名，取自 industry-profiles.md 中该 `meta.industry_profile` 模式的
@@ -380,11 +381,8 @@
 
 ## 四、recon 块的填写规则（配合 articulation.md）
 
-- `lhs`/`rhs`：等式两边的计算值（亿元），**calc.py 会重算偏差**
-- `verdict`：三态之一 `闭合` / `可解释` / `无法解释`
-- `explanation`：非「闭合」时必填，写合理解释或风险定性
-- calc.py 判定逻辑：偏差率 ≤ 阈值 → verdict 必须是 `闭合`；超阈值且 verdict=`闭合` → **FAIL**
-  （防止「算出来不平却硬说平」）；超阈值且 verdict=`无法解释` → 自动要求 signals 里有对应条目
+五键定义（`lhs`/`rhs`/`verdict`/`explanation`/`src`）与 calc.py 的三态判定逻辑见
+articulation.md「与 calc.py 的对接」，本处不重复。
 
 **D 组（D1–D5，母公司单体勾稽）是 manual 型**，calc.py **只做结构校验**
 （verdict 合法 / 非「闭合」必填 explanation / src 非空），**不做机械方向判定**——
