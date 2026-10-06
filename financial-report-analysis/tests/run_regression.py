@@ -44,6 +44,7 @@ import argparse
 import json
 import os
 import re
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -115,7 +116,7 @@ def load_json(path):
 
 
 def _prologue(case, proc, data, warn=None):
-    """四例公共序言：exit 0 + 汇总行可解析 + FAIL==0 + schema 1.5（可选 WARN 数锚，
+    """四例公共序言：exit 0 + 汇总行可解析 + FAIL==0 + schema 1.6（可选 WARN 数锚，
     warn=(期望值, 合法性说明)）。汇总行不可解析返回 None（调用方直接 return）。"""
     case.expect(proc.returncode == 0, f"calc.py exit 0（实际 {proc.returncode}）")
     summary = parse_summary(proc.stdout)
@@ -125,8 +126,8 @@ def _prologue(case, proc, data, warn=None):
     if warn is not None:
         case.expect(summary["WARN"] == warn[0],
                     f"WARN == {warn[0]}（{warn[1]}，实际 {summary['WARN']}）")
-    case.expect((data.get("meta") or {}).get("schema_version") == "1.5",
-                f"schema_version == 1.5（实际 {((data.get('meta') or {}).get('schema_version'))}）")
+    case.expect((data.get("meta") or {}).get("schema_version") == "1.6",
+                f"schema_version == 1.6（实际 {((data.get('meta') or {}).get('schema_version'))}）")
     return summary
 
 
@@ -775,6 +776,152 @@ def main():
                       [(_eff_ok, "check_render 0 问题——同期标签无互撞、零轴不误画")],
                       "effline 避让失效，看上方 check_render 输出。"):
             return 1
+
+    # ── svgclip 文本出界构造用例 + deltaBars 长标签端到端（v0.0.25）──
+    # 赢合 2026H1 实证：segbridge 类目标签「锂电池专用生产设备」（9 全角字）在固定
+    # L=86 下左端探出 SVG 视口被裁，而旧判据对 svg 内元素免测——三道门禁全绿漏检、
+    # 靠用户目检发现。两个子用例：①静态页 svg 内 text x=-30 必命中 svgclip 且 exit 1
+    # （检测器阳性）；②模板 JS + 赢合真实长标签 SEG_BRIDGE 走 deltaBars——自适应 L
+    # 生效则 0 问题（修复回归锁）。无浏览器时随渲染门禁一并 SKIP 不计断言
+    if "渲染门禁跳过" in render_out:
+        print("\n【svgclip 出界 + deltaBars 长标签构造用例】SKIP（本机无 Chrome/Edge，随渲染门禁一并跳过）")
+    else:
+        _tmp = HERE / "_svgclip_demo.html"
+        _tmp.write_text(
+            "<!doctype html><html lang=\"zh-Hans\"><head><meta charset=\"utf-8\"></head>"
+            "<body><div class=\"sheet\"><svg id=\"demo\" viewBox=\"0 0 200 100\">"
+            "<text x=\"-30\" y=\"50\" font-size=\"10\">出界文字</text>"
+            "</svg></div></body></html>", encoding="utf-8")
+        try:
+            _r = subprocess.run([sys.executable, str(SKILL / "scripts" / "check_render.py"),
+                                 str(_tmp)], capture_output=True, text=True,
+                                encoding="utf-8", errors="replace")
+            _clip_ok = _r.returncode == 1 and "svgclip" in (_r.stdout or "")
+            if not _clip_ok:
+                print(_r.stdout)
+        finally:
+            _tmp.unlink(missing_ok=True)
+        _tpl = (SKILL / "assets" / "report-template.html").read_text(encoding="utf-8")
+        _js = re.search(r"<script>(.*?)</script>", _tpl, re.S).group(1)
+        _js = re.sub(r"const SEG_BRIDGE=\[.*?\];",
+                     "const SEG_BRIDGE=[['锂电池专用生产设备',22.26],"
+                     "['其他业务（含电子烟）',-4.0]];", _js, count=1)
+        _js = re.sub(r"const SEG_ENDS=\[.*?\];", "const SEG_ENDS=[42.64,60.9];",
+                     _js, count=1)
+        assert "锂电池专用生产设备" in _js, "模板 SEG_BRIDGE 槽替换失败——槽形态变了？"
+        _page = ("<!doctype html><html lang=\"zh-Hans\"><head><meta charset=\"utf-8\"><style>"
+                 ":root{--bg:#fff;--ink:rgb(58,42,28);--muted:rgba(58,42,28,.6);"
+                 "--faint:rgba(58,42,28,.32);--grid:rgba(58,42,28,.16);--card:#fff;"
+                 "--data:rgb(171,94,38);--data2:rgb(203,158,108);--faintdata:rgb(233,213,187);"
+                 "--der:rgb(122,84,52);--good:#0F7B4F;--warn:#B8860B;--bad:#C0392B}"
+                 "body{padding:40px 20px}.sheet{width:100%;max-width:1040px;margin:0 auto}"
+                 "svg{width:100%;height:auto;display:block}</style></head><body>"
+                 "<div class=\"sheet\"><svg id=\"segbridge\" viewBox=\"0 0 960 200\" "
+                 "preserveAspectRatio=\"xMidYMid meet\"></svg></div>"
+                 f"<script>{_js}</script></body></html>")
+        _tmp2 = HERE / "_segbridge_long_label_demo.html"
+        _tmp2.write_text(_page, encoding="utf-8")
+        try:
+            _r2 = subprocess.run([sys.executable, str(SKILL / "scripts" / "check_render.py"),
+                                  str(_tmp2)], capture_output=True, text=True,
+                                 encoding="utf-8", errors="replace")
+            _seg_ok = _r2.returncode == 0 and "渲染测量 0 问题" in (_r2.stdout or "")
+            if not _seg_ok:
+                print(_r2.stdout)
+        finally:
+            _tmp2.unlink(missing_ok=True)
+        if not _block("svgclip 出界检测 + deltaBars 长标签端到端（v0.0.25，赢合实证）",
+                      [(_clip_ok, "静态出界 text 必命中 svgclip 且 exit 1"),
+                       (_seg_ok, "赢合长标签 SEG_BRIDGE 自适应 L 后渲染 0 问题")],
+                      "看上方 check_render 输出。"):
+            return 1
+
+    # ── render_report 重放金标准 + fillsheet 逐字锁（v0.1.0，N4 fill→render）──
+    # 赢合 fixture 全链：临时副本 --fill（write_fillsheet 必须与金标准逐字一致——
+    # 重构回归锁）→ render_report（锚自检 exit 0）→ 产物关键槽文本命中 +
+    # check_html FAIL 仅 placeholder 一类（机械数字天生过 T8① 笔误检测）。
+    # 赢合 fixture 直接跑 --fill 会重写 fixture（json.dump 整文件），一律用临时副本
+    _work = HERE / "_render_replay"
+    _work.mkdir(exist_ok=True)
+    try:
+        _cp = _work / "yinghe.json"
+        shutil.copy(HERE / "yinghe_2026h1.json", _cp)
+        _r = subprocess.run([sys.executable, str(SKILL / "scripts" / "calc.py"),
+                             str(_cp), "--fill"], capture_output=True, text=True,
+                            encoding="utf-8", errors="replace")
+        _mdp = _work / "yinghe.fillsheet.md"
+        _md = _mdp.read_text(encoding="utf-8") if _mdp.exists() else ""
+        _gold = (HERE / "yinghe_2026h1.fillsheet.golden.md").read_text(encoding="utf-8")
+        _out = _work / "yinghe.html"
+        _rr = subprocess.run([sys.executable, str(SKILL / "scripts" / "render_report.py"),
+                              str(_cp), "-o", str(_out)], capture_output=True, text=True,
+                             encoding="utf-8", errors="replace")
+        _html = _out.read_text(encoding="utf-8") if _out.exists() else ""
+        _holes = _html.count("{{")
+        _cko = ""
+        if _out.exists():
+            _ck = subprocess.run([sys.executable, str(SKILL / "scripts" / "check_html.py"),
+                                  str(_out), "--json", str(_cp)],
+                                 capture_output=True, text=True, encoding="utf-8", errors="replace")
+            _cko = _ck.stdout or ""
+        _fails = [l for l in _cko.splitlines() if l.startswith("🔴")]
+        if not _block("render_report 重放金标准（v0.1.0 N4，赢合全链）",
+                      [(_r.returncode == 0, f"calc --fill exit {_r.returncode}"),
+                       (_md == _gold, "fillsheet.md 与金标准逐字一致（write_fillsheet 重构锁）"),
+                       (_rr.returncode == 0,
+                        f"render 锚自检 exit {_rr.returncode}（{(_rr.stdout or '')[:200]}）"),
+                       ('const SEG_BRIDGE=[["锂电池专用生产设备", 22.26]' in _html,
+                        "SEG_BRIDGE 分部轴机械生成（by_segment Δ）"),
+                       ("64.58 倍" in _html
+                        and "10 条断言：8 通过 / 0 不成立 / 2 无法验证" in _html,
+                        "检验卡读数/断言计数前缀命中"),
+                       (100 < _holes < 400, f"判断孔数 {_holes} 在 100~400 区间"),
+                       (_fails and all("placeholder" in l for l in _fails),
+                        f"check_html FAIL 仅 placeholder 一类（实际 {[l[4:28] for l in _fails]}）"),
+                       (not any("num-vs-json" in l or "internal-ref" in l for l in _fails),
+                        "T8①/internal-ref 零命中（FAIL 行内无此二类）")],
+                      "render 重放失败，看上方明细。"):
+            return 1
+        # 渲染子断言（随渲染门禁 SKIP 降级）
+        if "渲染门禁跳过" in render_out:
+            print("\n【render 重放渲染测量】SKIP（本机无 Chrome/Edge，随渲染门禁一并跳过）")
+        elif _out.exists():
+            _r3 = subprocess.run([sys.executable, str(SKILL / "scripts" / "check_render.py"),
+                                  str(_out)], capture_output=True, text=True,
+                                 encoding="utf-8", errors="replace")
+            _r3_ok = _r3.returncode == 0 and "渲染测量 0 问题" in (_r3.stdout or "")
+            if not _r3_ok:
+                print(_r3.stdout)
+            if not _block("render 重放渲染测量（v0.1.0）",
+                          [(_r3_ok, "check_render 0 问题——JS 槽/行生成结构健康")],
+                          "render 产物渲染异常，看上方 check_render 输出。"):
+                return 1
+        # ncrline hist<3 降级构造用例（v0.1.0 热核审计补口，无真实样本）：ocf hist 砍到
+        # 2 期（末位保持=cur 免得撞 hist 校验）+ 删 derived.cash_ts 旧块（否则 fill 重算
+        # 失败时旧块残留、ncr_drop 不触发）→ render 须删 ncrline svg + figtitle 降级声明
+        _d2 = json.loads((HERE / "yinghe_2026h1.json").read_text(encoding="utf-8"))
+        _ocf = _d2["statements"]["cashflow"]["ocf"]
+        _ocf["hist"] = [_ocf["hist"][-2], _ocf["cur"]]
+        _d2["derived"].pop("cash_ts", None)
+        _cp2 = _work / "yinghe_ncr2.json"
+        _cp2.write_text(json.dumps(_d2, ensure_ascii=False), encoding="utf-8")
+        subprocess.run([sys.executable, str(SKILL / "scripts" / "calc.py"),
+                        str(_cp2), "--fill"], capture_output=True, text=True,
+                       encoding="utf-8", errors="replace")
+        _out2 = _work / "yinghe_ncr2.html"
+        _rr2 = subprocess.run([sys.executable, str(SKILL / "scripts" / "render_report.py"),
+                               str(_cp2), "-o", str(_out2)], capture_output=True, text=True,
+                              encoding="utf-8", errors="replace")
+        _h2 = _out2.read_text(encoding="utf-8") if _out2.exists() else ""
+        if not _block("ncrline hist<3 降级构造用例（v0.1.0）",
+                      [(_rr2.returncode == 0, f"降级路径 render exit {_rr2.returncode}"),
+                       ('id="ncrline"' not in _h2, "ncrline svg 已删"),
+                       ('<div class="figtitle">现金含量证据不足' in _h2,
+                        "figtitle 降级声明在（注意 srcline 原文含该词，须带 figtitle 前缀判定）")],
+                      "ncrline 降级路径失效。"):
+            return 1
+    finally:
+        shutil.rmtree(_work, ignore_errors=True)
 
     # ── --fill 幂等金标准（v0.0.13；v0.0.17 起字符串叶含 note/src 纳入精确比对）──
     # 数值容差 5e-4；字符串叶（driver/zone/note/src 等）必须逐字不变——万科轮实证：

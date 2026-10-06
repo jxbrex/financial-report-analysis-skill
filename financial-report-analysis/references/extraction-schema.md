@@ -46,7 +46,7 @@
     "period": "20251231", "report_type": "年报", "disclose_date": "2026-04-16",
     "unit": "亿元", "source_md": "reports/xxx.md", "analyst_date": "2026-09-10",
     "market_cap_cur": null,
-    "schema_version": "1.5",
+    "schema_version": "1.6",
     "currency": "CNY",
     "accounting_standard": "CAS",
     "industry_profile": "通用",
@@ -155,7 +155,9 @@
     "employees": { "headcount_cur": null, "headcount_prev": null, "src": "" },
     "subsequent_events": [ { "date": "", "event": "", "verifies": "", "src": "" } ],
     "shareholders": { "holder_num_cur": null, "holder_num_prev": null, "top10_changes": [],
-                      "pledge_ratio": null, "src": "" },
+                      "pledge_ratio": null, "src": "",
+                      "holder_ts": { "labels": [], "num": [], "px": [],
+                                     "note": "v1.6 选填：户数时序（Tushare stk_holdernumber）——labels=期末日 YYYY-MM、num=户数（户，与 holder_num_cur 同单位同精度）、px=环比增减%（首期 null）；三数组等长；≥3 期才画 holders 图，缺块/不足则降级两期文字行" } },
     "capacity": [ { "product": "", "capacity": null, "output": null, "utilization": null, "src": "" } ]
   },
 

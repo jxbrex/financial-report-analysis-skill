@@ -7,3 +7,4 @@ reports/archive/json/_chunks/
 __pycache__/
 *.pyc
 *.fillsheet.md
+*.fillsheet.json

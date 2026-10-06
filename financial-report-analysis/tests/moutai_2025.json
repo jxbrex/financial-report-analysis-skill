@@ -11,7 +11,7 @@
     "market_cap_src": "tushare daily_basic 20251231 total_mv=172,460,149.47 万元 ÷1e4",
     "source_md": "reports/archive/原始报告/贵州茅台2025年年度报告.md",
     "analyst_date": "2026-09-10",
-    "schema_version": "1.5"
+    "schema_version": "1.6"
   },
   "statements": {
     "income": {

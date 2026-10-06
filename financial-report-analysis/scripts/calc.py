@@ -45,7 +45,8 @@ from calc_common import (FAIL, WARN, OK, SKIP, Report, num, val, rel_dev,
 from calc_dupont import check_dupont, check_dupont_dt, check_dupont5y
 from calc_evidence import check_cycle_evidence, check_threshold_check, check_peers, compute_segment_quadrant
 from calc_risk import check_risk_models, check_stress, check_cash_ts
-from calc_models import fill_derived, write_fillsheet
+from calc_models import fill_derived
+from calc_slots import write_fillsheet, build_slots
 
 # recon 偏差阈值：闭合型 = |lhs-rhs|/|rhs| 上限；水平型 = lhs 超过 rhs 即异常
 RECON_RULES = {
@@ -169,6 +170,24 @@ def check_structure(data, rep):
         rep.add(FAIL, "structure", "statements/parent_statements/notes 下未找到任何叶子节点，schema 结构可能被破坏")
     else:
         rep.add(OK, "structure", f"叶子节点 {len(leaves)} 个；src 缺失 {bad_src}、类型错误 {bad_type}、hist 不一致 {bad_hist}")
+
+    # holder_ts（schema 1.6 选填块，v0.1.0 N4）：labels/num/px 三数组等长非空、
+    # num 数值（户）、px 首期 null 余数值——holders 图的数据契约（≥3 期才画图）
+    hts = ((data.get("notes") or {}).get("shareholders") or {}).get("holder_ts")
+    if hts is not None:
+        ls, ns, ps = hts.get("labels") or [], hts.get("num") or [], hts.get("px") or []
+        if not ls or not (len(ls) == len(ns) == len(ps)):
+            rep.add(FAIL, "holder-ts",
+                    f"holder_ts 三数组须等长非空：labels={len(ls)} num={len(ns)} px={len(ps)}")
+        elif any(not isinstance(x, (int, float)) or isinstance(x, bool) for x in ns):
+            rep.add(FAIL, "holder-ts", "holder_ts.num 含非数值元素（户数，单位=户）")
+        elif any(p is not None and (not isinstance(p, (int, float)) or isinstance(p, bool))
+                 for p in ps):
+            rep.add(FAIL, "holder-ts", "holder_ts.px 含非数值元素（环比 %，首期 null）")
+        elif ps[0] is not None:
+            rep.add(FAIL, "holder-ts", "holder_ts.px 首期必须 null（无环比基期）")
+        else:
+            rep.add(OK, "holder-ts", f"holder_ts {len(ls)} 期等长合法")
 
 
 def check_core_fields(data, rep):
@@ -693,7 +712,12 @@ def main():
         src.write_text(json.dumps(data, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
         sheet_path = src.parent / (src.stem + ".fillsheet.md")
         write_fillsheet(data, sheet_path)
-        print(f"✍️ --fill：预填 {n_filled} 个机械字段 → {src.name}；速查表 → {sheet_path.name}")
+        # v0.1.0（N4）：机器可读槽位契约，render_report.py 的唯一数据源
+        slots_path = src.parent / (src.stem + ".fillsheet.json")
+        slots_path.write_text(json.dumps(build_slots(data), ensure_ascii=False, indent=1) + "\n",
+                              encoding="utf-8")
+        print(f"✍️ --fill：预填 {n_filled} 个机械字段 → {src.name}；速查表 → {sheet_path.name}；"
+              f"槽位 JSON → {slots_path.name}")
 
     rep = Report()
     check_structure(data, rep)

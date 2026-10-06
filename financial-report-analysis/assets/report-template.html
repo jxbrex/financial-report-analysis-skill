@@ -311,7 +311,7 @@ html{scroll-behavior:smooth}
  独有的 Capex 线并入趋势图卡迷你柱条、阶段判定挂该卡判词声明行（v0.0.21 升 .wv 大字；
  卫星化学 2026H1 反馈定稿） -->
  <div class="card">
- <div class="figtitle">{{结论式：现金含量一句话——只写异常/边际变化/风险点（如「净现比五年首度跌破 1」「负值 2 年、忽高忽低」）；「均值≥1 且无负值年」的正常形态禁止抒情占位（反面教材：「造血稳定是本报告最不需要担心的一层」=零信息量），正常时写边际读数即可（如「五年净现比均 ≥1，本期 1.4 持平」）；提及 FCF 线时把指标含义写白（如「FCF=经营现金流−资本开支，即维持生产后真正可自由支配的现金」）——指标名不解释=低信息量（卫星 2026H1 用户反馈，v0.0.21）}}</div>
+ <div class="figtitle">{{结论式：现金含量一句话——只写异常/边际变化/风险点（如「净现比五年首度跌破 1」「负值 2 年、忽高忽低」）；「均值≥1 且无负值年」的正常形态禁止抒情占位（反面教材：「造血稳定是本报告最不需要担心的一层」=零信息量），正常时写边际读数即可（如「五年净现比均 ≥1，本期 1.4 持平」）；提及 FCF 线时把指标含义写白（如「FCF=经营现金流−资本开支，即维持生产后真正可自由支配的现金」）——指标名不解释=低信息量（卫星 2026H1 用户反馈定案）}}</div>
  <!-- ◆ 双折线（JS ncrLine 画，数据填 JS 区 NCR_TS 槽=derived.cash_ts 逐期数组照抄）：
   净现比 INK + FCF÷归母 C2 + y=1 造血参考虚线 + 均值虚线；null 跳点不硬连；
   hist<3 期整卡降级为「现金含量证据不足」声明（删 svg 与 figtitle 改写） -->
@@ -662,21 +662,28 @@ html{scroll-behavior:smooth}
  <div class="figtitle">{{结论式：健康检验汇总——计数 + 按固定主题逐类点到（盈利与研发 / 偿债与压力 / 营运效率·费用 ROI / 披露项），各类不缺席、营运效率类必须有名字（海康 2026H1 只写偿债+披露、漏掉费用 ROI 两项的实证）；如「10 项：8 过 2 披露——盈利无剪刀差、双模型安全、每 1 元费用换 2.49 元毛利，隐形变量在汇率税率」}}</div>
  <!-- ◆ ：检验类卡片必须有判定列（扫颜色即知结果，治「全文字缺重点」）；
  ✅ 通过 / ⚠️ 注意 / ❌ 异常；纯披露项（税率汇率等无检验性质的）填「—」，不许硬凑 ✅
- ◆ 行序规则（v0.0.22 用户定案）：固定主题序=下方模板行序，填充照抄不重排——与四维表/断言表
- 同款（位置固定、跨报告可比）；判定分布由徽章色扫读 + figtitle 汇总传达，不靠排序
- （v0.0.21 前曾按判定分组置顶，分组重排破坏位置记忆、与同型表不一致，废）；
+ ◆ 行序与分组（v0.0.25 赢合反馈定案）：四个固定主题组各起一行 tr.group 分组行
+ （盈利与研发 / 偿债与压力 / 营运效率·费用 ROI / 披露项——组序=figtitle 汇总主题序），
+ 组内行序=下方模板行序，填充照抄不重排——与四维表/断言表同型（位置固定、跨报告可比）；
+ 判定分布由徽章色扫读 + figtitle 汇总传达，不靠排序
+ （v0.0.21 前曾按判定分组置顶，破坏位置记忆，废；v0.0.22 固定行序，v0.0.25 升级为
+ 分组行+组内固定序）；
  figtitle 汇总口径 v0.0.23 起=计数 + 固定主题逐类点到（见上方 figtitle 槽注释） -->
  <table class="data">
  <tr><th>检验项</th><th>读数</th><th class="txt">判定</th><th class="txt">结论（≤30字，长解释挪 srcline）</th></tr>
+ <tr class="group"><td colspan="4">盈利与研发</td></tr>
  <tr><td>收入增速 vs 净利增速</td><td>{{x%}} vs {{y%}}</td><td class="txt"><span class="badge {{g|y|r}}">{{✅|⚠️|❌}}</span></td><td class="txt">{{是否存在剪刀差 + 原因}}</td></tr>
  <tr><td>研发费用（费率 / 资本化率）</td><td>{{亿元}}（{{%}} / {{%}}）</td><td class="txt"><span class="badge {{g|y|r}}">{{✅|⚠️}}</span></td><td class="txt">{{同业位置 + 合理性}}</td></tr>
+ <tr class="group"><td colspan="4">偿债与压力</td></tr>
  <tr><td>短债覆盖倍数</td><td>{{x}} 倍</td><td class="txt"><span class="badge {{g|y}}">{{✅|⚠️}}</span></td><td class="txt">{{(货币资金+OCF)÷(短借+一年内到期)}}</td></tr>
  <tr><td>现金流偿债口径（X6）</td><td>{{x}}（≈ {{y}} 年）</td><td class="txt"><span class="badge {{g|y}}">{{✅|⚠️}}</span></td><td class="txt">{{OCF÷平均总负债——与上行短债覆盖并列看，不替代}}</td></tr>
  <tr><td>破产风险双模型 <span class="badge der">推算</span></td><td>Altman Z={{x}}（{{安全|灰色|危险}}区）· Ohlson P={{y}}（{{低|中|高}}）</td><td class="txt"><span class="badge {{g|y|r}}">{{✅|⚠️|❌}}</span></td><td class="txt">{{同向→按强度下措辞；分歧→「模型分歧，均作辅助参考」；美国样本系数仅辅助参考，金融/地产跳过本行并注明}}</td></tr>
  <tr><td>流动性压力情景 <span class="badge est">估算</span></td><td>收入-10/20/30% → 净利 {{x}}/{{y}}/{{z}} 亿</td><td class="txt"><span class="badge {{g|y}}">{{✅|⚠️}}</span></td><td class="txt">{{p=10% 受压净利<0 不直接🔴，进 watchlist「安全垫薄」；结论挂周期定位解读（frameworks.md 第八节）}}</td></tr>
- <tr><td>大宗/税率/汇率敏感性</td><td>—</td><td class="txt">—（披露项）</td><td class="txt">{{原材料占成本比 + 对应品种价格趋势 + 所得税率变化（注明价格数据来源，如百川盈孚/隆众/EIA）}}</td></tr>
+ <tr class="group"><td colspan="4">营运效率·费用 ROI</td></tr>
  <tr><td>增量费用效率（Δ毛利÷Δ期间费用）</td><td>{{x}}</td><td class="txt"><span class="badge {{g|y|r}}">{{✅|⚠️|❌}}</span></td><td class="txt">{{&gt;1 费用换来更多毛利 / &lt;0.5 且费用率上升=效率恶化}}</td></tr>
  <tr><td>销售费用获客效率（Δ收入÷Δ销售费用）</td><td>{{x}}</td><td class="txt"><span class="badge {{g|y}}">{{✅|⚠️}}</span></td><td class="txt">{{趋势下降=增长越来越贵，增收不增利前兆}}</td></tr>
+ <tr class="group"><td colspan="4">披露项</td></tr>
+ <tr><td>大宗/税率/汇率敏感性</td><td>—</td><td class="txt">—（披露项）</td><td class="txt">{{原材料占成本比 + 对应品种价格趋势 + 所得税率变化（注明价格数据来源，如百川盈孚/隆众/EIA）}}</td></tr>
  <tr><td>费用率上升归因</td><td>—</td><td class="txt">—（披露项）</td><td class="txt">{{扩张驱动（中性）/ 效率下降（计负面）/ 结构变化（需 MD&A 佐证）——只惩罚第二种}}</td></tr>
  </table>
  <div class="srcline">费用 ROI 诊断经营效率，不进排雷清单 · 判定列规则：✅ 过 / ⚠️ 注意 / ❌ 异常 / — 披露项（不硬凑判定）</div>
@@ -1136,11 +1143,18 @@ function trendNp(id,labels,np,np_dt,ocf,roe){
  数值标签移入条内白字；HTML .brends 端点行保留（数字文字证据，与端点柱同源）。 */
 function deltaBars(id,steps,ends){
  const s=document.getElementById(id);if(!s||!steps.length)return;
- const W=+s.viewBox.baseVal.width,H=+s.viewBox.baseVal.height,L=86,R=54,T=14,B=8;
+ const W=+s.viewBox.baseVal.width,H=+s.viewBox.baseVal.height,R=54,T=14,B=8;
  /* 端点槽位固定取 ends[0]/ends[1]（期初/期末），值 null 则该端点跳过——不按过滤后
   位置取，防 [null, X] 时期末错位画到顶行 */
  const okE=e=>e&&e[1]!=null&&!isNaN(e[1]);
  const st=okE((ends||[])[0])?ends[0]:null, en=okE((ends||[])[1])?ends[1]:null;
+ /* 左标签区宽 L 按实际标签自适应（v0.0.25，赢合 2026H1 实证：「锂电池专用生产设备」
+  级 9~10 全角字标签在固定 L=86 下左端探出 SVG 视口被裁；check_render 的溢出/裁剪
+  判据对 svg 内元素免测，此盲区纯靠目检）。全角字（charCode>255）按 9.5px、半角
+  5.3px 估算取最宽标签；标签锚点 L-8 右对齐，+12 余量即文字左端留 4px；下限 56
+  保底短标签图标签区不过窄 */
+ const lw=t=>[...String(t)].reduce((a,c)=>a+(c.charCodeAt(0)>255?9.5:5.3),0);
+ const L=Math.max(56,Math.ceil(Math.max(...steps.concat([st,en].filter(Boolean)).map(r=>lw(r[0]))))+12);
  const mid=[...steps].sort((a,b)=>Math.abs(b[1])-Math.abs(a[1]));
  const n=mid.length+(st?1:0)+(en?1:0),rh=(H-T-B)/n;
  const vmax=Math.max(...steps.map(r=>Math.abs(r[1])))*1.12||1;

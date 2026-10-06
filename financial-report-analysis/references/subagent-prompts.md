@@ -70,7 +70,10 @@ Phase 5，**主线回填 verdict（通过/不成立/无法验证）后才跑 cal
 ## ④ 产能/在建/股东/户数 → `_chunks/{stem}/notes_ops.json`
 
 提取【公司名】（【代码】）【报告期】：主要产品产能/产量/产能利用率（`capacity` 数组）；
-股东户数本期/上期（`shareholders.holder_num_cur/prev`）、前十大股东变动
+股东户数本期/上期（`shareholders.holder_num_cur/prev`）、户数时序 ≥3 期落
+`shareholders.holder_ts`（{labels[],num[],px[]}：labels=期末日 YYYY-MM、num=户数（户）、
+px=环比增减% 首期 null——Tushare stk_holdernumber 取数，v0.1.0 起 render 直接消费画 holders 图）、
+前十大股东变动
 （`shareholders.top10_changes`）、控股股东质押比例（`shareholders.pledge_ratio`）。
 用 index.json 定位「股东情况」与经营数据章节。
 落盘骨架：`{"notes": {"capacity": […], "shareholders": {…}}}`

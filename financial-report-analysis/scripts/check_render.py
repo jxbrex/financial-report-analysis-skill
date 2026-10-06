@@ -7,6 +7,9 @@
 
 测量项（渲染后状态，静态正则看不到；编号与注入 JS 里的分段注释一致）：
   1. SVG 文本重叠：每个 svg 内 <text> 两两 bounding rect 相交测试（两轴重叠均 >1px 才算）
+  1b. SVG 文本出视口（v0.0.25）：text 矩形出所属 svg 左右缘 >3px → 计入门禁——
+     2/3 号判据对 svg 内元素免测（viewBox 缩放坐标系），出界文字被视口静默裁切
+     （赢合 2026H1 segbridge 长标签左端被裁、三道门禁全绿漏检的实证）
   2. HTML 元素溢出 .sheet：文本后代右/左缘超出 .sheet boundingRect >1px（豁免 svg 内部元素）
   3. 横向裁剪：scrollWidth > clientWidth + 2 且 computed overflowX ≠ visible（含页面级）
   4. 字体回退：朱雀仿宋不可用时正文回退系统仿宋（环境级降级，🟡 不计入门禁）
@@ -76,12 +79,24 @@ window.addEventListener('load', () => setTimeout(() => {
   const label = (el) => el.tagName.toLowerCase() +
     (el.className && typeof el.className === 'string'
       ? '.' + el.className.trim().split(/\\s+/).join('.') : '');
-  const report = {overlaps: [], spills: [], clipped: [], pageclip: [], sections: []};
+  const report = {overlaps: [], spills: [], clipped: [], pageclip: [], svgclip: [], sections: []};
 
   /* 1. SVG 文本重叠：本技能 SVG text 均单行，取整体 boundingRect 即可 */
   for (const svg of document.querySelectorAll('svg')) {
     const items = [...svg.querySelectorAll('text')].map(t =>
       ({t, r: t.getBoundingClientRect(), s: (t.textContent || '').trim()}));
+    /* 1b. SVG 文本出视口（v0.0.25，赢合 2026H1 segbridge「锂电池专用生产设备」级长
+       标签左端探出视口被裁、三道门禁全绿漏检的实证）：2/3 号判据对 svg 内元素免测
+       （下方 closest('svg') continue），出界文字被视口静默裁切。text 矩形与所属 svg
+       矩形比对，左右出界 >3px 才报（吸收 halo 描边 1.25px 与抗锯齿余量） */
+    const sr = svg.getBoundingClientRect();
+    for (const it of items) {
+      if (!it.r.width && !it.r.height) continue;
+      const dl = sr.left - it.r.left, dr = it.r.right - sr.right;
+      if (dl > 3 || dr > 3)
+        report.svgclip.push({svg: svg.id || '(no-id)', text: it.s.slice(0, 24),
+          edge: dl > 3 ? 'left' : 'right', px: Math.round(Math.max(dl, dr))});
+    }
     for (let i = 0; i < items.length; i++)
       for (let j = i + 1; j < items.length; j++) {
         const a = items[i].r, b = items[j].r;
@@ -376,6 +391,10 @@ def main() -> int:
                 vp_problems += 1
                 print(f"🔴 [{tag}·overlap] svg#{item['svg']}: “{item['a']}” × “{item['b']}” "
                       f"重叠 {item['px']}px")
+            for item in report.get("svgclip") or []:
+                vp_problems += 1
+                print(f"🔴 [{tag}·svgclip] svg#{item['svg']} 文本 “{item['text']}” "
+                      f"出视口 {item['edge']} 缘 {item['px']}px——文字被视口裁切")
             for item in report["spills"]:
                 vp_problems += 1
                 print(f"🔴 [{tag}·spill] 溢出 .sheet {item['edge']} 缘 {item['px']}px — "
@@ -406,7 +425,8 @@ def main() -> int:
             # empty-svg 只在桌面视口计数与打印，窄屏不重复报一个没有明细的数字
             es = str(n("emptysvg")) if tag == "桌面" else "—（桌面已报）"
             print(f"--- [{tag}] 汇总：overlap {n('overlaps')} · spill {n('spills')} · "
-                  f"clipped {n('clipped')} · pageclip {n('pageclip')} · empty-svg {es} ---")
+                  f"clipped {n('clipped')} · pageclip {n('pageclip')} · svgclip {n('svgclip')} · "
+                  f"empty-svg {es} ---")
             problems += vp_problems
 
         if args.png:

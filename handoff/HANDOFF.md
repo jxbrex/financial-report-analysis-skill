@@ -1,6 +1,6 @@
 # HANDOFF · 交接文档
 
-> 版本 **0.0.23** · 截至 2026-10-01 · 本文档面向「下一个接手这个项目的人/AI 会话」
+> 版本 **0.1.0** · 截至 2026-10-06 · 本文档面向「下一个接手这个项目的人/AI 会话」
 > 仓库：https://github.com/jxbrex/financial-report-analysis-skill（**私密**）
 > 部署：`C:/Users/rexji/.agents/skills/financial-report-analysis/`（由 `deploy.cmd` 镜像）
 
@@ -24,7 +24,7 @@
 
 ## 二、技能构成与三道门禁
 
-### 技能现在的构成（34 个源文件）
+### 技能现在的构成（36 个源文件）
 
 ```
 financial-report-analysis/
@@ -47,7 +47,11 @@ financial-report-analysis/
 │   ├── calc_dupont.py          #   杜邦族：连环替代三口径 / 因子下钻 / 五年归因与分位
 │   ├── calc_evidence.py        #   周期证据 / 四线贴线 / peers 结构
 │   ├── calc_risk.py            #   破产双模型 / 压力情景 / 现金时序
-│   ├── calc_models.py          #   --fill 编排层 + fillsheet 产出（不含公式）
+│   ├── calc_models.py          #   --fill 编排层（v0.1.0 收窄：槽位移出）
+│   ├── calc_slots.py           #   槽位契约层（v0.1.0 自 calc_models 拆出，1k 红线）：
+│   │                             build_slots + write_fillsheet + _js_slots（JS 槽单一出处）+ _TXT 文本链
+│   ├── render_report.py        #   Phase 8 fill→render（v0.1.0 N4）：模板+槽位 JSON→报告骨架，
+│   │                             锚定填充断锚 exit 1；判断槽残留 {{}} 孔，一期半年报路径
 │   ├── check_html.py           #   Phase 8 报告层门禁入口（结构/硬规则族 + 主流程）
 │   ├── check_html_common.py    #   报告机检共享助手
 │   ├── check_html_text.py      #   呈现文本族 11+3 条检查（v0.0.19 拆出；PCTILE_LABEL 居此）
@@ -56,7 +60,8 @@ financial-report-analysis/
 │   ├── gate.py                 #   三道门禁单入口
 │   ├── md_clean.py             #   财报 md 确定性清洗 + 章节索引
 │   └── ts_fetch.py             #   tushare HTTP 取数通道
-├── tests/                      # 金标准 fixtures + 回归入口
+├── tests/                      # 金标准 fixtures + 回归入口（v0.1.0 起 +yinghe_2026h1.json 与
+│   │                             fillsheet.golden.md：render 重放金标准）
 │   ├── moutai_2025.json        #   干净样本（应零误报；schema 1.5）
 │   ├── kangdexin_2018.json     #   造假样本（应命中；含 parent_statements + D 组判定）
 │   ├── vanke_2026h1.json       #   连亏地产样本（v0.0.17 固化：扣非双版/双驱动真实触发）
@@ -83,7 +88,7 @@ financial-report-analysis/
    分位白描映射）；v0.0.19 起加 **assertion-count**（FAIL：断言 figtitle 三态计数
    a+b+c=N 且与表内徽章/底稿 assertions 一致）与 **recon-label**（勾稽三态旧长标签）、
    **decimal-places**（可见数字 ≥3 位小数）两条 WARN；v0.0.21 起加 **gap-declaration**（FAIL：s4 ❓ 断言须进「数据缺口声明」行）；v0.0.22 起加 **js-dup-decl**（FAIL：数据槽顶层 const 重复声明——JS 团灭防线）与 **assert-trunc**（FAIL：断言 text/evidence 填充截断，--json）。exit 0 才允许交付。
-3. **`python tests/run_regression.py`** —— 任何改动后必跑，**116 条断言**全绿才算没改坏
+3. **`python tests/run_regression.py`** —— 任何改动后必跑，**144 条断言**全绿才算没改坏
    （含 calc 四例 + check_html 冒烟 + T8 数字回验 + md_clean 合成样本 + 构造用例
    + fillsheet JS 槽形态冒烟）。
 
@@ -178,6 +183,19 @@ financial-report-analysis/
   **值域含 0/零轴仅在有负值时**——全正强拉 0 基线会把三条百天级线压进 62px 带成互撞温床
 - 四宫格 grid2 直接子元素只许 svg（v0.0.23 新 FAIL 门禁 s1-grid4）：降级只许删 svg，
   takeaway/表格放 grid2 外——海康回填轮把 takeaway 留在 grid2 内撑破 2×2 㗊型的实证
+- check_render svgclip（v0.0.25，赢合 segbridge「锂电池专用生产设备」长标签左端被视口
+  裁切、三道门禁全绿漏检的实证补口）：SVG 内 text 出所属 svg 左右缘 >3px 即 FAIL；
+  成因侧由 deltaBars 左标签宽自适应根除（L=最宽标签估算宽+12，下限 56）——存量旧版式
+  报告若命中属预期噪音（纪律 7 不追溯），茅台 v0.0.4 快照实测 svgclip 0
+- **render_report 锚定填充三前科（v0.1.0）**：re.S 下 `.*` 贪婪吞到文件尾（fill_js 行级
+  正则必须传 flags=0，TREND 替换团灭 JS 尾部实证）；json 原文进 HTML 必过 _TXT 链
+  （转义/剥 L 行号/截长小数——赢合 signals data 裸 < 实证）；pathlib write_text 在
+  Windows 默认把 \n 翻成 CRLF——报告 HTML 输出须显式 newline="\n"（成品 LF 惯例；
+  模板/fixture 本身是 CRLF 不受影响）
+- 底稿文本字段（assertions.evidence 等）写内部工具名（mx_*/data.json 字样）会在 render
+  机械照抄下撞 internal-ref 门禁——底稿措辞即对外口径，填底稿时自律（赢合 A6/A8 实证）
+- check_render 渲染冒烟偶发 exit 1（Edge 异步写盘/回调迟到，单独重跑即绿）——
+  回归里撞上先重跑再排查（v0.1.0 轮实证一次）
 
 ## 三、历史发现与轮次记录
 
@@ -202,11 +220,11 @@ financial-report-analysis/
 | 8 | **比率趋势数据依赖 tushare 可得性** | 世界线披露晚于库更新时当期 hist 取报告提取值；重述公司历史期口径断裂，趋势缺 hist 合法（schema 血泪 7） |
 | 9 | **移动 json 的 src 行号与现行 md 不匹配**（T8②级 104/107 miss） | v0.0.4 底稿行号体系；下份移动报告重建底稿时按新 schema 修复 |
 | 10 | **70% 升档阈值真实触发仍待样本**（长城无息 87% 达标但杠杆非主驱动、升档正确地未触发） | 首验场景：首份「杠杆为主驱动+无息>70%+|ΔDFL|<0.1」公司 |
-| 11 | **N4 模板冻结计数**：连续两份新报告零结构性改动才重议 fill→render 脚本化 | v0.0.23 effline 避让改版后再清零（新口径见 N4 条） |
+| 11 | **render 二期（年报专属路径未脚本化）**：Q4 卡/review 回看卡填充、预期对照表（schema expectations 块）、高管增减持块、big_moves 大动表提取——一期半年报路径全覆盖 | 年报/回看场景下这些槽位仍是手工孔（残留 {{}} 兼容现流程）；二期用真实年报样本（腾讯 00700 候选）回测 |
 
 ---
 
-## 四·五、当前未发布轮：v0.0.24（2026-10-03~04，全库审计清理 + 四象限落地轮）
+## 四·五、待发布轮：v0.0.24（2026-10-03~04，全库审计清理 + 四象限落地轮）
 
 > 触发：ponytail-audit 全库过度工程审计（用户触发）→ 按风险分三档执行；四象限节用户定案
 > 「补 schema 落地」；收尾前轮内热核审计抓出 1 Blocker + 5 Major 一并修复。
@@ -255,20 +273,105 @@ financial-report-analysis/
 - SKILL.md 为 CRLF/LF 混合行尾（488 CRLF + 少量 LF），Edit 跨行替换易失败——本轮用
   Python bytes 级补丁脚本处理；下轮可考虑一次性统一行尾。
 
+## 四·六、待发布轮：v0.0.25（2026-10-06，赢合报告反馈轮）
+
+> 触发：赢合科技 2026H1 报告交付后用户目检发现两处呈现缺陷，根因均在模板而非填充；
+> 用户定案本轮修订为 **N4 前置清障**（「修订完上述两项，N4 死锁就可以做了」）。
+
+### 修订（全部落地，回归 133→135 全绿）
+
+1. **deltaBars 左标签区宽自适应**（模板 + 赢合报告同步）：`L=86` 固定值改为
+   `max(56, 最宽标签估算宽+12)`（全角字 9.5px/半角 5.3px，steps+端点名参与）——
+   赢合 segbridge「锂电池专用生产设备」9~10 全角字标签左端探出 SVG 视口被裁；
+   check_render 溢出/裁剪判据对 svg 内元素免测（`closest('svg') continue`），纯盲区
+2. **检验卡四组分组行**（模板 + 赢合报告同步）：四个固定主题组各起 `tr.group` 行
+   （盈利与研发 / 偿债与压力 / 营运效率·费用 ROI / 披露项，组序=figtitle 汇总主题序），
+   「大宗/税率/汇率敏感性」移入披露项组——v0.0.22「固定行序」定案升级为
+   「分组行+组内固定序」，与四维表/断言表同型；10 行读数逐字未动
+3. **check_render 补 svgclip 检测**（盲区补口，escapes→gate 传统）：SVG 内 text 出
+   所属 svg 左右缘 >3px 即 🔴 FAIL（容差吸收 halo 描边 1.25px）；回归加构造用例
+   （静态出界 text 必命中 + 赢合长标签 SEG_BRIDGE 端到端 0 问题）
+
+### 验证
+
+- 回归 135/135 全绿（+2 新断言：svgclip 阳性 / deltaBars 长标签修复锁）；
+- 赢合报告 gate 全绿：FAIL 0，WARN 3 条与修订前基线逐字一致（bare-number 88 /
+  json-md 8 / s2-shape 3 绿徽），渲染 svgclip 0；--png 分片目检 s3：segbridge 两条
+  长标签完整、OCF 桥无回退；
+- 茅台黄金样本 gate 对照：check_html FAIL 三条与基线逐字一致
+  （internal-ref/num-vs-json/required 旧快照现象，纪律 8），渲染 svgclip 0——
+  新检测对 v0.0.4 旧版式零误报。
+
+### 遗留
+
+- N4 已于本轮会话内经用户定案直接启动并落地（推翻「连续两份零改动」口径）——见四·七。
+
+## 四·七、当前未发布轮：v0.1.0（2026-10-06，N4 fill→render 脚本化落地轮）
+
+> 触发：v0.0.25 两项修复收尾后用户定案「现在就启动 N4，报告大框架问题不大了」——
+> v0.0.23「连续两份零改动」口径就此作废。范围分期：一期=半年报路径全覆盖
+> （赢合金标准回测），二期=年报专属（Q4/review/预期表，见局限 11）。
+
+### 修订（全部落地，回归 135→144 全绿）
+
+1. **render_report.py（新）**：模板 + fillsheet.json → 报告骨架。锚定填充
+   （章节 id→表头文本→行标签→列位）；判断槽残留 {{}} 孔，check_html 占位符门禁
+   语义不变（孔未清零不交付）。降级决策表一期 6 条（review 删卡+toc 联动 / Q4 非年报
+   删卡 / 产能空删卡 / holders 降级文字行 / SEG 分部轴 / ncrline hist<3 声明）。
+   模板零结构性改动（仅删 NCR figtitle 槽文本里的版本号禁词）。
+2. **calc_models.py 拆 build_slots**：--fill 加产 {stem}.fillsheet.json（机器可读槽位
+   契约，render 唯一数据源）；JS DATA 9 槽整行文本 _js_slots 单一出处（md/json 双路
+   共用）；SEG_BRIDGE 无量价降级升级为 by_segment 机械生成（fillsheet md 的 SEG/
+   HOLDERS 两段相应变化，金标准逐字锁）；文本链 _TXT=剥 L 行号→截长小数→HTML 转义
+   （长城 T8① 撞窗 + decimal-places + 裸 < 三前科）。
+3. **schema 1.6**：notes.shareholders.holder_ts 选填块（labels/num/px 等长、px 首期
+   null）+ calc holder-ts 校验 + 派单模板④落库约定；赢合底稿回填 8 期（Tushare
+   stk_holdernumber 精确户数）——原 holders 图数据 Phase 8 手工补、不回底稿的漏洞堵上。
+4. **顺带修的存量问题**：赢合底稿两条断言 evidence 含内部工具名（mx_macro_data/
+   data.json 字样）——internal-ref 禁词在机械照抄下暴露，底稿改对外口径；杜邦 ROE 行
+   成品「效应比 2.02」与 derived 权威值 1.8891 不一致（render 按 1.89 呈现，成品疑笔误，
+   下份报告复核）；预付增幅成品 438% vs 精确 437.4%（render 按 437% 呈现）。
+
+### 验证（赢合重放金标准）
+
+- 回归 135→144 全绿（+9：fillsheet 逐字锁/锚自检/槽文本/孔数区间/FAIL 仅占位符/
+  T8①·internal-ref 零命中/渲染 0 问题等）；
+- render 产物 vs 人工成品 diff：机械区逐项对齐，差异全部有归属（判断孔、srcline 扩写、
+  第 4 条口径修正）；check_html：FAIL 仅 placeholder 一类；check_render 0 问题；
+  分片截图目检 s3（桥图/净利桥/OCF 桥形态完整）。
+
+### 遗留
+
+- 二期清单（局限 11）；s2 观察行脚本全量生成、填孔阶段按 ≤6 条删减（s2-shape WARN
+  是填孔动作提示，非缺陷）；bare-number WARN 孔阶段高于基线（徽章孔所致），填孔后回落；
+  观察行/断言/期后的措辞精简是填孔阶段动作（render 照抄 json 原文，文字偏长属预期）。
+
+### 热核审计（本轮内闭环，用户触发）
+
+- **Blocker：calc_models.py 469→1050 行越 1k 红线**（纯代码文件按总行计，本项目明文
+  纪律）——拆 calc_slots.py（槽位契约层：write_fillsheet/build_slots/_js_slots/_TXT 链/
+  PCTILE_LABEL/ROW_LABEL/GOOD_UP），calc_models 收窄至 115 行纯 fill 编排层；
+  PCTILE_LABEL 由 calc_models 再导出保回归契约锚点（check_html.py 同款先例）；
+  拆分脚本切段曾重叠致助手块重复 + _r4deep 误入——语法检查+回归双锁抓回。
+- **Major：ncrline hist<3 降级漏实现**（计划决策表 6 条只落 5 条——空骨架 svg 必撞
+  empty-svg 门禁，结构性失守）：补 ncr_drop 布尔 + render 删 svg/figtitle 声明 +
+  构造回归用例（ocf hist 砍 2 期 + 删 derived.cash_ts 旧块——fill 重算失败时旧块
+  残留是构造陷阱）；断言须带 `<div class="figtitle">` 前缀防 srcline 原文误命中。
+- **Major→Minor 降级：_NO_SRC 缺词边界**（「BL2」类文本会被误剥行号）——加
+  `(?<![A-Za-z0-9])` 前置断言。
+- **维持现状项（记录不修）**：write_fillsheet 的 md 段与 build_slots 的取值知识并存
+  （md=原始精度说明书、slots=呈现完成态契约，刻意两路；一致性由 fillsheet 逐字金标准 +
+  render 重放双锁兜底，calc_slots 模块头已写明边界）；render_report 661 行 19 filler
+  未超 1k，锚定填充的固有形态不硬拆。
+
+
+
 ## 五、下一步工作计划
 
 > 治理（v0.0.22 用户定案）：本节只留**未完成**事项；已完成任务的记录移入 supersede/
 > 对应轮次文件，不堆删除线。HANDOFF 本体=长期节 + 当前未发布轮 + 全部待完成。
 
 ### 自我审核候选方向（未动工项）
-
-**N4. 模板冻结评估 → fill→render 脚本化重议**
-P8 写 HTML 是全流程最大单点（比亚迪轮 347s；海康轮两段手写填充脚本 615s/30.2k tok）。
-v0.0.14 否决脚本化的理由是「模板每轮在变，维护税超收益」；**冻结计数 v0.0.23 再再次清零**
-（effline 避让+grid4 注释）。**新口径（v0.0.23 用户定案）**：此后连续两份真实报告产出时
-模板零结构性改动（注释级不算）即启动 fill→render 脚本化（fillsheet 已全槽位化，脚本化
-只剩映射一步）——原口径「等冻结」与「每轮报告反馈必改模板」死锁，不再等。
-模板行数口径：1k 红线按去注释行计（当前总行 1256；纯代码文件按总行计）。
 
 **N5. 新准则造假样本扩充（排雷库回归覆盖单一）**
 康得新是 2018 旧准则样本，「抓漏报」金标准只有它一个——收入准则/金融工具准则切换后
@@ -319,7 +422,7 @@ v0.0.14 否决脚本化的理由是「模板每轮在变，维护税超收益」
 ```bash
 # 1. 确认环境
 cd "D:/KimiCodeProject/Financial Report Analysis"
-python financial-report-analysis/tests/run_regression.py   # 应 133/133 通过
+python financial-report-analysis/tests/run_regression.py   # 应 144/144 通过
 
 # 2. 部署（如需让技能在当前机器生效）
 cmd //c deploy.cmd

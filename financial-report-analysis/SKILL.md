@@ -8,7 +8,7 @@ description: >
 metadata:
   clawdbot:
     emoji: "📑"
-    version: "0.0.24"
+    version: "0.1.0"
     requires:
       anyBins: ["python"]
     os: ["win32", "darwin", "linux"]
@@ -54,6 +54,7 @@ metadata:
   写在**当前工作目录**的 `reports/` 顶层。
   **槽位契约以 fillsheet 为唯一来源**（v0.0.18）：`calc.py --fill` 产出的填充速查表覆盖
   全部机械槽位（含 JS 数据槽可粘贴形态），填充只看 fillsheet + 模板注释；
+  v0.1.0 起同产 `{stem}.fillsheet.json`（机器可读槽位契约，render_report.py 的唯一数据源）；
   模板注释内嵌真实 figtitle/takeaway 示范条目供文风参照（v0.0.18 起 examples
   标杆样本退役，不再随模板改动维护副本）。
 - **文件命名**：`{公司名}-{代码}-{报告类型}-{报告期}-{生成日}.html`（日期一律取报告生成日，
@@ -169,7 +170,8 @@ metadata:
    **机械字段一律 `calc.py <json> --fill` 预填**（v0.0.13）：ratios 全 14 项+hist、dupont
    连环替代、risk_models、stress、cash_ts、单期八项（含 v0.0.17 的 ROIC/内生增长率）
    由脚本按唯一公式定义处写入并产出
-   `{stem}.fillsheet.md` 填充速查表；**模型只补判断字段**（verdict/解释/notes/rev_factors/
+   `{stem}.fillsheet.md` 填充速查表 + `{stem}.fillsheet.json` 槽位契约（v0.1.0，
+   render_report.py 数据源）；**模型只补判断字段**（verdict/解释/notes/rev_factors/
    桥/recon）并照速查表抄机械槽——模型手算公式是错误源与回炉循环，**禁止**。
    **fill 会重排 JSON 格式**（单行→多行）：fill 之后再 Edit data.json 必须先重新 Read
    目标段，禁止凭 fill 前的记忆拼 old_string（比亚迪轮两次 Edit 失败的共同根因）。
@@ -330,14 +332,18 @@ Roll-forward（应收/存货/在建工程/商誉）+ C 组周期联动（CCC/DPO
 
 ### Phase 8：输出报告
 
-1. 复制 `assets/report-template.html` 为最终文件名，按模板内注释逐槽位填充；
-   **机械槽位（数字/徽章/语义色/SPARK 数组/TREND/SEG_BRIDGE/OCF_BRIDGE/HOLDERS/
-   DUPONT_STACK/peers 表/watchlist 卡）照 `{stem}.fillsheet.md` 速查表抄**
-   （--fill 产物，v0.0.18 起全槽位覆盖），判断槽位（figtitle 裁决/takeaway/三问/归因措辞）自己写；
-   模型不手写 CSS，只替换内容与数据。
-   **数字一律从 fillsheet 复制，禁凭记忆手写**（万华轮 check_html 首轮 11 处笔误的教训）；
-   **分两段填充（v0.0.18 笔误前移）：先填 s0~s3 → 立即跑 `check_html.py --json`
-   （T8① 数字回验）→ 清零后再填 s4~s8 → 走第 4 条全量门禁**。
+1. **fill→render 脚本化（v0.1.0，N4 落地）**：`python scripts/render_report.py <data.json>`
+   按「模板 + `{stem}.fillsheet.json`」（calc --fill 同产）产出报告骨架落 `reports/`——
+   机械槽位（数字/徽章/语义色/JS DATA 数组/可变表行生成/peers 表/检验卡读数列/
+   watchlist 卡）由脚本锚定填充（锚断=模板改版漂移，exit 1 打印清单，先修锚配置）；
+   判断槽位残留 `{{}}` 孔。**分析师只填判断孔**（figtitle 裁决/takeaway/lede/评价列/
+   结论列/判定徽章；grep '{{' 定位）——fillsheet.md 仍是人读速查表，写法纪律不变；
+   s2 观察行脚本全量生成（观察全部条数），按 ≤6 条上限删减；断言/期后行文字可精简
+   但数字不得改（T8① 回验）。**分两段填孔（v0.0.18 笔误前移）：先填 s0~s3 → 立即跑
+   `check_html.py --json`（T8① 数字回验）→ 清零后再填 s4~s8 → 走第 4 条全量门禁**；
+   孔未清零（占位符 FAIL）不交付——语义与手写时代一致。
+   年报专属槽位（Q4 卡/review 回看卡）render 一期不填，保留模板原样孔手工处理（二期）。
+   模型不手写 CSS，不改版式（S1~S7 版面规格唯一出处=模板注释）。
    **读法层（v0.0.7 硬规则）**：figtitle 一律
    「结论式」——标题即判断，方法说明/口径注记挪 srcline，不占标题；复杂表
    （≥4 行或含多方向读数）在 srcline 前加一行 `.takeaway` 读法行。
@@ -421,7 +427,7 @@ Roll-forward（应收/存货/在建工程/商誉）+ C 组周期联动（CCC/DPO
 
 - **可委派（省上下文时）**：md 超长时按章节委托子代理提取结构化数据——提示词给
   **章节锚点关键词**而非行号（行号跨上下文无效）；同业批量取数同样可委派，回传压缩成表
-- **禁委派**：最终结论、亮点/风险清单的判定、报告填充——主会话完成
+- **禁委派**：最终结论、亮点/风险清单的判定、判断孔填充（render 产物残留 {{}}）——主会话完成
 - **单上下文降级**：本会话无法再起子代理（自身已在子代理中）或 md 体量可控时，
   全部主会话执行，用 Grep 锚点 + Read 分页控制上下文消耗
 
@@ -452,5 +458,7 @@ Roll-forward（应收/存货/在建工程/商誉）+ C 组周期联动（CCC/DPO
 | 0.0.22 | 2026-10-01 | js-dup-decl/assert-trunc/empty-svg；四宫格；禁修技能源定案 |
 | 0.0.23 | 2026-10-01 | effline 标签避让；s1-grid4 机检；四维表评价列纪律 |
 | 0.0.24 | 2026-10-04 | 全库审计三档清理（唯一出处收敛）+ 四象限落地（schema 1.5）+ 热核修复 |
+| 0.0.25 | 2026-10-06 | deltaBars 标签宽自适应；检验卡四组分组行；check_render svgclip 出界检测 |
+| 0.1.0 | 2026-10-06 | N4 落地：fill→render 脚本化（render_report.py + fillsheet.json + holder_ts schema 1.6） |
 
 逐版本详情以 handoff/supersede/ 与 git tag 为唯一真源（AGENTS.md 定案）。
