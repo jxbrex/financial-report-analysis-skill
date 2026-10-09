@@ -84,10 +84,11 @@ def _cells(row):
             for m in re.finditer(r'<td([^>]*)>(.*?)</td>', row, flags=re.S)]
 
 
-def _rebuild(cells, edits):
+def _rebuild(cells, edits, row=""):
     """edits: {格序(0-based): 文本 | (文本, cls) | (文本, cls, "tdclass")}——
     默认染色用 span 包裹（四维表/peers 形态）；tdclass 时 cls 直接写进 td class
-    （净利桥形态：成品 <td class="up">+0.73</td>，模板格自带 class 须整体重写）。"""
+    （净利桥形态：成品 <td class="up">+0.73</td>，模板格自带 class 须整体重写）。
+    row 传入时保留原 <tr> 开标签（模板行带 class/属性时不被静默剥掉）。"""
     out = []
     for i, (full, attrs, inner) in enumerate(cells):
         if i not in edits:
@@ -101,12 +102,8 @@ def _rebuild(cells, edits):
             out.append(f'<td{attrs}><span class="{cls}">{text}</span></td>')
         else:
             out.append(f"<td{attrs}>{text}</td>")
-    return "<tr>" + "".join(out) + "</tr>"
-
-
-def _trunc_num(text):
-    """长小数截两位（decimal-places 门禁；行号 L3426 类整数不受影响）。"""
-    return re.sub(r"\d+\.\d{3,}", lambda m: f"{float(m.group(0)):.2f}", text or "")
+    m_ = re.match(r"<tr[^>]*>", row or "")
+    return (m_.group(0) if m_ else "<tr>") + "".join(out) + "</tr>"
 
 
 # ════ 各章 filler ════
@@ -130,9 +127,17 @@ def fill_meta(r, m):
            f"分析生成于 {m['analyst_date']}", "meta.sub")
     r.sub1("<span>{{公司名}}（{{代码}}）{{报告期}}{{报告类型}}分析 · 生成于 {{日期}}</span>",
            f"<span>{m['title']}{m['sub_lead']}分析 · 生成于 {m['analyst_date']}</span>", "meta.foot")
-    r.h = r.h.replace("公司{{报告期}}{{报告类型}}", f"公司 {m['srcline_period']}{m['report_type']}")
+    # 以下两锚在模板各出现 2 处、语义同填（srcline 周期表述/比率表口径行）——
+    # 显式计数入断锚：锚漂移或第 3 处新增时显式报错，不静默漏填/同填
+    _pairs = [("公司{{报告期}}{{报告类型}}", f"公司 {m['srcline_period']}{m['report_type']}", "meta.srcline")]
     if m.get("report_type") and m["report_type"] != "年报":
-        r.h = r.h.replace("各期年报比率", f"各期{m['report_type']}比率")  # 模板写死年报口径
+        _pairs.append(("各期年报比率", f"各期{m['report_type']}比率", "meta.annual"))
+    for old, new, tag in _pairs:
+        n = r.h.count(old)
+        if n != 2:
+            r.miss.append(f"{tag}: 锚命中 {n} 次（预期 2 处同填）「{old[:40]}」")
+        else:
+            r.h = r.h.replace(old, new)
 
 
 def drop_review(r, data):
@@ -174,7 +179,7 @@ def fill_s1(r, s1, m):
                         if "<td>{{}}</td>" in tr or re.search(r"<td>\{\{", tr):
                             edits[2] = row["prev"]
                         edits[3] = (row["delta"], row["cls"] or None)
-                    return _rebuild(_cells(tr), edits)
+                    return _rebuild(_cells(tr), edits, tr)
                 tbody = _row_replace(tbody, anchor, _fn4, r, f"s1.t4.{anchor}")
             seg = seg[:i] + tbody + seg[j:]
 
@@ -203,21 +208,27 @@ def fill_s1(r, s1, m):
                            f"<td{cells[3][1]}>{inner}</td>"]
                     return "<tr>" + "".join(out) + "</tr>"
                 tbody = _row_replace(tbody, label, _fnd, r, f"s1.dp.{label}")
-            # 下钻子行（块缺失则整行槽残留，check_html 兜底）
+            # 下钻子行（块缺失则整行槽残留，check_html 兜底）；替换显式计数入断锚，
+            # 锚漂移时显式报错而非静默留孔
+            def _dr1(old, new, tag):
+                nonlocal tbody
+                n = tbody.count(old)
+                if n == 1:
+                    tbody = tbody.replace(old, new, 1)
+                else:
+                    r.miss.append(f"{tag}: 锚命中 {n} 次「{old[:40]}」")
             if dp.get("margin_drill"):
-                tbody = tbody.replace(
-                    "└ 经营 {{±x.x}}pct · 税负 {{±x.x}}pct · 利息 {{±x.x}}pct · 少数股东 {{±x.x}}pct",
-                    f"└ {dp['margin_drill']}", 1)
+                _dr1("└ 经营 {{±x.x}}pct · 税负 {{±x.x}}pct · 利息 {{±x.x}}pct · 少数股东 {{±x.x}}pct",
+                     f"└ {dp['margin_drill']}", "s1.dp.margin_drill")
             if dp.get("turnover_drill"):
-                tbody = tbody.replace(
-                    "└ Δ总资产前二：{{科目}} {{±}} / {{科目}} {{±}}；应收存货类 {{x}}% · 产能类 {{y}}%",
-                    f"└ {dp['turnover_drill']}", 1)
+                _dr1("└ Δ总资产前二：{{科目}} {{±}} / {{科目}} {{±}}；应收存货类 {{x}}% · 产能类 {{y}}%",
+                     f"└ {dp['turnover_drill']}", "s1.dp.turnover_drill")
             ld = dp.get("leverage_drill") or {}
             if ld:
-                tbody = tbody.replace("有息/权益 {{x.xx→x.xx}} · 无息/权益 {{x.xx→x.xx}}",
-                                      f"有息/权益 {ld['ib']} · 无息/权益 {ld['ni']}", 1)
-                tbody = tbody.replace("无息占比 {{x}}% + ΔDFL {{±x.xx}}",
-                                      f"无息占比 {ld['ni_share']} + ΔDFL {ld['dfl']}", 1)
+                _dr1("有息/权益 {{x.xx→x.xx}} · 无息/权益 {{x.xx→x.xx}}",
+                     f"有息/权益 {ld['ib']} · 无息/权益 {ld['ni']}", "s1.dp.ld_ratio")
+                _dr1("无息占比 {{x}}% + ΔDFL {{±x.xx}}",
+                     f"无息占比 {ld['ni_share']} + ΔDFL {ld['dfl']}", "s1.dp.ld_share")
             # ROE 合计行
             def _fnroe(tr):
                 cells = _cells(tr)
@@ -331,7 +342,7 @@ def fill_s2(r, s2):
                       else ("r", "🔴 无法解释") if "无法" in str(x["verdict"])
                       else ("y", f"⚠️ {x['verdict']}"))
         return (f'<tr><td>{x["eq"]}</td><td class="txt"><span class="badge {vcls}">{vtxt}</span></td>'
-                f'<td>{x["deviation"]}</td><td class="txt">{_trunc_num(x["explain"])}</td>'
+                f'<td>{x["deviation"]}</td><td class="txt">{x["explain"]}</td>'
                 f'<td class="txt">{_H}</td></tr>')
     if rr:
         r.re1(r' <tr><td>\{\{A4 收入-收现闭环\}\}.*?</tr>\n <tr><td>\{\{B1 应收 roll-forward\}\}.*?</tr>',
@@ -376,6 +387,14 @@ def fill_s2(r, s2):
 
 
 def fill_s3(r, s3):
+    if s3.get("ocf_drop"):
+        # OCF 桥降级（补充资料未披露的合法 WARN 态）：空桥必须删 svg（empty-svg 门禁）
+        # + 删端点行（无数据可填）+ figtitle 换降级声明——对齐 ncr_drop 模式
+        r.re1(r' <svg id="ocfbridge".*?</svg>\n', "", "s3.ocf_drop_svg")
+        r.re1(r' <div class="brends">净利润 \{\{X\}\} 亿.*?</div>\n', "", "s3.ocf_drop_brends")
+        r.re1(r'<div class="figtitle">\{\{结论式：经营现金流净额（OCF）.*?\}\}</div>',
+              '<div class="figtitle">OCF 调节桥未披露：现金流量表补充资料缺失，'
+              '本卡降级为声明（间接法调节明细不可得）</div>', "s3.ocf_drop_title")
     if s3.get("brends_seg"):
         r.re1(r'<div class="brends">基期收入 .*?</div>',
               f'<div class="brends">{s3["brends_seg"]}</div>', "s3.brends_seg")
@@ -406,7 +425,7 @@ def fill_s3(r, s3):
                          3: (row["delta"] or _H, row["cls"] or None, "tdclass")}
                 if row.get("note"):
                     edits[4] = row["note"]
-                return _rebuild(cells, edits)
+                return _rebuild(cells, edits, tr)
             tbody = _row_replace(tbody, item, _fn3, r, f"s3.np.{item}")
         if total:
             def _fnt(tr):
@@ -497,7 +516,7 @@ def fill_s7(r, s7, m):
             if v:
                 tbody = _row_replace(
                     tbody, anchor,
-                    lambda tr, v=v: _rebuild(_cells(tr), {1: f"{v}（{pl}）"}), r, f"s7.exp.{key}")
+                    lambda tr, v=v: _rebuild(_cells(tr), {1: f"{v}（{pl}）"}, tr), r, f"s7.exp.{key}")
         return seg[:i] + tbody + seg[j:]
     r.in_sect("s7", _s7e)
 
@@ -540,7 +559,7 @@ def fill_s7(r, s7, m):
                             ("增量费用效率", "incr_eff"), ("销售费用获客效率", "sales_eff")):
             if insp.get(key):
                 tbody = _row_replace(tbody, anchor,
-                                     lambda tr, key=key: _rebuild(_cells(tr), {1: insp[key]}),
+                                     lambda tr, key=key: _rebuild(_cells(tr), {1: insp[key]}, tr),
                                      r, f"s7.insp.{key}")
         return seg[:i] + tbody + seg[j:]
     r.in_sect("s7", _s7i)
@@ -626,6 +645,12 @@ def main():
     if not slots_path.exists():
         sys.exit(f"🔴 槽位 JSON 不存在：{slots_path}——先跑 calc.py --fill")
     slots = json.loads(slots_path.read_text(encoding="utf-8"))
+    try:  # 新鲜度提醒：底稿比槽位新 → 可能改了 data.json 忘跑 --fill（WARN 不阻断）
+        if args.json_path.stat().st_mtime > slots_path.stat().st_mtime + 1:
+            print(f"🟡 提醒：底稿 {args.json_path.name} 比槽位 JSON 新——若刚改过底稿，"
+                  f"请先重跑 calc.py --fill 再 render", file=sys.stderr)
+    except OSError:
+        pass
     if not TEMPLATE.exists():
         sys.exit(f"🔴 模板不存在：{TEMPLATE}")
 

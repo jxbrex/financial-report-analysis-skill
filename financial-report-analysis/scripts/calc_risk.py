@@ -29,6 +29,8 @@ def compute_altman(data):
         return None, "no-mcap"
     if None in (ta, tl, tca, tcl, retained, surplus, ebit, rev) or factor is None:
         return None, "inputs"
+    if not ta or not tl:
+        return None, "inputs"  # 总资产/总负债为 0（休眠壳等），除零不如不算
     x1 = (tca - tcl) / ta
     x2 = (retained + surplus) / ta
     x3 = ebit / ta
@@ -49,6 +51,8 @@ def compute_ohlson(data):
     np_total, np_prev = I("np_total"), I("np_total", key="prev")
     if None in (ta, tl, tca, tcl, np_total, np_prev):
         return None, "inputs"
+    if not ta or not tca or (abs(np_total) + abs(np_prev)) == 0:
+        return None, "inputs"  # 除零/ln(0) 防护：休眠壳、两期净利均 0 不如不算
     x6 = (np_total - np_prev) / (abs(np_total) + abs(np_prev))
     o = (-1.32 - 0.407 * math.log(ta) + 6.03 * tl / ta - 1.43 * (tca - tcl) / ta
          + 0.0757 * tcl / tca - 1.72 * (1 if tl > ta else 0) - 0.521 * x6)
@@ -80,7 +84,7 @@ def compute_stress(data):
         np_s = ebt_s * (1 - tax_rate) if ebt_s > 0 else ebt_s
         out.append({"p": p, "np_stressed": np_s,
                     "cover_stressed": (cash + ocf * (1 - p)) / short_debt})
-    return out
+    return out, dol
 
 
 def compute_cash_ts(data):
@@ -182,9 +186,14 @@ def check_stress(data, rep):
     if not isinstance(st, dict) or not isinstance(st.get("scenarios"), list):
         rep.add(SKIP, "stress", "derived.stress 未填")
         return
-    exp = compute_stress(data)
-    if exp is None:
+    got = compute_stress(data)
+    if got is None:
         rep.add(SKIP, "stress", "压力情景输入不齐（DOL 分量/现金/短债缺），合法跳过")
+        return
+    exp, dol = got
+    if len(st["scenarios"]) != len(exp):
+        rep.add(FAIL, "stress", f"scenarios 条数 {len(st['scenarios'])} ≠ 三情景 {len(exp)}"
+                                f"——缺情景等于没做，不许截断充数")
         return
     bad = []
     for sc, e in zip(st["scenarios"], exp):
@@ -202,7 +211,7 @@ def check_stress(data, rep):
             rep.add(FAIL, "stress", b)
     else:
         rep.add(OK, "stress", f"三情景复算一致（p=10% 受压净利 {exp[0]['np_stressed']:.1f} 亿，"
-                              f"DOL={build_ratio_calcs(data).get('dol'):.2f}）")
+                              f"DOL={dol:.2f}）")
 
 
 def check_cash_ts(data, rep):

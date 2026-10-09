@@ -24,8 +24,8 @@ calc.py 只校验数据层（data.json）；报告 HTML 层此前没有任何机
 本模块直接实现的检查（★ = 启发式，有误报/漏报，输出「待人工确认」而非断言错误）：
   1. placeholder  [FAIL] 未替换的 {{占位}}。HTML 注释内的不算——模板的
                   「◆ SLOT」注释里常写示例占位符，那是说明文字不是漏填；
-                  <style>/<script> 内的也不算（CSS 里 `…1fr}}` 是合法语法，
-                  不排除会把成片 CSS 误报成漏填）。
+                  <style>/<script> 与 inline style 属性内的也不算（CSS 里
+                  `…1fr}}` 是合法语法，不排除会把成片 CSS 误报成漏填）。
   3. srcline      [WARN] 每张 <table class="data"> 之后缺 .srcline 数据来源标注。
   4. hardrule     [FAIL] 外部资源（<link href="http… / <script src="http… /
                   @import / @font-face）、渐变、暗色背景、投影。样式类判据只扫
@@ -68,7 +68,7 @@ calc.py 只校验数据层（data.json）；报告 HTML 层此前没有任何机
                   [WARN] v0.0.12 读法层兜底四件 + v0.0.15 s5 判定列扩展。
   15. internal-ref [FAIL] 可见文本禁现内部过程引用（v0.0.18）：底稿文件名
                   （data.json/fillsheet）、方法库路径（references/）、脚本名
-                  （calc.py/check_html）、字段路径（derived.）、技能版本号（v0.0.x）、
+                  （calc.py/check_html）、字段路径（derived.）、技能版本号（v0.x.x）、
                   取数工具函数名（mx_xxx）——这些都不是「数据来源」，来源只写对外口径
                   （定期报告/公告/Tushare/东方财富）。HTML 注释/style/script 已屏蔽不算。
   16. srcline-dup [FAIL] srcline 拼接纪律（v0.0.18）：禁嵌套、相邻组 ≤2 条
@@ -207,14 +207,19 @@ def check_srcline(text, rep, verbose, secs):
 def check_hardrules(raw, css_ranges, rep):
     """css_ranges = <style> 区间 + inline style 属性区间；样式类判据只在这些区间里找，
     避免误伤正文里出现的「gradient」「box-shadow」等普通词。"""
+    # CSS 注释（/* */）区间同样豁免——注释里的「禁用渐变 gradient()」类纪律文字
+    # 是说明不是违规（v0.1.1 误报修复）
+    css_comments = [(m.start(), m.end()) for m in re.finditer(r"/\*.*?\*/", raw, re.S)]
+
     def in_css(pos):
-        return any(a <= pos < b for a, b in css_ranges)
+        return any(a <= pos < b for a, b in css_ranges) and \
+            not any(a <= pos < b for a, b in css_comments)
 
     viol = []  # (行号, 说明)
 
-    for pat, why in ((r'<link\b[^>]*href\s*=\s*["\']https?://', "外部样式表"),
-                     (r'<script\b[^>]*src\s*=\s*["\']https?://', "外部脚本"),
-                     (r'<img\b[^>]*src\s*=\s*["\']https?://', "外链图片")):
+    for pat, why in ((r'<link\b[^>]*href\s*=\s*["\'](?:https?:)?//', "外部样式表"),
+                     (r'<script\b[^>]*src\s*=\s*["\'](?:https?:)?//', "外部脚本"),
+                     (r'<img\b[^>]*src\s*=\s*["\'](?:https?:)?//', "外链图片")):
         for m in re.finditer(pat, raw, re.I):
             viol.append((line_of(raw, m.start()), f"{why}：{snippet(m.group(0), 60)}"))
 
@@ -486,8 +491,11 @@ def check_dupont_stack(raw, data, rep):
     """DUPONT_STACK 数据槽 ↔ derived.dupont 一致性（v0.0.15，仅 --json 模式）：
     三效应×100（pct，呈现一位小数）与 json 比对；gap≠0 时槽内必须保留（视觉不许隐瞒加和缺口）。
     槽语法解析失败只 WARN 不 FAIL——语法问题不该掩盖数据问题，且 WARN 已足够显眼。"""
-    m = re.search(r'DUPONT_STACK\s*=\s*\{\s*steps\s*:\s*(\[.*?\])\s*,\s*gap\s*:\s*([-0-9.eE]+)\s*\}',
-                  raw, re.S)
+    # 兼容两种槽形态：手写 {steps:[...],gap:x} 与 v0.1.1 起 fill 的 _jd 产出
+    # {"steps": [...], "gap": x}（键带引号、json.dumps 空格）；gap 可为 null（单驱动/
+    # 三效应全零的合法形态）；手写带 + 号（gap:+0.4）不许静默失配跳过
+    m = re.search(r'DUPONT_STACK\s*=\s*\{\s*"?steps"?\s*:\s*(\[.*?\])\s*,\s*"?gap"?\s*:\s*'
+                  r'(null|[-+0-9.eE]+)\s*\}', raw, re.S)
     if not m:
         rep.add(OK, "dupont-stack", "无 DUPONT_STACK 数据槽（杜邦降级缺省时正常）")
         return
@@ -496,8 +504,8 @@ def check_dupont_stack(raw, data, rep):
         rep.add(OK, "dupont-stack", "derived.dupont 未填（口径断裂），堆叠条槽跳过比对")
         return
     try:
-        steps = ast.literal_eval(m.group(1))
-        gap = float(m.group(2))
+        steps = ast.literal_eval(re.sub(r"\bnull\b", "None", m.group(1)))
+        gap = None if m.group(2) == "null" else float(m.group(2))
     except (ValueError, SyntaxError):
         rep.add(WARN, "dupont-stack", "DUPONT_STACK 槽解析失败——检查 JS 数组字面量语法")
         return
@@ -511,13 +519,18 @@ def check_dupont_stack(raw, data, rep):
             e = expect[i]
             if e is None:
                 continue
+            if v is None:
+                bad.append(f"堆叠条「{nm}」空缺但 derived.dupont 效应={e * 100:.1f}pct——效应段不许留空")
+                continue
             if abs(v - e * 100) > 0.15:
                 bad.append(f"堆叠条「{nm}」{v}pct ≠ derived.dupont 效应 {e * 100:.1f}pct"
                            f"（×100 转 pct，容差 0.15）")
             if nm != names[i]:
                 bad.append(f"堆叠条第 {i + 1} 段名「{nm}」应为「{names[i]}」（定序约定）")
     g_e = du.get("closure_gap")
-    if g_e is not None and abs(gap - g_e * 100) > 0.15:
+    if gap is None and g_e is not None:
+        bad.append(f"堆叠条 gap=null 但 closure_gap={g_e * 100:.1f}pct——口径差不许视觉隐瞒")
+    elif gap is not None and g_e is not None and abs(gap - g_e * 100) > 0.15:
         bad.append(f"堆叠条 gap={gap}pct ≠ closure_gap {g_e * 100:.1f}pct——口径差不许视觉隐瞒")
     if bad:
         rep.add(FAIL, "dupont-stack", "ΔROE 堆叠条数据槽与 derived.dupont 不符：" + "；".join(bad[:4]))
@@ -548,14 +561,16 @@ def main():
     comment_ranges = [(m.start(), m.end()) for m in re.finditer(r"<!--.*?-->", raw, re.S)]
     style_ranges = tag_ranges(raw, "style")
     script_ranges = tag_ranges(raw, "script")
+    inline_style_ranges = [(m.start(1), m.end(1))
+                           for m in re.finditer(r'style="([^"]*)"', raw)]
 
-    # 正文视图：注释 / <style> / <script> 全部屏蔽（长度不变，行号可复用）。
-    # CSS 里 `{grid-template-columns:1fr}}` 这类合法 }} 也因此不会误报成漏填占位符。
-    body = mask_ranges(raw, comment_ranges + style_ranges + script_ranges)
+    # 正文视图：注释 / <style> / <script> / inline style 属性全部屏蔽（长度不变，行号可复用）。
+    # CSS 里 `{grid-template-columns:1fr}}` 这类合法 }}、inline style 里的 {{}} 与长小数
+    # 也因此不会误报成漏填占位符/超长小数（v0.1.1 起 inline style 并入屏蔽面）。
+    body = mask_ranges(raw, comment_ranges + style_ranges + script_ranges + inline_style_ranges)
 
     # 样式判据的作用域：<style> 块 + inline style 属性
-    css_ranges = style_ranges + [(m.start(1), m.end(1))
-                                 for m in re.finditer(r'style="([^"]*)"', raw)]
+    css_ranges = style_ranges + inline_style_ranges
 
     secs = Sections(body)
     rep = Report()

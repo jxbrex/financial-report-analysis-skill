@@ -87,7 +87,9 @@ CORE_FIELDS = [
 
 def walk_leaves(node, path, out):
     if isinstance(node, dict):
-        if "cur" in node and ("src" in node or "prev" in node or "note" in node):
+        # 含 cur 的 dict 一律视为数据叶子——只写 {"cur": x} 的孤儿节点也必须
+        # 落入叶子集（src 缺失由 check_structure 报 FAIL），不得静默吞掉
+        if "cur" in node:
             out.append((path, node))
             return
         for k, v in node.items():
@@ -144,8 +146,12 @@ def check_structure(data, rep):
             nums_ye = [num(x) for x in hye]
             if any(n is None for n in nums_ye):
                 rep.add(FAIL, "type", f"{loc}.hist_ye 含非数值元素")
-            elif isinstance(prev, (int, float)) and not isinstance(prev, bool) \
-                    and abs(nums_ye[-1] - float(prev)) > max(0.005 * abs(float(prev)), 0.005):
+            elif not isinstance(prev, (int, float)) or isinstance(prev, bool):
+                # prev 缺失/畸形而 hist_ye 非空：声称有期初序列却无 prev，口径脱钩不许静默
+                bad_hist += 1
+                rep.add(FAIL, "hist", f"{loc}.hist_ye 非空但 prev 缺失或非数值"
+                                      f"（hist_ye 末位必须是本期期初=prev，二者不许脱钩）")
+            elif abs(nums_ye[-1] - float(prev)) > max(0.005 * abs(float(prev)), 0.005):
                 bad_hist += 1
                 rep.add(FAIL, "hist", f"{loc}.hist_ye 末位 {nums_ye[-1]} ≠ prev {prev}"
                                       f"（hist_ye 末位必须是本期期初=prev）")
@@ -154,8 +160,16 @@ def check_structure(data, rep):
     # 不能混入 walk_leaves（会误报 src 为空），故单独遍历、只查 hist 一致性
     for name, node in ((data.get("derived") or {}).get("ratios") or {}).items():
         if not isinstance(node, dict):
+            # 裸数字节点合法（check_ratios 兼容）；字符串等其他类型是畸形，必须报
+            if node is not None and num(node) is None:
+                rep.add(FAIL, "type", f"derived.ratios.{name} 类型非法：{type(node).__name__}"
+                                      f"（比率节点应为对象或数值）")
             continue
         cur = node.get("cur")
+        if cur is not None and (not isinstance(cur, (int, float)) or isinstance(cur, bool)):
+            rep.add(FAIL, "type", f"derived.ratios.{name}.cur 类型非法：{type(cur).__name__}"
+                                  f"（比率必须数值，禁止「5.2%」类字符串）")
+            continue
         hist = node.get("hist")
         if cur is None or not (isinstance(hist, list) and hist):
             continue
@@ -400,6 +414,10 @@ def check_ratio_hist(data, rep):
         for k in range(min(len(rh), len(series))):
             got = rh[len(rh) - 1 - k]
             expect = series[len(series) - 1 - k]
+            if got is None:
+                # hist 含非数值元素（结构检查已报 type FAIL）——跳过，不重复报也不崩
+                n_skip += 1
+                continue
             if expect is None:
                 rep.add(SKIP, "ratio-hist", f"{name} 首期无期初余额/科目序列不全，跳过复算")
                 n_skip += 1
@@ -411,8 +429,10 @@ def check_ratio_hist(data, rep):
                 rep.add(FAIL, "ratio-hist", f"{name}.hist 该期复算不符：填 {got:.4f}，重算 {expect:.4f}"
                                             f"（差 {got - expect:+.4f}）")
     if missing_hist and n_ok == 0 and n_fail == 0:
-        rep.add(SKIP, "ratio-hist",
-                f"趋势比率缺 hist（口径断裂等），趋势降级两期：{', '.join(missing_hist)}")
+        msg = f"趋势比率缺 hist（口径断裂等），趋势降级两期：{', '.join(missing_hist)}"
+        if n_skip:
+            msg += f"；另有 {n_skip} 期跳过（首期无期初余额/科目序列不全/hist 含非数值）"
+        rep.add(SKIP, "ratio-hist", msg)
     else:
         parts = [f"比率历史复算 {n_ok} 期通过"]
         if n_fail:

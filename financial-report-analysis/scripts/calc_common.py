@@ -72,8 +72,10 @@ def safe_div(a, b):
 # ─── 比率公式族（全脚本唯一定义处） ───
 
 def avg(cur, prev):
+    """平均余额：任一端缺失返回 None（不可算）——不得以期末冒充平均，
+    与 ratio_hist_series 的逐期口径一致（单期/逐期同规则，v0.1.1 修复退化分支）。"""
     if cur is None or prev is None:
-        return cur if prev is None else prev
+        return None
     return (cur + prev) / 2.0
 
 
@@ -248,7 +250,7 @@ def ratio_hist_expect(name, v):
         return safe_div(ebit + dep, ebit) if (ebit is not None and dep is not None) else None
 
     # 以下均为平均余额口径（余额取本期与上期均值），CCC 由 dso+dio-dpo 复合；
-    # 各比率只取自己需要的序列，缺的科目不参与计算（avg 双缺返回 None，须先判空再乘）
+    # 各比率只取自己需要的序列，缺的科目不参与计算（avg 任一端缺返回 None，须先判空再乘）
     rev, cost = g("income", "revenue"), g("income", "cost")
     ta, ta_p = g("balance", "total_assets"), v.get("total_assets_prev")
     ar, ar_p = g("balance", "ar"), v.get("ar_prev")
@@ -259,7 +261,7 @@ def ratio_hist_expect(name, v):
     ap_m = avg(ap, ap_p)
     dso = safe_div(ar_m * 365, rev) if (rev and ar_m is not None) else None
     dio = safe_div(inv_m * 365, cost) if (cost and inv_m is not None) else None
-    dpo = safe_div(ap_m * 365, cost) if (cost and ap is not None and ap_m is not None) else None
+    dpo = safe_div(ap_m * 365, cost) if (cost and ap_m is not None) else None
     if name == "asset_turnover":
         return safe_div(rev, avg(ta, ta_p))
     if name == "dso":

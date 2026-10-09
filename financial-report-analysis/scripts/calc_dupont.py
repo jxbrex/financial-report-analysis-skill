@@ -129,8 +129,9 @@ def compute_leverage_drill(data, dupont=None):
     ni1, ni0 = parts(("payable", "contract_liab"), "cur"), parts(("payable", "contract_liab"), "prev")
     eq = B("equity_at")
     ratios = ((data.get("derived") or {}).get("ratios")) or {}
-    dfl = ratios.get("dfl") or {}
-    dfl1, dfl0 = num(dfl.get("cur")), num(dfl.get("prev"))
+    dfl = ratios.get("dfl")
+    dfl1, dfl0 = (num(dfl.get("cur")), num(dfl.get("prev"))) if isinstance(dfl, dict) \
+        else (num(dfl), None)  # 裸数字节点只有 cur 可言，prev 按缺处理（不崩）
     dfl_delta = None if None in (dfl1, dfl0) else dfl1 - dfl0
     ni_share = None if ni1 is None or ib1 is None or not (ni1 + ib1) else ni1 / (ni1 + ib1)
     upgrade = None
@@ -197,7 +198,9 @@ def compute_dupont5y(data):
     ratios = ((data.get("derived") or {}).get("ratios")) or {}
 
     def hist(name):
-        node = ratios.get(name) or {}
+        node = ratios.get(name)
+        if not isinstance(node, dict):
+            return []  # 裸数字等畸形节点无 hist 可言，按缺序列处理（不崩）
         return [num(x) for x in (node.get("hist") or [])]
 
     mh, th, lh, rh = (hist(n) for n in
@@ -238,7 +241,17 @@ def check_dupont(data, rep):
     bad = []
     cmp_fields(bad, "dupont", du, c,
                ("margin_effect", "turnover_effect", "leverage_effect",
-                "roe_product_cur", "roe_product_prev", "effects_ratio"))
+                "roe_product_cur", "roe_product_prev"))
+    # effects_ratio 单独判：单驱动（第二大 |效应|≈0）或三效应全零时复算为 None，
+    # null 是 schema 合法形态——只要求 derived 同填 null/缺失，不逼分析师造数
+    er_got, er_exp = num(du.get("effects_ratio")), c["effects_ratio"]
+    if er_exp is None:
+        if er_got is not None:
+            bad.append(f"effects_ratio={er_got} 但单驱动/三效应全零形态应为 null")
+    elif er_got is None:
+        bad.append("effects_ratio 未填")
+    elif abs(er_got - er_exp) > 0.005:
+        bad.append(f"effects_ratio 不符：derived={er_got} vs 重算={er_exp:.4f}")
     if abs(c["margin_effect"] + c["turnover_effect"] + c["leverage_effect"]
            - (c["roe_product_cur"] - c["roe_product_prev"])) > 1e-9:
         rep.add(FAIL, "dupont", "连环替代恒等式不闭合（实现错误）")
@@ -279,8 +292,9 @@ def _check_drills(data, du, c, bad):
             s = sum(num(md.get(k)) or 0 for k in
                     ("op_effect", "tax_effect", "interest_effect", "minority_effect"))
             ratios = ((data.get("derived") or {}).get("ratios")) or {}
-            nm1 = num((ratios.get("net_margin") or {}).get("cur"))
-            nm0 = num((ratios.get("net_margin") or {}).get("prev"))
+            nm = ratios.get("net_margin")
+            nm1 = num(nm.get("cur")) if isinstance(nm, dict) else num(nm)
+            nm0 = num(nm.get("prev")) if isinstance(nm, dict) else None
             if None not in (nm1, nm0) and abs(s - (nm1 - nm0)) > 0.005:
                 bad.append(f"margin_drill 四项加和 {s:+.4f} ≠ Δ净利率 {nm1 - nm0:+.4f}——恒等分解不闭合")
     td, ce = du.get("turnover_drill"), c.get("turnover_drill")

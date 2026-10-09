@@ -44,7 +44,8 @@ def fill_derived(data):
     for name in RATIO_HIST_SPECS:
         cur = calc.get(name)
         series = [x for x in (ratio_hist_series(data, name) or []) if x is not None]
-        old = ratios.get(name) or {}
+        old = ratios.get(name)
+        old = old if isinstance(old, dict) else {}  # 裸数字等畸形节点不崩，按未填处理
         if cur is None and not series:
             continue
         node = dict(old)
@@ -62,7 +63,8 @@ def fill_derived(data):
     for name in _SINGLE_ITEMS:
         v = calc.get(name)
         if v is not None:
-            old = ratios.get(name) or {}
+            old = ratios.get(name)
+            old = old if isinstance(old, dict) else {}
             ratios[name] = {**old, "cur": R4(v)}
             n += 1
     # 各模型族机械块：compute_* 是公式唯一定义处，fill 只编排、保留下钻块的 src/note
@@ -99,7 +101,7 @@ def fill_derived(data):
     st = compute_stress(data)
     if st:
         der["stress"] = _filled({"scenarios": [{k: (R4(v) if isinstance(v, float) else v)
-                                                for k, v in sc.items()} for sc in st]},
+                                                for k, v in sc.items()} for sc in st[0]]},
                                 der.get("stress") or {}, "note")
         n += 1
     cts = compute_cash_ts(data)

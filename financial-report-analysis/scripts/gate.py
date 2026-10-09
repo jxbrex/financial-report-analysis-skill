@@ -36,6 +36,8 @@ def main():
                     help="透传 check_html --verbose（T8 等明细不截断）并打印明细行——排障用")
     ap.add_argument("--min-recon", type=int, default=None, metavar="N",
                     help="透传 calc.py --min-recon：recon 覆盖不足即 FAIL（年报 15/半年报 13/季报 8）")
+    ap.add_argument("--chrome", default=None,
+                    help="透传 check_render --chrome（Chrome/Edge 可执行文件路径；无浏览器机器渲染门禁跳过）")
     a = ap.parse_args()
 
     fails = []
@@ -54,15 +56,27 @@ def main():
     if r.returncode != 0:
         fails.append("check_html 未通过（FAIL 未清零）")
 
-    cmd = ["check_render.py", a.html] + (["--png", a.png] if a.png else [])
+    cmd = (["check_render.py", a.html] + (["--png", a.png] if a.png else [])
+           + (["--chrome", a.chrome] if a.chrome else []))
     r = run(*cmd)
+    render_skipped = False
     for line in (r.stdout or "").splitlines():
-        if "汇总" in line or "跳过" in line:
+        # 🔴 明细（哪张图/重叠几像素）与结论行一并透传——单入口的排障价值就在这；
+        # 截图分片行是过程噪音，--verbose 才透
+        if ("汇总" in line or "跳过" in line or line.startswith(("🔴", "❌", "✅ 渲染"))
+                or (a.verbose and line.lstrip().startswith(("·", "✅", "🔴")))):
             print(line)
+        if "渲染门禁跳过" in line:
+            render_skipped = True
     if r.returncode != 0:
         fails.append("check_render 发现问题（呈现未过）")
+        if (r.stderr or "").strip():  # 「无法测量页面」类 sys.exit 走 stderr，必须回显
+            print(r.stderr.strip()[:2000], file=sys.stderr)
 
-    print("\n=== gate 汇总：" + ("三道门禁全绿" if not fails else "；".join(fails)) + " ===")
+    summary = ("；".join(fails) if fails else
+               "两道硬门禁绿 + 渲染门禁跳过（无浏览器，呈现未测——换机/装浏览器后须重跑）"
+               if render_skipped else "三道门禁全绿")
+    print(f"\n=== gate 汇总：{summary} ===")
     return 1 if fails else 0
 
 

@@ -82,8 +82,7 @@ a:hover{text-decoration:underline}
 .card{background:var(--card);border:1px solid var(--grid);border-radius:10px;
  padding:18px 22px;margin:14px 0;overflow-x:auto}
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:18px}
-.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
-@media(max-width:860px){.grid2,.grid3{grid-template-columns:1fr}}
+@media(max-width:860px){.grid2{grid-template-columns:1fr}}
 table.data{width:100%;border-collapse:collapse;font-size:13.5px;margin:6px 0}
 table.data th{font-size:12px;font-weight:700;letter-spacing:.08em;color:var(--muted);
  text-align:left;padding:8px 10px;border-bottom:1.5px solid var(--ink)}
@@ -982,16 +981,20 @@ function combo(id,labels,barA,barB,line,lineName,aName,bName){
  labels.forEach((lb,i)=>{
  const w=bw*.24;
  const x=barB.length?L+i*bw+bw*.18:L+i*bw+(bw-w)/2; /* 双柱成组，单柱居中 */
+ /* null/负值不画柱不画标签：combo 值域不含 0 下界、负值无柱位（唯一调用方 holders
+  户数恒正）；缺数≠0，幽灵「0」读数必须从源头不画 */
+ if(barA[i]!=null&&barA[i]>=0){
  const ha=(H-B-T)*barA[i]/max;
  const r1=capsule(s,x,H-B-ha,w,ha,w/2,C1);
  tip(r1,`${lb} ${aName}：${fmt(barA[i])}`);
- if(barB.length){
+ const tx=barB.length?x+w:x+w/2;
+ txt(s,{x:tx,y:H-B-ha-6,'font-size':10,'font-weight':800,fill:INK,'text-anchor':'middle'},fmt(barA[i]));
+ }
+ if(barB.length&&barB[i]!=null&&barB[i]>=0){
  const hb=(H-B-T)*barB[i]/max;
  const r2=capsule(s,x+w+3,H-B-hb,w,hb,w/2,C2);
  tip(r2,`${lb} ${bName}：${fmt(barB[i])}`);
  }
- const tx=barB.length?x+w:x+w/2;
- txt(s,{x:tx,y:H-B-ha-6,'font-size':10,'font-weight':800,fill:INK,'text-anchor':'middle'},fmt(barA[i]));
  txt(s,{x:L+i*bw+bw/2,y:H-B+18,'font-size':10,'font-weight':600,fill:MUT,'text-anchor':'middle'},lb);
  });
  el(s,'line',{x1:L,y1:H-B,x2:W-R,y2:H-B,stroke:GRID,'stroke-width':1});
@@ -1052,11 +1055,13 @@ function _panelBars(s,labels,vals,color,extra,labelAll){
  const gx=i=>L+i*bw+(bw-gw)/2;
  vals.forEach((v,i)=>{
  const x=gx(i);
+ if(v!=null){ /* 主序列 null 跳柱不画（缺数≠0），副序列各自判、柱位不漂移 */
  const yv=T+(H-B-T)*(1-(v-lo)/span);
  const top=Math.min(yv,y0),hh=Math.abs(yv-y0);
  const r=capsule(s,x,top,w,hh,w/2,color,v<0?'down':undefined);
  tip(r,`${labels[i]}：${fmt(v)}`);
  txt(s,{x:x+w/2,y:v>=0?top-6:top+hh+13,'font-size':10,'font-weight':800,fill:INK,'text-anchor':'middle'},fmt(v));
+ }
  subs.forEach(([a,c2,nm],k)=>{
  if(a[i]==null)return;
  const xk=x+(k+1)*(w+3);
@@ -1258,7 +1263,7 @@ trendNp('npchart',TREND.labels,TREND.np,TREND.np_dt,TREND.ocf,TREND.roe);
 capexBars('capexbars',TREND.labels,TREND.capex,TREND.rd);
 effLine('effline',EFF_TS.labels,EFF_TS.dio,EFF_TS.dso,EFF_TS.ccc);
 ncrLine('ncrline',NCR_TS.labels,NCR_TS.ncr,NCR_TS.fcf,NCR_TS.mean);
-deltaBars('ocfbridge',OCF_BRIDGE.slice(1),[['期初·净利润',OCF_BRIDGE[0][1]],['期末·经营现金流',OCF_END]]);
+deltaBars('ocfbridge',OCF_BRIDGE.slice(1),[['期初·净利润',OCF_BRIDGE[0]?.[1]],['期末·经营现金流',OCF_END]]);
 deltaBars('segbridge',SEG_BRIDGE,[['基期·收入',SEG_ENDS[0]],['本期·收入',SEG_ENDS[1]]]);
 stackH('dupontstack',DUPONT_STACK.steps,DUPONT_STACK.gap,'pct');
 combo('holders',HOLDERS.labels,HOLDERS.num,[],HOLDERS.px,'环比增减','股东户数(万户)','');

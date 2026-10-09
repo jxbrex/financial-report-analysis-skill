@@ -238,7 +238,10 @@ def check_figtitle_attribution(text, rep, secs):
             tm = re.search(r"<table[^>]*>(.*?)</table>", text[m.end():], re.S)
             if tm:
                 tplain = re.sub(r"<[^>]+>", "", tm.group(1)).replace(" ", "").replace("−", "-")
-                shared = [n for n in nums if n in tplain]
+                # 边界感知等值比较：「1.2%」不许命中表格里的「11.2%」——子串匹配会把
+                # 表内读数误判成「共享数字」（复述罪名叠错）
+                shared = [n for n in nums
+                          if re.search(rf"(?<![\d.]){re.escape(n)}(?![\d.])", tplain)]
                 if len(shared) >= 2:
                     reasons.append(f"与紧随表格共享 {len(shared)} 个数字（{'、'.join(shared[:4])}），疑似复述")
         if reasons:
@@ -303,7 +306,7 @@ def check_inspection_verdict(text, rep):
 # 万华轮教训：模板 srcline 曾把「见 data.json signals 块」「references/articulation.md」
 # 「derived.threshold_check（calc.py 复算）」「v0.0.15 设定待校准」直接写给读者。
 INTERNAL_REF_RE = re.compile(
-    r"data\.json|references/|derived\.|calc\.py|check_html|fillsheet|v0\.0\.\d+|mx_[a-z_]+")
+    r"data\.json|references/|derived\.|calc\.py|check_html|fillsheet|v0\.\d+\.\d+|mx_[a-z_]+")
 
 
 def check_internal_ref(body, rep, secs):
@@ -585,5 +588,24 @@ def check_gap_declaration(body, rep):
         rep.add(FAIL, "gap-declaration",
                 f"s4 有 {n_q} 处 ❓ 断言但未见「数据缺口声明」行——❓ 须逐条写明缺什么数据"
                 "（text-mining.md 第七节呈现规范 2）")
+        return
+    # 逐条覆盖：每个含 ❓ 的表行首格文本前 10 字必须出现在声明行文本里——
+    # 「声明行存在但只写了一半」不算落实（规范与执行脱节以一半形式重现的口子）
+    decl = re.sub(r"<[^>]+>", "", "".join(
+        re.findall(r'<div class="srcline"[^>]*>(.*?)</div>', seg, re.S)))
+    missing_rows = []
+    for m in tm:
+        for r in re.findall(r"<tr>(.*?)</tr>", m.group(1), re.S):
+            if "❓" not in r:
+                continue
+            first = re.search(r"<td[^>]*>(.*?)</td>", r, re.S)
+            key = re.sub(r"<[^>]+>", "", first.group(1)).strip()[:10] if first else ""
+            if key and key not in decl:
+                missing_rows.append(key)
+    if missing_rows:
+        rep.add(FAIL, "gap-declaration",
+                f"数据缺口声明行在位但未逐条覆盖 {len(missing_rows)} 条 ❓ 断言"
+                f"（{'、'.join(missing_rows[:5])}）——❓ 须逐条写明缺什么数据"
+                "（text-mining.md 第七节呈现规范 2）")
     else:
-        rep.add(OK, "gap-declaration", f"s4 ❓ 断言 {n_q} 处，数据缺口声明行在位")
+        rep.add(OK, "gap-declaration", f"s4 ❓ 断言 {n_q} 处，数据缺口声明行在位且逐条覆盖")

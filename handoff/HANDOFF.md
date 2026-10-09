@@ -1,6 +1,6 @@
 # HANDOFF · 交接文档
 
-> 版本 **0.1.0** · 截至 2026-10-06 · 本文档面向「下一个接手这个项目的人/AI 会话」
+> 版本 **0.1.1** · 截至 2026-10-09 · 本文档面向「下一个接手这个项目的人/AI 会话」
 > 仓库：https://github.com/jxbrex/financial-report-analysis-skill（**私密**）
 > 部署：`C:/Users/rexji/.agents/skills/financial-report-analysis/`（由 `deploy.cmd` 镜像）
 
@@ -54,7 +54,7 @@ financial-report-analysis/
 │   │                             锚定填充断锚 exit 1；判断槽残留 {{}} 孔，一期半年报路径
 │   ├── check_html.py           #   Phase 8 报告层门禁入口（结构/硬规则族 + 主流程）
 │   ├── check_html_common.py    #   报告机检共享助手
-│   ├── check_html_text.py      #   呈现文本族 11+3 条检查（v0.0.19 拆出；PCTILE_LABEL 居此）
+│   ├── check_html_text.py      #   呈现文本族 15 条检查（v0.0.19 拆出；PCTILE_LABEL 居此）
 │   ├── check_html_t8.py        #   T8 数字回验整族（①级笔误检测 + hist_pool 豁免 + ②级行号回核 + v0.0.22 assert-trunc 断言填充截断）
 │   ├── check_render.py         #   渲染测量门禁（headless Chrome/Edge，--png 分片截图；v0.0.22 起 empty-svg 关键 SVG 非空检测）
 │   ├── gate.py                 #   三道门禁单入口
@@ -68,7 +68,7 @@ financial-report-analysis/
 │   ├── wanhua_2026h1.json      #   周期股样本（v0.0.18 固化：双驱动第二样本/ROIC·SGR 首验/白描分位锚点）
 │   ├── md_clean_synth.md       #   md_clean 合成金标准（自包含，四类病理；v0.0.17 起不再依赖原始 md）
 │   ├── t8_demo.html            #   T8 数字回验验收样例（改错版由回归运行时改数生成）
-│   └── run_regression.py       #   唯一回归入口：132 条断言 + check_html/T8/渲染冒烟 + 构造用例
+│   └── run_regression.py       #   唯一回归入口：177 条断言 + check_html/T8/渲染冒烟 + 构造用例
 ```
 
 ### 三道机器门禁 + 一条回归
@@ -88,7 +88,7 @@ financial-report-analysis/
    分位白描映射）；v0.0.19 起加 **assertion-count**（FAIL：断言 figtitle 三态计数
    a+b+c=N 且与表内徽章/底稿 assertions 一致）与 **recon-label**（勾稽三态旧长标签）、
    **decimal-places**（可见数字 ≥3 位小数）两条 WARN；v0.0.21 起加 **gap-declaration**（FAIL：s4 ❓ 断言须进「数据缺口声明」行）；v0.0.22 起加 **js-dup-decl**（FAIL：数据槽顶层 const 重复声明——JS 团灭防线）与 **assert-trunc**（FAIL：断言 text/evidence 填充截断，--json）。exit 0 才允许交付。
-3. **`python tests/run_regression.py`** —— 任何改动后必跑，**144 条断言**全绿才算没改坏
+3. **`python tests/run_regression.py`** —— 任何改动后必跑，**177 条断言**全绿才算没改坏
    （含 calc 四例 + check_html 冒烟 + T8 数字回验 + md_clean 合成样本 + 构造用例
    + fillsheet JS 槽形态冒烟）。
 
@@ -196,6 +196,22 @@ financial-report-analysis/
   机械照抄下撞 internal-ref 门禁——底稿措辞即对外口径，填底稿时自律（赢合 A6/A8 实证）
 - check_render 渲染冒烟偶发 exit 1（Edge 异步写盘/回调迟到，单独重跑即绿）——
   回归里撞上先重跑再排查（v0.1.0 轮实证一次）
+- JS 数据槽序列化唯一出口 `_jd`（calc_slots）：None→null + `</` 转义——新增 JS 槽必走；
+  f-string 裸插 None 是 JS 未定义标识符、整页团灭（v0.1.1 第三起同类前科后根治）
+- 「已修」以代码+回归为准、不以文档为准：四·七记录 _NO_SRC 词边界「已修」实际从未
+  落码（git log -S 无），v0.1.1 才真正落地（词边界 + 位数≥3 双保险）
+- fillsheet 金标准重生成流程（bug 修复改变合法输出形态时）：临时副本 --fill → diff 核对
+  只有预期行 → cp 覆盖金标准——不是「为变绿改 fixture」，每行差异必须有归属（v0.1.1
+  DUPONT_STACK 序列化形态演进即按此办理）
+- avg() 缺 prev 返回 None（v0.1.1）：prev 缺失的失效会传导成 leverage_drill.ni_prev/
+  hist_ye 脱钩 FAIL——如实指出修复点，不是误报；别再退回期末冒充平均
+- check_html 构造片段断言别查 returncode：片段无页脚，required FAIL 是背景噪音——
+  断言钉「[FAIL] 规则名」整段或规则行文案（v0.1.1 阳性⑨校准实证）
+- md_clean 页码判据：跳空行后邻居是噪声才算页码（markitdown 段落间必隔空行，紧邻
+  判不出）；孤立「|」不吞碎行（pre 落独立行+unmerged）
+- T8① 窗口 0.15%（代码 check_html_t8.py:154）——文档曾三处写 0.5%，调参以代码为准
+- ocf_drop 第 7 条降级路径：空 OCF 桥删 svg+brends+figtitle 声明；空桥 OCF_BRIDGE=[]
+  配模板 `OCF_BRIDGE[0]?.[1]` 双保险
 
 ## 三、历史发现与轮次记录
 
@@ -366,6 +382,73 @@ financial-report-analysis/
 
 
 
+## 四·八、当前未发布轮：v0.1.1（2026-10-09，ponytail-audit 全库审计修复轮）
+
+> 触发：用户触发 ponytail-audit 全库审计（v0.0.24 后第二轮）→ 20 条实证发现
+> （6 个子代理分模块审计 + 主会话抽查核实，全部带「输入→错误结果」案例），
+> 用户定案「全修」。本轮为专项修订轮，纪律 6「报告流程不修技能源」不适用。
+
+### 修订（全部落地，回归 147→177 全绿）
+
+1. **calc 族（8 修）**：effects_ratio=null 合法形态不再逼造数（移出 cmp_fields 单独判）；
+   walk_leaves 孤儿 `{"cur":x}` 不再静默吞（含 cur 一律叶子）；avg() 缺 prev 返回 None
+   （不再期末冒充平均，与序列路径同口径）+ hist_ye 非空但 prev 缺失判脱钩 FAIL +
+   dpo 守卫三式对齐；derived.ratios 三畸形（字符串 cur/hist 含字符串/裸数字节点）结构
+   检查报 type FAIL 不再 traceback；Altman/Ohlson 除零防护（休眠壳/两期净利均 0 走
+   inputs 通道）；stress scenarios 条数校验（截断不再 zip 假通过）+ OK 消息复用 dol
+   （不再第 4 次 build_ratio_calcs）；ratio-hist SKIP 消息补 n_skip
+2. **calc_slots/render（9 修）**：JS 槽序列化唯一出口 `_jd`（None→null + `</` 转义——
+   DUPONT_STACK `gap:None` / `OCF_END=None` 团灭两前科根治；分部名夹带 `</script>`
+   注入封堵）；_NO_SRC 词边界+位数≥3 双保险（BL2/TL431/「L2 级」不再被啃字——四·七
+   所谓「已修」从未落码实证）；recon_total 机械产出（不再手数）；s5 cip/s6 ratio 过
+   _TXT 链；fill_meta 两锚显式计数入断锚；_rebuild 保 tr 属性；explain 不再二次截长
+   （_trunc_num 双写删）；render 槽位新鲜度 WARN（底稿比 fillsheet.json 新即提醒）
+3. **模板（5 修）**：`OCF_BRIDGE[0]?.[1]` 可选链（空桥不再 TypeError 团灭 4 图）；
+   _panelBars/combo 主序列 null 跳柱不画（缺数≠0，幽灵 0 读数根治）+ combo 负值守卫；
+   .grid3 死 CSS 删；ocf_drop 第 7 条降级路径（空 OCF 桥删 svg+brends+figtitle 声明，
+   对齐 ncr_drop 模式）
+4. **check_html 族（10 修）**：internal-ref 版本号 v0.0.x→v0.x.x（现行 v0.1.0 不再
+   畅通）；dupont-stack 正则兼容 _jd 新形态/+ 号/gap=null（不再静默跳过）；
+   gap-declaration 逐条覆盖判据（声明一半不算落实）；T8① 全角＞＜豁免；undisclosed
+   跨单元格拼接不再拼假声明（标签换「，」）；hardrule style 注释豁免 + 协议相对外链
+   封堵；placeholder/decimal-places inline style 屏蔽；T8② 回核键面补分部与 recon
+   lhs/rhs；bare-number 连字符日期豁免；figtitle 复述判定边界感知
+5. **md_clean（4 修）**：孤立「|」不吞 pre 碎行（落独立行+unmerged，不再静默丢+统计
+   虚报）；文中独立数字行不再当页码误删（跳空行后邻居是噪声才算页码）；不变量二行
+   集合快判（17MB 85s→0.8s）；build_index 不再双算
+6. **ts_fetch（3 修）**：--params 逗号多值并入上一键（ts_code=A,B 不再 SystemExit）；
+   fields/items 不等长判结构异常（不再静默截断当无数据）；非 JSON 响应转可读 FAIL；
+   0 行提示「勿直接当无数据落底稿」
+7. **gate（3 修）**：渲染 SKIP 时汇总改「两道硬门禁绿 + 渲染门禁跳过」（不再假全绿）；
+   check_render 🔴 明细与 stderr 透传；--chrome 透传
+8. **测试体系（147→177，+30 断言）**：calc 阳性 8 / check_html 阳性 11 / render 断锚
+   +降级 6 / check_render 探测器阳性 2（empty-svg/overlap）/ md_clean 构造 2；
+   _leaves bool 盲区修复+键集对称差先判；康得新 Altman 断言锚 OK 行+反证 bad≥1 锚；
+   裸 assert ×3 改 raise；sys.path.insert 挪 main 首行；check_render --png 重名 id
+   加序号+旧分片提示、linger 循环内重读日志
+9. **文档一致性**：T8 0.5%→0.15% 三处（代码本是 0.15%，文档漂移）；HANDOFF 断言计数
+   132/144→177、呈现文本族 11+3→15；SKILL 校验六类→八类、报告路径口径（技能工作区
+   根 reports/）；SKILL.md 行尾统一 CRLF
+
+### 验证
+
+- 回归 147→177 全绿；金标准 fillsheet 唯一 diff = DUPONT_STACK 序列化形态
+  （f-string→json.dumps，数值逐字一致，金标准按运维速查流程重生成）；
+- 分模块修复各有实证探针（dupont-stack 三形态/hardrule 注释+协议相对/T8 全角/
+  undisclosed 跨格/gap 逐条/md_clean 三构造/gate SKIP 与 svgclip 透传/ts_fetch
+  参数解析/_jd·_NO_SRC·_TXT 单测）；
+- 茅台黄金样本 gate 对照：check_html FAIL 三条与基线类别逐字一致（internal-ref
+  1 处/num-vs-json 2 处/required 1 处，均为 v0.0.4 旧快照现象，纪律 7 不追溯），
+  WARN 11 条全属旧版式固有噪音、无 v0.1.1 新规则贡献；渲染 svgclip 0、empty-svg 0
+  （overlap 2 为旧版式固有）——本轮 10 条 check_html 修复对旧版式零误报零口径漂移。
+
+### 遗留
+
+- 无（审计 20 条全修；references 方法论正文、fixture 内部数据、tushare 真实接口、
+  Altman/Ohlson 系数本地化依据属「未审计」而非「未修」，下轮审计可续）。
+
+---
+
 ## 五、下一步工作计划
 
 > 治理（v0.0.22 用户定案）：本节只留**未完成**事项；已完成任务的记录移入 supersede/
@@ -422,7 +505,7 @@ financial-report-analysis/
 ```bash
 # 1. 确认环境
 cd "D:/KimiCodeProject/Financial Report Analysis"
-python financial-report-analysis/tests/run_regression.py   # 应 144/144 通过
+python financial-report-analysis/tests/run_regression.py   # 应 177/177 通过
 
 # 2. 部署（如需让技能在当前机器生效）
 cmd //c deploy.cmd

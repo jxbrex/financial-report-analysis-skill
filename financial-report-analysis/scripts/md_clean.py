@@ -70,7 +70,24 @@ def classify_furniture(lines):
         s = l.strip()
         if not s:
             continue
-        if PAGE_NO_RE.match(l) or FURN_RE.search(s):
+        if PAGE_NO_RE.match(l):
+            # 纯数字行 = 页码 仅当「跳空行后的」紧邻内容行也是噪声（页码/公告字样/报告
+            # 标题/章节头/文件边界）——markitdown 段落间几乎总隔空行，紧邻空行分不出
+            # 页码与文中数字行；文中独立年份（如散文间的「2024」）跳空后两侧是正文，不删
+            def _ctx(step):
+                j = i + step
+                while 0 <= j < len(lines) and not lines[j].strip():
+                    j += step
+                return lines[j].strip() if 0 <= j < len(lines) else ""
+            prev_s, nxt_s = _ctx(-1), _ctx(1)
+            near_noise = (not prev_s or not nxt_s
+                          or PAGE_NO_RE.match(prev_s) or PAGE_NO_RE.match(nxt_s)
+                          or FURN_RE.search(prev_s) or FURN_RE.search(nxt_s)
+                          or title_rep.search(prev_s) or title_rep.search(nxt_s)
+                          or SECTION_RE.match(prev_s) or SECTION_RE.match(nxt_s))
+            if near_noise:
+                furn.add(i)
+        elif FURN_RE.search(s):
             furn.add(i)
         elif title_rep.search(s) and counts[s] >= 3:
             furn.add(i)
@@ -107,7 +124,7 @@ def clean(lines):
             continue
         if is_pipe(line):
             in_table, seen_sep = True, (seen_sep if in_table else False)
-            pre = pending_pre[0] if pending_pre else None
+            pre, pre_i = pending_pre if pending_pre else (None, None)
             pending_pre = None
             post = None
             parts = line.split("|", 2)
@@ -115,9 +132,11 @@ def clean(lines):
             # 只有「标签未随行到达」的行才需要向后找 post 碎行：
             # ① pre 以断字结尾（现/（/引号）② 首格为空（标签全在后方）。
             # 首格自带完整标签的行（如「| 投资活动现金流入小计 |…|」）不找 post——
-            # 否则会把下一逻辑行的 pre 碎行错抢成本行标签（云铝首测实证）
+            # 否则会把下一逻辑行的 pre 碎行错抢成本行标签（云铝首测实证）。
+            # len(parts)<3 的畸形管道行（如孤立「|」）不可改写——不消费 post，
+            # 碎行走正常 frag 流程保文本，防静默丢行
             needs = (pre is not None and re.search(r"[现（(“\"]$", pre)) or (pre is None and not first.strip())
-            if needs:
+            if needs and len(parts) >= 3:
                 j = i + 1
                 while j < len(lines) and SEP_RE.match(lines[j]):
                     j += 1
@@ -133,7 +152,12 @@ def clean(lines):
                     line = (f"| {label} |{rest}" if not first.strip()
                             else f"| {label} {first.strip()} |{rest}")
                     merged = True
-                deleted["merged"] += bool(pre) + bool(post is not None)
+                    deleted["merged"] += bool(pre) + (post is not None)
+            if pre is not None and not merged:
+                # pre 未能并入本行（非断字待续/畸形管道行不可改写）——落独立行保文本 +
+                # 未合并清单，与「pending_pre 被顶替落行」同型（v0.1.1 静默丢行修复）
+                out.append([pre, pre_i, False])
+                unmerged.append((pre_i + 1, pre))
             out.append([line, i, merged])
             continue
         if is_frag(line):
@@ -219,15 +243,19 @@ def main():
         print(f"🔴 不变量违反：{sum(missing.values())} 个数字 token 在清洗中丢失，"
               f"样例 {list(missing.elements())[:8]}——禁止产出 clean md")
         return 1
-    # 不变量二：文字不丢——非页眉、非分隔、非合法改写、≥8 字的中文行必须作为子串存在于 clean 全文
+    # 不变量二：文字不丢——非页眉、非分隔、非合法改写、≥8 字的中文行必须作为子串存在于 clean 全文。
+    # 未改写行必逐字存在于 final → 先行集合 O(1) 快判；仅被拼接的碎行（子串形态存在）
+    # 走 blob 慢判——避免候选行 × 全文的 O(n²) 扫描（v0.1.1，17MB 级 md 85s→亚秒）
     clean_blob = "\n".join(final)
+    final_set = set(l.strip() for l in final)
     lost = []
     for i, l in enumerate(lines):
         s = l.strip()
         if i in furn or i in modified or SEP_RE.match(l) or len(s) < 8 or not re.search(r"[一-鿿]", s):
             continue
-        if s not in clean_blob:
-            lost.append((i + 1, s))
+        if s in final_set or s in clean_blob:
+            continue
+        lost.append((i + 1, s))
     if lost:
         print(f"🔴 不变量违反：{len(lost)} 行中文文本在清洗中丢失，"
               f"样例 {[s[:30] for _, s in lost[:5]]}——禁止产出 clean md")
@@ -237,13 +265,14 @@ def main():
     out_dir.mkdir(parents=True, exist_ok=True)
     clean_path = out_dir / f"{src.stem}.clean.md"
     index_path = out_dir / f"{src.stem}.index.json"
+    idx = build_index(final)
     clean_path.write_text("\n".join(final) + "\n", encoding="utf-8")
-    index_path.write_text(json.dumps(build_index(final), ensure_ascii=False, indent=1),
+    index_path.write_text(json.dumps(idx, ensure_ascii=False, indent=1),
                           encoding="utf-8")
 
     print(f"✅ {src.name}：{len(lines)} → {len(final)} 行（−{1 - len(final) / len(lines):.0%}）")
     print(f"   删重复分隔行 {deleted['sep']} · 页眉页脚 {deleted['furn']} · 拼回碎行 {deleted['merged']}")
-    print(f"   索引：{len(build_index(final)['sections'])} 节 / {len(build_index(final)['blocks'])} 关键块")
+    print(f"   索引：{len(idx['sections'])} 节 / {len(idx['blocks'])} 关键块")
     print(f"   产物：{clean_path.name} + {index_path.name}（source_md 应指向 clean 副本）")
     if unmerged:
         print(f"   ⚠️ 未合并清单 {len(unmerged)} 条（人工/子代理知悉，不影响不变量）：")

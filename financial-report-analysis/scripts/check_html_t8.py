@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """check_html_t8.py — T8 数字回验（check_html.py --json 时启用的两级校验）：
-①级 HTML↔data.json 笔误检测（独特值 0.5% 窗口 FAIL）；②级 data.json↔原文 md 行号回核；
+①级 HTML↔data.json 笔误检测（独特值 0.15% 窗口 FAIL）；②级 data.json↔原文 md 行号回核；
 ①级同侧：断言 text/evidence 填充截断检测（assert-trunc，v0.0.22）与未披露声明反向检索。
 """
 
@@ -112,10 +112,10 @@ def check_numbers_vs_json(body, raw, data, rep, verbose=False):
     matched = 0
     suspects = []
     for m in PLAIN_NUM_RE.finditer(text):
-        # 阈值语境豁免：数字前是 &lt;/&gt;/&le;/&ge;/≥/≤ 的是触发线，不是数值主张
+        # 阈值语境豁免：数字前是 &lt;/&gt;/&le;/&ge;/≥/≤/＞/＜ 的是触发线，不是数值主张
         # （正文裸 < 必然转义为 &lt;；标签闭合 > 不算——否则 <td> 内数字全被误豁免）
         head = text[max(0, m.start() - 8):m.start()].rstrip()
-        if head.endswith(("&lt;", "&gt;", "&le;", "&ge;", "≥", "≤")):
+        if head.endswith(("&lt;", "&gt;", "&le;", "&ge;", "≥", "≤", "＞", "＜")):
             continue
         txt = m.group(0).replace(",", "")
         # 外币语境豁免：后随 美元/欧元/港元 等币种的数字不是人民币科目（json 全部为人民币亿元）
@@ -206,6 +206,9 @@ def _value_in_text(v, text):
 
 def check_json_vs_md(data, json_path, rep, verbose=False):
     """②级：data.json ↔ 原文 md（5% 容差 + 单位换算 + 行号窗 ±2）。
+    回核面：三表 statements/parent_statements/notes + recon 勾稽块的数值键
+    （cur/prev + 分部 rev_cur/rev_prev/cost_cur/cost_prev + 勾稽 lhs/rhs——
+    与①级权威池同域；rev_factors/桥 delta 的 src 形态不一，不在面内）。
     src 无 L 行号 → 跳过计数；md 缺失 → 声明并整体跳过（HANDOFF T8 定案）。"""
     md_rel = (data.get("meta") or {}).get("source_md")
     md_path = _resolve_md(md_rel, json_path)
@@ -216,6 +219,7 @@ def check_json_vs_md(data, json_path, rep, verbose=False):
     leaves = []
     for section in ("statements", "parent_statements", "notes"):
         _iter_metric_leaves(data.get(section) or {}, [section], leaves)
+    _iter_metric_leaves(data.get("recon") or {}, ["recon"], leaves)
     checked = exact = shifted = no_src = 0
     misses = []
     for path, node in leaves:
@@ -224,7 +228,7 @@ def check_json_vs_md(data, json_path, rep, verbose=False):
         if not lns:
             no_src += 1
             continue
-        for key in ("cur", "prev"):
+        for key in ("cur", "prev", "rev_cur", "rev_prev", "cost_cur", "cost_prev", "lhs", "rhs"):
             v = _num_of(node, key)
             if v is None:
                 continue
@@ -277,9 +281,13 @@ def check_undisclosed_claims(visible, data, json_path, rep):
         rep.add(OK, "undisclosed", f"原文 md 未找到（{md_rel}），未披露声明反向检索未执行")
         return
     md_text = md_path.read_text(encoding="utf-8", errors="replace")
+    # 标签换成「，」（正则排除集内的字符）——等长屏蔽只留 9 个空格，仍会被
+    # `[^，。；、]{0,15}` 跨过，把相邻单元格（如「无」+「补充资料口径待核」）拼成
+    # 假「声明」；本检查不引行号，长度变化无副作用
+    text = re.sub(r"<[^>]+>", "，", visible)
     bad = []
     for kw, pat in UNDISCLOSED_KW:
-        claims = pat.findall(visible)
+        claims = pat.findall(text)
         if claims and kw in md_text:
             bad.append(f"报告 {len(claims)} 处声明「{claims[0]}…」，但原文 md 含「{kw}」"
                        f"（{md_text.count(kw)} 次）——「未披露」声明与原文矛盾："

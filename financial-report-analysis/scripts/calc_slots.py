@@ -28,12 +28,22 @@ _yoy = lambda c, p: "—" if not c or not p else f"{(c - p) / abs(p) * 100:+.1f}
 # JS DATA 槽不经过此（script 内 < 合法，SVG text 走 textContent）
 _E = lambda s: _htmlesc(str(s or ""), quote=False)
 # srcline/卡面来源文本剥 L 行号（长城实证：裸 L 行号会被 T8① 当数字提取撞窗；
-# 行号是底稿内部引用，srcline 纪律只写对外来源）
-_NO_SRC = lambda s: re.sub(r"[（(]?L\d+[-\d, L]*[）)]?", "", str(s or "")).strip(" ；;，,")
+# 行号是底稿内部引用，srcline 纪律只写对外来源）。
+# 词边界+位数双保险（v0.1.1）：L 前紧贴字母数字（BL2/TL431 型号型）不剥；
+# L 后 <3 位数字（「L2 级辅助驾驶」型）不剥——真实行号引用都在 3 位以上
+_NO_SRC = lambda s: re.sub(r"(?<![A-Za-z0-9])[（(]?L\d{3,}[-\d, L]*[）)]?", "", str(s or "")).strip(" ；;，,")
 # 长小数截两位（decimal-places 门禁：可见数字 ≤2 位；行号整数不受影响）
 _trunc2 = lambda s: re.sub(r"\d+\.\d{3,}", lambda m: f"{float(m.group(0)):.2f}", s)
 # json 原文进 HTML 文本槽的完整链：剥 L 行号 → 截长小数 → 转义
 _TXT = lambda s: _E(_trunc2(_NO_SRC(s)))
+# 数值/文本混合字段的转义：文本过 _TXT 链，数值直通（_TXT 会把数值 0 吞成空串）
+_TXTV = lambda x: _TXT(x) if isinstance(x, str) else x
+
+
+def _jd(x):
+    """JS 槽 JSON 序列化唯一出口：json.dumps + `</` 转义——底稿原文（分部名/期间标签）
+    夹带 `</script>` 会提前闭合脚本块团灭整页 JS；`<\\/` 在 JSON/JS 字符串里等价 `<`。"""
+    return json.dumps(x, ensure_ascii=False).replace("</", "<\\/")
 
 
 # 方向语义（frameworks.md 方向语义表）：True=升为好 / False=降为好 / None=语境中性
@@ -361,7 +371,9 @@ def write_fillsheet(data, path):
 # ──────────────────────────────────────────────────────────────────────────
 
 def _js_slots(data):
-    """JS DATA 区 9 槽整行文本（含 SEG 分部轴降级与 HOLDERS 时序）+ 双桥端点行文本。"""
+    """JS DATA 区 9 槽整行文本（含 SEG 分部轴降级与 HOLDERS 时序）+ 双桥端点行文本。
+    一切 JSON 序列化走 _jd（None→null、`</` 转义）——f-string 裸插 None 是 JS 未定义
+    标识符，整段 script 报错即全图团灭（v0.1.1 修复）。"""
     der = data.get("derived") or {}
     meta = data.get("meta") or {}
     stmts = data.get("statements") or {}
@@ -374,10 +386,10 @@ def _js_slots(data):
     out = {}
     cts = der.get("cash_ts") or {}
     if cts.get("ncr"):
-        out["NCR_TS"] = (f"const NCR_TS={{labels:{json.dumps(cts.get('periods') or [], ensure_ascii=False)},"
-                         f"ncr:{json.dumps(_r2l(cts.get('ncr') or []))},"
-                         f"fcf:{json.dumps(_r2l(cts.get('fcf_to_np') or []))},"
-                         f"mean:{json.dumps(R2(cts.get('ncr_mean5')))}}};")
+        out["NCR_TS"] = (f"const NCR_TS={{labels:{_jd(cts.get('periods') or [])},"
+                         f"ncr:{_jd(_r2l(cts.get('ncr') or []))},"
+                         f"fcf:{_jd(_r2l(cts.get('fcf_to_np') or []))},"
+                         f"mean:{_jd(R2(cts.get('ncr_mean5')))}}};")
     else:
         out["NCR_TS"] = "const NCR_TS={labels:[],ncr:[],fcf:[],mean:null};"
 
@@ -387,26 +399,27 @@ def _js_slots(data):
         if labels and arr else arr
     _gm_pct = [round(x * 100, 2) if x is not None else None
                for x in _aln(_hist(ratios.get("gross_margin")))]
-    out["TREND"] = (f"const TREND={{labels:{json.dumps(labels, ensure_ascii=False)},"
-                    f"rev:{json.dumps(_r2l(_aln(_hist(inc.get('revenue')))))},"
-                    f"np:{json.dumps(_r2l(_aln(_hist(inc.get('np_at')))))},"
-                    f"np_dt:{json.dumps(_r2l(_aln(_hist(inc.get('np_dt')))))},"
-                    f"ocf:{json.dumps(_r2l(_aln(_hist(cfs.get('ocf')))))},"
-                    f"roe:{json.dumps(_aln(_hist(ratios.get('roe'))))},"
-                    f"gm:{json.dumps(_gm_pct)},"
-                    f"capex:{json.dumps(_r2l(_aln(_hist(cfs.get('capex')))))},"
-                    f"rd:{json.dumps(_r2l(_aln(_hist(inc.get('rd_exp')))))}}};")
-    out["EFF_TS"] = (f"const EFF_TS={{labels:{json.dumps(labels, ensure_ascii=False)},"
-                     f"dio:{json.dumps(_r2l(_aln(_hist(ratios.get('dio')))))},"
-                     f"dso:{json.dumps(_r2l(_aln(_hist(ratios.get('dso')))))},"
-                     f"ccc:{json.dumps(_r2l(_aln(_hist(ratios.get('ccc')))))}}};")
+    out["TREND"] = (f"const TREND={{labels:{_jd(labels)},"
+                    f"rev:{_jd(_r2l(_aln(_hist(inc.get('revenue')))))},"
+                    f"np:{_jd(_r2l(_aln(_hist(inc.get('np_at')))))},"
+                    f"np_dt:{_jd(_r2l(_aln(_hist(inc.get('np_dt')))))},"
+                    f"ocf:{_jd(_r2l(_aln(_hist(cfs.get('ocf')))))},"
+                    f"roe:{_jd(_aln(_hist(ratios.get('roe'))))},"
+                    f"gm:{_jd(_gm_pct)},"
+                    f"capex:{_jd(_r2l(_aln(_hist(cfs.get('capex')))))},"
+                    f"rd:{_jd(_r2l(_aln(_hist(inc.get('rd_exp')))))}}};")
+    out["EFF_TS"] = (f"const EFF_TS={{labels:{_jd(labels)},"
+                     f"dio:{_jd(_r2l(_aln(_hist(ratios.get('dio')))))},"
+                     f"dso:{_jd(_r2l(_aln(_hist(ratios.get('dso')))))},"
+                     f"ccc:{_jd(_r2l(_aln(_hist(ratios.get('ccc')))))}}};")
 
     du = der.get("dupont") or {}
     _p1 = lambda x: None if x is None else round(x * 100, 1)
-    out["DUPONT_STACK"] = (
-        f"const DUPONT_STACK={{steps:[['净利率',{_p1(du.get('margin_effect'))}],"
-        f"['周转率',{_p1(du.get('turnover_effect'))}],['杠杆',{_p1(du.get('leverage_effect'))}]],"
-        f"gap:{_p1(du.get('closure_gap'))}}};")
+    out["DUPONT_STACK"] = ("const DUPONT_STACK=" + _jd(
+        {"steps": [["净利率", _p1(du.get("margin_effect"))],
+                   ["周转率", _p1(du.get("turnover_effect"))],
+                   ["杠杆", _p1(du.get("leverage_effect"))]],
+         "gap": _p1(du.get("closure_gap"))}) + ";")
 
     # SEG_BRIDGE：量价齐→三效应；全 null→by_segment 分部轴（v0.1.0 机械化，原手填指引退役）；
     # 分部合计 ≠ Δ总收入时补「其他」桶闭合（calc bridge 卡口要求 Σ=Δ收入）
@@ -426,8 +439,8 @@ def _js_slots(data):
             rest = round(rev_d - sum(v for _, v in seg), 2)
             if abs(rest) > 0.005:
                 seg.append(["其他", rest])
-    out["SEG_BRIDGE"] = f"const SEG_BRIDGE={json.dumps(seg, ensure_ascii=False)};"
-    out["SEG_ENDS"] = f"const SEG_ENDS={json.dumps([R2(_v(inc, 'revenue', 'prev')), R2(_v(inc, 'revenue'))])};"
+    out["SEG_BRIDGE"] = f"const SEG_BRIDGE={_jd(seg)};"
+    out["SEG_ENDS"] = f"const SEG_ENDS={_jd([R2(_v(inc, 'revenue', 'prev')), R2(_v(inc, 'revenue'))])};"
     out["brends_seg"] = (f"基期收入 {_F2(_v(inc, 'revenue', 'prev'))} 亿 →"
                          f"（{'三效应合计' if _by_volume else '分部合计'} {rev_d:+.2f} 亿）→ "
                          f"本期收入 {_F2(_v(inc, 'revenue'))} 亿" if rev_d is not None else "")
@@ -441,14 +454,14 @@ def _js_slots(data):
         rows = [[head[0], round(head[1], 2)]] + [[n, round(v, 2)] for n, v in top]
         if tail:
             rows.append(["其他", round(sum(v for _, v in tail), 2)])
-        out["OCF_BRIDGE"] = f"const OCF_BRIDGE={json.dumps(rows, ensure_ascii=False)};"
-        out["OCF_END"] = f"const OCF_END={R2(_v(cfs, 'ocf'))};"
+        out["OCF_BRIDGE"] = f"const OCF_BRIDGE={_jd(rows)};"
+        out["OCF_END"] = f"const OCF_END={_jd(R2(_v(cfs, 'ocf')))};"
         adj = round(sum(v for _, v in items[1:]), 2)
         out["brends_ocf"] = (f"净利润 {head[1]:.2f} 亿 →（调节净额 {adj:+.2f} 亿）→ "
                              f"经营现金流净额 {_F2(_v(cfs, 'ocf'))} 亿")
     else:
         out["OCF_BRIDGE"] = "const OCF_BRIDGE=[];"
-        out["OCF_END"] = f"const OCF_END={R2(_v(cfs, 'ocf'))};"
+        out["OCF_END"] = f"const OCF_END={_jd(R2(_v(cfs, 'ocf')))};"
         out["brends_ocf"] = ""
 
     # HOLDERS（schema 1.6 holder_ts）：num 户→万户 R2、px 环比 R1、首期 null；
@@ -456,9 +469,9 @@ def _js_slots(data):
     hts = ((data.get("notes") or {}).get("shareholders") or {}).get("holder_ts") or {}
     hl, hn, hp = hts.get("labels") or [], hts.get("num") or [], hts.get("px") or []
     if len(hl) >= 3 and len(hl) == len(hn) == len(hp):
-        out["HOLDERS"] = (f"const HOLDERS={{labels:{json.dumps(hl, ensure_ascii=False)},"
-                          f"num:{json.dumps([round(x / 10000, 2) for x in hn])},"
-                          f"px:{json.dumps([None if p is None else round(p, 1) for p in hp])}}};")
+        out["HOLDERS"] = (f"const HOLDERS={{labels:{_jd(hl)},"
+                          f"num:{_jd([round(x / 10000, 2) for x in hn])},"
+                          f"px:{_jd([None if p is None else round(p, 1) for p in hp])}}};")
     else:
         out["HOLDERS"] = "const HOLDERS={labels:[],num:[],px:[]};"
     return out
@@ -729,6 +742,7 @@ def build_slots(data):
         recon_rows.append({"eq": f"{pre} {_RECON_NAME.get(pre, k)}", "verdict": v.get("verdict"),
                            "deviation": dev, "explain": _TXT(v.get("explanation") or "")})
     slots["s2"]["recon_rows"] = recon_rows
+    slots["s2"]["recon_total"] = len(rec)
     slots["s2"]["recon_closed"] = len(rec) - len(abn)
     tk = der.get("threshold_check") or {}
     shell, refi, inc_ = tk.get("shell_line") or {}, tk.get("refinance_line") or {}, tk.get("incentive_line") or {}
@@ -803,6 +817,9 @@ def build_slots(data):
                      "delta": (None if _v(inc, "np_at") is None or _v(inc, "np_at", "prev") is None
                                else f"{_v(inc, 'np_at') - _v(inc, 'np_at', 'prev'):+.2f}")},
         "brends_seg": js.get("brends_seg") or "", "brends_ocf": js.get("brends_ocf") or "",
+        # OCF 桥降级标记（补充资料未披露的合法 WARN 态）：空桥必删 svg，否则撞 empty-svg
+        "ocf_drop": not any(isinstance(x.get("delta"), (int, float))
+                            for x in (der.get("ocf_bridge") or [])),
     }
     wcd = der.get("wc_devour") or {}
     if wcd.get("amount") is not None:
@@ -832,9 +849,9 @@ def build_slots(data):
     # ── S5 在建工程（空→降级行）/ 产能卡（空→整卡删）──
     cip = notes.get("cip_projects") or []
     slots["s5"] = {
-        "cip_rows": [{"name": _TXT(p.get("name")), "budget": p.get("budget"),
-                      "invested": p.get("invested_cur"), "progress": p.get("progress"),
-                      "transferred": p.get("transferred"), "note": _TXT(p.get("note"))}
+        "cip_rows": [{"name": _TXT(p.get("name")), "budget": _TXTV(p.get("budget")),
+                      "invested": _TXTV(p.get("invested_cur")), "progress": _TXTV(p.get("progress")),
+                      "transferred": _TXTV(p.get("transferred")), "note": _TXT(p.get("note"))}
                      for p in cip],
         "cip_empty": not cip,
         "cap_drop": not (notes.get("capacity") or []),
@@ -862,7 +879,7 @@ def build_slots(data):
                 pass
         elif t.get("change_type"):
             share_txt = t.get("change_type")
-        top10.append({"name": _TXT(t.get("name")), "nature": _TXT(t.get("nature")), "ratio": ratio_txt,
+        top10.append({"name": _TXT(t.get("name")), "nature": _TXT(t.get("nature")), "ratio": _TXT(ratio_txt),
                       "pledge_raw": _TXT(t.get("pledge_freeze")), "change_txt": share_txt or "—",
                       "change_cls": {"减持": "dn", "增持": "up"}.get(t.get("change_type"), "")})
     slots["s6"] = {

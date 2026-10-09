@@ -213,12 +213,16 @@ def check_kangdexin(case, proc, data):
     # v0.0.6 T9：D 组母公司单体勾稽（manual 型结构校验）必须真的被执行到
     case.expect("D1_parent_cash" in (proc.stdout or ""),
                 "新检查生效：calc.py 输出含 D1_parent_cash 行（D 组母公司勾稽被执行）")
-    # v0.0.12：造假样本的破产双模型必须真的算出来（非 SKIP）——失真时应 FAIL 而非静默
-    case.expect("Altman" in (proc.stdout or ""),
-                "新检查生效：康得新 Altman/Ohlson 复算被执行（v0.0.12）")
+    # v0.0.12：造假样本的破产双模型必须真的算出来——锚定 OK 行（降级为 SKIP 即红，
+    # 旧断言「输出含 Altman 字样」在 SKIP 文案带字时会假绿，v0.1.1 加固）
+    case.expect(any("[OK" in l and "risk-models" in l and "Altman" in l
+                    for l in (proc.stdout or "").splitlines()),
+                "新检查生效：康得新 Altman 复算为 OK 行（非 SKIP 降级，v0.1.1 锚加固）")
     asserts = data.get("assertions") or []
     case.expect(len(asserts) >= 1, f"断言表已落库（assertions >= 1，实际 {len(asserts)}）")
     bad = [a for a in asserts if isinstance(a, dict) and a.get("verdict") == "不成立"]
+    case.expect(len(bad) >= 1,
+                f"判「不成立」的断言 >= 1 条（实际 {len(bad)}——空列表会让反证断言恒真，v0.1.1 补锚）")
     case.expect(all(a.get("evidence") for a in bad),
                 f"判「不成立」的断言均带反证（{len(bad)} 条）")
     # v0.0.15（schema 1.3）：口径断裂样本的五年归因必须合法降级（整块缺失/null + SKIP 行）
@@ -338,6 +342,10 @@ def main():
     ap.add_argument("--verbose", action="store_true", help="附带 calc.py 的完整原始输出")
     args = ap.parse_args()
 
+    # scripts 目录入 import 路径必须最先做（后续各构造块的 calc_*/check_html/render_report
+    # import 全靠它；原先埋在中段，前置块提前 return 会跳过后续 import 的隐式顺序坑）
+    sys.path.insert(0, str(SKILL / "scripts"))
+
     print("=== financial-report-analysis 金标准回归 · calc.py 四例 ===")
     print(f"技能根：{SKILL}")
     print(f"门禁：  {CALC}")
@@ -441,7 +449,9 @@ def main():
     # 改错版不落文件：运行时由正确版改数生成（两版唯一有效差异 1688.4 → 1688.9）
     t8_ok = _check_html(HERE / "t8_demo.html")
     _t8_txt = (HERE / "t8_demo.html").read_text(encoding="utf-8")
-    assert ">1688.4<" in _t8_txt, "t8_demo.html 锚点数字形态变了？（着陆断言防 replace 落空）"
+    if ">1688.4<" not in _t8_txt:
+        raise RuntimeError("t8_demo.html 锚点数字形态变了？（着陆断言防 replace 落空；"
+                           "裸 assert 在 python -O 下会被剥掉，v0.1.1 改 raise）")
     t8_bad = _run_html_str(_t8_txt.replace(">1688.4<", ">1688.9<"))
     t8_checks = [
         (t8_ok.returncode == 0,
@@ -544,7 +554,6 @@ def main():
             os.unlink(tmp_md)
             os.unlink(tmp_json)
 
-    sys.path.insert(0, str(SKILL / "scripts"))
     from calc_models import write_fillsheet
 
     def _fillsheet_slot(data, marker, terminator):
@@ -750,7 +759,8 @@ def main():
                 "dso:[270.82,298.9,321.51,317.49,224.49],"
                 "ccc:[321.51,356.38,337.93,321.31,285.93]};")
         _js = re.sub(r"const EFF_TS=\{.*?\};", _eff, _js, count=1)
-        assert "332.98" in _js, "模板 EFF_TS 槽替换失败——槽形态变了？"
+        if "332.98" not in _js:
+            raise RuntimeError("模板 EFF_TS 槽替换失败——槽形态变了？（裸 assert 在 -O 下失效，v0.1.1 改 raise）")
         _page = ("<!doctype html><html lang=\"zh-Hans\"><head><meta charset=\"utf-8\"><style>"
                  ":root{--bg:#fff;--ink:rgb(58,42,28);--muted:rgba(58,42,28,.6);"
                  "--faint:rgba(58,42,28,.32);--grid:rgba(58,42,28,.16);--card:#fff;"
@@ -808,7 +818,8 @@ def main():
                      "['其他业务（含电子烟）',-4.0]];", _js, count=1)
         _js = re.sub(r"const SEG_ENDS=\[.*?\];", "const SEG_ENDS=[42.64,60.9];",
                      _js, count=1)
-        assert "锂电池专用生产设备" in _js, "模板 SEG_BRIDGE 槽替换失败——槽形态变了？"
+        if "锂电池专用生产设备" not in _js:
+            raise RuntimeError("模板 SEG_BRIDGE 槽替换失败——槽形态变了？（裸 assert 在 -O 下失效，v0.1.1 改 raise）")
         _page = ("<!doctype html><html lang=\"zh-Hans\"><head><meta charset=\"utf-8\"><style>"
                  ":root{--bg:#fff;--ink:rgb(58,42,28);--muted:rgba(58,42,28,.6);"
                  "--faint:rgba(58,42,28,.32);--grid:rgba(58,42,28,.16);--card:#fff;"
@@ -834,6 +845,48 @@ def main():
                       [(_clip_ok, "静态出界 text 必命中 svgclip 且 exit 1"),
                        (_seg_ok, "赢合长标签 SEG_BRIDGE 自适应 L 后渲染 0 问题")],
                       "看上方 check_render 输出。"):
+            return 1
+
+    # ── check_render 探测器阳性（v0.1.1 审计补口：五类探测器此前只有 svgclip 有阳性，
+    # empty-svg/overlap 置空变异回归全绿——长城事故补口规则恰恰没有「破坏必红」锁）──
+    if "渲染门禁跳过" in render_out:
+        print("\n【check_render 探测器阳性】SKIP（本机无 Chrome/Edge，随渲染门禁一并跳过）")
+    else:
+        _tmpe = HERE / "_empty_svg_demo.html"
+        _tmpe.write_text(
+            '<!doctype html><html><head><meta charset="utf-8"></head><body>'
+            '<div class="sheet"><svg id="ncrline" viewBox="0 0 460 250"></svg></div></body></html>',
+            encoding="utf-8")
+        try:
+            _re = subprocess.run([sys.executable, str(SKILL / "scripts" / "check_render.py"),
+                                  str(_tmpe)], capture_output=True, text=True,
+                                 encoding="utf-8", errors="replace")
+            _esvg_ok = _re.returncode == 1 and "empty-svg" in (_re.stdout or "")
+            if not _esvg_ok:
+                print(_re.stdout)
+        finally:
+            _tmpe.unlink(missing_ok=True)
+        _tmpo = HERE / "_overlap_demo.html"
+        _tmpo.write_text(
+            '<!doctype html><html><head><meta charset="utf-8"></head><body>'
+            '<div class="sheet"><svg id="demo" viewBox="0 0 200 100">'
+            '<text x="50" y="50" font-size="10">重叠标签甲甲乙乙</text>'
+            '<text x="52" y="51" font-size="10">重叠标签丙丙丁丁</text>'
+            '</svg></div></body></html>',
+            encoding="utf-8")
+        try:
+            _ro2 = subprocess.run([sys.executable, str(SKILL / "scripts" / "check_render.py"),
+                                   str(_tmpo)], capture_output=True, text=True,
+                                  encoding="utf-8", errors="replace")
+            _ovl_ok = _ro2.returncode == 1 and "overlap" in (_ro2.stdout or "")
+            if not _ovl_ok:
+                print(_ro2.stdout)
+        finally:
+            _tmpo.unlink(missing_ok=True)
+        if not _block("check_render 探测器阳性（v0.1.1 审计补口）",
+                      [(_esvg_ok, "空 svg 必命中 empty-svg 且 exit 1（长城团灭补口规则锁）"),
+                       (_ovl_ok, "同位两 text 必命中 overlap 且 exit 1")],
+                      "check_render 探测器阳性失效，看上方输出。"):
             return 1
 
     # ── render_report 重放金标准 + fillsheet 逐字锁（v0.1.0，N4 fill→render）──
@@ -936,9 +989,9 @@ def main():
                 out.update(_leaves(v, pre + str(i) + "."))
         elif isinstance(node, (int, float)) and not isinstance(node, bool):
             out[pre[:-1]] = node
-        elif isinstance(node, str):
-            out[pre[:-1]] = node
-        return out
+        elif isinstance(node, (str, bool)):
+            out[pre[:-1]] = node   # bool 叶纳入（triggered/driver_fragile 等是 fill 输出），
+        return out                 # 否则 fill 翻转布尔幂等照绿（v0.1.1 盲区修复）
 
     fill_checks = []
     with tempfile.TemporaryDirectory() as td2:
@@ -952,10 +1005,12 @@ def main():
                                capture_output=True, text=True, encoding="utf-8", errors="replace")
             a = _leaves(json.loads(src.read_text(encoding="utf-8"))["derived"])
             b = _leaves(json.loads(dst.read_text(encoding="utf-8"))["derived"])
-            bad = []
-            for k in sorted(set(a) | set(b)):
+            # 键集必须先完全相等（缺失/新增键直接列出）——(x or 0) 会把「键缺失 vs
+            # 值≈0」压进容差内假绿；bool/str 叶精确比对，数值叶容差 5e-4（v0.1.1 加固）
+            bad = sorted(set(a) ^ set(b))
+            for k in sorted(set(a) & set(b)):
                 x, y = a.get(k), b.get(k)
-                if isinstance(x, str) or isinstance(y, str):
+                if isinstance(x, (str, bool)) or isinstance(y, (str, bool)):
                     if x != y:
                         bad.append(k)
                 elif abs((x or 0) - (y or 0)) > 5e-4:
@@ -1033,6 +1088,29 @@ def main():
              f"索引产出：sections={len(idx.get('sections') or [])} ≥5 / "
              f"blocks={len(idx.get('blocks') or {})} ≥2"),
         ]
+        # v0.1.1 审计补口两构造：孤立「|」管道行不得吞 pre 碎行（修复前碎行被 consumed
+        # 后静默丢、统计还虚报拼回数）；文中独立数字行不得当页码误删（修复前散文间的
+        # 「2024」被删且页码类删除不计入数字不变量，双不变量结构性失明）
+        for name, md_text, must_in in (
+            ("_audit_frag",
+             "第三节 管理层讨论与分析\n报告期内公司营业收入 1,234.56 亿元。\n"
+             "| 项目 | 本期 |\n| --- | --- |\n| 货币资金 | 530.80 |\n"
+             "经营活动现金流量净额\n|\n| 1,234.56 |\n\n报告期内公司继续经营中，无重大变化。\n",
+             "经营活动现金流量净额"),
+            ("_audit_year",
+             "第一节 重要提示\n本公司 2023 年完成重组，各项工作有序推进。\n\n2024\n\n"
+             "公司实现营业收入 1,234.56 亿元，同比增长，经营情况稳定向好发展。\n",
+             "2024"),
+        ):
+            _f2 = Path(td) / f"{name}.md"
+            _f2.write_text(md_text, encoding="utf-8")
+            _rr2 = subprocess.run([sys.executable, str(SKILL / "scripts" / "md_clean.py"),
+                                   str(_f2), "--out-dir", td],
+                                  capture_output=True, text=True, encoding="utf-8", errors="replace")
+            _c2p = Path(td) / f"{name}.clean.md"
+            _c2 = _c2p.read_text(encoding="utf-8") if _c2p.exists() else ""
+            md_checks.append((_rr2.returncode == 0 and must_in in _c2,
+                              f"v0.1.1 构造：{name[7:]} 形态 exit 0 且「{must_in}」保留不丢"))
         # 加成校验：本机若存有真实报告 md（不入库），跑一遍双不变量作参考
         for md_name in ("贵州茅台2025年年度报告.md", "康得新2018年年度报告.md"):
             md_src = SKILL.parent / "reports" / "archive" / "原始报告" / md_name
@@ -1106,6 +1184,250 @@ def main():
                    (any(lv == _FAIL and "y_mode" in msg for lv, _, msg in rep5.rows),
                     "v1.5 构造用例：声明 delta 但 cost_prev 缺 null → y_mode FAIL 且不 crash")],
                   "v1.5 构造用例断言失败。"):
+        return 1
+
+    # ── calc FAIL 判据阳性（v0.1.1 全库审计补口）──
+    # 变异实证：四例都是合法样本只断言 exit 0，门禁 FAIL 判据被改钝/误删时回归照样全绿
+    # （M4 check_signals 清空、M5 ratio-hist FAIL→WARN 均无感）。每个破坏样本锁一片
+    # FAIL 分支（exit 1 + 关键码），v0.1.1 修复的新判据同锁。
+    def _run_calc_json(obj, name):
+        """破坏样本写临时 json 跑 calc.py（calc FAIL 判据阳性用例共用；不动 fixture 原文件）。"""
+        with tempfile.NamedTemporaryFile("w", suffix="_" + name, delete=False,
+                                         encoding="utf-8") as f:
+            json.dump(obj, f, ensure_ascii=False)
+            tmp = f.name
+        try:
+            return run_calc(Path(tmp))
+        finally:
+            os.unlink(tmp)
+
+    d_src = copy.deepcopy(base)
+    del d_src["statements"]["balance"]["cash"]["src"]          # ① 出处链命门
+    r_src = _run_calc_json(d_src, "del_src.json")
+    d_hole = copy.deepcopy(base)
+    d_hole["statements"]["balance"]["hole_test"] = {"cur": 1.0}  # ② 孤儿 cur 叶子（曾静默吞）
+    r_hole = _run_calc_json(d_hole, "hole.json")
+    d_ratio = copy.deepcopy(base)
+    d_ratio["derived"]["ratios"]["roe"]["cur"] += 0.05         # ③ 比率 derived 改错
+    r_ratio = _run_calc_json(d_ratio, "bad_ratio.json")
+    d_str = copy.deepcopy(base)
+    d_str["derived"]["ratios"]["roe"]["cur"] = "5.2%"          # ④ 字符串 cur（曾 traceback）
+    r_str = _run_calc_json(d_str, "str_cur.json")
+    d_hye = copy.deepcopy(load_json(WANHUA))
+    d_hye["statements"]["balance"]["ar"]["prev"] = None        # ⑤ hist_ye 脱钩（曾静默）
+    r_hye = _run_calc_json(d_hye, "hye.json")
+    d_st = copy.deepcopy(load_json(WANHUA))
+    d_st["derived"]["stress"]["scenarios"] = d_st["derived"]["stress"]["scenarios"][:1]  # ⑥ 截断
+    r_st = _run_calc_json(d_st, "stress.json")
+    d_avg = copy.deepcopy(load_json(VANKE))
+    d_avg["statements"]["balance"]["payable"]["prev"] = None   # ⑦ avg 不再期末冒充平均
+    r_avg = _run_calc_json(d_avg, "avg.json")
+    # ⑧ effects_ratio=null 合法形态（直测）：三效应全零时 check_dupont 不得逼分析师造数
+    d_er = copy.deepcopy(base)
+    for _nm in ("net_margin", "asset_turnover", "equity_multiplier"):
+        d_er["derived"]["ratios"][_nm]["cur"] = d_er["derived"]["ratios"][_nm]["prev"]
+    c_er = calc_dupont.compute_dupont(d_er)
+    d_er["derived"]["dupont"].update({
+        "margin_effect": c_er["margin_effect"], "turnover_effect": c_er["turnover_effect"],
+        "leverage_effect": c_er["leverage_effect"],
+        "roe_product_cur": c_er["roe_product_cur"], "roe_product_prev": c_er["roe_product_prev"],
+        "closure_gap": c_er["closure_gap"], "effects_ratio": None, "driver": None,
+        "driver_fragile": None, "driver_second": None, "margin_drill": None})
+    if isinstance(d_er["derived"]["dupont"].get("leverage_drill"), dict):
+        d_er["derived"]["dupont"]["leverage_drill"]["quality_upgrade"] = None
+    rep_er = _Rep()
+    _calc.check_dupont(d_er, rep_er)
+    fails_er = [m for lv, _, m in rep_er.rows if lv == _FAIL]
+    calc_pos_checks = [
+        (r_src.returncode == 1 and "src" in (r_src.stdout or ""),
+         "阳性①：删 src 必 exit 1（structure/src 出处链判据）"),
+        (r_hole.returncode == 1 and "hole_test" in (r_hole.stdout or ""),
+         "阳性②：孤儿 {cur:x} 叶子必 exit 1（walk_leaves 不再静默吞，v0.1.1）"),
+        (r_ratio.returncode == 1 and "复算不符" in (r_ratio.stdout or ""),
+         "阳性③：比率 derived 改错必 exit 1（ratio 判据）"),
+        (r_str.returncode == 1 and "Traceback" not in (r_str.stderr or "")
+         and "类型非法" in (r_str.stdout or ""),
+         "阳性④：ratios.cur 字符串必出可读 type FAIL 不崩堆栈（v0.1.1）"),
+        (r_hye.returncode == 1 and "脱钩" in (r_hye.stdout or ""),
+         "阳性⑤：hist_ye 非空 + prev 缺失必 exit 1（hist 脱钩判据，v0.1.1）"),
+        (r_st.returncode == 1 and "scenarios 条数" in (r_st.stdout or ""),
+         "阳性⑥：stress 截断必 exit 1（不再 zip 假通过，v0.1.1）"),
+        (r_avg.returncode == 1 and "不足以复算" in (r_avg.stdout or "")
+         and "dpo 复算不符" not in (r_avg.stdout or ""),
+         "阳性⑦：payable.prev 缺失 → dpo/ccc 报「不足以复算」WARN、ni_prev/hist_ye 脱钩 "
+         "FAIL 如实指出修复点——avg 不再产出退化值逼分析师改错 derived（v0.1.1）"),
+        (c_er["effects_ratio"] is None and not fails_er,
+         "阳性⑧：三效应全零 + effects_ratio=null 合法形态 check_dupont 零 FAIL"
+         "（不再逼分析师造数，v0.1.1）"),
+    ]
+    if not _block("calc FAIL 判据阳性（v0.1.1 审计补口）", calc_pos_checks,
+                  "calc FAIL 判据阳性失效——门禁对坏数据失语，逐条核对上方 ❌。"):
+        return 1
+
+    # ── check_html FAIL 判据阳性（v0.1.1 全库审计补口）──
+    # 变异实证：hardrule/required/dupont-stack 三条 FAIL→WARN 回归全绿（冒烟只查存在性）。
+    # 本块给这三条补上「破坏必红」，并把 v0.1.1 判据修复一并锁死。
+    hr_bad = _run_html_str(_SECT + '<style>.x{background:linear-gradient(#fff,#000)}</style></div>')
+    hr_note = _run_html_str(_SECT + '<style>/* 纪律：禁用渐变 gradient() */</style></div>')
+    hr_cdn = _run_html_str(_SECT + '<script src="//cdn.example.com/a.js"></script></div>')
+    req_bad = _run_html_str(_SECT + '<div class="card"><p>正文</p></div></div>')
+    ir_new = _run_html_str(_SECT + '<div class="card"><p>流程版本 v0.1.0 设定</p></div></div>')
+    ds_bad = _run_html_str(
+        _SECT + '<div class="card"><p>杜邦</p></div></div>'
+        '<script>const DUPONT_STACK={"steps": [["净利率", 9.9], ["周转率", 9.9], ["杠杆", 9.9]],'
+        ' "gap": 9.9};</script>')
+    _dum = (load_json(MOUTAI).get("derived") or {}).get("dupont") or {}
+    _p1x = lambda x: None if x is None else round(x * 100, 1)
+    ds_ok = _run_html_str(
+        _SECT + '<div class="card"><p>杜邦</p></div></div>'
+        f'<script>const DUPONT_STACK={{"steps": [["净利率", {_p1x(_dum.get("margin_effect"))}],'
+        f' ["周转率", {_p1x(_dum.get("turnover_effect"))}], ["杠杆", {_p1x(_dum.get("leverage_effect"))}]],'
+        f' "gap": {_p1x(_dum.get("closure_gap"))}}};</script>')
+    _GAP_ROWS = ('<table class="data"><tr><th>断言</th><th>三态</th></tr>'
+                 '<tr><td>应收账款增速高于收入增速</td>'
+                 '<td><span class="badge y">❓ 无法验证</span></td></tr>'
+                 '<tr><td>毛利率提升源于产品结构升级</td>'
+                 '<td><span class="badge y">❓ 无法验证</span></td></tr></table>')
+    gap_half = _run_html_str(
+        _SECT4 + '<div class="card">'
+        '<div class="figtitle">2 条断言：0 通过 / 0 不成立 / 2 无法验证</div>' + _GAP_ROWS +
+        '<div class="srcline">数据缺口声明：应收账款增速高于收入增速——缺分部口径</div></div></div>')
+    gap_full = _run_html_str(
+        _SECT4 + '<div class="card">'
+        '<div class="figtitle">2 条断言：0 通过 / 0 不成立 / 2 无法验证</div>' + _GAP_ROWS +
+        '<div class="srcline">数据缺口声明：应收账款增速高于收入增速——缺分部口径；'
+        '毛利率提升源于产品结构升级——缺销量结构</div></div></div>')
+    und_cross = _run_html_json_md(
+        _SECT + '<div class="card"><table class="data"><tr><td>无</td><td>补充资料口径待核</td></tr>'
+        '</table><div class="srcline">对照</div></div></div>',
+        "| 现金流量表补充资料 | 1.0 |\n")
+    # T8① 全角阈值符号豁免（v0.1.1）：挑一个「窗内偏移后不在 hist_pool 显示精度内」的
+    # 独特 % 值——全角＞/半角&gt; 同样不 FAIL（豁免行为一致），裸写无符号必 FAIL（判据没松）
+    from check_html_t8 import build_authority as _ba
+    _uniq_pct, _hist_pool = _ba(load_json(MOUTAI))[3:5]
+    _v0 = None
+    for _cand, _cpath in _uniq_pct:
+        _dv = round(_cand * 0.999, 2)
+        if abs(_dv - _cand) / max(abs(_cand), 1e-9) <= 0.0015 \
+                and not any(abs(h - _dv) <= 0.005 for h, _ in _hist_pool):
+            _v0 = _dv
+            break
+    t8_fw = t8_hw = t8_bare = None
+    if _v0 is not None:
+        t8_fw = _run_html_str(_SECT + f'<div class="card"><p>利用率＞{_v0:.2f}%</p></div></div>')
+        t8_hw = _run_html_str(_SECT + f'<div class="card"><p>利用率&gt;{_v0:.2f}%</p></div></div>')
+        t8_bare = _run_html_str(_SECT + f'<div class="card"><p>利用率 {_v0:.2f}%</p></div></div>')
+    html_pos_checks = [
+        (hr_bad.returncode == 1 and "[FAIL] hardrule" in (hr_bad.stdout or ""),
+         "阳性①：真渐变 background:linear-gradient 必 FAIL（hardrule）"),
+        ("✅" in "".join(l for l in (hr_note.stdout or "").splitlines() if "hardrule" in l),
+         "阳性②：style 注释里的「禁用渐变 gradient()」纪律文字不误报（v0.1.1）"),
+        (hr_cdn.returncode == 1 and "[FAIL] hardrule" in (hr_cdn.stdout or ""),
+         "阳性③：协议相对外链 //cdn 必 FAIL（hardrule 逃逸口封堵，v0.1.1）"),
+        (req_bad.returncode == 1 and "[FAIL] required" in (req_bad.stdout or ""),
+         "阳性④：缺页脚免责/跟踪清单必 FAIL（required）"),
+        (ir_new.returncode == 1 and "[FAIL] internal-ref" in (ir_new.stdout or ""),
+         "阳性⑤：现行版本号 v0.1.0 可见文本必 FAIL（internal-ref 不再只认 v0.0.x，v0.1.1）"),
+        (ds_bad.returncode == 1 and "[FAIL] dupont-stack" in (ds_bad.stdout or ""),
+         "阳性⑥：堆叠条错数据必 FAIL（dupont-stack——存在性断言测不出的形态）"),
+        ("dupont-stack" in (ds_ok.stdout or "") and "一致" in (ds_ok.stdout or "")
+         and "[FAIL] dupont-stack" not in (ds_ok.stdout or ""),
+         "阳性⑦：fill 新 json 形态正确值判 OK（dupont-stack 双形态兼容，v0.1.1）"),
+        (gap_half.returncode == 1 and "未逐条覆盖" in (gap_half.stdout or ""),
+         "阳性⑧：❓ 两条只声明一条必 FAIL（gap-declaration 逐条判据，v0.1.1）"),
+        ("[FAIL] gap-declaration" not in (gap_full.stdout or "")
+         and "逐条覆盖" in (gap_full.stdout or ""),
+         "阳性⑨：❓ 逐条声明判 OK（gap-declaration 不误报；构造片段无页脚，"
+         "required FAIL 与本规则无关不查 exit）"),
+        ("未见与原文矛盾" in (und_cross.stdout or ""),
+         "阳性⑩：相邻单元格「无」+「补充资料」不拼假声明（undisclosed 跨格误报修复，v0.1.1）"),
+        (t8_fw is not None and "[FAIL] num-vs-json" not in (t8_fw.stdout or "")
+         and "[FAIL] num-vs-json" not in (t8_hw.stdout or "")
+         and "[FAIL] num-vs-json" in (t8_bare.stdout or ""),
+         f"阳性⑪：T8① 全角＞/半角&gt; 阈值语境同豁免、裸写窗内值必 FAIL"
+         f"（全角符号补豁免且判据未松，v0.1.1；取值 {_v0}）"),
+    ]
+    if not _block("check_html FAIL 判据阳性（v0.1.1 审计补口）", html_pos_checks,
+                  "check_html FAIL 判据阳性失效，逐条核对上方 ❌。"):
+        return 1
+
+    # ── render 断锚与降级路径阳性（v0.1.1 全库审计补口）──
+    # 断锚 exit 1 此前无阳性（变异实证：断锚 return 1→0 回归全绿）；六条降级路径此前
+    # 只有 ncr_drop 有构造用例——模板缩进/结构调整会让降级静默失效而无人知。
+    import render_report
+    with tempfile.TemporaryDirectory() as _tdr:
+        _wr = Path(_tdr)
+        _cpr = _wr / "yinghe.json"
+        shutil.copy(HERE / "yinghe_2026h1.json", _cpr)
+        subprocess.run([sys.executable, str(CALC), str(_cpr), "--fill"],
+                       capture_output=True, text=True, encoding="utf-8", errors="replace")
+        # ① 断锚必 exit 1 + 打印断锚清单（锚复制成双份；import 级换 TEMPLATE 指向，
+        #    不改仓库模板文件，finally 还原）
+        _tplr = _wr / "tpl_dup.html"
+        _tplr.write_text(
+            (SKILL / "assets" / "report-template.html").read_text(encoding="utf-8")
+            .replace("<h1>{{公司名}}（{{代码}}）</h1>",
+                     "<h1>{{公司名}}（{{代码}}）</h1>\n<h1>{{公司名}}（{{代码}}）</h1>"),
+            encoding="utf-8")
+        import io as _io
+        from contextlib import redirect_stdout as _rso
+        _old_tpl = render_report.TEMPLATE
+        _old_argv = sys.argv
+        _buf = _io.StringIO()
+        try:
+            render_report.TEMPLATE = _tplr
+            sys.argv = ["render_report.py", str(_cpr), "-o", str(_wr / "dup.html")]
+            with _rso(_buf):
+                _rc_anchor = render_report.main()
+        finally:
+            render_report.TEMPLATE = _old_tpl
+            sys.argv = _old_argv
+        anchor_fail = _rc_anchor == 1 and "断锚" in _buf.getvalue()
+
+        def _replay(mutate, name):
+            """yinghe 副本改一处 → --fill → render（降级路径构造用例共用）。"""
+            d = json.loads((HERE / "yinghe_2026h1.json").read_text(encoding="utf-8"))
+            mutate(d)
+            cp = _wr / f"{name}.json"
+            cp.write_text(json.dumps(d, ensure_ascii=False), encoding="utf-8")
+            subprocess.run([sys.executable, str(CALC), str(cp), "--fill"],
+                           capture_output=True, text=True, encoding="utf-8", errors="replace")
+            out = _wr / f"{name}.html"
+            rr = subprocess.run([sys.executable, str(SKILL / "scripts" / "render_report.py"),
+                                 str(cp), "-o", str(out)],
+                                capture_output=True, text=True, encoding="utf-8", errors="replace")
+            return rr, (out.read_text(encoding="utf-8") if out.exists() else "")
+
+        rr_h, h_holders = _replay(
+            lambda d: d["notes"]["shareholders"].pop("holder_ts", None), "yh_holders")
+        rr_c, h_cip = _replay(lambda d: d["notes"].pop("cip_projects", None), "yh_cip")
+
+        def _no_missing(d):
+            for a in d.get("assertions") or []:
+                a.pop("missing", None)
+        rr_g, h_gap = _replay(_no_missing, "yh_gap")
+
+        def _seg_off(d):
+            d["statements"]["income"]["by_segment"][0]["rev_cur"] += 5.0
+        rr_s, h_seg = _replay(_seg_off, "yh_seg")
+        rr_o, h_ocf = _replay(lambda d: d["derived"].pop("ocf_bridge", None), "yh_ocf")
+    render_pos_checks = [
+        (anchor_fail, "断锚阳性：锚复制成双份必 exit 1 且打印断锚清单（v0.1.1）"),
+        (rr_h.returncode == 0 and 'id="holders"' not in h_holders
+         and "时序不足 3 期降级" in h_holders,
+         "降级①：删 holder_ts → 户数图卡降级两期文字行（holders_drop）"),
+        (rr_c.returncode == 0 and "在建工程（期末余额为零" in h_cip,
+         "降级②：删 cip_projects → 在建降级行（cip_empty）"),
+        (rr_g.returncode == 0 and "数据缺口声明" not in h_gap,
+         "降级③：断言全无 missing → 数据缺口声明行整行删（gap_drop）"),
+        (rr_s.returncode == 0 and '"其他"' in h_seg,
+         "降级④：分部合计≠Δ收入 → SEG_BRIDGE 补「其他」桶闭合（SEG 轴）"),
+        (rr_o.returncode == 0 and 'id="ocfbridge"' not in h_ocf
+         and "OCF 调节桥未披露" in h_ocf,
+         "降级⑤：删 ocf_bridge → 桥卡降级声明（ocf_drop，v0.1.1 新增）"),
+    ]
+    if not _block("render 断锚与降级路径阳性（v0.1.1 审计补口）", render_pos_checks,
+                  "render 断锚/降级路径失效，逐条核对上方 ❌。"):
         return 1
 
     failed = total - passed

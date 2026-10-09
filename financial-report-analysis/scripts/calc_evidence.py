@@ -12,7 +12,8 @@ def compute_cycle_evidence(data):
     rev_h = [x for x in series_of(data, "income", "revenue") if x is not None]
     cap_h = [x for x in series_of(data, "cashflow", "capex") if x is not None]
     ratios = ((data.get("derived") or {}).get("ratios")) or {}
-    gm_h = [num(x) for x in ((ratios.get("gross_margin") or {}).get("hist") or [])]
+    gm_node = ratios.get("gross_margin")
+    gm_h = [num(x) for x in (gm_node.get("hist") or [])] if isinstance(gm_node, dict) else []
     if len(rev_h) < 2 and len(cap_h) < 2:
         return None
     n = max(len(rev_h), len(cap_h), len(gm_h))
@@ -36,8 +37,10 @@ def compute_threshold_check(data):
     保壳线另需净利率落 0~3% 合取）；激励线需公告取数，本函数只留结构（机算部分由分析师填数后
     check 复算 ratio）。"""
     ratios = ((data.get("derived") or {}).get("ratios")) or {}
-    roe = num((ratios.get("roe") or {}).get("cur"))
-    nm = num((ratios.get("net_margin") or {}).get("cur"))
+    roe_node, nm_node = ratios.get("roe"), ratios.get("net_margin")
+    # 裸数字节点合法（check_ratios 兼容），取其值；字符串等畸形由结构检查报 FAIL
+    roe = num(roe_node.get("cur")) if isinstance(roe_node, dict) else num(roe_node)
+    nm = num(nm_node.get("cur")) if isinstance(nm_node, dict) else num(nm_node)
     if roe is None:
         return None
 

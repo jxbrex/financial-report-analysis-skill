@@ -59,16 +59,26 @@ def ts_call(api_name, params=None, fields=""):
         TS_API, data=json.dumps(payload).encode("utf-8"),
         headers={"Content-Type": "application/json"}, method="POST")
     with urllib.request.urlopen(req, timeout=TIMEOUT) as r:
-        d = json.loads(r.read().decode("utf-8"))
+        raw = r.read().decode("utf-8", errors="replace")
+    try:
+        d = json.loads(raw)
+    except json.JSONDecodeError:
+        raise RuntimeError(f"tushare {api_name} 响应非 JSON（前 80 字：{raw[:80]!r}）"
+                           "——网关错误/维护页，稍候重试")
     if d.get("code") != 0:
         raise RuntimeError(f"tushare {api_name} 返回 code={d.get('code')}: {d.get('msg')}")
     data = d.get("data") or {}
     flds = data.get("fields") or []
-    return [dict(zip(flds, row)) for row in (data.get("items") or [])]
+    items = data.get("items") or []
+    if any(len(row) != len(flds) for row in items):
+        raise RuntimeError(f"tushare {api_name} 返回结构异常：fields {len(flds)} 列但存在不等长行"
+                           "（接口字段可能已调整）——核对接口文档，勿当无数据")
+    return [dict(zip(flds, row)) for row in items]
 
 
 def _parse_params(tokens):
-    """--params ts_code=600519.SH period=20241231 [, 分隔也兼容] → dict"""
+    """--params ts_code=600519.SH period=20241231 → dict。
+    逗号片段无 = 时并入上一键值（tushare 原生逗号多值形态：ts_code=A.SH,B.SZ）。"""
     out = {}
     for tok in tokens or []:
         for pair in tok.split(","):
@@ -76,6 +86,10 @@ def _parse_params(tokens):
             if not pair:
                 continue
             if "=" not in pair:
+                if out:  # 多值续段：并入最近一个键
+                    k = next(reversed(out))
+                    out[k] = f"{out[k]},{pair}"
+                    continue
                 raise SystemExit(f"FAIL: --params 项 '{pair}' 不是 k=v 形式")
             k, v = pair.split("=", 1)
             out[k.strip()] = v.strip()
@@ -120,6 +134,8 @@ def main():
     else:
         sys.stdout.write(text)
     note = f"[ts_fetch] {args.api_name} -> {len(rows)} 行"
+    if not rows:
+        note += "（0 行：参数无匹配或服务端结构变更——核对参数与接口文档，勿直接当「无数据」落底稿）"
     if len(shown) < len(rows):
         note += f"（截断显示前 {len(shown)} 行，--limit 0 取全部）"
     print(note, file=sys.stderr)

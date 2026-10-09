@@ -74,7 +74,7 @@ const EFF_TS={labels:["2022H1", "2023H1", "2024H1", "2025H1", "2026H1"],dio:[259
 
 ## S1 DUPONT_STACK 槽（JS 区粘贴；gap≠0 必须保留第四段，不许视觉隐瞒）
 
-const DUPONT_STACK={steps:[['净利率',-0.4],['周转率',0.4],['杠杆',0.8]],gap:0.0};
+const DUPONT_STACK={"steps": [["净利率", -0.4], ["周转率", 0.4], ["杠杆", 0.8]], "gap": 0.0};
 
 ## S1 杜邦右卡分位白描（照抄进「五年位置」列 badge disc；禁贴档位标签）
 

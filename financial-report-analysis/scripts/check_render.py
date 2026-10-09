@@ -269,7 +269,8 @@ def chrome_run(chrome: str, page: Path, work: Path, ready, *flags: str,
                 if proc.poll() is not None:
                     until = time.time() + linger
                     while time.time() < until:
-                        if ready(out):
+                        out = log.read_text(encoding="utf-8", errors="replace")  # 重读：迟到的
+                        if ready(out):                                          # 异步写盘/回调
                             return out
                         time.sleep(0.25)
                     return log.read_text(encoding="utf-8", errors="replace")
@@ -431,8 +432,18 @@ def main() -> int:
 
         if args.png:
             args.png.mkdir(parents=True, exist_ok=True)
+            _stale = [p for p in args.png.glob(f"{args.source.stem}-*.png")]
+            if _stale:  # 报告改短重跑时上次多出的旧分片会残留——提示先清空，防拿旧图验收
+                print(f"  🟡 截图目录已有 {len(_stale)} 张同名前缀旧分片——"
+                      f"本次未覆盖的将是旧图，建议先清空目录")
+            _seen = set()
             for i, sec in enumerate(sections):
                 name = sec["id"] or f"{sec['cls']}-{i:02d}"
+                if name in _seen:  # 章节 id 重复（手工编辑复制粘贴错误）——加序号防静默覆盖
+                    print(f"  🔴 章节 id「{name}」重复——分片名加序号后缀（直接覆盖会丢前章截图）")
+                    problems += 1
+                    name = f"{name}-{i:02d}"
+                _seen.add(name)
                 dest = args.png / f"{args.source.stem}-{name}.png"
                 ok = shoot(chrome, html, work, i, sec["h"], dest, SCALE)
                 print(f"  {'✅' if ok else '🔴'} 分片截图 {dest.name} "

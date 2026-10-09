@@ -8,7 +8,7 @@ description: >
 metadata:
   clawdbot:
     emoji: "📑"
-    version: "0.1.0"
+    version: "0.1.1"
     requires:
       anyBins: ["python"]
     os: ["win32", "darwin", "linux"]
@@ -51,7 +51,8 @@ metadata:
 ## 产出方式与文件命名
 
 - **默认**：单文件自包含 HTML，复制 `assets/report-template.html` 骨架后填充，
-  写在**当前工作目录**的 `reports/` 顶层。
+  写在**技能工作区根**的 `reports/` 顶层（render_report.py 缺省输出锚定技能根上两级——
+  部署副本下运行也落工作区 reports/，不落 skills 目录）。
   **槽位契约以 fillsheet 为唯一来源**（v0.0.18）：`calc.py --fill` 产出的填充速查表覆盖
   全部机械槽位（含 JS 数据槽可粘贴形态），填充只看 fillsheet + 模板注释；
   v0.1.0 起同产 `{stem}.fillsheet.json`（机器可读槽位契约，render_report.py 的唯一数据源）；
@@ -315,7 +316,7 @@ Roll-forward（应收/存货/在建工程/商誉）+ C 组周期联动（CCC/DPO
    （技能目录 = 本技能被部署的路径；Windows 控制台已内置 UTF-8 处理）
 3. **退出码 0（全绿）才允许写报告**；任何 FAIL → 回到对应 Phase 修数据后重跑，
    禁止带病写报告。WARN 需逐条确认是「口径差异」还是「漏填」
-4. calc.py 校验六类：结构/出处、核心科目覆盖度、资产=负债+权益、未分配利润滚动、
+4. calc.py 校验八类：结构/出处、核心科目覆盖度、资产=负债+权益、未分配利润滚动、
    三座桥闭合（净利桥/OCF 调节桥/收入三效应）、比率复算、recon 三态一致性、信号结构；
    v0.0.12 起加四项：**杜邦连环替代复算**（三效应加和闭合 + 口径差标注）、
    **破产双模型复算**（Altman/Ohlson，含中期报告年化口径卡口与市值单位卡口）、
@@ -384,7 +385,7 @@ Roll-forward（应收/存货/在建工程/商誉）+ C 组周期联动（CCC/DPO
    校验占位符是否漏填、裸数字（置信度徽章覆盖）、数据来源标注、模板硬规则、必备要素
    （下期跟踪清单/免责声明）、锚点完整性、s8 阈值形态、回看归因。
    **数字回验（T8，`--json` 时启用）**：①级 HTML 数字 ↔ data.json 笔误检测（仅对数值上
-   可唯一归因的「独特值」，0.5% 窗口，FAIL 级）；②级 data.json ↔ 原文 md 按 src 行号
+   可唯一归因的「独特值」，0.15% 窗口，FAIL 级）；②级 data.json ↔ 原文 md 按 src 行号
    回核（5% 容差 + 元/万/亿/千元单位换算 + 行号窗 ±2，md 缺失跳过并声明）。FAIL 未清零不得交付。
    **门禁暴露技能缺陷时（v0.0.22 用户定案，废 v0.0.14 当场修）**：一律不修技能源——
    可提示用户、可想办法绕过正常出报告、必须记入 handoff 待办；绕过只许在呈现层
@@ -460,5 +461,6 @@ Roll-forward（应收/存货/在建工程/商誉）+ C 组周期联动（CCC/DPO
 | 0.0.24 | 2026-10-04 | 全库审计三档清理（唯一出处收敛）+ 四象限落地（schema 1.5）+ 热核修复 |
 | 0.0.25 | 2026-10-06 | deltaBars 标签宽自适应；检验卡四组分组行；check_render svgclip 出界检测 |
 | 0.1.0 | 2026-10-06 | N4 落地：fill→render 脚本化（render_report.py + fillsheet.json + holder_ts schema 1.6） |
+| 0.1.1 | 2026-10-09 | ponytail-audit 全库审计修复 20 项（None 进 JS/effects_ratio/幽灵 0/OCF 空桥团灭/_NO_SRC 啃字/md_clean 丢行/gate 误导等）+ FAIL 判据阳性 30 断言 |
 
 逐版本详情以 handoff/supersede/ 与 git tag 为唯一真源（AGENTS.md 定案）。
