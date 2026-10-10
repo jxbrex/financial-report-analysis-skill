@@ -447,6 +447,14 @@ def check_percentile_map(body, data, rep):
         rep.add(FAIL, "percentile-map", "json 有分位数据但 s1 未见「五年位置」表")
         return
     tbl = tm.group(0)
+    # 分位窗口期数感知（v0.1.3，阿里 FY2026 实证）：dupont5y 分位窗口 = 三因子 hist
+    # 交集长度（n<5 时呈现层按 X/N 白描，如四年窗口的 1.0→「1/4」而非映射表「1/5」）；
+    # n=5 或 hist 缺失时走 PCTILE_LABEL 契约锁映射，与 calc_slots._pctile_label 同规则
+    ratios = ((data.get("derived") or {}).get("ratios")) or {}
+    _hs = [(ratios.get(k) or {}).get("hist") for k in
+           ("net_margin", "asset_turnover", "equity_multiplier")]
+    _ls = [len(h) for h in _hs if isinstance(h, list) and h]
+    _win_n = min(_ls) if _ls else None
     bad = []
     for fname, key in (("净利率", "net_margin"), ("总资产周转率", "asset_turnover"),
                        ("权益乘数", "equity_multiplier")):
@@ -457,11 +465,14 @@ def check_percentile_map(body, data, rep):
         if not row:
             bad.append(f"分位表缺「{fname}」行")
             continue
-        label = PCTILE_LABEL.get(round(v, 2))
+        if _win_n is not None and _win_n != 5 and _win_n >= 2:
+            label = f"{round(_win_n - v * (_win_n - 1))}/{_win_n}"
+        else:
+            label = PCTILE_LABEL.get(round(v, 2))
         if label is None:
-            continue  # 非 n=5 步长值（hist≠5 期）不校验映射，由人工核对
+            continue  # 非整档步长值不校验映射，由人工核对
         if label not in row.group(0):
-            bad.append(f"「{fname}」分位 {v:g} 应标「{label}」，行内未见（白描映射 X/5，v0.0.19）")
+            bad.append(f"「{fname}」分位 {v:g} 应标「{label}」，行内未见（白描映射 X/N，N=窗口期数）")
         if re.search(r"上限区|下限区|常态区", row.group(0)):
             bad.append(f"「{fname}」行仍贴档位标签（上限区/下限区/常态区）——v0.0.18 起改白描读数")
     if bad:

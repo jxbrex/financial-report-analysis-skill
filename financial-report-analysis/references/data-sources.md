@@ -107,6 +107,20 @@ SDK 完全等价；本环境无权限接口（40203）清单不变，报错文�
 只能取行情。因此港股财务的**双源核对降级为**：妙想（主）+ 年报原文（锚）——
 两源一致即通过；仍冲突时以报告原文为准并标注。
 
+⚠️ **妙想积分耗尽兜底（v0.1.3，阿里 2026FY 实证）**：妙想有两条独立通道、**额度互相独立**——
+①mx_* MCP 工具（本会话内置通道）；②mx-data / mx-search / mx-xuangu 三个 skill 直连
+`mkapi2.dfcfs.com/finskillshub`（用环境变量 `MX_APIKEY`，妙想 Skills 页面领取）。
+阿里轮实证：MCP 通道报「积分已用完」时 **skill 直连通道照常可用**（港股财务查询实测成功）——
+报错只灭 MCP 侧，先切 skill：`python <skill目录>/mx_data.py "问句" [输出目录]`（同理 mx_search /
+mx_xuangu）。
+**再往后一层的兜底是 yahoo_finance（kimi-datasource 插件）**：`get_financial_statement(ticker,
+income_stmt/balance_sheet/cashflow, file_path)` 取年度三表（近四年）+季度表（近四季），
+阿里/京东/拼多多等双重上市标的按原始呈报币种返回（BABA=人民币，与港股年报同账同源）。
+阿里轮实证：PDD 毛利率、阿里 FY2023 现金流量表均由 yahoo 补齐并交叉验证一致。
+注意：①yahoo 年度只回溯四年，更早期次仍需年报原文；②科目为英文 US GAAP 标准名，
+映射时注意 yahoo 的 Minority Interest 可能并入夹层权益（阿里实证差 78 亿）；
+③A 股标的 yahoo 口径与 CAS 披露常有科目归并差，**A 股勿用作主核对源**（tushare 仍为主）。
+
 ⚠️ **币种陷阱（港股特有）**：妙想港股接口的汇总表可能按**港元**展示，而三表明细按报表原币种
 （腾讯报表为人民币，`显示币种：人民币`）。提取任何数字前先看返回里的「显示币种/原始币种」字段，
 禁止港元与人民币混用。data.json 的 `meta.unit` 旁边加 `currency` 注明。

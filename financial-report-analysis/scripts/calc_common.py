@@ -316,14 +316,19 @@ _PERIOD_SUFFIX = {"年报": ("1231", ""), "半年报": ("0630", "H1"),
 
 
 def hist_periods(meta, n):
-    """从 meta.period/report_type 倒推 n 期同类型期间标签（旧→新）。无法推导返回 None。"""
+    """从 meta.period/report_type 倒推 n 期同类型期间标签（旧→新）。无法推导返回 None。
+    v0.1.3：年报不再限定 12-31 月结——非日历年财年（港股/美股常见，阿里 3-31 财年止实证）
+    用 FY 形态标签（FY2022=截至 2022-03-31 财年）；半年报/季报仍按 MMDD 卡死。"""
     period = str(meta.get("period") or "")
     rt = meta.get("report_type")
     if rt not in _PERIOD_SUFFIX or len(period) != 8 or not period.isdigit():
         return None
     md, suffix = _PERIOD_SUFFIX[rt]
     if period[4:8] != md:
-        return None
+        if rt != "年报":
+            return None
+        y = int(period[:4])
+        return [f"FY{y - (n - 1 - i)}" for i in range(n)]
     y = int(period[:4])
     return [f"{y - (n - 1 - i)}{suffix}" for i in range(n)]
 

@@ -190,15 +190,19 @@ def _resolve_md(md_rel, json_path):
 
 
 def _value_in_text(v, text):
-    """v 的四档单位换算（×1e8 元 / ×1e5 千元 / ×1e4 万 / ×1 亿）在文本数字中是否有 5% 内容差命中。
+    """v 的单位换算（×1e8 元 / ×1e2 百万 / ×1e5 千元 / ×1e4 万 / ×1 亿）在文本数字中是否有 5% 内容差命中。
     千元档覆盖报表主体以千元列示的公司（如比亚迪：财务报表及附注单位为千元）；
+    百万档覆盖以百万元列报的港股/美股年报（v0.1.3，阿里巴巴 2026FY 实证：US GAAP 年报
+    百万元列报，②级 207/233 miss 的根因；1 亿元=100 百万元，故 ×1e2）；
     比较取绝对值——A 股报表以括号表示负数（如「(3,247,033 )」），符号由 src 语境与①级负责。"""
     for m in PLAIN_NUM_RE.finditer(text):
         try:
-            d = abs(float(m.group(0)))
+            # 财报千位符数字（131,530）去逗号再解析——原 float() 直接拒逗号致②级对
+            # 千位符整体失明（v0.1.3 阿里年报实证；A 股 md 同样带千位符）
+            d = abs(float(m.group(0).replace(",", "")))
         except ValueError:
             continue
-        for cand in (abs(v), abs(v) * 1e4, abs(v) * 1e5, abs(v) * 1e8):
+        for cand in (abs(v), abs(v) * 1e2, abs(v) * 1e4, abs(v) * 1e5, abs(v) * 1e8):
             if cand and abs(d - cand) / abs(cand) <= 0.05:
                 return True
     return False

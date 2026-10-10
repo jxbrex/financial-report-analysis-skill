@@ -1555,6 +1555,66 @@ def main():
                   "v0.1.2 构造用例失败，逐条核对上方 ❌。"):
         return 1
 
+    # ── v0.1.3 阿里港股年报首验反馈构造用例（非日历年财年三连锁/分位 X/N/T8② 百万档/
+    #    auto 港股年报/labels 最长序列）——阿里 2026FY（3-31 财年止、US GAAP、百万元列报）实证 ──
+    v13_checks = []
+    from calc_common import hist_periods as _hp13
+    from calc_slots import _pctile_label as _pl13, _period_label as _plb13
+    from calc_models import build_slots as _bs13
+    from check_html_t8 import _value_in_text as _vit13
+    # ① 非日历年财年三连锁：hist_periods 年报不再卡 12-31（FY 标签）；A 股零漂移；
+    #    半年报非 0630 仍卡死；_period_label 年报一律 FY（修阿里误标 2026Q1 致文件名错）。
+    v13_checks += [
+        (_hp13({"period": "20260331", "report_type": "年报"}, 5)
+         == ["FY2022", "FY2023", "FY2024", "FY2025", "FY2026"],
+         "v0.1.3①：hist_periods 年报非日历年财年（3-31 止）产 FY 标签"),
+        (_hp13({"period": "20251231", "report_type": "年报"}, 2) == ["2024", "2025"],
+         "v0.1.3①：A 股 12-31 年报标签零漂移"),
+        (_hp13({"period": "20260331", "report_type": "半年报"}, 2) is None,
+         "v0.1.3①：半年报非 0630 仍卡死返回 None（口径不放宽）"),
+        (_plb13("20260331", "年报") == "2026FY" and _plb13("20251231", "年报") == "2025FY"
+         and _plb13("20260630", "半年报") == "2026H1",
+         "v0.1.3①：_period_label 年报一律 FY（修误标 2026Q1），半年报不变"),
+    ]
+    # ② 分位白描 X/N：n<5 窗口按公式（阿里四年窗口 0.6667→2/4）；n=5/未知走契约锁映射。
+    v13_checks += [
+        (_pl13(0.6667, 4) == "2/4" and _pl13(1.0, 4) == "1/4" and _pl13(0.0, 4) == "4/4",
+         "v0.1.3②：分位 n=4 窗口 X/N 白描（阿里四年窗口实证形态）"),
+        (_pl13(0.5, 5) == "3/5" and _pl13(0.5, None) == "3/5",
+         "v0.1.3②：n=5 与未知窗口仍走 PCTILE_LABEL 契约锁映射"),
+    ]
+    # ③ T8② 百万档：阿里 US GAAP 年报百万元列报（1315.30 亿 ↔ 原文 131,530 百万）；
+    #    无关大数不误命中。
+    v13_checks += [
+        (_vit13(1315.30, "| 現金及現金等價物 | 2(p) | 145,487 | 131,530 | 19,068 |"),
+         "v0.1.3③：T8② 百万档命中（1315.30 亿 ↔ 原文 131,530 百万）"),
+        (not _vit13(1315.30, "| 無關數字 | 999,999 | 888,888 | 777 |"),
+         "v0.1.3③：百万档不误命中无关大数"),
+    ]
+    # ④ --min-recon auto 港股年报=12（阿里实测上限；复用 v0.1.2② 的康得新 14/17 助手）。
+    _r_hkar = _auto_run("港股", "年报")
+    v13_checks.append(
+        ("覆盖下限 12" in (_r_hkar.stdout or "") and "未达 --min-recon" not in (_r_hkar.stdout or ""),
+         "v0.1.3④：港股年报 auto → 下限 12（阿里实测），康得新 14/17 达标不升 FAIL"))
+    # ⑤ labels 取最长序列（阿里实证：cash_ts 4 期截断 rev 5 期的隐患）：rev 5 期 +
+    #    ncr 4 期形态下 TREND labels 5 期 FY、ocf 4 期前置 null 右对齐。
+    _min13 = {"meta": {"period": "20260331", "report_type": "年报"},
+              "statements": {"income": {"revenue": {"cur": 5, "hist": [1, 2, 3, 4, 5]},
+                                        "np_at": {"cur": 5, "hist": [1, 2, 3, 4, 5]}},
+                             "cashflow": {"ocf": {"cur": 4, "hist": [2, 3, 4, 4]}},
+                             "balance": {}},
+              "derived": {"ratios": {"roe": {"cur": 0.5, "hist": [0.1, 0.2, 0.3, 0.4, 0.5]}},
+                          "cash_ts": {"ncr": [1.0, 1.0, 1.0, 1.0], "fcf_to_np": [0.5] * 4,
+                                      "periods": ["FY2023", "FY2024", "FY2025", "FY2026"]}}}
+    _t13 = _bs13(_min13)["js"]["TREND"]
+    v13_checks.append(
+        ('labels:["FY2022", "FY2023", "FY2024", "FY2025", "FY2026"]' in _t13
+         and "ocf:[null, 2, 3, 4, 4]" in _t13,
+         "v0.1.3⑤：labels 取最长序列（5 期 FY）+ 短序列前置 null 右对齐，不截断首期"))
+    if not _block("v0.1.3 阿里港股年报首验反馈构造用例", v13_checks,
+                  "v0.1.3 构造用例失败，逐条核对上方 ❌。"):
+        return 1
+
     failed = total - passed
     print(f"\n--- 汇总：通过 {passed} · 失败 {failed} ---")
     if failed:

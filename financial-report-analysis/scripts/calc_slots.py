@@ -13,6 +13,8 @@ import re
 import statistics
 from html import escape as _htmlesc
 
+from calc_common import hist_periods
+
 # 呈现两位小数（fillsheet 机械槽位：原始精度留 json，报告可见数字 ≤2 位，v0.0.19）
 R2 = lambda x: None if x is None else round(x, 2)
 
@@ -20,6 +22,19 @@ R2 = lambda x: None if x is None else round(x, 2)
 # 与 check_html_text.py PCTILE_LABEL 双写互指（跨家族 import 会造成 calc↔check_html 耦合，
 # 故保持双写 + 回归一致性断言锁契约，改动必须同步）
 PCTILE_LABEL = {0.0: "5/5", 0.25: "4/5", 0.5: "3/5", 0.75: "2/5", 1.0: "1/5"}
+
+
+def _pctile_label(v, n=None):
+    """分位白描读数：n=5（或未知窗口的存量数据）走契约锁映射 PCTILE_LABEL；
+    n<5 窗口按公式 X/N 白描（X=n−v·(n−1)，从高到低第 X——阿里 FY2026 四年窗口 0.6667→「2/4」实证）。
+    check_html_text 的 check_percentile_map 对非 n=5 值本就跳过映射校验，两侧不冲突。"""
+    if v is None:
+        return None
+    if n is None or n == 5:
+        return PCTILE_LABEL.get(round(v, 2))
+    if n >= 2:
+        return f"{round(n - v * (n - 1))}/{n}"
+    return None
 
 # 通用取值助手（模块级，v0.1.0：write_fillsheet 与 build_slots 共用）
 _v = lambda blk, f, k="cur": ((blk or {}).get(f) or {}).get(k)
@@ -222,10 +237,13 @@ def write_fillsheet(data, path):
         L.append(js["DUPONT_STACK"])
     if d5:
         pg = d5.get("percentile") or {}
+        # 分位窗口期数本地推（与 compute_dupont5y 的 n=min(三因子 hist 长度) 同规则）——
+        # 不落库（幂等纪律：呈现元数据不进 derived），n=5 走契约锁映射、n<5 按 X/N 白描
+        _pn = min(len(x) for x in (nm_h, at_h, em_h) if x) if any((nm_h, at_h, em_h)) else None
         L.append("\n## S1 杜邦右卡分位白描（照抄进「五年位置」列 badge disc；禁贴档位标签）\n")
-        L.append(f"- 净利率「{PCTILE_LABEL.get(pg.get('net_margin'), pg.get('net_margin'))}」 · "
-                 f"周转率「{PCTILE_LABEL.get(pg.get('asset_turnover'), pg.get('asset_turnover'))}」 · "
-                 f"权益乘数「{PCTILE_LABEL.get(pg.get('equity_multiplier'), pg.get('equity_multiplier'))}」")
+        L.append(f"- 净利率「{_pctile_label(pg.get('net_margin'), _pn)}」 · "
+                 f"周转率「{_pctile_label(pg.get('asset_turnover'), _pn)}」 · "
+                 f"权益乘数「{_pctile_label(pg.get('equity_multiplier'), _pn)}」")
 
     sig = data.get("signals") or []
     if sig:
@@ -394,7 +412,14 @@ def _js_slots(data):
         out["NCR_TS"] = "const NCR_TS={labels:[],ncr:[],fcf:[],mean:null};"
 
     cv = der.get("cycle_evidence") or {}
-    labels = cts.get("periods") or cv.get("periods") or []
+    # labels 期数取最长 hist 序列（v0.1.3，阿里 FY2026 实证：cash_ts 4 期而 rev/roe 5 期，
+    # 直接取 cash_ts.periods 会让 5 期序列被 _aln 右对齐截掉首期）；hist_periods 支持
+    # 非日历年财年（FY 标签）；全缺退回空（绘图函数 labels 空则不画，合法降级）
+    _max_n = max([len(_hist(inc.get("revenue"))), len(_hist(inc.get("np_at"))),
+                  len(_hist(ratios.get("roe"))), len(cts.get("ncr") or []),
+                  len(cts.get("fcf_to_np") or [])] + [0])
+    labels = (hist_periods(meta, _max_n) if _max_n else None) \
+        or cts.get("periods") or cv.get("periods") or []
     _aln = lambda arr: ([None] * (len(labels) - len(arr)) + arr)[-len(labels):] \
         if labels and arr else arr
     _gm_pct = [round(x * 100, 2) if x is not None else None
@@ -502,9 +527,13 @@ def _cls_of(key, d):
     return "up" if (d > 0) == good else "dn"
 
 
-def _period_label(period):
-    """20260630→2026H1 / 20261231→2026FY / 0331→Q1 / 0930→Q3。"""
+def _period_label(period, rt=""):
+    """20260630→2026H1 / 20261231→2026FY / 0331→Q1 / 0930→Q3；
+    年报一律 FY、不看月结日（v0.1.3：非日历年财年实证——阿里 3-31 财年 period=20260331
+    曾被误映射 2026Q1）。"""
     s = str(period or "")
+    if rt == "年报" and s[:4].isdigit():
+        return f"{s[:4]}FY"
     suf = {"0331": "Q1", "0630": "H1", "0930": "Q3", "1231": "FY"}.get(s[4:], "")
     return f"{s[:4]}{suf}" if suf else ""
 
@@ -523,7 +552,7 @@ def build_slots(data):
     _hist = lambda node: (node or {}).get("hist") or []
     js = _js_slots(data)
 
-    pl = _period_label(meta.get("period"))
+    pl = _period_label(meta.get("period"), meta.get("report_type") or "")
     rt = meta.get("report_type") or ""
     slots = {
         "meta": {
@@ -679,6 +708,9 @@ def build_slots(data):
         if d5.get("roe_start") is not None and d5.get("roe_end") is not None:
             rd5 = (d5["roe_end"] - d5["roe_start"]) * 100
         pg = d5.get("percentile") or {}
+        # 分位窗口期数提取一次复用（v0.1.3 lean：原三处内联重复，防改漏漂移）——
+        # 与 compute_dupont5y 的 n=min(三因子 hist 长度) 同规则
+        _pn = min(len(x) for x in (nm_h, at_h, em_h) if x) if any((nm_h, at_h, em_h)) else None
         slots["s1"]["dupont5y"] = {
             "p_start": d5.get("period_start"), "p_end": d5.get("period_end"),
             "rows": [
@@ -692,9 +724,9 @@ def build_slots(data):
             "roe": {"start": _PCT2(d5.get("roe_start")), "end": _PCT2(d5.get("roe_end")),
                     "delta": None if rd5 is None else f"{rd5:+.2f}pct",
                     "gap": _cum(d5.get("closure_gap"))},
-            "pctile": {"净利率": PCTILE_LABEL.get(pg.get("net_margin")),
-                       "总资产周转率": PCTILE_LABEL.get(pg.get("asset_turnover")),
-                       "权益乘数": PCTILE_LABEL.get(pg.get("equity_multiplier"))},
+            "pctile": {k: _pctile_label(pg.get(_pk), _pn) for k, _pk in
+                       (("净利率", "net_margin"), ("总资产周转率", "asset_turnover"),
+                        ("权益乘数", "equity_multiplier"))},
         }
     # NCR 卡 takeaway 素材（嵌注释用）
     if cts.get("ncr"):

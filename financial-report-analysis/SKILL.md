@@ -8,7 +8,7 @@ description: >
 metadata:
   clawdbot:
     emoji: "📑"
-    version: "0.1.2"
+    version: "0.1.3"
     requires:
       anyBins: ["python"]
     os: ["win32", "darwin", "linux"]
@@ -471,5 +471,6 @@ Roll-forward（应收/存货/在建工程/商誉）+ C 组周期联动（CCC/DPO
 | 0.1.0 | 2026-10-06 | N4 落地：fill→render 脚本化（render_report.py + fillsheet.json + holder_ts schema 1.6） |
 | 0.1.1 | 2026-10-09 | ponytail-audit 全库审计修复 20 项（None 进 JS/effects_ratio/幽灵 0/OCF 空桥团灭/_NO_SRC 啃字/md_clean 丢行/gate 误导等）+ FAIL 判据阳性 30 断言 |
 | 0.1.2 | 2026-10-10 | 港股首跑反馈轮：OCF 桥起点标签参数化（税前利润）；--min-recon auto 港股校准；s1-v15 分位降级行豁免；s2-shape 剔除四线卡徽章；md_clean 港式章节名索引；阅读清单按 report_type 预裁剪 |
+| 0.1.3 | 2026-10-10 | 阿里港股年报首验反馈轮：hist_periods 非日历年财年（FY 标签）+ render 期次映射修复 + 趋势图 labels 取最长序列；T8② 单位换算补百万元档 + 千位符数字解析修复；stackH 钳位撞车去重；分位白描 X/N 支持 n<5 窗口；--min-recon auto 补港股年报=12；md_clean 补 US GAAP「合併*」章节名；data-sources 补妙想双通道+yahoo_finance 兜底链 |
 
 逐版本详情以 handoff/supersede/ 与 git tag 为唯一真源（AGENTS.md 定案）。

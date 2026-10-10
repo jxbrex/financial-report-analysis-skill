@@ -1215,6 +1215,8 @@ function deltaBars(id,steps,ends){
  周转率 C3 浅赭/杠杆 DERC 棕，口径差灰色 FAINT——正负由 ± 号与零轴左右方向表达，不再按正负双色）；
  段标签与端标签统一 ±x.xpct（段标签 v0.0.19 前裸小数无单位，美的轮反馈） */
 function stackH(id,steps,gap,unit){
+ const _pc={}; /* 钳位撞车登记（v0.1.3）：多个负向窄段同钳左缘 x=44 且同奇偶层时
+ 标签仍会重叠（阿里 FY2026「周转率 -0.1pct × 口径差 -0.1pct」11px 实证）——同层同 x 去重右移 */
  const s=document.getElementById(id);if(!s||!steps.length)return;
  const W=+s.viewBox.baseVal.width,H=+s.viewBox.baseVal.height,L=8,R=8,T=14,B=34;
  const rows=steps.concat(Math.abs(gap||0)>1e-9?[['口径差',gap,true]]:[]);
@@ -1242,7 +1244,8 @@ function stackH(id,steps,gap,unit){
  /* 标签奇偶错层（check_render 实测：相邻异向窄段的段中心挤在共享边界附近，
  同层标签重叠——「杠杆」×「口径差」11px 教训）；名称+数值合并单行 */
  /* 双向累叠后窄段可能贴左右边缘（如 −0.02pct 口径差），标签 x 钳入 [44, W−44] 防出界 */
- const cx=Math.min(Math.max((x(a)+x(b))/2,44),W-44);
+ let cx=Math.min(Math.max((x(a)+x(b))/2,44),W-44);
+ {const _pk=(idx%2)+'|'+cx;if(_pc[_pk])cx=Math.min(cx+92,W-44);_pc[_pk]=1;}
  txt(s,{x:cx,y:T+h+13+(idx%2)*13,'font-size':9.5,'font-weight':600,
  fill:isGap?MUT:FC[idx%3],'text-anchor':'middle',...HALO},
  `${nm} ${v>0?'+':''}${fmt(v)}${unit||''}`);
