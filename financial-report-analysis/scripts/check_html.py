@@ -319,6 +319,10 @@ def check_s2_shape(text, rep):
         return
     nxt = re.search(r'class="secthead"', text[m.end():])
     seg = text[m.start(): m.end() + nxt.start() if nxt else len(text)]
+    # 四线贴线考核卡（表头 检测线/读数/目标/距离/判定）的 ✅/❌ 判定徽章不是信号行——
+    # 整表剔除再数徽章（v0.1.2：该卡固定贡献 3 枚 badge g，赢合/海康/蜜雪三份现行版式
+    # 全部因此误报「3 个绿色徽章行」）
+    seg = re.sub(r'<table class="data">\s*<tr><th>检测线</th>.*?</table>', "", seg, flags=re.S)
 
     def badges(kw):
         return re.findall(rf'class="[^"]*\bbadge\b[^"]*\b{kw}\b', seg)

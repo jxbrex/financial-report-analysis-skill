@@ -39,9 +39,26 @@ FRAG_RULE_LEN = 40
 FRAG_BAD_END = re.compile(r"[。；：，]$")
 FRAG_BAD_START = re.compile(r"^(其中|注\d?|说明|第[一二三四五六七八九十]+[章节]|[一二三四五六七八九十]+、)")
 SECTION_RE = re.compile(r"^(第[一二三四五六七八九十]+[章节]|[一二三四五六七八九十]+、)\s*\S{2,30}$")
+# 港式章节头（v0.1.2 蜜雪实证）：港股报告章节无「第 X 节」编号，章节名以页眉形式整篇重复
+# （管理層討論與分析 22×、中期簡明綜合財務資料附註 24×），A 股式 SECTION_RE 零识别。
+# 口径：精确整行匹配 + 去重取首现（目录行带页码数字进不来；正文散文不会整行等于章节名）。
+HK_SECTION_NAMES = frozenset((
+    "公司資料", "公司资料", "財務摘要", "财务摘要", "財務業績摘要", "财务业绩摘要",
+    "管理層討論與分析", "企業管治", "企业管治", "企業管治報告", "企业管治报告",
+    "董事會報告", "董事会报告", "其他資料", "其他资料", "釋義", "释义", "詞彙", "词汇",
+    "獨立審閱報告", "独立审阅报告", "獨立核數師報告", "独立核数师报告",
+    "環境、社會及管治報告", "环境、社会及管治报告",
+    "DEFINITIONS", "CORPORATE INFORMATION", "CORPORATE GOVERNANCE", "OTHER INFORMATION",
+))
 BLOCK_KEYS = ("合并资产负债表", "合并利润表", "合并现金流量表", "母公司资产负债表",
               "管理层讨论与分析", "审计报告", "关键审计事项", "关联方", "承诺及或有事项",
-              "资产负债表日后事项", "分部信息", "员工情况", "利润分配")
+              "资产负债表日后事项", "分部信息", "员工情况", "利润分配",
+              # 港股主表与附注块（v0.1.2；中报带「中期簡明」前缀、年报不带，两种前缀都收）
+              "中期簡明綜合損益表", "簡明綜合損益表", "綜合損益表", "综合损益表",
+              "中期簡明綜合財務狀況表", "簡明綜合財務狀況表", "綜合財務狀況表", "综合财务状况表",
+              "中期簡明綜合權益變動表", "綜合權益變動表", "综合权益变动表",
+              "中期簡明綜合現金流量表", "綜合現金流量表", "综合现金流量表",
+              "中期簡明綜合財務資料附註", "財務報表附註", "财务报表附注")
 
 
 def is_pipe(line):
@@ -208,10 +225,14 @@ def clean(lines):
 
 def build_index(lines):
     sections, blocks = [], {}
+    seen_hk = set()
     for i, l in enumerate(lines):
         s = l.strip()
         if SECTION_RE.match(s) and len(s) <= 40:
             sections.append({"name": s, "line": i + 1})
+        elif s in HK_SECTION_NAMES and s not in seen_hk:
+            sections.append({"name": s, "line": i + 1})
+            seen_hk.add(s)
         for k in BLOCK_KEYS:
             if k not in blocks and s.startswith(k) and len(s) <= 60:
                 blocks[k] = i + 1

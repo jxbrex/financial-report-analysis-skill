@@ -375,7 +375,8 @@ PCTILE_OLD_RE = re.compile(r"5 期最低|5 期中第 2 低|5 期中居中|5 期�
 
 def check_s1_v15_shape(text, rep):
     """S1 杜邦双卡形态：① 杜邦下钻子行 ≤3（每因子 ≤1 行密度纪律）；
-    ② 因子分位表（表头含「五年位置」）数据行必须带白描读数（v0.0.19 起 X/5 从高到低），
+    ② 因子分位表（表头含「五年位置」）数据行必须带白描读数（v0.0.19 起 X/5 从高到低；
+       hist<3 合法降级的「分位不可用/分位需/分位降级」声明行豁免，v0.1.2 蜜雪实证），
        旧措辞「5 期中第 2 高」族与「上限区/下限区/常态区」档位标签均禁贴，
        且表内禁用「显著」统计措辞（n=5 位置读数非统计分位）；
     ③ 现金时序证据（v0.0.20 起 svg#ncrline 双折线图，旧版式为净现比表格）与周期定位判词
@@ -395,10 +396,14 @@ def check_s1_v15_shape(text, rep):
     tm = _table_containing(seg, "五年位置")
     if tm:
         rows = [r for r in re.findall(r"<tr>(.*?)</tr>", tm.group(1), re.S) if "<th" not in r]
-        nob = sum(1 for r in rows if not PCTILE_TEXT_RE.search(r))
+        # 分位降级声明行豁免（v0.1.2，蜜雪实证）：hist<3 期合法降级时行内写「分位不可用/
+        # 分位需 ≥3 期/分位卡降级」即合规形态，不是缺白描
+        _deg = re.compile(r"分位不可用|分位需|分位卡?降级")
+        live = [r for r in rows if not _deg.search(re.sub(r"<[^>]+>", "", r))]
+        nob = sum(1 for r in live if not PCTILE_TEXT_RE.search(r))
         if nob:
-            bad.append(f"因子分位表 {nob}/{len(rows)} 行缺白描读数"
-                       f"（X/5：五年从高到低第 X，v0.0.19）")
+            bad.append(f"因子分位表 {nob}/{len(live)} 行缺白描读数"
+                       f"（X/5：五年从高到低第 X，v0.0.19；降级声明行已豁免）")
         if PCTILE_OLD_RE.search(tm.group(0)):
             bad.append("因子分位表仍用旧白描措辞「5 期中第 2 高」族——v0.0.19 起改 X/5 读数")
         if re.search(r"上限区|下限区|常态区", tm.group(0)):

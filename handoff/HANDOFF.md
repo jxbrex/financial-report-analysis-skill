@@ -1,6 +1,6 @@
 # HANDOFF · 交接文档
 
-> 版本 **0.1.1** · 截至 2026-10-10 · 本文档面向「下一个接手这个项目的人/AI 会话」
+> 版本 **0.1.2** · 截至 2026-10-10 · 本文档面向「下一个接手这个项目的人/AI 会话」
 > 仓库：https://github.com/jxbrex/financial-report-analysis-skill（**私密**）
 > 部署：`C:/Users/rexji/.agents/skills/financial-report-analysis/`（由 `deploy.cmd` 镜像）
 
@@ -68,7 +68,7 @@ financial-report-analysis/
 │   ├── wanhua_2026h1.json      #   周期股样本（v0.0.18 固化：双驱动第二样本/ROIC·SGR 首验/白描分位锚点）
 │   ├── md_clean_synth.md       #   md_clean 合成金标准（自包含，四类病理；v0.0.17 起不再依赖原始 md）
 │   ├── t8_demo.html            #   T8 数字回验验收样例（改错版由回归运行时改数生成）
-│   └── run_regression.py       #   唯一回归入口：177 条断言 + check_html/T8/渲染冒烟 + 构造用例
+│   └── run_regression.py       #   唯一回归入口：189 条断言 + check_html/T8/渲染冒烟 + 构造用例
 ```
 
 ### 三道机器门禁 + 一条回归
@@ -88,7 +88,7 @@ financial-report-analysis/
    分位白描映射）；v0.0.19 起加 **assertion-count**（FAIL：断言 figtitle 三态计数
    a+b+c=N 且与表内徽章/底稿 assertions 一致）与 **recon-label**（勾稽三态旧长标签）、
    **decimal-places**（可见数字 ≥3 位小数）两条 WARN；v0.0.21 起加 **gap-declaration**（FAIL：s4 ❓ 断言须进「数据缺口声明」行）；v0.0.22 起加 **js-dup-decl**（FAIL：数据槽顶层 const 重复声明——JS 团灭防线）与 **assert-trunc**（FAIL：断言 text/evidence 填充截断，--json）。exit 0 才允许交付。
-3. **`python tests/run_regression.py`** —— 任何改动后必跑，**177 条断言**全绿才算没改坏
+3. **`python tests/run_regression.py`** —— 任何改动后必跑，**189 条断言**全绿才算没改坏
    （含 calc 四例 + check_html 冒烟 + T8 数字回验 + md_clean 合成样本 + 构造用例
    + fillsheet JS 槽形态冒烟）。
 
@@ -221,15 +221,18 @@ financial-report-analysis/
   ts_code 过滤失效×2→改 mx 取市值 / p2 脚本锚点差两字重跑 / incentive_line 部分字段
   FAIL / OCF 桥合并项算术笔误 0.018 亿被容差放过、交付前自查抓回）
 - **港股首跑实测（蜜雪 2026H1，2026-10-10，三道门禁绿）**：①md_clean 索引对港式章节名
-  零识别（index 空），子代理派单改用锚点+Grep；②recon 结构性上限 8/17（无直接法收现
-  A4/B1、无存货增加额附注 B2、无在建工程科目 B3、无母公司单体报表 D 组），
-  `--min-recon` 港股中报按 8 校准（13 是 A 股假设）；③权益变动表 PDF 文本逆序可数字
+  零识别（index 空），子代理派单改用锚点+Grep——**v0.1.2 已修**（港式章节名精确整行匹配
+  +页眉去重 + 港式主表入 blocks，蜜雪 md 实测 11 节/5 块）；②recon 结构性上限 8/17
+  （无直接法收现 A4/B1、无存货增加额附注 B2、无在建工程科目 B3、无母公司单体报表 D 组），
+  ~~`--min-recon` 港股中报按 8 校准~~——**v0.1.2 已参数化**（`--min-recon auto` 按
+  meta.market+report_type 查校准表）；③权益变动表 PDF 文本逆序可数字
   反读解码（权益构成逐项交叉勾稽还原，A2 因此可执行）；④妙想港股汇总表为港元折算
   （汇率偏高约 5%，疑年末/均价口径），取数只用 F9 明细表人民币口径；⑤render/fillsheet
-  的 OCF 桥端点行与标签硬编码「净利润」，港股间接法主表起点是税前利润——报告呈现层
-  手工改「税前利润」，技能修订轮再参数化（待办）；⑥check_html 两处既有 WARN 基线
-  港股同款命中：s1-v15-shape 因子分位表无降级豁免（hist<3 合法降级仍报待确认）、
-  s2-shape 把四线卡 ✅ 判定徽章计入绿徽——属技能缺口非报告缺陷，人工确认豁免
+  的 OCF 桥端点行与标签硬编码「净利润」，港股间接法主表起点是税前利润——
+  ~~技能修订轮再参数化~~ **v0.1.2 已修**（端点行/端点柱标签取 ocf_bridge 首行科目名剥括号注）；
+  ⑥check_html 两处既有 WARN 基线港股同款命中：s1-v15-shape 因子分位表无降级豁免、
+  s2-shape 把四线卡 ✅ 判定徽章计入绿徽——**v0.1.2 已修**（分位降级声明行豁免 +
+  四线考核表整表剔除再数徽章），蜜雪 WARN 3→1、赢合/海康同款误报同步消除
 
 ## 三、历史发现与轮次记录
 
@@ -244,7 +247,7 @@ financial-report-analysis/
 
 | # | 局限 | 影响 |
 |---|---|---|
-| 1 | ~~港股全流程未跑过~~ **港股半年报已首验**（蜜雪 2026H1，2026-10-10 三道门禁绿） | 残留：港股**年报**专属槽位（Q4/review 卡）未验；美股全流程未验证；港股 recon 上限 8/17 与 OCF 桥起点口径待技能修订轮参数化（运维速查末条） |
+| 1 | ~~港股全流程未跑过~~ **港股半年报已首验**（蜜雪 2026H1，2026-10-10 三道门禁绿） | 残留：港股**年报**专属槽位（Q4/review 卡）未验；美股全流程未验证~~；港股 recon 上限与 OCF 桥起点待参数化~~（v0.1.2 已落地，运维速查末条） |
 | 2 | **季报/招股书两种报告类型未实测**（年报、半年报均已多份实战） | report-types.md 对季报/招股书的裁剪规则仍是纸面推演 |
 | 3 | **industry-profiles.md 八类模式零实测** | 工程建造的合同资产勾稽、农业的生物资产盘点、经销商压货三条件、医药的研发资本化/license-out 勾稽都没在真实样本上跑过 |
 | 4 | **P1-17 四象限未端到端跑过**（断言验证/周期定位/费用ROI 已在多份半年报实战） | 四象限只在茅台 fixture 验过分类正确 |
@@ -255,6 +258,40 @@ financial-report-analysis/
 | 9 | **移动 json 的 src 行号与现行 md 不匹配**（T8②级 104/107 miss） | v0.0.4 底稿行号体系；下份移动报告重建底稿时按新 schema 修复 |
 | 10 | **70% 升档阈值真实触发仍待样本**（长城无息 87% 达标但杠杆非主驱动、升档正确地未触发） | 首验场景：首份「杠杆为主驱动+无息>70%+|ΔDFL|<0.1」公司 |
 | 11 | **render 二期（年报专属路径未脚本化）**：Q4 卡/review 回看卡填充、预期对照表（schema expectations 块）、高管增减持块、big_moves 大动表提取——一期半年报路径全覆盖 | 年报/回看场景下这些槽位仍是手工孔（残留 {{}} 兼容现流程）；二期用真实年报样本（腾讯 00700 候选）回测 |
+
+---
+
+## 四·九、当前未发布轮：v0.1.2（2026-10-10，蜜雪港股首跑反馈轮）
+
+> 触发：蜜雪轮记账的五项技能缺口（运维速查末条①②⑤⑥ + 效率治理）用户定案「都修吧」。
+> 专项修订轮，回归 177→189 全绿（+12 构造断言）。
+
+### 修订（全部落地）
+
+1. **OCF 桥起点标签参数化**：calc_slots `brends_ocf` 与模板端点柱标签由硬编码「净利润」
+   改为取 `derived.ocf_bridge` 首行科目名（剥括号注）——港股间接法起点「税前利润」自动正确，
+   A 股五例 fixture 首行均「净利润」，产出逐字不变（金标准零 diff）
+2. **`--min-recon auto`**：calc.py 加 AUTO_MIN_RECON 校准表（meta.market+report_type 查表：
+   A 股 15/13/8，港股半年报 8=蜜雪实测结构性上限；未知组合退回 WARN 态并提示显式给数），
+   gate.py 透传去 type=int 限制
+3. **check_html 两缺口**：s1-v15-shape 分位表降级声明行豁免（「分位不可用/分位需/分位卡降级」
+   行不计缺白描）；s2-shape 数徽章前整表剔除四线贴线考核卡（表头「检测线」锚）——
+   该卡固定 3 枚 badge g 是赢合/海康/蜜雪三份现行版式的共同误报源
+4. **md_clean 港式索引**：HK_SECTION_NAMES 精确整行匹配 + 去重取首现（港式章节无编号、
+   以页眉形式整篇重复）；BLOCK_KEYS 补港式主表/附注（中期簡明前缀两态）——蜜雪 md 实测
+   索引 0 → 11 节/5 块
+5. **SKILL.md 流程治理**：方法库阅读按 report_type 预裁剪（港美股路径 A 股专属条目跳读，
+   蜜雪全量重读 27.2min 实证）；派发窗改 run_in_background 后台派发（前台阻塞 8min 实证）；
+   Phase 7.5 指令改 `--min-recon auto`
+
+### 验证
+
+- 回归 177→189 全绿（+12：OCF 标签 fill/模板契约、auto 三方向、分位豁免正负、
+  四线卡剔除正负、港式 md 索引三断言）；
+- 蜜雪真实产物端到端：check_html WARN 3→1（s1-v15/s2-shape 转 OK，仅剩 bare-number
+  人工确认类），calc `--min-recon auto` 正确识别「港股半年报 → 8」；
+- 赢合/海康（现行版式）s2-shape 误报同步消除；茅台黄金样本（v0.0.4 旧版式）两条规则
+  输出与基线逐字一致（「未找到章节」WARN，零口径漂移）。
 
 ---
 
@@ -313,7 +350,7 @@ financial-report-analysis/
 ```bash
 # 1. 确认环境
 cd "D:/KimiCodeProject/Financial Report Analysis"
-python financial-report-analysis/tests/run_regression.py   # 应 177/177 通过
+python financial-report-analysis/tests/run_regression.py   # 应 189/189 通过
 
 # 2. 部署（如需让技能在当前机器生效）
 cmd //c deploy.cmd

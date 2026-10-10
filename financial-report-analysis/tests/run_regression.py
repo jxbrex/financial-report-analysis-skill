@@ -1430,6 +1430,131 @@ def main():
                   "render 断锚/降级路径失效，逐条核对上方 ❌。"):
         return 1
 
+    # ── v0.1.2 港股首跑反馈构造用例（蜜雪 2026H1 实证五修）──
+    # ① OCF 桥起点标签参数化：端点行/端点柱标签取底稿 ocf_bridge 首行科目名（剥括号注），
+    #    港股间接法起点「税前利润」不再靠手工改呈现层；A 股首行即「净利润」产出逐字不变。
+    v12_checks = []
+    with tempfile.TemporaryDirectory() as _td12:
+        _d12 = json.loads((HERE / "yinghe_2026h1.json").read_text(encoding="utf-8"))
+        _d12["derived"]["ocf_bridge"][0]["item"] = "税前利润（港股间接法起点）"
+        _cp12 = Path(_td12) / "hk_ocf.json"
+        _cp12.write_text(json.dumps(_d12, ensure_ascii=False), encoding="utf-8")
+        subprocess.run([sys.executable, str(CALC), str(_cp12), "--fill"],
+                       capture_output=True, text=True, encoding="utf-8", errors="replace")
+        _fs12 = _cp12.with_suffix(".fillsheet.md")
+        _fs12_txt = _fs12.read_text(encoding="utf-8") if _fs12.exists() else ""
+        v12_checks.append(
+            ("端点行：税前利润 3.68" in _fs12_txt and "端点行：净利润" not in _fs12_txt,
+             "v0.1.2①：OCF 桥端点行起点标签取底稿首行科目名（剥括号注）"))
+    _tpl12 = (SKILL / "assets" / "report-template.html").read_text(encoding="utf-8")
+    v12_checks.append(
+        ("期初·'+(((OCF_BRIDGE[0]||[])[0])||'净利润'" in _tpl12,
+         "v0.1.2①：模板端点柱标签运行时自 OCF_BRIDGE[0] 派生（空桥兜「净利润」）"))
+
+    # ② --min-recon auto 校准表：港股半年报 8（蜜雪实测结构性上限），A 股三档不变；
+    #    康得新 recon 14/17——港股 auto 达标不升 FAIL、A 股年报 auto（15）必 FAIL、
+    #    港股 auto 删到 7 条必 FAIL 钉住阈值方向。
+    def _auto_run(market, rtype, drop=0):
+        _d = json.loads((HERE / "kangdexin_2018.json").read_text(encoding="utf-8"))
+        _d["meta"]["market"] = market
+        _d["meta"]["report_type"] = rtype
+        for _k in list((_d.get("recon") or {}).keys())[:drop]:
+            _d["recon"].pop(_k, None)
+        with tempfile.NamedTemporaryFile("w", suffix=".json", delete=False,
+                                         encoding="utf-8") as _f:
+            json.dump(_d, _f, ensure_ascii=False)
+            _p = _f.name
+        try:
+            return run_calc(_p, "--min-recon", "auto")
+        finally:
+            os.unlink(_p)
+    _r_hk = _auto_run("港股", "半年报")
+    _r_a = _auto_run("A股", "年报")
+    _r_hk7 = _auto_run("港股", "半年报", drop=7)
+    v12_checks += [
+        ("覆盖下限 8" in (_r_hk.stdout or "") and "未达 --min-recon" not in (_r_hk.stdout or ""),
+         "v0.1.2②：港股半年报 auto → 下限 8，康得新 14/17 达标不升 FAIL"),
+        ("未达 --min-recon 15" in (_r_a.stdout or ""),
+         "v0.1.2②：A 股年报 auto → 下限 15，康得新 14/17 必 FAIL（A 股口径未漂移）"),
+        ("未达 --min-recon 8" in (_r_hk7.stdout or ""),
+         "v0.1.2②：港股半年报 auto 删至 7/17 必 FAIL（阈值方向钉死）"),
+    ]
+
+    # ③ s1-v15-shape 分位降级行豁免：hist<3 合法降级声明行（分位需/分位卡降级）不计缺白描；
+    #    无豁免词又无 X/5 的数据行仍必报。
+    _S1H = ('<div class="sect"><div class="secthead" id="s1"><span class="no">01</span>'
+            '<span class="t">财务总览</span><span class="line"></span></div>')
+    _pct_deg = _run_html_str(
+        _S1H + '<div class="card"><table class="data">'
+        '<tr><th>因子</th><th>当前值</th><th>五年位置</th></tr>'
+        '<tr><td>三因子</td><td colspan="2">分位需 ≥3 期可比序列，分位卡降级（序列仅两期）</td></tr>'
+        '</table><svg id="ncrline"></svg><div>周期定位：非周期行业声明</div></div></div>',
+        json_path=None)
+    _pct_live = _run_html_str(
+        _S1H + '<div class="card"><table class="data">'
+        '<tr><th>因子</th><th>当前值</th><th>五年位置</th></tr>'
+        '<tr><td>净利率</td><td>15.0%</td><td>区间中部</td></tr>'
+        '</table><svg id="ncrline"></svg><div>周期定位：非周期行业声明</div></div></div>',
+        json_path=None)
+    v12_checks += [
+        ("[OK  ] s1-v15-shape" in (_pct_deg.stdout or ""),
+         "v0.1.2③：分位表降级声明行豁免（蜜雪 hist<3 形态不再误报）"),
+        ("缺白描读数" in (_pct_live.stdout or ""),
+         "v0.1.2③：无豁免词且缺 X/5 的数据行仍必报（判据未松）"),
+    ]
+
+    # ④ s2-shape 剔除四线贴线考核卡判定徽章：该卡固定 3 枚 badge g（✅ 远离/无贴线场景）
+    #    不是信号行（赢合/海康/蜜雪三份现行版式全误报）；卡外绿徽仍按原规则计数。
+    _S2H = ('<div class="sect"><div class="secthead" id="s2"><span class="no">02</span>'
+            '<span class="t">排雷扫描</span><span class="line"></span></div>')
+    _4LINE = ('<div class="card"><table class="data">'
+              '<tr><th>检测线</th><th>读数</th><th>目标</th><th>距离</th><th class="txt">判定</th></tr>'
+              '<tr><td>保壳线</td><td>ROE 8.6%</td><td>ROE 6.5%</td><td>+2.1pct</td>'
+              '<td class="txt"><span class="badge g">✅ 远离</span></td></tr>'
+              '<tr><td>再融资线</td><td>ROE 8.6%</td><td>ROE 10%</td><td>-1.4pct</td>'
+              '<td class="txt"><span class="badge g">✅ 远离</span></td></tr>'
+              '<tr><td>激励线</td><td>无</td><td>—</td><td>—</td>'
+              '<td class="txt"><span class="badge g">✅ 无贴线场景</span></td></tr>'
+              '</table></div>')
+    _s2_ok = _run_html_str(_S2H + _4LINE + "</div>", json_path=None)
+    _s2_bad = _run_html_str(
+        _S2H + _4LINE + '<div class="card"><span class="badge g">✅ 未触发</span>'
+        '<span class="badge g">✅ 未触发</span></div></div>', json_path=None)
+    v12_checks += [
+        ("[OK  ] s2-shape" in (_s2_ok.stdout or ""),
+         "v0.1.2④：四线卡 ✅ 判定徽章不计入绿徽（三份现行版式误报消除）"),
+        ("绿色徽章" in (_s2_bad.stdout or ""),
+         "v0.1.2④：四线卡外的逐条绿徽仍必报（判据未松）"),
+    ]
+
+    # ⑤ md_clean 港式章节名索引：无编号章节头精确整行匹配 + 去重取首现；港式主表入 blocks。
+    with tempfile.TemporaryDirectory() as _tdm:
+        _hkm = Path(_tdm) / "hk_sample.md"
+        _hkm.write_text(
+            "公司資料\n\n蜜雪集團股份有限公司 中期報告正文文字行，含數字 1,234.56 保留。\n\n"
+            "管理層討論與分析\n\n本期收入 148.75 億元，同比增長，經營情況穩定向好發展。\n\n"
+            "管理層討論與分析\n\n| 項目 | 本期 |\n| --- | --- |\n| 收入 | 14,875,393 |\n\n"
+            "中期簡明綜合損益表\n\n| 期內利潤 | 2,975,707 |\n\n其他資料\n\n其他資料\n\n釋義\n",
+            encoding="utf-8")
+        _rm = subprocess.run([sys.executable, str(SKILL / "scripts" / "md_clean.py"),
+                              str(_hkm), "--out-dir", _tdm],
+                             capture_output=True, text=True, encoding="utf-8", errors="replace")
+        _idxm_p = Path(_tdm) / "hk_sample.index.json"
+        _idxm = json.loads(_idxm_p.read_text(encoding="utf-8")) if _idxm_p.exists() else {}
+        _sec_names = [s.get("name") for s in (_idxm.get("sections") or [])]
+        v12_checks += [
+            (_rm.returncode == 0 and "不变量违反" not in (_rm.stdout or ""),
+             "v0.1.2⑤：港式合成样本 exit 0 且双不变量通过"),
+            ("管理層討論與分析" in _sec_names and _sec_names.count("管理層討論與分析") == 1
+             and "公司資料" in _sec_names,
+             f"v0.1.2⑤：港式章节头识别且页眉重复去重（sections={_sec_names}）"),
+            ("中期簡明綜合損益表" in (_idxm.get("blocks") or {}),
+             "v0.1.2⑤：港式主表入 blocks（中期簡明前綴）"),
+        ]
+    if not _block("v0.1.2 港股首跑反馈构造用例（蜜雪实证五修）", v12_checks,
+                  "v0.1.2 构造用例失败，逐条核对上方 ❌。"):
+        return 1
+
     failed = total - passed
     print(f"\n--- 汇总：通过 {passed} · 失败 {failed} ---")
     if failed:

@@ -8,7 +8,7 @@ description: >
 metadata:
   clawdbot:
     emoji: "📑"
-    version: "0.1.1"
+    version: "0.1.2"
     requires:
       anyBins: ["python"]
     os: ["win32", "darwin", "linux"]
@@ -91,8 +91,9 @@ metadata:
    ③ MD&A 断言与语气（P5）④ 产能/在建/股东/户数（P6）⑤ 期后事项/同业/机构预期（P7）。
    **派单 prompt 一律按 `references/subagent-prompts.md` 的模板填空**（v0.0.14）——
    禁止现场全文手写，并按公司特点加一条专属任务。
-   **派发后主线立刻在窗内执行 Phase 1 批量取数**，取数完成仍有余量则做不依赖 ①② 的
-   准备工作（回看检查/读模板），禁止空等回包。
+   **派发走后台派发（run_in_background，v0.1.2）**——前台并行派发会让主线阻塞空等
+   （蜜雪轮实证 8min）；**派发后主线立刻在窗内执行 Phase 1 批量取数**，取数完成仍有
+   余量则做不依赖 ①② 的准备工作（回看检查/读模板），禁止空等回包。
    **提取类子代理（①②a②b）读 clean md + index sidecar 切片**（见 Phase 0 第 2 条）。
    **产出分块落盘（v0.0.18）**：
    各代理产出**严格按 schema 分块的 json 片段**，写入 `reports/archive/json/_chunks/{stem}/`
@@ -116,6 +117,11 @@ metadata:
    替代路径——报告源 HKEX 披露易 / SEC EDGAR，财务主源妙想 `mx_hk_finance_data` /
    `mx_us_finance_data`；须核对**币种**（港元/人民币/美元）与**会计准则**（IFRS/US GAAP），
    A 股专属模块置灰标注「仅 A 股」，缺第二源时该标的数字加 `[单源]` 标记。
+   **方法库阅读按 report_type 预裁剪**（v0.1.2，蜜雪轮实证：非常规报告全量重读六份
+   references 核对 IFRS 映射耗 27.2min）：港股/美股路径必读 `report-types.md` 港美股节 +
+   `data-sources.md` 三·五节；`frameworks.md`/`redflags.md`/`articulation.md` 中
+   A 股专属条目（保壳/再融资四线、股东户数/质押/热榜、直接法收现类勾稽、母公司 D 组）
+   确认不适用即跳读，禁止全量重读。
 
 5. **回看模式（P2-18）**：先检查 `reports/` 顶层是否已有**同公司**的旧成品 HTML
    （文件名含公司名或代码）。有则读取其 `watchlist` 块（`reports/archive/json/` 同名 .json 的
@@ -310,8 +316,10 @@ Roll-forward（应收/存货/在建工程/商誉）+ C 组周期联动（CCC/DPO
 ### Phase 7.5：计算自检（写报告的前置门禁，不通过禁止进入 Phase 8）
 
 1. 确认 data.json 已按 `references/extraction-schema.md` 填齐本期分析涉及的全部块
-2. 运行：`python "<技能目录>/scripts/calc.py" reports/archive/json/xxx.json --min-recon N`
-   （N = recon 覆盖硬下限：年报 15 / 半年报 13 / 季报 8——v0.0.20 起接线为默认；
+2. 运行：`python "<技能目录>/scripts/calc.py" reports/archive/json/xxx.json --min-recon auto`
+   （auto = 按 meta.market+report_type 查校准表（v0.1.2）：A 股年报 15 / 半年报 13 / 季报 8，
+   **港股半年报 8**（蜜雪 2026H1 实测结构性上限：无直接法收现/补充资料/母公司单体报表等
+   9 条不可执行）；未知组合退回 WARN 态并提示显式给数。v0.0.20 起接线为默认——
    卫星化学轮实证：不带该参数时 12/17 的覆盖率只报 WARN，漏提整份补充资料也拿了全绿）
    （技能目录 = 本技能被部署的路径；Windows 控制台已内置 UTF-8 处理）
 3. **退出码 0（全绿）才允许写报告**；任何 FAIL → 回到对应 Phase 修数据后重跑，
@@ -462,5 +470,6 @@ Roll-forward（应收/存货/在建工程/商誉）+ C 组周期联动（CCC/DPO
 | 0.0.25 | 2026-10-06 | deltaBars 标签宽自适应；检验卡四组分组行；check_render svgclip 出界检测 |
 | 0.1.0 | 2026-10-06 | N4 落地：fill→render 脚本化（render_report.py + fillsheet.json + holder_ts schema 1.6） |
 | 0.1.1 | 2026-10-09 | ponytail-audit 全库审计修复 20 项（None 进 JS/effects_ratio/幽灵 0/OCF 空桥团灭/_NO_SRC 啃字/md_clean 丢行/gate 误导等）+ FAIL 判据阳性 30 断言 |
+| 0.1.2 | 2026-10-10 | 港股首跑反馈轮：OCF 桥起点标签参数化（税前利润）；--min-recon auto 港股校准；s1-v15 分位降级行豁免；s2-shape 剔除四线卡徽章；md_clean 港式章节名索引；阅读清单按 report_type 预裁剪 |
 
 逐版本详情以 handoff/supersede/ 与 git tag 为唯一真源（AGENTS.md 定案）。

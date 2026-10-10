@@ -34,8 +34,9 @@ def main():
     ap.add_argument("--png", default=None, help="check_render 按章分片截图目录（视觉验收用）")
     ap.add_argument("--verbose", action="store_true",
                     help="透传 check_html --verbose（T8 等明细不截断）并打印明细行——排障用")
-    ap.add_argument("--min-recon", type=int, default=None, metavar="N",
-                    help="透传 calc.py --min-recon：recon 覆盖不足即 FAIL（年报 15/半年报 13/季报 8）")
+    ap.add_argument("--min-recon", default=None, metavar="N|auto",
+                    help="透传 calc.py --min-recon：recon 覆盖不足即 FAIL"
+                         "（A 股年报 15/半年报 13/季报 8，港股半年报 8；auto 按 meta 校准，v0.1.2）")
     ap.add_argument("--chrome", default=None,
                     help="透传 check_render --chrome（Chrome/Edge 可执行文件路径；无浏览器机器渲染门禁跳过）")
     a = ap.parse_args()

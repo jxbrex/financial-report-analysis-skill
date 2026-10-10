@@ -665,6 +665,14 @@ def check_assertions(data, rep):
         rep.add(OK, "assertions", f"{len(arr)} 条断言结构合法（其中判「不成立」{n_bad} 条，应已进 signals）")
 
 
+# --min-recon auto 校准表（v0.1.2）：A 股三档见 report-types.md；港股半年报 8 = 蜜雪 2026H1
+# 实测结构性上限（无直接法收现 A4/B1、无存货增加额附注 B2、无在建工程科目 B3、无母公司
+# 单体报表 D 组）——13 是 A 股披露假设，港股照套会把合法缺披露误升 FAIL。
+# 未实证组合不入表；auto 查不到时退回 WARN 态并提示显式给数。
+AUTO_MIN_RECON = {("A股", "年报"): 15, ("A股", "半年报"): 13, ("A股", "季报"): 8,
+                  ("港股", "半年报"): 8}
+
+
 def check_recon_coverage(data, rep, min_recon=None):
     """recon 覆盖率：非空时统计已执行的等式，提醒未做项（缺数合法，漏做不可）。
     min_recon（--min-recon）给定时未达标由 WARN 升 FAIL——建议阈值见 report-types.md
@@ -711,8 +719,10 @@ def main():
     ap.add_argument("--fill", action="store_true",
                     help="预填 derived 机械字段（ratios/杜邦族/cycle_evidence/threshold_check/risk_models/stress/cash_ts/segment_quadrant/单期八项）"
                          "并产出 {stem}.fillsheet.md 填充速查表；判断字段（桥/rev_factors/recon/notes）不动")
-    ap.add_argument("--min-recon", type=int, default=None, metavar="N",
-                    help="recon 已判定等式条数下限（建议：年报 15、半年报 13、季报 8，共 17 条）；"
+    ap.add_argument("--min-recon", type=lambda s: s if s == "auto" else int(s),
+                    default=None, metavar="N|auto",
+                    help="recon 已判定等式条数下限（A 股：年报 15、半年报 13、季报 8；港股半年报 8）；"
+                         "auto = 按 meta.market+report_type 查校准表（v0.1.2，未知组合退回 WARN 态）；"
                          "未达标时 recon-coverage 由 WARN 升 FAIL（v0.0.17，任务 5）")
     args = ap.parse_args()
 
@@ -757,7 +767,16 @@ def main():
     check_stress(data, rep)
     check_cash_ts(data, rep)
     check_recon(data, rep)
-    check_recon_coverage(data, rep, min_recon=args.min_recon)
+    min_recon = args.min_recon
+    if min_recon == "auto":
+        _mk = ((data.get("meta") or {}).get("market"), (data.get("meta") or {}).get("report_type"))
+        min_recon = AUTO_MIN_RECON.get(_mk)
+        if min_recon is None:
+            print(f"🟡 --min-recon auto：校准表无「{_mk[0] or '?'}/{_mk[1] or '?'}」组合，"
+                  f"退回 WARN 态——请按报告实际显式给数字")
+        else:
+            print(f"ℹ️ --min-recon auto：{_mk[0]}{_mk[1]} → recon 覆盖下限 {min_recon}")
+    check_recon_coverage(data, rep, min_recon=min_recon)
     check_segments(data, rep)
     check_segment_quadrant(data, rep)
     check_assertions(data, rep)

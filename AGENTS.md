@@ -29,7 +29,7 @@
     ROIC·SGR 首验/白描分位锚点；v0.0.18 固化）、`yinghe_2026h1.json`（v0.1.0 render
     重放金标准：fillsheet.md 逐字锁 + 锚自检 + 孔数区间 + FAIL 仅 placeholder 一类）
     + `yinghe_2026h1.fillsheet.golden.md`、`md_clean_synth.md`（md_clean 合成金标准，自包含）；
-    `run_regression.py` 是唯一回归入口（144 断言，含 check_html/T8/渲染冒烟与构造用例）
+    `run_regression.py` 是唯一回归入口（189 断言，含 check_html/T8/渲染冒烟与构造用例）
 - `reports/` — 产出目录。顶层只放成品 HTML（每公司只留最新版；`贵州茅台-600519-年报-2025FY-20260904.html`
   是黄金样本，改流程/模板后用它做回归对比）；原始报告（PDF/md）存 `reports/archive/原始报告/`，
   data.json 底稿存 `reports/archive/json/`

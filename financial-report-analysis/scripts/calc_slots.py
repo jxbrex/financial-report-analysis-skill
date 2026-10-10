@@ -457,7 +457,10 @@ def _js_slots(data):
         out["OCF_BRIDGE"] = f"const OCF_BRIDGE={_jd(rows)};"
         out["OCF_END"] = f"const OCF_END={_jd(R2(_v(cfs, 'ocf')))};"
         adj = round(sum(v for _, v in items[1:]), 2)
-        out["brends_ocf"] = (f"净利润 {head[1]:.2f} 亿 →（调节净额 {adj:+.2f} 亿）→ "
+        # 起点标签取底稿首行科目名（剥括号注）——港股间接法主表起点是税前利润而非净利润
+        # （v0.1.2，蜜雪 2026H1 实证；A 股首行即「净利润」，产出逐字不变）
+        _start = re.sub(r"（[^）]*）", "", head[0] or "净利润")
+        out["brends_ocf"] = (f"{_start} {head[1]:.2f} 亿 →（调节净额 {adj:+.2f} 亿）→ "
                              f"经营现金流净额 {_F2(_v(cfs, 'ocf'))} 亿")
     else:
         out["OCF_BRIDGE"] = "const OCF_BRIDGE=[];"
