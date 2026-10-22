@@ -1,6 +1,6 @@
 # HANDOFF · 交接文档
 
-> 版本 **0.1.4** · 截至 2026-10-22 · 本文档面向「下一个接手这个项目的人/AI 会话」
+> 版本 **0.1.5** · 截至 2026-10-22 · 本文档面向「下一个接手这个项目的人/AI 会话」
 > 仓库：https://github.com/jxbrex/financial-report-analysis-skill（**私密**）
 > 部署：`C:/Users/rexji/.agents/skills/financial-report-analysis/`（由 `deploy.cmd` 镜像）
 
@@ -67,8 +67,9 @@ financial-report-analysis/
 │   ├── vanke_2026h1.json       #   连亏地产样本（v0.0.17 固化：扣非双版/双驱动真实触发）
 │   ├── wanhua_2026h1.json      #   周期股样本（v0.0.18 固化：双驱动第二样本/ROIC·SGR 首验/白描分位锚点）
 │   ├── md_clean_synth.md       #   md_clean 合成金标准（自包含，四类病理；v0.0.17 起不再依赖原始 md）
+│   ├── md_clean_synth2.md      #   第二合成金标准（v0.1.5：表题行误并/分隔行污染两形态）
 │   ├── t8_demo.html            #   T8 数字回验验收样例（改错版由回归运行时改数生成）
-│   └── run_regression.py       #   唯一回归入口：189 条断言 + check_html/T8/渲染冒烟 + 构造用例
+│   └── run_regression.py       #   唯一回归入口：252 条断言 + check_html/T8/渲染冒烟 + 构造用例
 ```
 
 ### 三道机器门禁 + 一条回归
@@ -88,7 +89,7 @@ financial-report-analysis/
    分位白描映射）；v0.0.19 起加 **assertion-count**（FAIL：断言 figtitle 三态计数
    a+b+c=N 且与表内徽章/底稿 assertions 一致）与 **recon-label**（勾稽三态旧长标签）、
    **decimal-places**（可见数字 ≥3 位小数）两条 WARN；v0.0.21 起加 **gap-declaration**（FAIL：s4 ❓ 断言须进「数据缺口声明」行）；v0.0.22 起加 **js-dup-decl**（FAIL：数据槽顶层 const 重复声明——JS 团灭防线）与 **assert-trunc**（FAIL：断言 text/evidence 填充截断，--json）。exit 0 才允许交付。
-3. **`python tests/run_regression.py`** —— 任何改动后必跑，**189 条断言**全绿才算没改坏
+3. **`python tests/run_regression.py`** —— 任何改动后必跑，**252 条断言**全绿才算没改坏
    （含 calc 四例 + check_html 冒烟 + T8 数字回验 + md_clean 合成样本 + 构造用例
    + fillsheet JS 槽形态冒烟）。
 
@@ -258,6 +259,14 @@ financial-report-analysis/
   ⑥四象限在港股分部口径的适配：分部无成本披露→cost=rev−经调整EBITA 倒挤（der 标注），
   calc 两条 WARN（合计 108.5% 抵消前/加权 EBITA 率 vs 毛利率口径差）为预期口径差；
   ⑦内部引用门禁实录：底稿 evidence 别写 mx_*/「xx.md」字样（render _TXT 剥 L 行号会留断句）
+- **v0.1.5 审计修复轮运维条目**：①「cur:null + src 批注」是存量合法缺省形态（康得新 3/万科 4/万华 3
+  共 10 节点），结构检查的脱钩 FAIL 只许按 hist 非空判——加 src 条件会误伤这 10 处（批次 A 实证收窄）；
+  ②茅台黄金样本（v0.0.4 版式）跑现行 check_html 新增 dupont-stack/sankey-slot「数据在但槽缺失」
+  WARN×2（无槽数据感知的有意新增）——纪律 7 预期噪音，不追溯；③桑基单季差额固定一条提醒级 WARN
+  （cum_prev 纯输入、门禁仅验自洽）——Q3 报告 WARN+1 属预期；④md_clean_synth2.md 是第二合成金标准
+  （表题行/分隔行污染），别并进 synth1（破存量断言）；⑤新 WARN/FAIL 级别常量先查模块导入
+  （calc_sankey 缺 WARN 导入，合成冒烟才抓到 NameError，四 fixture 无此形态回归测不到）；
+  ⑥render 文件名拼接（company/code）不过 _E 转义——转义只在 HTML 插入点做（v0.1.5 边界定案）
 
 ## 三、历史发现与轮次记录
 
@@ -422,6 +431,59 @@ financial-report-analysis/
 
 ---
 
+## 四·十二、当前未发布轮：v0.1.5（2026-10-22，ponytail-audit 全技能审计修复轮）
+
+> 触发：ponytail-audit 全技能审计（6 只读子代理逐行深读约 7k 行脚本+模板+回归，48 条原始发现，
+> 主代理逐条复核取证后定案 20 条），用户定案修 1–19（第 20 条精简打包不修）。
+> 执行：三批 coder 并行修脚本（按文件所有权划分，不许碰回归文件）+ 一批集中写断言。
+> 回归 209→**252 全绿**（+43 条构造断言，三条破坏测试实证「改坏必红」）。
+
+### 修订（19 条全部落地，按审计编号）
+
+1. **md_clean 两处碎行误并**（生产实证 500+ 处）：is_frag 排除 `^单位[:：]` 表题行
+   （万科「| 单位：元 | 项目 |」表题成列名）；并上行分支加分隔行守卫（万华股东名断行进分隔行）。
+   新增 tests/md_clean_synth2.md 自包含金标准锁两形态
+2. **filter-then-zip 跨期错配**（cash_ts + cycle_evidence）：ocf/np/capex 不再各自过滤 null 再按位置
+   配对——原始索引对齐，缺期该期置 None；周期证据 yoy 同改 + GM 线独立成块（门槛=三线均 <2 期才 None）
+3. **T8① 双盲区**：PLAIN_NUM_RE 认全角减号 −（①②两级消费点归一化；存量报告 196 处 −数字此前
+   脱离比对）+ is_pct 认 pct 词边界（模板法定「±x.xpct」形态此前误路由亿元池）
+4. **三处合法形态崩管道**：dupont_dt 裸数字节点 isinstance 守卫 / render 效应比 None 写
+   「效应比不适用（三效应≈0）」/ fillsheet 桥 delta 非数值写「—」
+5. **sum_bridge 非 dict** → return (None, n) 走「不完整」路径（不再静默跳过致 calc 放行、--fill 崩栈）
+6. **check_structure cur=null 脱钩 FAIL**（仅 hist 非空判，src 批注形态误伤 10 节点已收窄——见速查①）
+7. **render 转义缺口**：fill_meta/peers 名/s8 卡面过 _E（html.escape），badge 进 class 白名单
+   （disc/der/est）；文件名拼接保持原文（不过 _E）
+8. **_jd `</` 转义大小写不敏感**（`</SCRIPT>` 突破脚本块同级盲区）
+9. **render sect() 右界双失入断锚清单**（不再 h[i:-1] 静默截断）
+10. **recon FAIL+OK 矛盾双行**（explanation 空 FAIL 后 continue）+ signals 缺 level 只报一次
+11. **桑基单季差额 cum_prev 提醒级 WARN**（纯输入无外部锚，门禁仅验自洽——诚实边界）+
+    顺手修 calc_sankey 缺 WARN 导入存量隐患
+12. **turnover_drill cmp_fields 补 skip_none**（单科目合法形态 fill 产物自检矛盾消除）
+13. **ratio-hist 具名 WARN**（科目序列整体缺失时已填 hist 无法复算——手工 hist 不再零校验直进趋势图）
+14. **四象限聚合 None 当 0 消除**（任一分部缺成本 → y0/ps 整块 None，与行级守卫同口径）
+15. **gate 吞 stderr + 前导空格吞 🔴/🟡 明细**（calc/check_html 非零退出回显 stderr 尾部；
+    透传过滤改 lstrip 后判断）
+16. **ts_fetch --out 落盘全量**（截断仅约束 stdout；limit 负数按 0；文案区分显示/落盘）
+17. **四处测试真空补口**：T8② 断言钉执行态双态文案（md 缺失「未执行」/ 存在「精确命中」）、
+    gate 退出码汇聚红测、check_render spill/clipped/pageclip 三探测器阳性构造页、
+    分位 _win_n HTML 级红测（四年窗口「1/4」OK /「1/5」FAIL）
+18. **dupont-stack/sankey-slot 两缺口**：steps 元素形态守卫（不再 ValueError 崩）+
+    无槽分支数据感知 WARN（数据在而槽被删不再静默 OK）
+19. **newline="\n" 补齐**（calc.py --fill 两处 / calc_slots fillsheet / md_clean 两处——
+    render_report:701 已有先例，Windows 下不再 CRLF 污染 diff）
+
+### 验证
+
+- 回归 209→252 全绿（两跑一次 + 收尾一次）；三条破坏测试（render 文案/steps 守卫/cash_ts 守卫）
+  改坏必红、恢复必绿；四 fixture 汇总行与基线逐字一致（茅台 0/0、康得新 0/4、万科 0/2、万华 0/2）
+- 黄金样本对比（HEAD vs 工作区 check_html 对茅台 v0.0.4 成品）：diff 仅 +2 行——有意新增的
+  dupont-stack/sankey-slot 无槽 WARN，FAIL 3 不变（T8① 修复在黄金样本零新 FAIL）
+- 赢合 fillsheet 逐字锁 / render 重放金标准零 diff（批次 B 隔离 worktree 验证 + 合并后回归锁）
+- 两处实证收窄（已记速查①与四·十二 2/6）：cur-null 检查 hist-only 口径；周期证据 None 门槛
+  「三线均 <2 期」（康得新单点 GM 形态避撞幂等金标准）
+
+---
+
 ## 五、下一步工作计划
 
 > 治理（v0.0.22 用户定案）：本节只留**未完成**事项；已完成任务的记录移入 supersede/
@@ -506,7 +568,7 @@ N6 三处缺口全部复现（同根因、同绕过）；增量发现：
 ```bash
 # 1. 确认环境
 cd "D:/KimiCodeProject/Financial Report Analysis"
-python financial-report-analysis/tests/run_regression.py   # 应 189/189 通过
+python financial-report-analysis/tests/run_regression.py   # 应 252/252 通过
 
 # 2. 部署（如需让技能在当前机器生效）
 cmd //c deploy.cmd

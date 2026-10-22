@@ -506,7 +506,13 @@ def check_dupont_stack(raw, data, rep):
     m = re.search(r'DUPONT_STACK\s*=\s*\{\s*"?steps"?\s*:\s*(\[.*?\])\s*,\s*"?gap"?\s*:\s*'
                   r'(null|[-+0-9.eE]+)\s*\}', raw, re.S)
     if not m:
-        rep.add(OK, "dupont-stack", "无 DUPONT_STACK 数据槽（杜邦降级缺省时正常）")
+        # 数据感知：json 有杜邦三效应却无槽——卡被静默删除不再是「缺省正常」（v0.1.5）
+        du = (data.get("derived") or {}).get("dupont") or {}
+        if all(du.get(k) is None for k in ("margin_effect", "turnover_effect", "leverage_effect")):
+            rep.add(OK, "dupont-stack", "无 DUPONT_STACK 数据槽（杜邦降级缺省时正常）")
+        else:
+            rep.add(WARN, "dupont-stack",
+                    "json 有杜邦三效应数据但 HTML 无 DUPONT_STACK 槽——ΔROE 堆叠条卡被静默删除？")
         return
     du = (data.get("derived") or {}).get("dupont") or {}
     if all(du.get(k) is None for k in ("margin_effect", "turnover_effect", "leverage_effect")):
@@ -524,7 +530,13 @@ def check_dupont_stack(raw, data, rep):
     if len(steps) != 3:
         bad.append(f"steps 应为 3 段效应（净利率/周转率/杠杆），实际 {len(steps)} 段")
     else:
-        for i, (nm, v) in enumerate(steps):
+        for i, st in enumerate(steps):
+            # 元素形状校验：literal_eval 成功不代表是二元组（如字符串元素解包即崩，v0.1.5）
+            if not (isinstance(st, (list, tuple)) and len(st) == 2):
+                bad.append(f"steps 第 {i + 1} 段形态异常（应为 [名称, 数值] 二元组，"
+                           f"实际 {type(st).__name__}）")
+                continue
+            nm, v = st
             e = expect[i]
             if e is None:
                 continue
@@ -557,9 +569,15 @@ def check_sankey_slot(raw, data, rep):
     （与 dupont-stack 同规：语法问题不该掩盖数据问题）。"""
     m = re.search(r"const SANKEY=(null|\{.*?\});", raw, re.S)
     if not m:
-        rep.add(OK, "sankey-slot",
-                "无 SANKEY 数据槽但存在静态 svg#sankey（一次性呈现层补图，豁免比对）"
-                if 'id="sankey"' in raw else "无 SANKEY 数据槽（旧版式或整卡降级缺省，不适用）")
+        if 'id="sankey"' in raw:
+            rep.add(OK, "sankey-slot",
+                    "无 SANKEY 数据槽但存在静态 svg#sankey（一次性呈现层补图，豁免比对）")
+        elif (data.get("derived") or {}).get("sankey") is not None:
+            # 数据感知：json 有桑基负载却无槽且无静态图——卡被静默删除（v0.1.5）
+            rep.add(WARN, "sankey-slot",
+                    "json 有 derived.sankey 但 HTML 无 SANKEY 槽且无 svg#sankey——桑基图卡被静默删除？")
+        else:
+            rep.add(OK, "sankey-slot", "无 SANKEY 数据槽（旧版式或整卡降级缺省，不适用）")
         return
     try:
         got = json.loads(m.group(1).replace("<\\/", "</"))

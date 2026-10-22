@@ -47,15 +47,19 @@ def main():
     print(r.stdout, end="")
     if r.returncode != 0:
         fails.append("calc 存在 FAIL（禁止写报告/交付）")
+        if (r.stderr or "").strip():  # FAIL 明细走 stderr，必须回显（与 check_render 分支同规）
+            print(r.stderr.strip()[:2000], file=sys.stderr)
 
     cmd = ["check_html.py", a.html, "--json", a.json] + (["--verbose"] if a.verbose else [])
     r = run(*cmd)
     for line in (r.stdout or "").splitlines():
-        if line.startswith(("🔴", "🟡", "---", "✅ 通过", "❌", "===")) \
+        if line.lstrip().startswith(("🔴", "🟡", "---", "✅ 通过", "❌", "===")) \
                 or (a.verbose and line.lstrip().startswith("·")):
             print(line)
     if r.returncode != 0:
         fails.append("check_html 未通过（FAIL 未清零）")
+        if (r.stderr or "").strip():  # 与 calc/check_render 分支同规：stderr 回显，防明细被吞
+            print(r.stderr.strip()[:2000], file=sys.stderr)
 
     cmd = (["check_render.py", a.html] + (["--png", a.png] if a.png else [])
            + (["--chrome", a.chrome] if a.chrome else []))
@@ -64,7 +68,7 @@ def main():
     for line in (r.stdout or "").splitlines():
         # 🔴 明细（哪张图/重叠几像素）与结论行一并透传——单入口的排障价值就在这；
         # 截图分片行是过程噪音，--verbose 才透
-        if ("汇总" in line or "跳过" in line or line.startswith(("🔴", "❌", "✅ 渲染"))
+        if ("汇总" in line or "跳过" in line or line.lstrip().startswith(("🔴", "❌", "✅ 渲染"))
                 or (a.verbose and line.lstrip().startswith(("·", "✅", "🔴")))):
             print(line)
         if "渲染门禁跳过" in line:

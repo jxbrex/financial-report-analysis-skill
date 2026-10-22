@@ -11,7 +11,7 @@ debt: impair 符号启发式——impair_loss.cur 为负时按利润表原始符
 误判为损失，届时把 impair_loss 的 note 口径与 sankey 块手工对齐。
 """
 
-from calc_common import FAIL, OK, SKIP, num, tol_bridge
+from calc_common import FAIL, WARN, OK, SKIP, num, tol_bridge
 
 SANKEY_KEYS = ("rev", "cost", "gross", "tax_sur", "sell", "admin", "rd", "fin",
                "impair", "other_lump", "op", "nonop", "tax", "np", "np_at",
@@ -167,6 +167,8 @@ def check_sankey(data, rep):
                 rep.add(FAIL, "sankey", f"单季差额卡口缺值：{k}")
             elif abs((c - p) - v) > tol_bridge(c - p, v):
                 rep.add(FAIL, "sankey", f"单季差额卡口：{k} 值 {v:.4f} ≠ cum−cum_prev {c - p:.4f}")
+        rep.add(WARN, "sankey", "单季差额口径：cum_prev 为纯输入字段，门禁仅验自洽"
+                                "——人工核对上一累计期出处")
     if not str(sk.get("src") or "").strip():
         rep.add(FAIL, "sankey", "src 为空（无出处数字禁止入 JSON）")
     if rep.counts()[FAIL] == fails0:

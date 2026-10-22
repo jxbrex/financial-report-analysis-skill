@@ -1679,6 +1679,533 @@ def main():
                   "v0.1.3 构造用例失败，逐条核对上方 ❌。"):
         return 1
 
+    # ── v0.1.5 ponytail-audit 修复轮构造断言（批次 D：19 条修复的「破坏必红」集中锁）──
+    # 前序批次修复的回归锁：每条至少一正或一反，断言钉 calc.py/check_*/render 输出文案
+    # （v0.1.1 纪律：钉整段/规则行文案，不查 returncode  alone——片段无页脚，required FAIL
+    # 是背景噪音，exit 非 0 不构成证据）。所有文案均经「现场验证」逐字锁定。
+    import calc_risk
+    import calc_evidence
+    import calc_sankey
+    from calc_common import hist_periods as _hp15
+    from calc_risk import compute_cash_ts as _cct15, check_cash_ts as _chk_ct15
+    from calc_evidence import compute_cycle_evidence as _cce15, \
+        compute_segment_quadrant as _csq15
+    from calc_sankey import SANKEY_KEYS as _SK15, route_items as _ri15
+    from calc_slots import write_fillsheet as _wfs15, _jd as _jd15, \
+        build_slots as _bs15
+
+    # ① sum_bridge 非 dict：净利桥混入字符串 → SKIP「未填或不完整」，闭合 OK 消失
+    d15 = copy.deepcopy(base)
+    d15["derived"]["np_bridge"] = ["字符串混入"]
+    r15 = _run_calc_json(d15, "v15_npbridge.json")
+    # ② cur=null 脱钩：hist 非空 + cur 缺失 → FAIL 口径脱钩（calc.py 结构检查）
+    d15_h = copy.deepcopy(base)
+    d15_h["statements"]["income"]["sell_exp"] = {"cur": None, "hist": [1.0, 2.0, 2.5], "src": ""}
+    r15_h = _run_calc_json(d15_h, "v15_curnull.json")
+    # ③ recon 矛盾双行：可解释 + 空 explanation → FAIL 且该 key 不再出 OK 行
+    d15_r = copy.deepcopy(base)
+    d15_r["recon"] = {"A1_cash": {"lhs": 100.0, "rhs": 90.0, "verdict": "可解释",
+                                  "explanation": "", "src": "L100 测试"}}
+    r15_r = _run_calc_json(d15_r, "v15_recon.json")
+    # ④ ratio-hist 具名 WARN：payable/contract_liab 置空（删节点会撞 leverage_drill 复算 FAIL）
+    d15_c = copy.deepcopy(base)
+    for _f in ("payable", "contract_liab"):
+        if _f in d15_c["statements"]["balance"]:
+            d15_c["statements"]["balance"][_f] = {"cur": None, "prev": None, "src": ""}
+    _ld15 = d15_c["derived"]["dupont"].get("leverage_drill")
+    if isinstance(_ld15, dict):
+        _ld15["quality_upgrade"] = None
+    r15_c = _run_calc_json(d15_c, "v15_ratiohist.json")
+    _r15l = (r15.stdout or "").splitlines()
+    v15_calc = [
+        (r15.returncode == 0 and "未填或不完整" in (r15.stdout or "")
+         and not any("[OK" in l and "净利桥" in l for l in _r15l),
+         "①np_bridge 混入字符串：SKIP「净利桥未填或不完整」且闭合 OK 消失（sum_bridge 非 dict 不崩）"),
+        # ② cur=null 脱钩：hist 非空 + cur 缺失 → FAIL 口径脱钩（calc.py 结构检查）
+        (r15_h.returncode == 1
+         and "cur 缺失但 hist 已填——有历史无数本期，口径脱钩" in (r15_h.stdout or ""),
+         "②cur=null+hist 已填：FAIL「cur 缺失但 hist 已填——有历史无数本期，口径脱钩」"),
+        # ③ recon 矛盾双行：可解释 + 空 explanation → FAIL 且该 key 不再出 OK 行
+        (r15_r.returncode == 1
+         and "verdict=「可解释」但 explanation 为空" in (r15_r.stdout or "")
+         and not any("[OK" in l and "A1_cash" in l
+                     for l in (r15_r.stdout or "").splitlines()),
+         "③recon 可解释+explanation 空：FAIL「verdict=「可解释」但 explanation 为空」且 A1_cash 无 OK 行"),
+        # ④ ratio-hist 具名 WARN：payable/contract_liab 置空 → ccc 序列整体缺失具名 WARN
+        (r15_c.returncode == 0
+         and "ccc 科目序列整体缺失，已填 hist 无法复算——未经校验" in (r15_c.stdout or ""),
+         "④payable/contract_liab 置空：WARN「ccc 科目序列整体缺失，已填 hist 无法复算——未经校验」"),
+    ]
+    if not _block("v0.1.5 构造断言（calc 门禁修复锁）", v15_calc,
+                  "v0.1.5 calc 修复锁失败，逐条核对上方 ❌。"):
+        return 1
+
+    # ⑤ cash_ts 跨期错配：缺口位按原始索引配对，ncr[2] 是 None（不是 14/12 跨缺口错配值）
+    _ct5 = _cct15({"statements": {
+        "cashflow": {"ocf": {"cur": 15, "hist": [10, 12, None, 14, 15]},
+                     "capex": {"cur": 1, "hist": [1, 1, 1, 1, 1]}},
+        "income": {"np_at": {"cur": 15, "hist": [10, 11, 12, None, 15]}}},
+        "meta": {"period": "20251231", "report_type": "年报"}})
+    _d5s = {"statements": {
+        "cashflow": {"ocf": {"cur": 15, "hist": [10, 12, None, 14, 15]},
+                     "capex": {"cur": 1, "hist": [1, 1, 1, 1, 1]}},
+        "income": {"np_at": {"cur": 15, "hist": [10, 11, 12, None, 15]}}},
+        "meta": {"period": "20251231", "report_type": "年报"}}
+    _ct5b = _cct15(_d5s)
+    _bad_ncr = list(_ct5b["ncr"])
+    _bad_ncr[0] = "1.0x"          # 数字位置塞字符串：cmp_series 记 bad（不崩不跳）
+    _d5s["derived"] = {"cash_ts": dict(_ct5b)}
+    _d5s["derived"]["cash_ts"]["ncr"] = _bad_ncr
+    _rep_ct = _Rep()
+    _chk_ct15(_d5s, _rep_ct)
+    # ⑥ cycle_evidence：缺口期增速 None（不跨缺口算 0.10）；GM 线独立成块；三线均 <2 期 → None
+    _cv6a = _cce15({"statements": {"income": {"revenue": {"cur": 121, "hist": [100, None, 110, 121]}},
+                                   "cashflow": {}},
+                    "derived": {"ratios": {}}, "meta": {"period": "20251231", "report_type": "年报"}})
+    _cv6b = _cce15({"statements": {"income": {}, "cashflow": {}},
+                    "derived": {"ratios": {"gross_margin": {"cur": 0.4, "hist": [0.5, 0.4]}}},
+                    "meta": {}})
+    _cv6c = _cce15({"statements": {"income": {}, "cashflow": {}},
+                    "derived": {"ratios": {"gross_margin": {"cur": 0.4, "hist": [0.4]}}},
+                    "meta": {}})
+    # ⑦ segment 聚合缺成本：任一分部 cost_cur 缺 → y0=None 且行级 p（毛利份额）整 None
+    _sq7 = _csq15({"statements": {"income": {"by_segment": [
+        {"name": "甲", "rev_cur": 10, "rev_prev": 8},
+        {"name": "乙", "rev_cur": 12, "rev_prev": 9}]}}})
+    # ⑧ dupont_dt 裸数字：ratios.nonrecurring_share=0.25（非对象节点）不崩且触发双版
+    d15_8 = copy.deepcopy(base)
+    d15_8["derived"]["ratios"]["nonrecurring_share"] = 0.25
+    _r8 = calc_dupont.compute_dupont_dt(d15_8)
+    # ⑨ turnover_drill skip_none：balance 仅 inventory 两期齐全 → top2_share=None 合法，
+    #    check_dupont 不得产出「无法复算」FAIL（cmp_fields skip_none 修复锁）
+    d15_9 = copy.deepcopy(base)
+    _bal9 = d15_9["statements"]["balance"]
+    for _f9 in list(_bal9.keys()):
+        if _f9 not in ("inventory", "total_assets"):
+            del _bal9[_f9]
+    _c9 = calc_dupont.compute_dupont(d15_9)
+    _td9 = (_c9 or {}).get("turnover_drill") or {}
+    if _td9:
+        d15_9["derived"]["dupont"].update(
+            {k: _c9[k] for k in ("margin_effect", "turnover_effect", "leverage_effect",
+                                 "roe_product_cur", "roe_product_prev", "closure_gap",
+                                 "driver", "driver_fragile", "effects_ratio", "driver_second",
+                                 "margin_drill", "turnover_drill", "leverage_drill")})
+    _rep9 = _Rep()
+    if _td9:
+        _calc.check_dupont(d15_9, _rep9)
+    _fails9 = [m for lv, _, m in _rep9.rows if lv == _FAIL]
+    v15_fn = [
+        (_ct5 is not None and _ct5["ncr"][2] is None and _ct5["ncr"][3] is None
+         and abs(_ct5["ncr"][1] - 12 / 11) < 1e-9,
+         "⑤cash_ts 跨期错配：缺口位 ncr[2]/ncr[3] 是 None（不是 14/12 跨缺口错配值）"),
+        (any("cash_ts.ncr[0] 不符" in m
+             for lv, _, m in _rep_ct.rows if lv == _FAIL),
+         "⑤cash_ts 字符串形态：数字位置塞字符串记 bad「cash_ts.ncr[0] 不符」（cmp_series 不崩）"),
+        (_cv6a is not None and _cv6a["rev_growth"][2] is None
+         and abs(_cv6a["rev_growth"][3] - 0.10) < 1e-9,
+         "⑥cycle_evidence 缺口期：rev_growth[2] 是 None（不跨缺口算 0.10），[3]=0.10"),
+        (_cv6b is not None and _cv6b["gross_margin"] == [0.5, 0.4],
+         "⑥cycle_evidence GM 独立成块：rev/capex 无 hist 时 gross_margin 线仍产出"),
+        (_cv6c is None,
+         "⑥cycle_evidence 三线均 <2 期：compute 返回 None"),
+        (_sq7 is not None and _sq7["y0"] is None
+         and all(r.get("p") is None for r in _sq7["rows"]),
+         "⑦segment 聚合缺成本：y0=None 且行级 p（毛利份额）整 None（不按 0 凑）"),
+        (_r8.get("triggered") is True and "margin_effect" in _r8,
+         "⑧dupont_dt 裸数字：nonrecurring_share=0.25（非对象节点）不崩且触发扣非双版"),
+        (_td9.get("top2_share") is None,
+         "⑨turnover_drill 构造落地：仅 inventory 两期齐全 → top2_share=None（skip_none 判据载体）"),
+        (not _fails9,
+         f"⑨turnover_drill skip_none：top2_share=None 不产生「无法复算」FAIL（实际 {_fails9[:2]}）"),
+    ]
+    if not _block("v0.1.5 构造断言（公式层直测锁）", v15_fn,
+                  "v0.1.5 公式层直测锁失败，逐条核对上方 ❌。"):
+        return 1
+
+    # ⑩ 桑基单季差额（赢合副本改三季报 + cum_prev 输入字段）：正例 OK+WARN / 改坏必 FAIL；
+    #    route_items 符号路由直测（other_lump<0 → 减项「其他损益净损失」；impair<0 → 加项「减值净转回」）
+    def _sankey_diff(corrupt):
+        d = json.loads((HERE / "yinghe_2026h1.json").read_text(encoding="utf-8"))
+        d["meta"]["period"] = "20260930"
+        d["meta"]["report_type"] = "三季报"     # 「季报」子串 + 0930 → diff 口径；年化因子 4/3 在库
+        _m = {"period": "20260930", "report_type": "三季报"}
+        for _blk in ("cash_ts", "cycle_evidence"):
+            _n = (d["derived"].get(_blk) or {})
+            if _n.get("periods"):
+                _n["periods"] = _hp15(_m, len(_n["periods"]))
+        _d5n = (d["derived"].get("dupont5y") or {})
+        if _d5n.get("period_start"):
+            _labs = _hp15(_m, 5)
+            _d5n["period_start"], _d5n["period_end"] = _labs[0], _labs[-1]
+        _sk = d["derived"]["sankey"]
+        _cum = {k: _sk[k] for k in _SK15}
+        _pv = {k: round(_cum[k] * 0.6, 4) for k in _SK15}
+        _diff = {k: round(_cum[k] - _pv[k], 4) for k in _SK15}
+        if corrupt:      # 先算好 diff 再改坏 cum_prev——构造卡口必失败的样本
+            _pv = dict(_pv)
+            _pv["rev"] = round(_pv["rev"] + 5, 4)
+        d["derived"]["sankey"] = {"period_type": "单季差额", **_diff,
+                                  "cum": _cum, "cum_prev": _pv,
+                                  "src": _sk.get("src") or "L1 测试",
+                                  "note": _sk.get("note")}
+        _alt, _ = calc_risk.compute_altman(d)   # 三季报年化因子不同，Altman 存储值同步重算
+        if _alt is not None:
+            d["derived"]["risk_models"]["altman_z"] = _alt
+        return d
+
+    _sk_ok = _run_calc_json(_sankey_diff(False), "v15_sk_ok.json")
+    _sk_bad = _run_calc_json(_sankey_diff(True), "v15_sk_bad.json")
+    _minus10, _plus10 = _ri15({"tax_sur": 1, "sell": 1, "admin": 1, "rd": 1,
+                               "fin": -2, "impair": -3, "other_lump": -5})
+    v15_sankey = [
+        (_sk_ok.returncode == 0
+         and "桑基图 20 科目复算自洽（单季差额）" in (_sk_ok.stdout or "")
+         and "cum_prev 为纯输入字段，门禁仅验自洽——人工核对上一累计期出处" in (_sk_ok.stdout or ""),
+         "⑩单季差额正例：OK「桑基图 20 科目复算自洽（单季差额）」+ WARN「cum_prev 纯输入字段仅验自洽」"),
+        (_sk_bad.returncode == 1 and "单季差额卡口" in (_sk_bad.stdout or ""),
+         "⑩cum_prev 改坏：FAIL「单季差额卡口：rev 值 … ≠ cum−cum_prev」"),
+        (any(m.get("label") == "其他损益净损失" for m in _minus10),
+         "⑩route_items：other_lump<0 → 减项侧出现「其他损益净损失」"),
+        (any(p.get("label") == "减值净转回" for p in _plus10),
+         "⑩route_items：impair<0 → 加项侧出现「减值净转回」"),
+    ]
+    if not _block("v0.1.5 构造断言（桑基单季差额 + 符号路由）", v15_sankey,
+                  "v0.1.5 桑基锁失败，逐条核对上方 ❌。"):
+        return 1
+
+    # ⑪ fillsheet 桥 delta 守卫：np_bridge 环节 delta=None → 不抛异常且贡献额列为「—」
+    d15_11 = copy.deepcopy(base)
+    d15_11["derived"]["np_bridge"] = [{"item": "毛利", "delta": None},
+                                      {"item": "所得税", "delta": 1.5}]
+    _fs_path = HERE / "_v15_fillsheet_tmp.md"
+    try:
+        _wfs15(d15_11, str(_fs_path))
+        _fs_lines = _fs_path.read_text(encoding="utf-8").splitlines()
+    finally:
+        _fs_path.unlink(missing_ok=True)
+    _jd_up = _jd15("</SCRIPT>")
+    _jd_lo = _jd15("</script>")
+    v15_slot = [
+        (any(l.startswith("| 毛利 ") and l.rstrip().endswith("| — |") for l in _fs_lines),
+         "⑪fillsheet 桥 delta 守卫：delta=None 不抛异常且该行贡献额列为「—」"),
+        ("<\\/SCRIPT>" in _jd_up and "<\\/script>" in _jd_lo,
+         "⑫_jd 大小写不敏感：</SCRIPT> 与 </script> 均转 <\\/（防提前闭合 script 团灭 JS）"),
+    ]
+    if not _block("v0.1.5 构造断言（fillsheet/_jd 守卫）", v15_slot,
+                  "v0.1.5 fillsheet/_jd 锁失败，逐条核对上方 ❌。"):
+        return 1
+
+    # ⑬ render 转义与守卫（茅台临时副本端到端，产物全落临时目录不污染 reports/）+
+    # ⑭ sect() 右界断锚（摘页脚锚 + watchlist 非空触发 fill_s8→sect("s8") 双右界均失）
+    with tempfile.TemporaryDirectory() as _td15:
+        _wr15 = Path(_td15)
+
+        def _fill_copy(mutate, name):
+            """茅台副本改一处 → --fill（render 端到端用例共用）。"""
+            cp = _wr15 / f"{name}.json"
+            d = copy.deepcopy(base)
+            mutate(d)
+            cp.write_text(json.dumps(d, ensure_ascii=False), encoding="utf-8")
+            subprocess.run([sys.executable, str(CALC), str(cp), "--fill"],
+                           capture_output=True, text=True,
+                           encoding="utf-8", errors="replace")
+            return cp
+
+        # ① meta.company 注入 <A>（fill 前改：槽位 json 携带原文，render 插入点统一 _E 转义）
+        cp_a = _fill_copy(lambda d: d["meta"].update(company="测试<A>公司"), "v15_esc")
+        out_a = _wr15 / "v15_esc.html"
+        rr_a = subprocess.run([sys.executable, str(SKILL / "scripts" / "render_report.py"),
+                               str(cp_a), "-o", str(out_a)],
+                              capture_output=True, text=True, encoding="utf-8", errors="replace")
+        h_a = out_a.read_text(encoding="utf-8") if out_a.exists() else ""
+
+        # ② dupont 三效应+effects_ratio 置 None（合法形态：fill 后改 derived 再重建槽位 json——
+        #    --fill 会重算 derived，孔位形态只能 fill 后注入）
+        cp_b = _fill_copy(lambda d: None, "v15_eff")
+        d_b = json.loads(cp_b.read_text(encoding="utf-8"))
+        for _k in ("margin_effect", "turnover_effect", "leverage_effect", "effects_ratio"):
+            d_b["derived"]["dupont"][_k] = None
+        cp_b.write_text(json.dumps(d_b, ensure_ascii=False), encoding="utf-8")
+        (_wr15 / "v15_eff.fillsheet.json").write_text(
+            json.dumps(_bs15(d_b), ensure_ascii=False, indent=1) + "\n", encoding="utf-8")
+        out_b = _wr15 / "v15_eff.html"
+        rr_b = subprocess.run([sys.executable, str(SKILL / "scripts" / "render_report.py"),
+                               str(cp_b), "-o", str(out_b)],
+                              capture_output=True, text=True, encoding="utf-8", errors="replace")
+        h_b = out_b.read_text(encoding="utf-8") if out_b.exists() else ""
+
+        # ③ watchlist badge 非法值 → fill_s8 class 白名单兜底 disc（不进 class 属性）
+        cp_c = _fill_copy(lambda d: d.update(watchlist=[{
+            "indicator": "测试跟踪卡", "current": "1.0", "badge": "bogus",
+            "upper": "2", "upper_meaning": "偏高", "lower": "0", "lower_meaning": "偏低",
+            "tripwire": "熔断句", "source": "测试来源"}]), "v15_badge")
+        out_c = _wr15 / "v15_badge.html"
+        rr_c = subprocess.run([sys.executable, str(SKILL / "scripts" / "render_report.py"),
+                               str(cp_c), "-o", str(out_c)],
+                              capture_output=True, text=True, encoding="utf-8", errors="replace")
+        h_c = out_c.read_text(encoding="utf-8") if out_c.exists() else ""
+
+        # ⑭ 断锚：模板副本摘除页脚锚（「 <!-- ══ 页脚」是 s8 的右界）+ watchlist 非空
+        #    （fill_s8 空卡直接 return、碰不到 sect("s8")——右界断锚必须借 watchlist 触发）
+        cp_d = _fill_copy(lambda d: d.update(watchlist=[{
+            "indicator": "断锚触发卡", "current": "1.0", "badge": "disc",
+            "upper": "2", "upper_meaning": "偏高", "lower": "0", "lower_meaning": "偏低",
+            "tripwire": "熔断句", "source": "测试来源"}]), "v15_anchor")
+        tpl_d = _wr15 / "v15_tpl.html"
+        tpl_d.write_text(
+            (SKILL / "assets" / "report-template.html").read_text(encoding="utf-8")
+            .replace(" <!-- ══ 页脚 ◆ SLOT ══ -->", " <!-- ◆ 摘除页脚锚 ══ -->", 1),
+            encoding="utf-8")
+        import io
+        from contextlib import redirect_stdout
+        _old_tpl, _old_argv = render_report.TEMPLATE, sys.argv
+        _buf = io.StringIO()
+        try:
+            render_report.TEMPLATE = tpl_d
+            sys.argv = ["render_report.py", str(cp_d), "-o", str(_wr15 / "v15_anchor.html")]
+            with redirect_stdout(_buf):
+                _rc_anchor = render_report.main()
+        finally:
+            render_report.TEMPLATE, sys.argv = _old_tpl, _old_argv
+        _anchor_out = _buf.getvalue()
+
+    v15_render = [
+        (rr_a.returncode == 0 and "<h1>测试&lt;A&gt;公司（600519.SH）</h1>" in h_a
+         and "<title>测试&lt;A&gt;公司" in h_a and "<A>" not in h_a,
+         "⑬①公司名注入 <A>：h1/title 含 &lt;A&gt; 转义、产物无裸 <A>"),
+        (rr_b.returncode == 0 and "效应比不适用（三效应≈0）" in h_b,
+         "⑬②三效应+effects_ratio=None 合法形态：render exit 0 且合计行「效应比不适用（三效应≈0）」"),
+        (rr_c.returncode == 0 and "bogus" not in h_c
+         and '<span class="badge disc">披露</span>' in h_c,
+         "⑬③badge 非法值：class 白名单兜底 disc，产物无 badge bogus"),
+        (_rc_anchor == 1 and "断锚清单" in _anchor_out and "段落右界未找到" in _anchor_out,
+         "⑭sect() 右界断锚：摘页脚锚必 exit 1 且断锚清单含「段落右界未找到」"),
+    ]
+    if not _block("v0.1.5 构造断言（render 转义/守卫/断锚）", v15_render,
+                  "v0.1.5 render 锁失败，逐条核对上方 ❌。"):
+        return 1
+
+    # ⑮ T8① 双盲区：全角减号（U+2212）负值整串失明修复锁 + pct 词边界后缀走 ×100 池
+    #    （挑权威池真实独特负值，偏差 ~0.07%——超显示精度 0.005 落在 0.15% 笔误窗内；
+    #    桑基 gap 是扁平 dict 不进权威池，故不能作锚——现场验证结论）
+    _plain15, _pct15, _up15, _upct15, _hpool15 = _ba(load_json(MOUTAI))
+    _v15t = None
+    for _cand15, _cpath15 in _up15:
+        if _cand15 >= -50:
+            continue
+        _dv15 = round(_cand15 * 1.0007, 2)
+        if abs(_dv15 - _cand15) <= 0.005 or abs(_dv15 - _cand15) / abs(_cand15) > 0.0015:
+            continue
+        if any(w * _dv15 > 0 and abs(w - _dv15) <= 0.005 for w, _, _ in _plain15):
+            continue
+        if any(w * _dv15 > 0 and abs(w - _dv15) <= 0.005 for w, _ in _hpool15):
+            continue
+        _v15t = _dv15
+        break
+    t8_fw = None
+    if _v15t is not None:
+        t8_fw = _run_html_str(
+            _SECT + f'<div class="card"><p>净调整 \u2212{abs(_v15t):.2f} 亿元</p></div></div>')
+    with tempfile.NamedTemporaryFile("w", suffix=".json", delete=False, encoding="utf-8") as _jf15:
+        json.dump({"meta": {"company": "构造样本", "code": "000000", "period": "20251231",
+                            "report_type": "年报", "unit": "亿元"},
+                   "derived": {"ratios": {"net_cash_ratio": {"cur": 0.3365, "prev": 0.30,
+                                                             "note": "构造"}}}},
+                  _jf15, ensure_ascii=False)
+        _jpct = _jf15.name
+    try:
+        t8_pct = _run_html_str(
+            _SECT + '<div class="card"><p>净现比 33.65pct 水平</p></div></div>', _jpct)
+        t8_pct_bad = _run_html_str(
+            _SECT + '<div class="card"><p>净现比 33.66pct 水平</p></div></div>', _jpct)
+    finally:
+        os.unlink(_jpct)
+    # ⑯ gate 红测：占位符残留走单入口必 exit 1 且汇总点名 check_html；正例容忍两种合法形态
+    with tempfile.NamedTemporaryFile("w", suffix=".html", delete=False, encoding="utf-8") as _hf15:
+        _hf15.write(_SECT + '<div class="card"><p>{{未填孔}}</p></div></div>')
+        _hgate = _hf15.name
+    try:
+        g_bad = subprocess.run([sys.executable, str(SKILL / "scripts" / "gate.py"),
+                                _hgate, str(MOUTAI)],
+                               capture_output=True, text=True, encoding="utf-8", errors="replace")
+    finally:
+        os.unlink(_hgate)
+    g_ok = subprocess.run([sys.executable, str(SKILL / "scripts" / "gate.py"),
+                           str(HERE / "t8_demo.html"), str(MOUTAI)],
+                          capture_output=True, text=True, encoding="utf-8", errors="replace")
+    v15_t8 = [
+        (t8_fw is not None and "[FAIL] num-vs-json" in (t8_fw.stdout or "")
+         and "相近但不等" in (t8_fw.stdout or ""),
+         f"⑮①全角减号 U+2212：负值笔误必 FAIL「相近但不等」（取值 {_v15t}；修复前 − 数字整串失明）"),
+        ("[FAIL] num-vs-json" not in (t8_pct.stdout or "")
+         and "1 处数字匹配" in (t8_pct.stdout or ""),
+         "⑮②pct 精确匹配：33.65pct 与 json ×100 池精确相等计入匹配、不产生 FAIL"),
+        ("[FAIL] num-vs-json" in (t8_pct_bad.stdout or "")
+         and "相近但不等" in (t8_pct_bad.stdout or ""),
+         "⑮②pct 偏差 0.03%：33.66pct 对独特值 33.65 必 FAIL「相近但不等」（pct 词边界判据未松）"),
+        (g_bad.returncode == 1 and "check_html 未通过（FAIL 未清零）" in (g_bad.stdout or ""),
+         "⑯gate 红测：占位符残留必 exit 1 且 gate 汇总点名「check_html 未通过（FAIL 未清零）」"),
+        (g_ok.returncode == 0
+         and ("三道门禁全绿" in (g_ok.stdout or "")
+              or "渲染门禁跳过" in (g_ok.stdout or "")),
+         "⑯gate 正例：t8_demo+茅台 exit 0（有浏览器=三道全绿/无浏览器=渲染跳过，两种合法形态）"),
+    ]
+    if not _block("v0.1.5 构造断言（T8 双盲区 + gate 红测）", v15_t8,
+                  "v0.1.5 T8/gate 锁失败，逐条核对上方 ❌。"):
+        return 1
+
+    # ⑲ check_html 两缺口：①steps 字符串元素必 FAIL「形态异常」不崩 traceback；
+    #    ②json 有杜邦三效应/桑基数据但 HTML 无槽 → 双 WARN（卡被静默删除抓瞎补口）
+    ds_bad = _run_html_str(
+        _SECT + '<div class="card"><p>杜邦</p></div></div>'
+        '<script>const DUPONT_STACK={"steps": ["净利率", "周转率", "杠杆"], "gap": null};</script>')
+    ds_missing = _run_html_str(_SECT + '<div class="card"><p>无槽正文</p></div></div>')
+    # ⑳ T8② 真空修复（发现 17）：md 缺失必锁「未执行」声明；md 在库且含已知数字必出「精确命中」
+    d15_md = copy.deepcopy(base)
+    d15_md.setdefault("meta", {})["source_md"] = "reports/__v15_不存在__.md"
+    with tempfile.NamedTemporaryFile("w", suffix=".json", delete=False, encoding="utf-8") as _jf20:
+        json.dump(d15_md, _jf20, ensure_ascii=False)
+        _jmd = _jf20.name
+    try:
+        t8_md_missing = _check_html(HERE / "t8_demo.html", _jmd)
+    finally:
+        os.unlink(_jmd)
+
+    def _src_leaves15(node, path, out):
+        if isinstance(node, dict):
+            if "cur" in node:
+                ms = [int(x) for x in re.findall(r"L(\d+)", node.get("src") or "")]
+                if ms:
+                    out.append((min(ms), path, node.get("cur")))
+                return
+            for k, v in node.items():
+                _src_leaves15(v, f"{path}.{k}", out)
+        elif isinstance(node, list):
+            for i, v in enumerate(node):
+                _src_leaves15(v, f"{path}[{i}]", out)
+
+    _leaves15 = []
+    for _sec15 in ("statements", "parent_statements", "notes"):
+        _src_leaves15(base.get(_sec15) or {}, _sec15, _leaves15)
+    _ln15, _lp15, _lcur15 = min(_leaves15)
+    _md_pos = "\n" * (_ln15 - 1) + f"| {_lp15} | {_lcur15} |\n"
+    t8_md_hit = _run_html_json_md(
+        _SECT + '<div class="card"><p>对照</p></div></div>', _md_pos)
+    # ㉒ percentile-map 4 期窗口（_win_n HTML 红测）：hist 截 4 期 + 分位置 1.0 → 应标「1/4」；
+    #    贴「1/5」契约锁标签必 FAIL（v0.0.18 块是 n=5 窗口反例，本用例锁 n≠5 窗口正/反）
+    d15_p4 = copy.deepcopy(base)
+    for _k in ("net_margin", "asset_turnover", "equity_multiplier"):
+        _h15 = d15_p4["derived"]["ratios"][_k]["hist"]
+        d15_p4["derived"]["ratios"][_k]["hist"] = _h15[-4:]
+    for _k in ("net_margin", "asset_turnover", "equity_multiplier"):
+        d15_p4["derived"]["dupont5y"]["percentile"][_k] = 1.0
+    with tempfile.NamedTemporaryFile("w", suffix=".json", delete=False, encoding="utf-8") as _jf22:
+        json.dump(d15_p4, _jf22, ensure_ascii=False)
+        _jp4 = _jf22.name
+    _PCT_TBL = ('<div class="card"><table class="data">'
+                '<tr><th>因子</th><th>当前值</th><th>五年位置</th></tr>'
+                '<tr><td>净利率 <span class="badge der">推算</span></td><td>48.8%</td>'
+                '<td><span class="badge disc">LBL</span></td></tr>'
+                '<tr><td>总资产周转率</td><td>0.56</td><td><span class="badge disc">LBL</span></td></tr>'
+                '<tr><td>权益乘数</td><td>1.20</td><td><span class="badge disc">LBL</span></td></tr>'
+                '</table><div class="srcline">分位表演示</div></div>')
+    try:
+        p4_ok = _run_html_str(_SECT + _PCT_TBL.replace("LBL", "1/4") + '</div>', _jp4)
+        p4_bad = _run_html_str(_SECT + _PCT_TBL.replace("LBL", "1/5") + '</div>', _jp4)
+    finally:
+        os.unlink(_jp4)
+    v15_html = [
+        (ds_bad.returncode != 0 and "形态异常" in (ds_bad.stdout or "")
+         and "Traceback" not in (ds_bad.stdout or ""),
+         "⑲①DUPONT_STACK steps 字符串元素：exit 非 0 由 FAIL「形态异常」贡献、不崩 traceback"),
+        ("json 有杜邦三效应数据但 HTML 无 DUPONT_STACK 槽" in (ds_missing.stdout or ""),
+         "⑲②json 有杜邦三效应但无槽：WARN「json 有杜邦三效应数据但 HTML 无 DUPONT_STACK 槽」"),
+        ("json 有 derived.sankey 但 HTML 无 SANKEY 槽且无 svg#sankey" in (ds_missing.stdout or ""),
+         "⑲②json 有 derived.sankey 但无槽无图：WARN「json 有 derived.sankey 但 HTML 无 SANKEY 槽且无 svg#sankey」"),
+        ("未执行" in (t8_md_missing.stdout or ""),
+         "⑳T8② md 缺失形态：输出锁「未执行」声明（旧断言可被 json-md 任意 OK 行真空通过）"),
+        ("精确命中" in (t8_md_hit.stdout or "") and "未执行" not in (t8_md_hit.stdout or ""),
+         f"⑳T8② md 在库正例：L{_ln15} 植入原文值必出「精确命中」执行态（{_lp15}={_lcur15}）"),
+        ("[OK  ] percentile-map" in (p4_ok.stdout or ""),
+         "㉒percentile-map n=4 窗口：三因子贴「1/4」白描判 OK（_win_n 窗口感知正例）"),
+        (p4_bad.returncode != 0 and "[FAIL] percentile-map" in (p4_bad.stdout or "")
+         and "应标「1/4」" in (p4_bad.stdout or ""),
+         "㉒percentile-map n=4 窗口红测：贴「1/5」契约锁标签必 FAIL「应标「1/4」」"),
+    ]
+    if not _block("v0.1.5 构造断言（check_html 两缺口 + T8② 真空 + 分位窗口）", v15_html,
+                  "v0.1.5 check_html 锁失败，逐条核对上方 ❌。"):
+        return 1
+
+    # ㉑ check_render 三探测器阳性（发现 17 测试真空）：spill/clipped/pageclip 各构造必报
+    if "渲染门禁跳过" in render_out:
+        print("\n【v0.1.5 check_render 三探测器阳性】SKIP（本机无 Chrome/Edge，随渲染门禁一并跳过）")
+    else:
+        _probes = {
+            "_v15_spill_demo.html":
+                ('<!doctype html><html><head><meta charset="utf-8"></head><body>'
+                 '<div class="sheet" style="max-width:1040px;margin:0 auto">'
+                 '<div style="white-space:nowrap;width:3000px">超宽不换行块</div>'
+                 '</div></body></html>', "spill"),
+            "_v15_clipped_demo.html":
+                ('<!doctype html><html><head><meta charset="utf-8"></head><body>'
+                 '<div class="sheet" style="max-width:1040px;margin:0 auto">'
+                 '<div style="overflow-x:hidden;width:200px">'
+                 '<div style="width:900px">被裁切的内容块</div></div>'
+                 '</div></body></html>', "clipped"),
+            "_v15_pageclip_demo.html":
+                ('<!doctype html><html><head><meta charset="utf-8"></head><body>'
+                 '<div class="sheet" style="max-width:1040px;margin:0 auto"><p>正文</p></div>'
+                 '<div style="width:3600px">页面级超宽元素</div>'
+                 '</body></html>', "pageclip"),
+        }
+        _probe_checks = []
+        for _name15, (_page15, _crit15) in _probes.items():
+            _p15 = HERE / _name15
+            _p15.write_text(_page15, encoding="utf-8")
+            try:
+                _rp15 = subprocess.run(
+                    [sys.executable, str(SKILL / "scripts" / "check_render.py"), str(_p15)],
+                    capture_output=True, text=True, encoding="utf-8", errors="replace")
+            finally:
+                _p15.unlink(missing_ok=True)
+            _probe_checks.append(
+                (_rp15.returncode == 1 and f"·{_crit15}]" in (_rp15.stdout or ""),
+                 f"㉑{_crit15} 探测器阳性：构造页必 exit 1 且报 [{_crit15}]（发现 17 真空修复）"))
+        if not _block("v0.1.5 check_render 三探测器阳性", _probe_checks,
+                      "v0.1.5 check_render 探测器阳性失效，逐条核对上方 ❌。"):
+            return 1
+
+    # ⑱ md_clean 两形态（发现 1 测试真空）：独立表题行「单位：元」不被拼进表头、
+    #    孤分隔行 | --- | 不被拼进碎行、pre 碎行拼回（断字带空格形态，与 synth1 金标准同惯例）
+    with tempfile.TemporaryDirectory() as _tdm:
+        rm15 = subprocess.run([sys.executable, str(SKILL / "scripts" / "md_clean.py"),
+                               str(HERE / "md_clean_synth2.md"), "--out-dir", _tdm],
+                              capture_output=True, text=True, encoding="utf-8", errors="replace")
+        _txt15 = (Path(_tdm) / "md_clean_synth2.clean.md").read_text(encoding="utf-8")
+        _lines15 = _txt15.splitlines()
+        _bare_sep = sum(1 for l in _lines15 if l.strip() == "| --- |")
+    # ⑰ ts_fetch 静态断言（需 tushare token，网络路径不可回归）：--out 分支写全量 rows 非 shown
+    _ts_src = (SKILL / "scripts" / "ts_fetch.py").read_text(encoding="utf-8")
+    _ts_out_branch = re.search(r"if args\.out:(.*?)\n    sys\.stdout\.write", _ts_src, re.S)
+    v15_misc = [
+        (rm15.returncode == 0 and "不变量违反" not in (rm15.stdout or ""),
+         "⑱md_clean synth2：exit 0 且双不变量通过"),
+        (any(l.strip() == "单位：元" for l in _lines15) and "| 单位：元 |" not in _txt15,
+         "⑱独立表题行「单位：元」 standalone（不被拼进表头第一格，无 | 单位：元 | 污染）"),
+        (_bare_sep >= 1 and "| --- 已计提" not in _txt15 and "已计提未支付的利息" in _txt15,
+         "⑱孤分隔行 | --- | 未被拼进碎行（碎行 standalone 保文本，无 | --- 已计提 污染）"),
+        ("| 销售商品、提供劳务收到的现 金 | 2,345.67 | 2,100.11 |" in _txt15,
+         "⑱pre 碎行拼回：销售商品…现 金 合并行仍在（normal 形态回归对照）"),
+        (_ts_out_branch is not None and "for r in rows" in _ts_out_branch.group(1)
+         and "shown" not in _ts_out_branch.group(1)
+         and "shown = rows if limit == 0 else rows[:limit]" in _ts_src,
+         "⑰ts_fetch --out 分支静态锁：落盘写全量 rows（非截断 shown）——需 token 不可自动化，静态断言"),
+    ]
+    if not _block("v0.1.5 构造断言（md_clean 两形态 + ts_fetch 静态）", v15_misc,
+                  "v0.1.5 md_clean/ts_fetch 锁失败，逐条核对上方 ❌。"):
+        return 1
+
     failed = total - passed
     print(f"\n--- 汇总：通过 {passed} · 失败 {failed} ---")
     if failed:

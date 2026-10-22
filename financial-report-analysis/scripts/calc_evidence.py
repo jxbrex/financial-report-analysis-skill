@@ -7,19 +7,23 @@ from calc_common import (FAIL, WARN, OK, SKIP, num, series_of, hist_periods, cmp
 
 def compute_cycle_evidence(data):
     """周期定位证据读数（v1.3，F-07）：收入增速/毛利率/Capex 增速逐期序列（旧→新）。
-    读数层证据供 meta.cycle_stage 判定可核验；hist<2 期（增速不可算）返回 None。
-    三条线长度不一时前置补 null 右对齐（末位=当期），与 periods 等长——防表行错位。"""
-    rev_h = [x for x in series_of(data, "income", "revenue") if x is not None]
-    cap_h = [x for x in series_of(data, "cashflow", "capex") if x is not None]
+    读数层证据供 meta.cycle_stage 判定可核验；三条线均 <2 期（无任何可定位的
+    多期趋势）返回 None。三条线长度不一时前置补 null 右对齐（末位=当期），与
+    periods 等长——防表行错位。序列按原始索引算增速（前一期 None/0 → 该期 None，
+    不过滤——过滤会跨期错配）；毛利率线独立产出——收入/Capex 不足 2 期时，
+    GM hist ≥2 期仍可单独成块。"""
+    rev_h = series_of(data, "income", "revenue")
+    cap_h = series_of(data, "cashflow", "capex")
     ratios = ((data.get("derived") or {}).get("ratios")) or {}
     gm_node = ratios.get("gross_margin")
     gm_h = [num(x) for x in (gm_node.get("hist") or [])] if isinstance(gm_node, dict) else []
-    if len(rev_h) < 2 and len(cap_h) < 2:
+    if len(rev_h) < 2 and len(cap_h) < 2 and len(gm_h) < 2:
         return None
     n = max(len(rev_h), len(cap_h), len(gm_h))
 
     def yoy(h):
-        return [None if i == 0 or not h[i - 1] else h[i] / h[i - 1] - 1 for i in range(len(h))]
+        return [None if i == 0 or h[i] is None or not h[i - 1] else h[i] / h[i - 1] - 1
+                for i in range(len(h))]
 
     def align(seq):
         # 右对齐到 n（末位=当期）；序列缺/太短则前置补 null（该线该期无数，非 0）
@@ -64,7 +68,8 @@ def check_cycle_evidence(data, rep):
         return
     c = compute_cycle_evidence(data)
     if c is None:
-        rep.add(FAIL, "cycle-evidence", "cycle_evidence 已填但收入/Capex hist 均不足 2 期——口径断裂期不得造数")
+        rep.add(FAIL, "cycle-evidence", "cycle_evidence 已填但收入/Capex/毛利率 hist 均不足 2 期"
+                                        "——无可复算产线，口径断裂期不得造数")
         return
     bad = []
     for key in ("rev_growth", "gross_margin", "capex_growth"):
@@ -171,7 +176,10 @@ def compute_segment_quadrant(data):
     """收入-毛利业务组合四象限（factor-analysis.md 第六节）机械复算，fill/check 共用。
     by_segment <2 条返回 None（单产品裁剪路径）；x0=Σrev_cur÷Σrev_prev−1，
     任一分部 rev_prev 为 null 则 x0/g/quadrant 全 null；y_mode=delta 要求
-    rev_prev/cost_prev 全部非 null，否则 level（dm 同 null）；rows 与 by_segment 同序。"""
+    rev_prev/cost_prev 全部非 null，否则 level（dm 同 null）；rows 与 by_segment 同序。
+    聚合与行级 m/dm 守卫同口径：任一分部 cost_cur 为 None → y0=None 且
+    sprofit/ps 整块 None（毛利不可按 0 凑）；分部 rev_cur 为 None 按 0 计入
+    合计但该分部 ps 为 null。"""
     segs = ((data.get("statements") or {}).get("income") or {}).get("by_segment") or []
     if not isinstance(segs, list) or len(segs) < 2:
         return None
@@ -179,14 +187,16 @@ def compute_segment_quadrant(data):
     costs = [num(s.get("cost_cur")) for s in segs]
     prevs = [num(s.get("rev_prev")) for s in segs]
     costps = [num(s.get("cost_prev")) for s in segs]
+    cost_ok = all(c is not None for c in costs)
     srev = sum(r or 0 for r in revs)
-    sprofit = sum((r or 0) - (c or 0) for r, c in zip(revs, costs))
+    sprofit = sum((r or 0) - c for r, c in zip(revs, costs)) if cost_ok else None
     prev_ok = all(p is not None for p in prevs)
     delta_ok = prev_ok and all(c is not None for c in costps)
     x0 = (srev / sum(prevs) - 1) if prev_ok and sum(prevs) else None
-    y0 = (1 - sum(c or 0 for c in costs) / srev) if srev else None
+    y0 = (1 - sum(costs) / srev) if (srev and cost_ok) else None
     ws = [(r / srev if r is not None and srev else None) for r in revs]
-    ps = [(((r or 0) - (c or 0)) / sprofit if sprofit else None) for r, c in zip(revs, costs)]
+    ps = [((r - c) / sprofit if (r is not None and sprofit) else None)
+          for r, c in zip(revs, costs)]
 
     def _rank(vals):
         order = sorted(range(len(vals)),

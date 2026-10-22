@@ -160,7 +160,8 @@ def compute_dupont_dt(data):
 
     nm_dt1, nm_dt0 = np_dt1 / rev1, np_dt0 / rev0
     nm1 = rv("net_margin", "cur")
-    share = num((ratios.get("nonrecurring_share") or {}).get("cur"))
+    nr_node = ratios.get("nonrecurring_share")
+    share = num(nr_node.get("cur")) if isinstance(nr_node, dict) else num(nr_node)
     triggered = bool(share is not None and abs(share) > 0.2)
     if nm1 is not None and abs(nm1 - nm_dt1) > 0.01:
         triggered = True
@@ -305,7 +306,8 @@ def _check_drills(data, du, c, bad):
             if td.get("top1_subject") != ce["top1_subject"]:
                 bad.append(f"turnover_drill.top1=「{td.get('top1_subject')}」与重算「{ce['top1_subject']}」不符")
             cmp_fields(bad, "turnover_drill", td, ce,
-                       ("top1_share", "top2_share", "wc_share", "capex_share"), tol=0.02)
+                       ("top1_share", "top2_share", "wc_share", "capex_share"), tol=0.02,
+                       skip_none=True)
     ld, ce = du.get("leverage_drill"), c.get("leverage_drill")
     if ld is not None:
         if ce is None:

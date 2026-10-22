@@ -90,28 +90,31 @@ def compute_stress(data):
 def compute_cash_ts(data):
     """现金验证时序读数：净现比/FCF 覆盖的均值与负值年数（分母归母净利）+
     v1.3 逐期数组 ncr/fcf_to_np/periods（S1 现金时序表数据源）。
-    hist <3 期返回 None（口径断裂合法 null）。"""
-    ocf_h = [x for x in series_of(data, "cashflow", "ocf") if x is not None]
-    np_h = [x for x in series_of(data, "income", "np_at") if x is not None]
-    capex_h = [x for x in series_of(data, "cashflow", "capex") if x is not None]
+    hist <3 期返回 None（口径断裂合法 null）。序列缺期补 None 且按原始索引
+    配对（不过滤——过滤会跨期错配），均值只在非 None 值上求。"""
+    ocf_h = series_of(data, "cashflow", "ocf")
+    np_h = series_of(data, "income", "np_at")
+    capex_h = series_of(data, "cashflow", "capex")
     n = min(len(ocf_h), len(np_h))
     if n < 3:
         return None
     ocf_h, np_h = ocf_h[-n:], np_h[-n:]
-    ncr = [o / p if p else None for o, p in zip(ocf_h, np_h)]
+    ncr = [o / p if (o is not None and p) else None for o, p in zip(ocf_h, np_h)]
     ncr_ok = [x for x in ncr if x is not None]
     out = {"ncr_mean5": sum(ncr_ok) / len(ncr_ok) if ncr_ok else None,
-           "ncr_neg_years": sum(1 for o in ocf_h if o < 0),
+           "ncr_neg_years": sum(1 for o in ocf_h if o is not None and o < 0),
            "fcf_to_np_mean5": None, "fcf_neg_years": None,
            "ncr": ncr, "fcf_to_np": [],
            "periods": hist_periods(data.get("meta") or {}, n) or []}
     m = min(n, len(capex_h))
     if m >= 3:
-        fcf = [o - c for o, c in zip(ocf_h[-m:], capex_h[-m:])]
-        fcf_np = [f / p if p else None for f, p in zip(fcf, np_h[-m:])]
+        capex_m = capex_h[-m:]
+        fcf = [o - c if (o is not None and c is not None) else None
+               for o, c in zip(ocf_h[-m:], capex_m)]
+        fcf_np = [f / p if (f is not None and p) else None for f, p in zip(fcf, np_h[-m:])]
         fcf_ok = [x for x in fcf_np if x is not None]
         out["fcf_to_np_mean5"] = sum(fcf_ok) / len(fcf_ok) if fcf_ok else None
-        out["fcf_neg_years"] = sum(1 for f in fcf if f < 0)
+        out["fcf_neg_years"] = sum(1 for f in fcf if f is not None and f < 0)
         # fcf 序列比 ncr 短（capex hist 不足）时前置补 null，保持与 periods 对齐；
         # capex hist<3 期时 fcf_to_np 整块为空数组（与均值同门槛——不足 3 期的
         # 逐期读数无趋势意义，不凑数）

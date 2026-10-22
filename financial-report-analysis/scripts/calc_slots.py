@@ -57,9 +57,10 @@ _TXTV = lambda x: _TXT(x) if isinstance(x, str) else x
 
 
 def _jd(x):
-    """JS 槽 JSON 序列化唯一出口：json.dumps + `</` 转义——底稿原文（分部名/期间标签）
-    夹带 `</script>` 会提前闭合脚本块团灭整页 JS；`<\\/` 在 JSON/JS 字符串里等价 `<`。"""
-    return json.dumps(x, ensure_ascii=False).replace("</", "<\\/")
+    """JS 槽 JSON 序列化唯一出口：json.dumps + `</` 转义（大小写不敏感——HTML 的
+    `</SCRIPT>` 闭合本就大小写不敏感）；底稿原文（分部名/期间标签）夹带 `</script>`
+    会提前闭合脚本块团灭整页 JS；`<\\/` 在 JSON/JS 字符串里等价 `<`。"""
+    return re.sub(r"</", r"<\\/", json.dumps(x, ensure_ascii=False), flags=re.I)
 
 
 # 方向语义（frameworks.md 方向语义表）：True=升为好 / False=降为好 / None=语境中性
@@ -308,8 +309,10 @@ def write_fillsheet(data, path):
         L.append("|---|---|---|---|")
         for x in npb:
             a, b = _abs.get(x.get("item"), (None, None))
+            dv = x.get("delta")
+            dv = "—" if not isinstance(dv, (int, float)) else f"{dv:+}"  # 与 OCF 桥 isinstance 守卫同口径
             L.append(f"| {x.get('item')} | {a if a is not None else '—'} | "
-                     f"{b if b is not None else '—'} | {x.get('delta'):+} |")
+                     f"{b if b is not None else '—'} | {dv} |")
         L.append("- 模板行归并指引：「投资/公允/资产处置」「其他收益」「非经（营业外）」三项"
                  "对应模板「非经常性损益」一行（或按公司习惯拆行），Σ 须等于 Δ归母净利；"
                  "期间费用备注列写销售/管理/研发/财务逐项Δ（income 同名字段取）")
@@ -380,7 +383,8 @@ def write_fillsheet(data, path):
     L.append("- S5 lede；S6 figtitle；S7 预期对照表（券商一致预期取 Tushare report_rc）")
     L.append("- S8 各卡 figtitle；页脚")
 
-    pathlib.Path(path).write_text("\n".join(L) + "\n", encoding="utf-8")
+    pathlib.Path(path).write_text("\n".join(L) + "\n", encoding="utf-8",
+                                  newline="\n")  # 行尾 LF（与 render_report.py 写报告同口径）
 
 
 # ──────────────────────────────────────────────────────────────────────────

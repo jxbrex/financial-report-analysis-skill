@@ -119,6 +119,12 @@ def check_structure(data, rep):
         loc = ".".join(path)
         cur = node.get("cur")
         if cur is None:
+            # 只认 hist 非空：src 在存量数据里兼作「未披露」批注通道（cur=null+src
+            # 说明文字是合法缺省形态），不能据此判脱钩；hist 有数值史却无本期值才是脱钩
+            hist = node.get("hist")
+            if isinstance(hist, list) and hist:
+                bad_hist += 1
+                rep.add(FAIL, "hist", f"{loc} cur 缺失但 hist 已填——有历史无数本期，口径脱钩")
             continue
         if isinstance(cur, str):
             bad_type += 1
@@ -272,7 +278,7 @@ def sum_bridge(items):
     total, n = 0.0, 0
     for it in items:
         if not isinstance(it, dict):
-            continue
+            return None, n
         d = num(it.get("delta"))
         if d is None:
             return None, n
@@ -412,6 +418,10 @@ def check_ratio_hist(data, rep):
         if RATIO_HIST_SPECS.get(name) is None:
             continue  # 单期专用比率不序列化，无 hist 可查
         series = ratio_hist_series(data, name)
+        if not series:
+            rep.add(WARN, "ratio-hist", f"{name} 科目序列整体缺失，已填 hist 无法复算——未经校验")
+            n_skip += len(rh)
+            continue
         for k in range(min(len(rh), len(series))):
             got = rh[len(rh) - 1 - k]
             expect = series[len(series) - 1 - k]
@@ -432,14 +442,14 @@ def check_ratio_hist(data, rep):
     if missing_hist and n_ok == 0 and n_fail == 0:
         msg = f"趋势比率缺 hist（口径断裂等），趋势降级两期：{', '.join(missing_hist)}"
         if n_skip:
-            msg += f"；另有 {n_skip} 期跳过（首期无期初余额/科目序列不全/hist 含非数值）"
+            msg += f"；另有 {n_skip} 期跳过（首期无期初余额/科目序列不全/整体缺失）"
         rep.add(SKIP, "ratio-hist", msg)
     else:
         parts = [f"比率历史复算 {n_ok} 期通过"]
         if n_fail:
             parts.append(f"{n_fail} 期不符")
         if n_skip:
-            parts.append(f"{n_skip} 期跳过（首期无期初余额/科目序列不全）")
+            parts.append(f"{n_skip} 期跳过（首期无期初余额/科目序列不全/整体缺失）")
         if missing_hist:
             parts.append(f"{len(missing_hist)} 个比率缺 hist（口径断裂等），趋势降级两期："
                          f"{', '.join(missing_hist)}")
@@ -474,6 +484,7 @@ def check_recon(data, rep):
             continue
         if verdict != "闭合" and not (isinstance(expl, str) and expl.strip()):
             rep.add(FAIL, key, f"verdict=「{verdict}」但 explanation 为空")
+            continue
 
         kind, thresh = rule
         if kind == "manual":
@@ -511,12 +522,13 @@ def check_signals(data, rep):
         if not isinstance(s, dict):
             bad += 1
             continue
+        has_level = bool(s.get("level"))
         for k in ("id", "level", "title", "source"):
             if not s.get(k):
                 bad += 1
                 rep.add(FAIL, "signals", f"signals[{i}] 缺 {k}")
                 break
-        if s.get("level") not in ("g", "y", "r"):
+        if has_level and s.get("level") not in ("g", "y", "r"):
             bad += 1
             rep.add(FAIL, "signals", f"signals[{i}].level 必须是 g/y/r，当前「{s.get('level')}」")
         sev = s.get("severity")

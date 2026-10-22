@@ -13,8 +13,9 @@ from check_html_common import FAIL, WARN, OK, DETAIL_CAP, line_of, visible_text
 
 # ─────────────────────────── 12. 数字回验（T8，--json 时执行） ───────────────────────────
 
-# 正文数字（含千分位）；src 行号；数字阈值语境（>x / <y / ≥z）
-PLAIN_NUM_RE = re.compile(r"[-+]?\d[\d,]*(?:\.\d+)?")
+# 正文数字（含千分位；全角减号 − 是归因列负值常态——v0.1.5 补口，此前 − 数字整串失明）；
+# src 行号；数字阈值语境（>x / <y / ≥z）
+PLAIN_NUM_RE = re.compile(r"[-+−]?\d[\d,]*(?:\.\d+)?")
 SRC_LINE_RE = re.compile(r"L(\d+)")
 NUM_KEY_LIST = ("cur", "prev", "lhs", "rhs",
                 "rev_cur", "rev_prev", "cost_cur", "cost_prev",
@@ -117,7 +118,7 @@ def check_numbers_vs_json(body, raw, data, rep, verbose=False):
         head = text[max(0, m.start() - 8):m.start()].rstrip()
         if head.endswith(("&lt;", "&gt;", "&le;", "&ge;", "≥", "≤", "＞", "＜")):
             continue
-        txt = m.group(0).replace(",", "")
+        txt = m.group(0).replace(",", "").replace("−", "-")  # 全角减号归一，float 不认 −
         # 外币语境豁免：后随 美元/欧元/港元 等币种的数字不是人民币科目（json 全部为人民币亿元）
         tail = text[m.end():m.end() + 12]
         if re.match(r'\s*(?:万|亿|百亿|千万)?\s*(?:美元|欧元|港元|港币|日元|HKD|USD|EUR)', tail):
@@ -130,7 +131,9 @@ def check_numbers_vs_json(body, raw, data, rep, verbose=False):
             continue
         if d == int(d) and (1900 <= d <= 2100 or abs(d) < 10):
             continue  # 期次年份 / 序号小整数
-        is_pct = text[m.end():].lstrip()[:1] in ("%", "％")
+        # % 语境含「pct」词边界：归因列单位纪律一律 ±x.xpct（report-template.html:339），
+        # 此前只认 %/％，pct 数字落进原值池与金额互撞失明
+        is_pct = bool(re.match(r"(?:%|％|pct\b)", text[m.end():].lstrip()))
         match_pool = pct if is_pct else plain
         dec = len(txt.partition(".")[2])
         tol = max(0.5 * (10 ** -dec), 1e-9)
@@ -198,8 +201,10 @@ def _value_in_text(v, text):
     for m in PLAIN_NUM_RE.finditer(text):
         try:
             # 财报千位符数字（131,530）去逗号再解析——原 float() 直接拒逗号致②级对
-            # 千位符整体失明（v0.1.3 阿里年报实证；A 股 md 同样带千位符）
-            d = abs(float(m.group(0).replace(",", "")))
+            # 千位符整体失明（v0.1.3 阿里年报实证；A 股 md 同样带千位符）；
+            # 全角减号同步归一（与①级 PLAIN_NUM_RE 同口径，v0.1.5）——float("−123")
+            # 抛 ValueError 被下方 except 吞掉反而失明
+            d = abs(float(m.group(0).replace(",", "").replace("−", "-")))
         except ValueError:
             continue
         for cand in (abs(v), abs(v) * 1e2, abs(v) * 1e4, abs(v) * 1e5, abs(v) * 1e8):

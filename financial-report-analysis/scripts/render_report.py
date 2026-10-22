@@ -16,6 +16,7 @@
 from __future__ import annotations
 
 import argparse
+import html
 import json
 import re
 import sys
@@ -26,6 +27,8 @@ TEMPLATE = HERE.parent / "assets" / "report-template.html"
 
 _BADGE_TXT = {"disc": "披露", "der": "推算", "est": "估算"}
 _H = "{{}}"  # 判断孔（残留由 check_html 占位符门禁兜底）
+# json 原文进 HTML 的插入点统一转义（等价 calc_slots._E 口径；文件名拼接不走此，见 main）
+_E = lambda s: html.escape(str(s or ""), quote=False)
 
 
 class R:
@@ -54,6 +57,10 @@ class R:
         j = self.h.find(' <div class="sect">', i)
         if j == -1:
             j = self.h.find(' <!-- ══ 页脚', i)
+        if j == -1:
+            # 双右界均失：按空段返回（in_sect 拼接不变、不污染产物），断锚清单统一 exit 1 兜住
+            self.miss.append(f"{sid}: 段落右界未找到（模板页脚/分节标记漂移）")
+            return i, i
         return i, j
 
     def in_sect(self, sid, fn):
@@ -117,16 +124,17 @@ def fill_js(r, js):
 
 def fill_meta(r, m):
     r.sub1("<title>{{公司名}} {{报告期}}{{报告类型}}分析 — financial-report-analysis</title>",
-           f"<title>{m['company']} {m['sub_lead']}分析 — financial-report-analysis</title>",
+           f"<title>{_E(m['company'])} {_E(m['sub_lead'])}分析 — financial-report-analysis</title>",
            "meta.title")
     r.sub1("FINANCIAL REPORT ANALYSIS · {{上市地}}",
-           f"FINANCIAL REPORT ANALYSIS · {m['market']}", "meta.kicker")
-    r.sub1("<h1>{{公司名}}（{{代码}}）</h1>", f"<h1>{m['title']}</h1>", "meta.h1")
+           f"FINANCIAL REPORT ANALYSIS · {_E(m['market'])}", "meta.kicker")
+    r.sub1("<h1>{{公司名}}（{{代码}}）</h1>", f"<h1>{_E(m['title'])}</h1>", "meta.h1")
     r.sub1("<b>{{报告期}}{{报告类型}}</b> 分析报告 · 报告发布于 {{披露日期}} · 分析生成于 {{生成日期}}",
-           f"<b>{m['sub_lead']}</b> 分析报告 · 报告发布于 {m['disclose_date']} · "
-           f"分析生成于 {m['analyst_date']}", "meta.sub")
+           f"<b>{_E(m['sub_lead'])}</b> 分析报告 · 报告发布于 {_E(m['disclose_date'])} · "
+           f"分析生成于 {_E(m['analyst_date'])}", "meta.sub")
     r.sub1("<span>{{公司名}}（{{代码}}）{{报告期}}{{报告类型}}分析 · 生成于 {{日期}}</span>",
-           f"<span>{m['title']}{m['sub_lead']}分析 · 生成于 {m['analyst_date']}</span>", "meta.foot")
+           f"<span>{_E(m['title'])}{_E(m['sub_lead'])}分析 · 生成于 {_E(m['analyst_date'])}</span>",
+           "meta.foot")
     # 以下两锚在模板各出现 2 处、语义同填（srcline 周期表述/比率表口径行）——
     # 显式计数入断锚：锚漂移或第 3 处新增时显式报错，不静默漏填/同填
     _pairs = [("公司{{报告期}}{{报告类型}}", f"公司 {m['srcline_period']}{m['report_type']}", "meta.srcline")]
@@ -233,7 +241,9 @@ def fill_s1(r, s1, m):
             def _fnroe(tr):
                 cells = _cells(tr)
                 ratio = dp.get("effects_ratio")
-                if dp.get("driver_fragile"):
+                if ratio is None:  # 三效应全零的合法形态（calc_slots 原样传 None）
+                    drv = "效应比不适用（三效应≈0）"
+                elif dp.get("driver_fragile"):
                     drv = (f"双驱动（{dp.get('driver')}/{dp.get('driver_second')}）："
                            f"效应比 {ratio:.2f}&lt;1.5，禁止单一标签")
                 else:
@@ -543,10 +553,10 @@ def fill_s7(r, s7, m):
         def _pcell(c):
             return (f'<td><span class="{c["cls"]}">{c["txt"]}</span></td>' if c.get("cls")
                     else f'<td>{c["txt"]}</td>')
-        lines = ["<tr><td><b>" + (m.get("company") or _H) + "</b></td>"
+        lines = ["<tr><td><b>" + (_E(m.get("company")) or _H) + "</b></td>"
                  + "".join(_pcell(pr["self"][c]) for c in cols) + "</tr>"]
         for p in pr["rows"]:
-            lines.append(f'<tr><td>{p["name"]}</td>'
+            lines.append(f'<tr><td>{_E(p["name"])}</td>'
                          + "".join(_pcell(p[c]) for c in cols) + "</tr>")
         diff = pr.get("diff") or {}
         def _dcell(c):
@@ -593,11 +603,12 @@ def fill_s8(r, s8):
     cards = []
     for c in s8.get("cards") or []:
         badge = c.get("badge") or "disc"
-        cards.append(f'<div class="card">\n <div class="figtitle">{c["indicator"]}</div>\n'
-                     f' <div class="wv">{c["current"]} <span class="badge {badge}">'
+        badge = badge if badge in ("disc", "der", "est") else "disc"  # 进 class 属性，白名单兜底
+        cards.append(f'<div class="card">\n <div class="figtitle">{_E(c["indicator"])}</div>\n'
+                     f' <div class="wv">{_E(c["current"])} <span class="badge {badge}">'
                      f'{_BADGE_TXT.get(badge, "披露")}</span></div>\n'
-                     f' <div class="wb">{c["wb"]}</div>\n'
-                     f' <div class="srcline">数据来源：{c["srcline"]}</div>\n </div>')
+                     f' <div class="wb">{_E(c["wb"])}</div>\n'
+                     f' <div class="srcline">数据来源：{_E(c["srcline"])}</div>\n </div>')
     if not cards:
         return
     inner = "\n ".join(cards[:4])

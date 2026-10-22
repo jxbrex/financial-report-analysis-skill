@@ -34,10 +34,11 @@ NUM_RE = re.compile(r"\d[\d,]*(?:\.\d+)?")
 SEP_RE = re.compile(r"^\s*\|[\s:|-]*-[\s:|-]*\|\s*$")  # | --- | 分隔行（必须含 dash；空单元格值行不算）
 PAGE_NO_RE = re.compile(r"^\s*\d{1,4}\s*$")           # 纯页码行
 FURN_RE = re.compile(r"(公告编号|证券代码|证券简称|上海证券交易所|深圳证券交易所|北京证券交易所)")
-# 夹心碎行候选：无数字、短、不以句读结尾（「其中：」类散文排除）、不以注/其中开头
+# 夹心碎行候选：无数字、短、不以句读结尾（「其中：」类散文排除）、不以注/其中开头、
+# 不以「单位：」表题开头（v0.1.5：独立表题行满足碎行全部判据，曾被拼进表头第一格——万科归档实证）
 FRAG_RULE_LEN = 40
 FRAG_BAD_END = re.compile(r"[。；：，]$")
-FRAG_BAD_START = re.compile(r"^(其中|注\d?|说明|第[一二三四五六七八九十]+[章节]|[一二三四五六七八九十]+、)")
+FRAG_BAD_START = re.compile(r"^(其中|注\d?|说明|单位[:：]|第[一二三四五六七八九十]+[章节]|[一二三四五六七八九十]+、)")
 SECTION_RE = re.compile(r"^(第[一二三四五六七八九十]+[章节]|[一二三四五六七八九十]+、)\s*\S{2,30}$")
 # 港式章节头（v0.1.2 蜜雪实证）：港股报告章节无「第 X 节」编号，章节名以页眉形式整篇重复
 # （管理層討論與分析 22×、中期簡明綜合財務資料附註 24×），A 股式 SECTION_RE 零识别。
@@ -202,8 +203,9 @@ def clean(lines):
                     unmerged.append((pending_pre[1] + 1, pending_pre[0]))
                 pending_pre = (line.strip(), i)
                 continue
-            if out and is_pipe(out[-1][0]):
-                # 上一逻辑行的 post 碎行（lookahead 未消费到的形态）：并上行并标记改写
+            if out and is_pipe(out[-1][0]) and not SEP_RE.match(out[-1][0]):
+                # 上一逻辑行的 post 碎行（lookahead 未消费到的形态）：并上行并标记改写；
+                # 分隔行不作宿主——碎行拼进 | --- | 本体即污染整表（万华 clean 914 实证）
                 last = out[-1]
                 last[0] = (last[0].rstrip() + f" {line.strip()} |" if last[0].rstrip().endswith("|")
                            else last[0] + f" | {line.strip()} |")
@@ -297,9 +299,9 @@ def main():
     clean_path = out_dir / f"{src.stem}.clean.md"
     index_path = out_dir / f"{src.stem}.index.json"
     idx = build_index(final)
-    clean_path.write_text("\n".join(final) + "\n", encoding="utf-8")
+    clean_path.write_text("\n".join(final) + "\n", encoding="utf-8", newline="\n")
     index_path.write_text(json.dumps(idx, ensure_ascii=False, indent=1),
-                          encoding="utf-8")
+                          encoding="utf-8", newline="\n")  # 行尾 LF（Windows 默认 CRLF，与 render_report.py 同口径）
 
     print(f"✅ {src.name}：{len(lines)} → {len(final)} 行（−{1 - len(final) / len(lines):.0%}）")
     print(f"   删重复分隔行 {deleted['sep']} · 页眉页脚 {deleted['furn']} · 拼回碎行 {deleted['merged']}")

@@ -106,7 +106,8 @@ def main():
     ap.add_argument("--fields", default="",
                     help="返回字段，逗号分隔；空 = 接口默认全字段")
     ap.add_argument("--limit", type=int, default=DEFAULT_LIMIT,
-                    help=f"stdout 最多输出行数（默认 {DEFAULT_LIMIT}，0 = 全部）")
+                    help=f"stdout 最多输出行数（默认 {DEFAULT_LIMIT}，0 或负数 = 全部；"
+                         "--out 落盘始终全量）")
     ap.add_argument("--out", default="", help="落盘路径（JSONL）；缺省 stdout")
     args = ap.parse_args()
 
@@ -124,20 +125,26 @@ def main():
         print(f"FAIL: 网络错误（{e}）", file=sys.stderr)
         return 1
 
-    shown = rows if args.limit == 0 else rows[:args.limit]
+    # 截断只约束 stdout 显示；落盘写全量 rows（v0.1.5 修复：--out 曾落截断版，双源核对丢行）；
+    # limit 负数按 0 处理（全部）
+    limit = args.limit if args.limit > 0 else 0
+    shown = rows if limit == 0 else rows[:limit]
     text = "\n".join(json.dumps(r, ensure_ascii=False) for r in shown)
     if text:
         text += "\n"
     if args.out:
+        full = "\n".join(json.dumps(r, ensure_ascii=False) for r in rows)
+        if full:
+            full += "\n"
         with open(args.out, "w", encoding="utf-8") as f:
-            f.write(text)
-    else:
-        sys.stdout.write(text)
+            f.write(full)
+    sys.stdout.write(text)
     note = f"[ts_fetch] {args.api_name} -> {len(rows)} 行"
     if not rows:
         note += "（0 行：参数无匹配或服务端结构变更——核对参数与接口文档，勿直接当「无数据」落底稿）"
     if len(shown) < len(rows):
-        note += f"（截断显示前 {len(shown)} 行，--limit 0 取全部）"
+        note += (f"（已落盘全量 {len(rows)} 行，stdout 仅显示前 {len(shown)} 行；--limit 0 不截断）"
+                 if args.out else f"（截断显示前 {len(shown)} 行，--limit 0 取全部）")
     print(note, file=sys.stderr)
     return 0
 

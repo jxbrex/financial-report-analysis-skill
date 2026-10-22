@@ -8,7 +8,7 @@ description: >
 metadata:
   clawdbot:
     emoji: "📑"
-    version: "0.1.4"
+    version: "0.1.5"
     requires:
       anyBins: ["python"]
     os: ["win32", "darwin", "linux"]
@@ -481,5 +481,6 @@ Roll-forward（应收/存货/在建工程/商誉）+ C 组周期联动（CCC/DPO
 | 0.1.2 | 2026-10-10 | 港股首跑反馈轮：OCF 桥起点标签参数化（税前利润）；--min-recon auto 港股校准；s1-v15 分位降级行豁免；s2-shape 剔除四线卡徽章；md_clean 港式章节名索引；阅读清单按 report_type 预裁剪 |
 | 0.1.3 | 2026-10-10 | 阿里港股年报首验反馈轮：hist_periods 非日历年财年（FY 标签）+ render 期次映射修复 + 趋势图 labels 取最长序列；T8② 单位换算补百万元档 + 千位符数字解析修复；stackH 钳位撞车去重；分位白描 X/N 支持 n<5 窗口；--min-recon auto 补港股年报=12；md_clean 补 US GAAP「合併*」章节名；data-sources 补妙想双通道+yahoo_finance 兜底链 |
 | 0.1.4 | 2026-10-22 | S3 资金流向桑基图卡模板化（三段式/符号路由进 calc/净调整正负双形态/盒高按体量/降级声明卡）；schema 1.7（derived.sankey 选填块 + income 三选填叶）；check_html sankey-slot 机检（规则 24）+ KEY_SVG_IDS 注册；Q3 单季差额通用取数规则（data-sources 二·五） |
+| 0.1.5 | 2026-10-22 | ponytail-audit 全技能审计修复轮（19 条）：md_clean 表题/分隔行误并、cash_ts 与周期证据 filter-then-zip 跨期错配、T8① 全角减号 − 与 pct 后缀失明、三处合法形态崩管道（dupont_dt 裸数字/效应比 None/桥 delta None）、sum_bridge 非 dict 静默、cur=null 脱钩盲区、render 转义缺口、_jd 大小写、sect 右界静默、recon 矛盾双行、桑基 cum_prev 提醒级 WARN、turnover_drill skip_none、ratio-hist 具名 WARN、四象限聚合 None 当 0、gate 吞 stderr/前导空格、ts_fetch 截断落盘、dupont-stack/sankey-slot 形态与无槽感知、四处测试真空补口（T8② 双态/gate 红测/spill·clipped·pageclip 阳性/分位 _win_n 红测）；回归 209→252 |
 
 逐版本详情以 handoff/supersede/ 与 git tag 为唯一真源（AGENTS.md 定案）。
