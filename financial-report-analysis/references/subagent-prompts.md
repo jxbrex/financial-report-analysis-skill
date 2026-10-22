@@ -38,6 +38,9 @@
 压缩表回传）——它是 derived.ocf_bridge 与 dep_amort 的原料，A3/A5/A6 勾稽全指它；
 A 股半年报同样强制披露（report-types.md），找不到先换关键词搜「将净利润调节为」，
 确认真未披露才可报缺，禁止凭「半年报不强制」的常识直接降级（卫星化学 2026H1 漏提教训）。
+利润表补充三项（v1.7 起选提，桑基图明细行原料）：其他收益、资产处置收益、营业利润
+（income.other_income / disposal_income / op_profit，未单列填 null）；
+三季报的上一累计期差额原料由主线 Phase 1 取数负责，不在本代理范围。
 用 index.json 的「财务报告」章节定位切片。
 落盘骨架：`{"statements": {"income": {}, "cashflow": {}}}`
 

@@ -8,7 +8,7 @@ description: >
 metadata:
   clawdbot:
     emoji: "📑"
-    version: "0.1.3"
+    version: "0.1.4"
     requires:
       anyBins: ["python"]
     os: ["win32", "darwin", "linux"]
@@ -151,6 +151,9 @@ metadata:
    虚拟路径，Windows Python 不可见（比亚迪轮实测 FileNotFoundError 重试）；
    港股/美股用妙想 `mx_hk_finance_data` / `mx_us_finance_data`（tushare 港股财报接口
    本环境无权限，实测 40203）。字段速查见 `references/data-sources.md`。
+   **三季报加取（v0.1.4）**：`income`/`cashflow` 多拉上一累计期（period=半年报期末）
+   作 Q3 单季差额原料（桑基图口径，规则见 `references/data-sources.md` 二·五节），
+   预填 `derived.sankey.cum_prev`（src 必填）后 `--fill` 机械算差额。
 3. **不一致处理**：以报告原文为准，在报告中显式标注「原文 X / 数据库 Y」。
 4. **结构化中间层（强制）**：所有提取的数字写入 `reports/archive/json/{公司}-{代码}-{类型}-{期}.json`，
    结构见 `references/extraction-schema.md`。此后各 Phase 只消费/回填这份 JSON；
@@ -198,6 +201,8 @@ metadata:
    `derived.risk_models` / `derived.stress`，报告 s7 健康检验卡各一行呈现（压力情景带
    est 徽章，「情景推演、非预测」）。现金验证时序读数（净现比/FCF 5 期均值与负值年数）
    落 `derived.cash_ts`（frameworks.md 第四节），S1 现金含量折线图（ncrline）与趋势图区引用。
+   **资金流向桑基图**（S3 总览卡，v0.1.4）落 `derived.sankey`（schema v1.7，fill 机械预填；
+   形态/符号路由/降级条件见 factor-analysis.md 六·五节）。
 3. 共同比报表：利润表各项 ÷ 收入，看结构变化。
 4. **费用投入产出（P1-16）**：增量费用效率、销售费用获客效率、研发投入转化（规则见
    frameworks.md 第六节）——诊断经营效率，作为盈利质量定性依据，并入因素分析与勾稽层证据。
@@ -260,6 +265,9 @@ Roll-forward（应收/存货/在建工程/商誉）+ C 组周期联动（CCC/DPO
 4. **OCF 调节桥（间接法，与净利桥并列成双桥）**：净利润 → 折旧摊销/减值/递延税
    → Δ应收/Δ存货/Δ应付 → 经营现金流净额，标明「主吞噬项」；数据源为年报
    「现金流量表补充资料」，Σ 必须 = OCF（calc.py 校验）
+5. **资金流向桑基图（S3 总览卡，v0.1.4）**：三段链条同图承接（收入→利润→经营现金流
+   →自由现金流），②段恒为净调整 lump——与双桥并存不重复（桑基=全链条总览，
+   双桥=归因与明细验证）；形态纪律与降级条件见 factor-analysis.md 六·五节
 
 ### Phase 5：文字部分分析（重要度等同财务数据）
 
@@ -367,10 +375,10 @@ Roll-forward（应收/存货/在建工程/商誉）+ C 组周期联动（CCC/DPO
    （例：经营现金流净额（OCF）——公司做生意实际收到的现金；之后可用缩写）；
    数据徽章、图表刻度内缩写豁免。
    **S1~S7 版面规格唯一出处 = 模板注释**（report-template.html 各槽位注释块：四维表五列/
-   趋势四宫格 2×2/杜邦双卡/ΔROE 堆叠条分色与五年累计列/桥图尺寸与端点/行序与分组行/
-   分位 X/5 措辞/断言表结构/健康检验固定主题序与汇总口径/Q4 卡年报专属）——
+   趋势四宫格 2×2/杜邦双卡/ΔROE 堆叠条分色与五年累计列/桥图尺寸与端点/桑基图卡三段式
+   与降级声明/行序与分组行/分位 X/5 措辞/断言表结构/健康检验固定主题序与汇总口径/Q4 卡年报专属）——
    填充时模板就在手上，**照抄槽位、不凭记忆改版式**；机检兜底（s1-v15-shape/dupont-stack/
-   s1-grid4/abbrev/ocf-bridge-shape/figtitle 族/inspection-verdict）由 check_html 承载。
+   s1-grid4/abbrev/ocf-bridge-shape/figtitle 族/inspection-verdict/sankey-slot）由 check_html 承载。
    **可见数字精度（v0.0.19 硬纪律）**：报告可见数字一律 ≤2 位小数（pct 效应值 1 位）——
    fillsheet 机械槽位已转好照抄即可，JS 图表标签由 fmt 助手兜底，原始精度留 data.json 底稿。
 2. 报告类型差异（哪些模块可裁剪）见 `references/report-types.md`：
@@ -472,5 +480,6 @@ Roll-forward（应收/存货/在建工程/商誉）+ C 组周期联动（CCC/DPO
 | 0.1.1 | 2026-10-09 | ponytail-audit 全库审计修复 20 项（None 进 JS/effects_ratio/幽灵 0/OCF 空桥团灭/_NO_SRC 啃字/md_clean 丢行/gate 误导等）+ FAIL 判据阳性 30 断言 |
 | 0.1.2 | 2026-10-10 | 港股首跑反馈轮：OCF 桥起点标签参数化（税前利润）；--min-recon auto 港股校准；s1-v15 分位降级行豁免；s2-shape 剔除四线卡徽章；md_clean 港式章节名索引；阅读清单按 report_type 预裁剪 |
 | 0.1.3 | 2026-10-10 | 阿里港股年报首验反馈轮：hist_periods 非日历年财年（FY 标签）+ render 期次映射修复 + 趋势图 labels 取最长序列；T8② 单位换算补百万元档 + 千位符数字解析修复；stackH 钳位撞车去重；分位白描 X/N 支持 n<5 窗口；--min-recon auto 补港股年报=12；md_clean 补 US GAAP「合併*」章节名；data-sources 补妙想双通道+yahoo_finance 兜底链 |
+| 0.1.4 | 2026-10-22 | S3 资金流向桑基图卡模板化（三段式/符号路由进 calc/净调整正负双形态/盒高按体量/降级声明卡）；schema 1.7（derived.sankey 选填块 + income 三选填叶）；check_html sankey-slot 机检（规则 24）+ KEY_SVG_IDS 注册；Q3 单季差额通用取数规则（data-sources 二·五） |
 
 逐版本详情以 handoff/supersede/ 与 git tag 为唯一真源（AGENTS.md 定案）。

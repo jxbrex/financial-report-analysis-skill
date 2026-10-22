@@ -12,6 +12,7 @@ from calc_common import build_ratio_calcs, ratio_hist_series, RATIO_HIST_SPECS
 from calc_dupont import compute_dupont, compute_dupont_dt, compute_dupont5y
 from calc_evidence import compute_cycle_evidence, compute_threshold_check, compute_segment_quadrant
 from calc_risk import compute_altman, compute_ohlson, compute_stress, compute_cash_ts
+from calc_sankey import compute_sankey
 # 再导出保回归契约锁锚点（check_html.py 同款先例）：PCTILE_LABEL 双写之一现居 calc_slots
 from calc_slots import PCTILE_LABEL, write_fillsheet, build_slots  # noqa: F401
 
@@ -114,4 +115,18 @@ def fill_derived(data):
         der["segment_quadrant"] = _filled({k: _r4deep(v) for k, v in sq.items()},
                                           der.get("segment_quadrant") or {}, "src", "note")
         n += 1
+    sk = compute_sankey(data)
+    if sk:
+        der["sankey"] = _filled({k: _r4deep(v) for k, v in sk.items()},
+                                der.get("sankey") or {}, "src", "note", "cum_prev")
+        if not der["sankey"].get("src") and sk.get("period_type") == "本期":
+            der["sankey"]["src"] = "合并利润表/合并现金流量表（机械复算）"
+        n += 1
+    else:
+        old_sk = der.get("sankey")
+        if isinstance(old_sk, dict) and old_sk.get("rev") is not None:
+            # 已计算块遭遇降级形态（如转亏/现金流转负）→ 置 null 触发降级卡；
+            # 无 rev 的部分预填块（Q3 cum_prev 种子）保留不吞
+            der["sankey"] = None
+            n += 1
     return n

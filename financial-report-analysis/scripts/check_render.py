@@ -70,7 +70,7 @@ SKIP_NOTE = ("渲染门禁跳过：未找到 Chrome/Edge（check_html.py 静态�
 #   两个空图，改查全部 svg 会对已交付报告误报；dupont5/bridge 等更早版式 id 不入册
 #   也无妨：JS 团灭打死的是全部图，每版式至少一个 id 在册即足以检出，清单不追穷举。
 KEY_SVG_IDS = ("trend", "revchart", "npchart", "ncrline", "capexbars", "effline",
-               "ocfbridge", "segbridge", "dupontstack", "holders")
+               "ocfbridge", "segbridge", "dupontstack", "holders", "sankey")
 
 # 注入页面：测量上述五项呈现问题 + 章节高度（供 --png 分片用）
 MEASURE_JS = """

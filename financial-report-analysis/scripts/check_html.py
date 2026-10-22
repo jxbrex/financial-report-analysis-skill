@@ -55,6 +55,10 @@ calc.py 只校验数据层（data.json）；报告 HTML 层此前没有任何机
                   的 .grid2 直接子元素只许 svg——降级只许删 svg，混入 table/div
                   （如 takeaway 读法行）即撑破 2×2 㗊型。v0.0.22 前版式（无 revchart）
                   不适用、不查。
+  24. sankey-slot [FAIL]（仅 --json）SANKEY 数据槽 ↔ derived.sankey 一致性
+                  （v0.1.4 资金流向桑基图卡）——负载唯一出处 calc_slots.build_sankey_slot，
+                  逐键复算比对（含 minus/plus 路由数组与明细行）；无槽且无 svg#sankey
+                  → 不适用；有静态 svg 而无 JS 槽 → 一次性呈现层补图豁免（宁德 2026Q3 先例）。
 
 呈现文本族（check_html_text.py，本入口调用）：
   2. bare-number  [WARN] ★ 关键数字没有挂证据等级徽章（.badge.disc/der/est）。
@@ -132,6 +136,7 @@ from check_html_common import (FAIL, WARN, OK, Report, DETAIL_CAP,
                                Sections, _section_seg)
 from check_html_t8 import (check_numbers_vs_json, check_json_vs_md,
                            check_undisclosed_claims, check_assert_truncation)
+from calc_slots import build_sankey_slot
 # 呈现文本族（v0.0.19 拆出）；PCTILE_LABEL 在此再导出——回归契约锁从本模块 import
 from check_html_text import (  # noqa: F401
     PCTILE_LABEL,
@@ -542,6 +547,72 @@ def check_dupont_stack(raw, data, rep):
         rep.add(OK, "dupont-stack", "ΔROE 堆叠条数据槽与 derived.dupont 一致（含口径差段）")
 
 
+# ─────────────────── v0.1.4：SANKEY 数据槽比对（FAIL，仅 --json） ───────────────────
+
+def check_sankey_slot(raw, data, rep):
+    """SANKEY 数据槽 ↔ derived.sankey 一致性（v0.1.4，仅 --json 模式）：
+    负载唯一出处 = calc_slots.build_sankey_slot（禁双写），HTML 槽逐键复算比对
+    （R2 呈现精度，容差 0.011）；无槽且无 svg#sankey → 不适用；有静态 svg 无 JS 槽 →
+    一次性呈现层补图豁免比对（宁德 2026Q3 先例）。语法解析失败只 WARN 不 FAIL
+    （与 dupont-stack 同规：语法问题不该掩盖数据问题）。"""
+    m = re.search(r"const SANKEY=(null|\{.*?\});", raw, re.S)
+    if not m:
+        rep.add(OK, "sankey-slot",
+                "无 SANKEY 数据槽但存在静态 svg#sankey（一次性呈现层补图，豁免比对）"
+                if 'id="sankey"' in raw else "无 SANKEY 数据槽（旧版式或整卡降级缺省，不适用）")
+        return
+    try:
+        got = json.loads(m.group(1).replace("<\\/", "</"))
+    except json.JSONDecodeError:
+        rep.add(WARN, "sankey-slot", "SANKEY 槽解析失败——检查 JS 字面量语法")
+        return
+    expect = build_sankey_slot(data)
+    if expect is None:
+        if got is None:
+            rep.add(OK, "sankey-slot", "桑基降级一致（槽 null ↔ derived.sankey 缺省）")
+        else:
+            rep.add(FAIL, "sankey-slot", "derived.sankey 缺省（应整卡降级）但 SANKEY 槽有数据")
+        return
+    if not isinstance(got, dict):
+        rep.add(FAIL, "sankey-slot",
+                f"SANKEY 槽应为对象（derived.sankey 已落库），实际 {type(got).__name__}")
+        return
+    bad = []
+
+    def _cmp(label, g, e):
+        if e is None:
+            return
+        if g is None or abs(g - e) > 0.011:
+            bad.append(f"{label}={g} ≠ 复算 {e}")
+
+    for k in ("rev", "cost", "gross", "op", "nonop", "tax", "np", "np_at",
+              "minority", "ocf", "gap", "capex", "fcf"):
+        _cmp(k, got.get(k), expect.get(k))
+    if got.get("pt") != expect.get("pt"):
+        bad.append(f"pt={got.get('pt')!r} ≠ 复算 {expect.get('pt')!r}")
+    for side in ("minus", "plus"):
+        ga, ea = got.get(side) or [], expect.get(side) or []
+        if len(ga) != len(ea):
+            bad.append(f"{side} 数组长度 {len(ga)} ≠ {len(ea)}")
+            continue
+        for i, (gi, ei) in enumerate(zip(ga, ea)):
+            if gi.get("label") != ei.get("label"):
+                bad.append(f"{side}[{i}] label「{gi.get('label')}」≠「{ei.get('label')}」")
+            _cmp(f"{side}[{i}].v", gi.get("v"), ei.get("v"))
+            gl, el_ = gi.get("lines") or [], ei.get("lines") or []
+            if len(gl) != len(el_):
+                bad.append(f"{side}[{i}].lines 行数 {len(gl)} ≠ {len(el_)}")
+                continue
+            for j, (glj, elj) in enumerate(zip(gl, el_)):
+                if glj[0] != elj[0]:
+                    bad.append(f"{side}[{i}].lines[{j}] 名「{glj[0]}」≠「{elj[0]}」")
+                _cmp(f"{side}[{i}].lines[{j}] 值", glj[1] if len(glj) > 1 else None, elj[1])
+    if bad:
+        rep.add(FAIL, "sankey-slot", "SANKEY 数据槽与 derived.sankey 不符：" + "；".join(bad[:4]))
+    else:
+        rep.add(OK, "sankey-slot", "SANKEY 数据槽与 derived.sankey 一致（20 科目+路由数组+明细行）")
+
+
 # ─────────────────────────── 主流程 ───────────────────────────
 
 def main():
@@ -613,6 +684,7 @@ def main():
     check_gap_declaration(body, rep)
     if data is not None:
         check_dupont_stack(raw, data, rep)
+        check_sankey_slot(raw, data, rep)
         check_percentile_map(body, data, rep)
         check_assert_truncation(body, data, rep, args.verbose)
         check_numbers_vs_json(body, raw, data, rep, args.verbose)

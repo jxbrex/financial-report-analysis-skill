@@ -494,8 +494,28 @@ html{scroll-behavior:smooth}
  <div class="takeaway">读法：{{第一驱动 + 最大回吐项一句话；汇兑/税率等一次性回吐项须点名，其验证条件进 <a href="#s8">08 跟踪清单</a>}}</div>
  <div class="srcline">正贡献记 + / 负贡献记 − · 单位：亿元 · 数据来源：公司{{报告期}}{{报告类型}}合并利润表、Tushare 交叉核对</div>
  </div>
- <!-- ◆ SLOT：第二座桥（净利→经营现金流，间接法）全宽独占 + Q4 单季透视卡紧随其后
- （v0.0.19 起不再组 grid2 双列——半宽容器下 960 宽 viewBox 文字缩放不可读）。
+ <!-- ◆ SLOT：资金流向桑基图卡（v0.1.4）：S3 全链条总览——①收入与利润 ②净利润到经营现金流
+ ③资本开支与自由现金流。数据=JS 区 SANKEY 槽（derived.sankey 机械产出，schema v1.7；
+ calc 卡口闭合校验）。视觉语法：盒=固定尺寸标签盒（小项可读性优先）、流带宽度∝金额、
+ 减项在毛利盒右缘分流（上排盒）、加项（财务净收益/其他损益净额等）作支流汇入毛利主流
+ （汇后主流增粗）、②段净调整负=分流/正=双源汇入、③段盒高∝体量；流带=单色+透明度，非渐变。
+ 与 OCF 桥分工：本卡=全链条总览（②段恒为净调整 lump），OCF 桥=间接法明细验证，并存不重复。
+ 降级：SANKEY=null（rev/毛利/营业利润/净利/归母/OCF 非正、少数股东为负、或三季报缺上一
+ 累计期原料）时 render 整卡降级为声明（删 svg+删 takeaway+figtitle 换声明），不留空壳。
+ figtitle 四段式（归因类纪律）；takeaway 读法行含公式「营业利润 = 毛利润 − 期间费用及税金
+ − 减值损失 + 财务净收益 + 其他损益净额（后两项按实际符号为加项）」
+ ◆ figtitle 真实示范（宁德 2026Q3）：「Q3 单季 1,652.21 亿营收的流向：净利润 224.68 亿仅
+ 14.09 亿换成现金，再被资本开支 170.95 亿吞成自由现金流 -156.86 亿——放量季的钱压在
+ 营运占用与扩产，盯 Q4 回款兑现」 -->
+ <div class="card">
+ <div class="figtitle">{{结论式：资金流向桑基图——本期收入的钱流去了哪：方向+归因+含义+盯什么}}</div>
+ <svg id="sankey" viewBox="0 0 1180 460" preserveAspectRatio="xMidYMid meet"></svg>
+ <div class="takeaway">{{读法：桑基图——营业利润公式行（毛利−费用−减值+加项）+ 现金流落差归因 + 验证条件进 <a href="#s8">08 跟踪清单</a>}}</div>
+ <div class="srcline">口径：{{SANKEY 口径}} · 单位：亿元人民币 · 数据来源：定期报告合并利润表、合并现金流量表</div>
+ </div>
+ <!-- ◆ SLOT：第二座桥（净利→经营现金流，间接法）全宽 + Q4 单季透视卡居章末
+ （v0.0.19 起不再组 grid2 双列——半宽容器下 960 宽 viewBox 文字缩放不可读；v0.1.4 起
+ 桥前为桑基总览卡，本桥=间接法明细验证，与桑基②段 lump 并存不重复）。
  Q4 卡为年报专属槽位：半年报/季报时整卡删除（含 srcline），不留降级小字 -->
  <div class="fig">
  <div class="figtitle">{{结论式：经营现金流净额（OCF）与净利润的关系一句话，如「OCF 反超净利润：应付预收放大是主因」或「OCF 远低于净利润：营运资本吞噬在应收」}}</div>
@@ -955,6 +975,12 @@ const SEG_BRIDGE=[['量效应',0],['价效应',0],['结构效应',0]];
 /* segbridge 端点柱数据（v0.0.21）：[基期收入, 本期收入]（亿元，与 .brends 端点行同源照抄，
  fillsheet 已产出）；缺数填 null 该端点跳过 */
 const SEG_ENDS=[0,0];
+/* sankey：资金流向桑基图（v0.1.4，S3 总览卡）——负载=calc_slots.build_sankey_slot 机械产出
+ （fill 后 fillsheet 照抄）：pt=口径（本期/单季差额）；rev/cost/gross/op/nonop/tax/np/np_at/
+ minority/ocf/gap/capex/fcf（亿元，R2）；minus[]=减项盒（期间费用及税金含 lines 明细/减值损失/
+ 其他损益净损失），plus[]=加项盒（财务净收益/其他损益净额，0~2 个，lines 为明细行）。
+ 符号路由唯一出处=calc_sankey.route_items，本函数只画不判；null=整卡降级（render 删 svg 换声明） */
+const SANKEY=null;
 /* holders：股东户数（万户，柱）+ 户数环比增减(%,线，可留空；首期无环比填 null 跳点不画) */
 const HOLDERS={labels:['2025-12','2026-03','2026-06'],num:[15.3,16.6,17.0],px:[null,8.5,2.4]};
 /* DUPONT_STACK：ΔROE 贡献堆叠条——三段效应照抄 derived.dupont 三效应 ×100 转 pct
@@ -1261,6 +1287,105 @@ function stackH(id,steps,gap,unit){
  'text-anchor':'middle',...HALO},`ΔROE ${net>0?'+':''}${Math.round(net*10)/10}${unit||''}`);
 }
 
+/* sankey：资金流向桑基图（S3 全链条总览卡，v0.1.4）——三段：①收入与利润 ②净利润→经营现金流
+ ③资本开支与自由现金流。盒=固定标签盒（小项可读性优先），流带宽度∝金额；
+ 双比例尺：S=264/rev（收入扇出），S2=min(S,54/gross)（毛利下游子树）；
+ 减项在毛利盒右缘分流（上排盒），加项从下排盒作支流汇入毛利主流（汇后主流增粗；支流先于
+ 主流绘制、末端伸进营业利润盒被不透明盒覆盖——半透明流带盖不住线帽，宁德轮实证）；
+ ②段净调整<0=分流形态（宁德 2026Q3）、≥0=双源汇入形态（净利盒+净调整绿盒→横条）；
+ ③段盒高∝|值|（k=106/max(capex,|fcf|)，clamp 22~130），FCF 按符号变色。
+ 流带=单色+fill-opacity，非渐变（模板硬规则）；tax/nonop 为负画 0.5px 细丝+盒内带符号读数。
+ 符号路由唯一出处=calc_sankey.route_items，本函数只画不判；SANKEY=null/元素缺席 no-op
+ （整卡降级由 render 删 svg 换声明卡）。 */
+function drawSankey(id,D){
+ const s=document.getElementById(id);if(!s||!D||!(D.rev>0))return;
+ const WARNC=v('--warn'),S=264/D.rev,S2=Math.min(S,54/D.gross);
+ const band=(x0,a,b,x1,c,d,f)=>{const m=(x0+x1)/2;
+  el(s,'path',{d:`M${x0},${+a.toFixed(1)}C${m},${+a.toFixed(1)} ${m},${+c.toFixed(1)} ${x1},${+c.toFixed(1)}L${x1},${+d.toFixed(1)}C${m},${+d.toFixed(1)} ${m},${+b.toFixed(1)} ${x0},${+b.toFixed(1)}Z`,fill:f,'fill-opacity':.38});};
+ const bx=(x,y,w,h,f,tc,rows)=>{el(s,'rect',{x:x,y:y,width:w,height:h,rx:7,fill:f});
+  rows.forEach(r=>{if(r[1])txt(s,{x:x+w/2,y:y+r[0],'font-size':r[2],'text-anchor':'middle',fill:tc,'font-weight':r[3]?800:400,'fill-opacity':r[4]==null?1:r[4]},r[1])});};
+ const hd=(x,n,t)=>{el(s,'circle',{cx:x+10,cy:22,r:10,fill:C1});
+  txt(s,{x:x+10,y:26.5,'font-size':12,'font-weight':800,'text-anchor':'middle',fill:'#fff'},n);
+  txt(s,{x:x+26,y:27,'font-size':13,'font-weight':700,fill:INK},t)};
+ hd(8,'1','收入与利润');hd(652,'2','净利润到经营现金流');hd(944,'3','资本开支与自由现金流');
+ [636,928].forEach(x=>el(s,'line',{x1:x,y1:44,x2:x,y2:444,'stroke-dasharray':'3 4',stroke:GRID}));
+ /* ── 段 1 布局：减项上排盒 + 加项下排盒 ── */
+ const costH=D.cost*S,grossH=D.gross*S;
+ const mB=[];let my=52;
+ D.minus.forEach(it=>{const nr=Math.max(Math.ceil((it.lines||[]).length/2),1);
+  const h=it.key==='fees'?40+20*nr:36;mB.push({it:it,y:my,h:h});my+=h+16;});
+ const opY=Math.max(236,my+16);
+ const pB=[];let px=168;
+ D.plus.forEach(it=>{const w=(it.lines||[]).length?132:100,h=(it.lines||[]).length?58:34;
+  pB.push({it:it,x:px,w:w,y:372,h:h});px+=w+8;});
+ /* 段 1 流带（分流带与支流先画，主流盖住汇口；盒最后画盖住带端） */
+ band(96,88,88+D.cost*S,176,120,120+Math.min(D.cost*S,84),C1);
+ band(96,88+D.cost*S,352,176,297,297+Math.min(grossH,54),GOOD);
+ let gy=296;
+ mB.forEach(b=>{const bh=Math.max(b.it.v*S2,.8);
+  band(256,gy,gy+bh,332,b.y+8,b.y+8+Math.min(bh,b.h-12),b.it.key==='impair'?WARNC:C1);gy+=bh;});
+ pB.forEach((b,i)=>{const sw=Math.max(b.it.v*S2,1.2),ex=326+i*2,ey=opY+46-i*8,sx=b.x+b.w/2;
+  el(s,'path',{d:`M${sx},${b.y} C${sx},${b.y-26} ${ex-30},${ey+26} ${ex},${ey}`,
+   fill:'none',stroke:GOOD,'stroke-width':+sw.toFixed(1),'stroke-opacity':.38});});
+ band(256,gy,352,332,opY+7,opY+7+Math.min(D.op*S2,48),GOOD);
+ let t1=Math.max(Math.abs(D.tax)*S2,.5),t2=Math.max(Math.abs(D.nonop)*S2,.5),
+     t3=Math.max(D.np*S2,.8);
+ const rs=Math.min(1,56/(t1+t2+t3));t1*=rs;t2*=rs;t3*=rs;
+ band(448,opY,opY+t1,520,74,74+Math.min(t1,22),C1);
+ band(448,opY+t1,opY+t1+t2,520,122.5,124,C1);
+ band(448,opY+t1+t2,opY+t1+t2+t3,520,240,240+Math.min(t3,52),GOOD);
+ /* ── 段 2：净调整<0=分流；≥0=双源汇入 ── */
+ if(D.gap<0){
+  const gH=Math.abs(D.gap)*S2,oH=Math.max(D.ocf*S2,.8);
+  band(740,228,228+gH,812,63.2,63.2+Math.min(gH,44),BAD);
+  band(740,228+gH,228+gH+oH,812,186-Math.min(oH,20)/2,186+Math.min(oH,20)/2,GOOD);
+ }else{
+  const nH=Math.max(D.np*S2,.8),gH=Math.max(D.gap*S2,.8);
+  band(740,260-nH/2,260+nH/2,812,186-Math.min(nH,20)/2,186+Math.min(nH,20)/2,GOOD);
+  const gx=856-gH/2;
+  el(s,'path',{d:`M${gx},108 C${gx},140 ${gx},140 ${gx},175 L${gx+gH},175 C${gx+gH},140 ${gx+gH},140 ${gx+gH},108 Z`,fill:GOOD,'fill-opacity':.38});
+ }
+ /* ── 段 3：盒高∝体量（k 自适应），流带为扩锥示意 ── */
+ const k3=106/Math.max(D.capex,Math.abs(D.fcf),.01);
+ const hC=Math.min(Math.max(D.capex*k3,22),130),hF=Math.min(Math.max(Math.abs(D.fcf)*k3,22),130);
+ band(1032,175,186,1096,52,52+hC,C1);
+ band(1032,186,197,1096,220,220+hF,D.fcf<0?BAD:GOOD);
+ /* ── 盒（最后画，盖住流带端头）── */
+ bx(8,88,96,264,C1,'#fff',[[118,'营业收入',12,0],[142,fmt(D.rev),14,1]]);
+ bx(168,120,96,84,C3,INK,[[36,'营业成本',12,0],[56,fmt(D.cost),13.5,1]]);
+ bx(168,296,96,56,GOOD,'#fff',[[22,'毛利润',12,0],[40,fmt(D.gross),13.5,1]]);
+ mB.forEach(b=>{
+  if(b.it.key==='fees'){
+   const rows=[[20,b.it.label+' '+fmt(b.it.v),11.5,1,1]];
+   (b.it.lines||[]).forEach((l,i)=>{const r=(i>>1)+1;
+    rows[r]=[42+(r-1)*20,((rows[r]||[])[1]?rows[r][1]+' · ':'')+l[0]+' '+fmt(l[1]),10.5,0,.72];});
+   bx(324,b.y,132,b.h,C3,INK,rows);
+  }else if(b.it.key==='impair'){
+   bx(324,b.y,132,36,WARNC,'#fff',[[23,b.it.label+' '+fmt(b.it.v),11.5,1,1]]);
+  }else{
+   bx(324,b.y,132,b.h,C3,INK,[[21,b.it.label+' '+fmt(b.it.v),10.5,1,1]]);
+  }});
+ bx(324,opY,132,56,GOOD,'#fff',[[22,'营业利润',12,0],[40,fmt(D.op),13.5,1]]);
+ pB.forEach(b=>{
+  if((b.it.lines||[]).length){
+   const rows=[[20,b.it.label+' +'+fmt(b.it.v),11.5,1,1]];
+   b.it.lines.forEach((l,i)=>{const r=(i>>1)+1;
+    rows[r]=[36+(r-1)*14,((rows[r]||[])[1]?rows[r][1]+' · ':'')+l[0]+' '+fmt(l[1]),9.5,0,.85];});
+   bx(b.x,b.y,b.w,b.h,GOOD,'#fff',rows);
+  }else{
+   bx(b.x,b.y,b.w,b.h,GOOD,'#fff',[[22,b.it.label+' +'+fmt(b.it.v),11,1,1]]);
+  }});
+ bx(512,60,104,36,C3,INK,[[23,'所得税 '+fmt(D.tax),11.5,1,1]]);
+ bx(512,108,104,32,C3,INK,[[21,'营业外净损益 '+fmt(D.nonop),10.5,1,1]]);
+ bx(512,228,104,64,GOOD,'#fff',[[22,'净利润 '+fmt(D.np),12,1,1],[40,'归母 '+fmt(D.np_at),10,0,.85],[56,'少数股东 '+fmt(D.minority),10,0,.85]]);
+ bx(652,228,96,64,GOOD,'#fff',[[26,'净利润',12,0],[44,fmt(D.np),13.5,1]]);
+ bx(804,52,104,56,D.gap<0?BAD:GOOD,'#fff',[[19,'净利润至现金流',10.5,0,1],[37,'净调整 '+(D.gap<0?'':'+')+fmt(D.gap),11.5,1,1]]);
+ bx(804,175,104,22,GOOD,'#fff',[[15.5,'经营现金流 '+fmt(D.ocf),10.5,1,1]]);
+ bx(944,175,96,22,GOOD,'#fff',[[15.5,'经营现金流 '+fmt(D.ocf),10.5,1,1]]);
+ bx(1088,52,88,hC,C1,'#fff',[[hC/2-8,'资本开支',11.5,0,1],[hC/2+10,fmt(D.capex),12.5,1,1]]);
+ bx(1088,220,88,hF,D.fcf<0?BAD:GOOD,'#fff',[[hF/2-8,'自由现金流',11,0,1],[hF/2+10,fmt(D.fcf),12.5,1,1]]);
+}
+
 trendRev('revchart',TREND.labels,TREND.rev,TREND.gm);
 trendNp('npchart',TREND.labels,TREND.np,TREND.np_dt,TREND.ocf,TREND.roe);
 capexBars('capexbars',TREND.labels,TREND.capex,TREND.rd);
@@ -1269,6 +1394,7 @@ ncrLine('ncrline',NCR_TS.labels,NCR_TS.ncr,NCR_TS.fcf,NCR_TS.mean);
 deltaBars('ocfbridge',OCF_BRIDGE.slice(1),[['期初·'+(((OCF_BRIDGE[0]||[])[0])||'净利润').replace(/（[^）]*）/g,''),OCF_BRIDGE[0]?.[1]],['期末·经营现金流',OCF_END]]);
 deltaBars('segbridge',SEG_BRIDGE,[['基期·收入',SEG_ENDS[0]],['本期·收入',SEG_ENDS[1]]]);
 stackH('dupontstack',DUPONT_STACK.steps,DUPONT_STACK.gap,'pct');
+drawSankey('sankey',SANKEY);
 combo('holders',HOLDERS.labels,HOLDERS.num,[],HOLDERS.px,'环比增减','股东户数(万户)','');
 </script>
 </body>

@@ -68,9 +68,12 @@
       "impair_loss":  { "cur": null, "prev": null, "src": "", "note": "资产+信用减值合计" },
       "invest_income":{ "cur": null, "prev": null, "src": "", "note": "投资收益（X33 非主业收入占比分子之一）" },
       "fv_change_income": { "cur": null, "prev": null, "src": "", "note": "公允价值变动收益（X33 分子之一）" },
+      "other_income": { "cur": null, "prev": null, "src": "", "note": "其他收益（利润表「加：其他收益」，政府补助等；v1.7 起选填，桑基图其他损益净额明细行用）" },
       "non_op_income":{ "cur": null, "prev": null, "src": "", "note": "营业外收入毛额（X33 分子之一；与 non_op_net 收支净额并存，勿混）" },
       "other_biz_income": { "cur": null, "prev": null, "src": "", "note": "其他业务收入（附注口径，利润表未单列填 null；X33 复算时 null 按 0 计）" },
+      "disposal_income": { "cur": null, "prev": null, "src": "", "note": "资产处置收益（v1.7 起选填，桑基图明细行用；tushare 无对应字段时取原文）" },
       "non_op_net":   { "cur": null, "prev": null, "src": "" },
+      "op_profit":    { "cur": null, "prev": null, "src": "", "note": "营业利润（v1.7 起选填；缺省时桑基按 np_total+income_tax−non_op_net 推算）" },
       "np_total":     { "cur": null, "prev": null, "src": "", "note": "净利润（含少数股东）——OCF 调节桥起点" },
       "np_at":        { "cur": null, "prev": null, "hist": [], "src": "", "note": "归母净利" },
       "np_dt":        { "cur": null, "prev": null, "src": "", "note": "扣非归母" },
@@ -260,6 +263,27 @@
                                   "quadrant ∈ 明星|以量换价|现金牛/潜力|衰退——边界等号归正侧：g≥x0 算增长侧、m≥y0 算高毛利侧；"
                                   "y_mode=delta 要求全部 rev_prev/cost_prev 非 null，否则 level；dm=mᵢ−mᵢ(prev) 仅 delta 口径填、level 口径 null；"
                                   "rank_gap=|w 排名−p 排名|（降序排名，等值按 name 字典序定先后），p_minus_w=p−w" },
+    "sankey": { "period_type": "本期|单季差额",
+                "rev": null, "cost": null, "gross": null, "tax_sur": null, "sell": null, "admin": null,
+                "rd": null, "fin": null, "impair": null, "other_lump": null, "op": null, "nonop": null,
+                "tax": null, "np": null, "np_at": null, "minority": null,
+                "ocf": null, "capex": null, "fcf": null, "gap": null,
+                "cum": null, "cum_prev": null, "src": "",
+                "note": "v1.7 资金流向桑基图（S3 总览卡；形态纪律、与 OCF 桥分工、降级条件见 factor-analysis.md 六·五节）；"
+                        "落库约定：本块选填——填则全字段机械可复算（calc 复算比对闭合式 + 与 statements 重算比对），"
+                        "整块 null 合法（不适用降级：rev≤0 / gross≤0 / op≤0 / 净利≤0 / 归母≤0 / OCF≤0 / 少数股东<0 / "
+                        "关键科目缺失 / 单季差额原料缺失，S3 渲染降级声明卡）；"
+                        "单位亿元，期间=本报告期（年报 FY / 半年报 H1 / 一季报 Q1 / 三季报 9M−H1 单季差额）；"
+                        "fin 带符号（负=净收益）；impair 损失正计；"
+                        "other_lump=其他收益+投资收益+公允价值变动+资产处置收益的轧差项（与营业利润闭合互为定义），"
+                        "其明细行（投资/公允/其他收益/处置）只进 JS 槽呈现，源自 statements.income 选填叶；"
+                        "gap=ocf−np；fcf=ocf−capex；period_type=单季差额时 cum/cum_prev 为两累计期同键名裸数值子块"
+                        "（cum_prev 另可带明细四键 invest_income/fv_change_income/other_income/disposal_income，"
+                        "供桑基明细行差额），"
+                        "各科目=cum−cum_prev（calc 卡口复算），cum_prev 由主线按上一累计期接口/半年报原文预填、"
+                        "fill 保留不覆盖，出处合并进块级 src；本期时 cum/cum_prev=null；"
+                        "prev 语义不变：仍指上年同期，不指上一累计期；"
+                        "宁德 2026Q3 底稿的 derived.q3_single 为本块落地前的 ad-hoc 先例，快照不回改" },
     "q4": { "rev": null, "np": null, "rev_share": null, "gm_q4": null, "gm_q1q3": null,
             "impair_share": null, "exp_ratio_q4": null, "exp_ratio_q1q3": null, "src": "" },
     "rev_factors": { "volume": null, "price": null, "mix": null, "src": "",
@@ -430,6 +454,9 @@ verdict 由分析师按 articulation.md D 组判读规则综合给出；命中�
 | ar_aging | `应收账款`附注内`账龄` | 无——只能来自原文 |
 | inventory_mix | `存货`附注内`原材料`/`在产品`/`库存商品` | 无——只能来自原文 |
 | fv_change_income | `公允价值变动收益`（利润表） | `income.fv_value_chg_gain` |
+| other_income | `其他收益`（利润表） | `income.oth_income` |
+| disposal_income | `资产处置收益`（利润表） | 无（`nca_disploss` 常 null）——取原文 |
+| op_profit | `营业利润`（利润表） | `income.operate_profit` |
 | non_op_income | `营业外收入`（利润表） | `income.non_oper_income` |
 | other_biz_income | `营业收入`附注内`其他业务收入` | 无直接对照——附注口径 |
 | parent_statements.* | `母公司资产负债表`/`母公司利润表`/`母公司现金流量表` | 无——只能来自原文 |

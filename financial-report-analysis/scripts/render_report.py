@@ -110,7 +110,7 @@ def _rebuild(cells, edits, row=""):
 
 def fill_js(r, js):
     for key in ("TREND", "NCR_TS", "EFF_TS", "DUPONT_STACK", "SEG_BRIDGE", "SEG_ENDS",
-                "OCF_BRIDGE", "OCF_END", "HOLDERS"):
+                "OCF_BRIDGE", "OCF_END", "HOLDERS", "SANKEY"):
         # 行级替换不传 re.S：DOTALL 下 .* 会吞到文件末尾（赢合实测 TREND 替换团灭 JS 尾部）
         r.re1(rf"(?m)^const {key}=.*$", js[key], f"js.{key}", flags=0)
 
@@ -387,6 +387,21 @@ def fill_s2(r, s2):
 
 
 def fill_s3(r, s3):
+    # 桑基卡（v0.1.4）：降级=删 svg（empty-svg 门禁）+删 takeaway+标题换声明+srcline 换降级注；
+    # 正常态填机械 srcline（口径随 period_type）
+    if s3.get("sankey_drop"):
+        r.re1(r' <svg id="sankey".*?</svg>\n', "", "s3.sankey_drop_svg")
+        r.re1(r' <div class="takeaway">\{\{读法：桑基.*?</div>\n', "", "s3.sankey_drop_takeaway")
+        r.re1(r'<div class="figtitle">\{\{结论式：资金流向.*?\}\}</div>',
+              '<div class="figtitle">资金流向桑基图不适用：当期收入/利润/经营现金流存在非正项'
+              '（或单季差额原料缺失），本卡降级为声明——资金链条解读见本表净利桥与 OCF 桥卡</div>',
+              "s3.sankey_drop_title")
+        r.sub1(' <div class="srcline">口径：{{SANKEY 口径}} · 单位：亿元人民币 · 数据来源：定期报告合并利润表、合并现金流量表</div>',
+               ' <div class="srcline">降级声明：形态不适用或原料缺失 · 资金链条证据见本表净利桥与 OCF 桥卡</div>',
+               "s3.sankey_drop_src")
+    elif s3.get("sankey_src"):
+        r.sub1(' <div class="srcline">口径：{{SANKEY 口径}} · 单位：亿元人民币 · 数据来源：定期报告合并利润表、合并现金流量表</div>',
+               f' <div class="srcline">{s3["sankey_src"]}</div>', "s3.sankey_src")
     if s3.get("ocf_drop"):
         # OCF 桥降级（补充资料未披露的合法 WARN 态）：空桥必须删 svg（empty-svg 门禁）
         # + 删端点行（无数据可填）+ figtitle 换降级声明——对齐 ncr_drop 模式

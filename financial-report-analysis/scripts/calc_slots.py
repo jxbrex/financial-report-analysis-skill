@@ -13,7 +13,8 @@ import re
 import statistics
 from html import escape as _htmlesc
 
-from calc_common import hist_periods
+from calc_common import hist_periods, num
+from calc_sankey import route_items
 
 # 呈现两位小数（fillsheet 机械槽位：原始精度留 json，报告可见数字 ≤2 位，v0.0.19）
 R2 = lambda x: None if x is None else round(x, 2)
@@ -323,6 +324,9 @@ def write_fillsheet(data, path):
             L.append(js["OCF_END"])
             L.append(f"// 端点行：{js['brends_ocf']}")
 
+    L.append("\n## S3 SANKEY 槽（JS 区粘贴；资金流向桑基图卡，v0.1.4；null=降级声明卡）\n")
+    L.append(js["SANKEY"])
+
     cip = notes.get("cip_projects") or []
     if cip:
         L.append("\n## S5 在建工程行（照抄；判定=进度 vs 计划工期、连续两年进度增量）\n")
@@ -388,8 +392,74 @@ def write_fillsheet(data, path):
 # （md 是说明书、slots 是数据），一致性由赢合重放金标准回归锁。
 # ──────────────────────────────────────────────────────────────────────────
 
+def build_sankey_slot(data):
+    """SANKEY JS 槽负载唯一出处（v0.1.4；_js_slots 与 check_html sankey-slot 比对共用，
+    禁双写）。derived.sankey 缺失/非对象/缺 rev → None（render 联动降级声明卡）。
+    符号路由 minus/plus 唯一出处 = calc_sankey.route_items；other 明细行：本期口径读
+    statements.cur，单季差额口径读 statements.cur − cum_prev 明细键。"""
+    sk = (data.get("derived") or {}).get("sankey")
+    if not isinstance(sk, dict) or not isinstance(sk.get("rev"), (int, float)):
+        return None
+    minus, plus = route_items(sk)
+    inc = ((data.get("statements") or {}).get("income")) or {}
+    diff = sk.get("period_type") == "单季差额"
+    dprev = sk.get("cum_prev") or {}
+    lines = []
+    for lbl, f in (("投资", "invest_income"), ("公允", "fv_change_income"),
+                   ("其他收益", "other_income"), ("处置", "disposal_income")):
+        node = inc.get(f)
+        cv = num(node.get("cur")) if isinstance(node, dict) else None
+        if not diff:
+            vv = cv
+        else:
+            p_ = num(dprev.get(f))
+            vv = None if (cv is None or p_ is None) else cv - p_
+        if isinstance(vv, (int, float)):
+            lines.append([lbl, R2(vv)])
+    rest = round(sk["other_lump"] - sum(x[1] for x in lines), 2)
+    if abs(rest) > 0.005:
+        lines.append(["其他", rest])
+    # 明细行上限 4（盒高按 2 排 ×2 列设计，超出折叠进「其他」——drawSankey 盒内行数依赖此约）
+    if len(lines) > 4:
+        tail = round(sum(x[1] for x in lines[3:]), 2)
+        lines = lines[:3] + [["其他", tail]]
+
+    def _pack(items):
+        out_ = []
+        for it in items:
+            ln = [[l, R2(v)] for l, v in it["lines"]]
+            if it["key"] in ("other", "other_neg"):
+                ln = lines
+            out_.append({"label": it["label"], "v": R2(it["value"]), "lines": ln})
+        return out_
+
+    return {"pt": sk["period_type"],
+            "rev": R2(sk["rev"]), "cost": R2(sk["cost"]), "gross": R2(sk["gross"]),
+            "minus": _pack(minus), "plus": _pack(plus),
+            "op": R2(sk["op"]), "nonop": R2(sk["nonop"]), "tax": R2(sk["tax"]),
+            "np": R2(sk["np"]), "np_at": R2(sk["np_at"]), "minority": R2(sk["minority"]),
+            "ocf": R2(sk["ocf"]), "gap": R2(sk["gap"]),
+            "capex": R2(sk["capex"]), "fcf": R2(sk["fcf"])}
+
+
+def _sankey_srcline(meta, sk):
+    """桑基卡 srcline 机械槽：口径随 period_type 变化；只写对外来源（internal-ref 纪律）。"""
+    period = str((meta or {}).get("period") or "")
+    yr = period[:4]
+    if sk.get("period_type") == "单季差额":
+        plabel = f"{yr} 年 7—9 月单季" if period.endswith("0930") else f"{yr} 年单季"
+        return (f"口径：{plabel}（年初至报告期末累计 − 上一累计期差额 "
+                f"<span class=\"badge der\">推算</span>）· 单位：亿元人民币 · "
+                f"数据来源：定期报告合并利润表、合并现金流量表")
+    rt = (meta or {}).get("report_type") or ""
+    plabel = {"年报": f"{yr} 年度", "半年报": f"{yr} 年 1—6 月"}.get(rt) or \
+        (f"{yr} 年 1—3 月" if period.endswith("0331") else f"{yr} 年{rt}")
+    return (f"口径：{plabel} · 单位：亿元人民币 · "
+            f"数据来源：定期报告合并利润表、合并现金流量表 <span class=\"badge disc\">披露</span>")
+
+
 def _js_slots(data):
-    """JS DATA 区 9 槽整行文本（含 SEG 分部轴降级与 HOLDERS 时序）+ 双桥端点行文本。
+    """JS DATA 区 10 槽整行文本（含 SEG 分部轴降级与 HOLDERS 时序）+ 双桥端点行文本。
     一切 JSON 序列化走 _jd（None→null、`</` 转义）——f-string 裸插 None 是 JS 未定义
     标识符，整段 script 报错即全图团灭（v0.1.1 修复）。"""
     der = data.get("derived") or {}
@@ -502,6 +572,9 @@ def _js_slots(data):
                           f"px:{_jd([None if p is None else round(p, 1) for p in hp])}}};")
     else:
         out["HOLDERS"] = "const HOLDERS={labels:[],num:[],px:[]};"
+    # SANKEY（schema 1.7 derived.sankey）：S3 资金流向桑基图；负载唯一出处 = build_sankey_slot
+    #（None → const SANKEY=null，render 联动降级声明卡）
+    out["SANKEY"] = "const SANKEY=" + _jd(build_sankey_slot(data)) + ";"
     return out
 
 
@@ -855,6 +928,10 @@ def build_slots(data):
         # OCF 桥降级标记（补充资料未披露的合法 WARN 态）：空桥必删 svg，否则撞 empty-svg
         "ocf_drop": not any(isinstance(x.get("delta"), (int, float))
                             for x in (der.get("ocf_bridge") or [])),
+        # 桑基卡（v0.1.4）：降级=槽负载为 None（不适用形态/缺原料），删 svg 换声明
+        "sankey_drop": build_sankey_slot(data) is None,
+        "sankey_src": _sankey_srcline(meta, der.get("sankey"))
+                      if isinstance(der.get("sankey"), dict) else "",
     }
     wcd = der.get("wc_devour") or {}
     if wcd.get("amount") is not None:

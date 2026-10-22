@@ -14,11 +14,12 @@
     hist_periods/批量比对助手）+ `calc_dupont.py`（杜邦族：连环替代三口径/因子下钻/五年归因与分位）+
     `calc_evidence.py`（周期证据/四线贴线/peers 结构）+ `calc_risk.py`（破产双模型/压力情景/现金时序）+
     `calc_models.py`（fill 编排层，不含公式）+ `calc_slots.py`（v0.1.0 拆出：build_slots 槽位契约 +
-    write_fillsheet + _js_slots JS 槽单一出处 + _TXT 文本链），入口仍是 calc.py
+    write_fillsheet + _js_slots JS 槽单一出处 + _TXT 文本链）+ `calc_sankey.py`（v0.1.4：桑基图
+    compute_sankey/check_sankey/route_items 符号路由唯一出处），入口仍是 calc.py
   - `scripts/render_report.py` — Phase 8 fill→render（v0.1.0，N4）：模板 + `{stem}.fillsheet.json`
     （calc --fill 同产）→ 报告骨架，机械槽位锚定填充（断锚 exit 1 打印清单）、判断槽残留 `{{}}` 孔
     由分析师填（孔未清零占位符 FAIL 不交付）；一期覆盖半年报路径，年报专属（Q4/review 卡）残留孔手工
-  - `scripts/check_html.py` — Phase 8 报告机检（占位符/裸数字启发式/数据来源/模板硬规则/必备要素/锚点/s8 阈值形态/回看归因 + v0.0.12 起缩写首现展开/OCF 桥项数/归因 figtitle 前瞻与复述/检验卡判定列四条 WARN + v0.0.15 起 s1 杜邦双卡形态/ΔROE 堆叠条数据槽比对 + v0.0.18 起 internal-ref 内部引用禁词/srcline-dup 拼接纪律/percentile-map 分位白描映射三条 FAIL + v0.0.19 起 assertion-count 断言计数 FAIL 与 recon-label 三态措辞/decimal-places 小数位两条 WARN + v0.0.21 起 gap-declaration ❓断言进数据缺口声明行 FAIL + v0.0.22 起 js-dup-decl 数据槽 const 重复声明 FAIL 与 assert-trunc 断言填充截断 FAIL + v0.0.23 起 s1-grid4 四宫格纯 svg FAIL）；exit 0 才允许交付；
+  - `scripts/check_html.py` — Phase 8 报告机检（占位符/裸数字启发式/数据来源/模板硬规则/必备要素/锚点/s8 阈值形态/回看归因 + v0.0.12 起缩写首现展开/OCF 桥项数/归因 figtitle 前瞻与复述/检验卡判定列四条 WARN + v0.0.15 起 s1 杜邦双卡形态/ΔROE 堆叠条数据槽比对 + v0.0.18 起 internal-ref 内部引用禁词/srcline-dup 拼接纪律/percentile-map 分位白描映射三条 FAIL + v0.0.19 起 assertion-count 断言计数 FAIL 与 recon-label 三态措辞/decimal-places 小数位两条 WARN + v0.0.21 起 gap-declaration ❓断言进数据缺口声明行 FAIL + v0.0.22 起 js-dup-decl 数据槽 const 重复声明 FAIL 与 assert-trunc 断言填充截断 FAIL + v0.0.23 起 s1-grid4 四宫格纯 svg FAIL + v0.1.4 起 sankey-slot 桑基数据槽比对 FAIL）；exit 0 才允许交付；
     模块布局：`check_html_common.py`（共享助手）+ `check_html_text.py`（呈现文本族 15 条检查，v0.0.19 拆出——加规则前置约定触发；PCTILE_LABEL 居此，check_html.py 再导出保契约锁锚点）+ `check_html_t8.py`（T8 数字回验：`--json` 启用，①级 HTML↔data.json 笔误检测（独特值 0.15% 窗口 FAIL + v0.0.19 hist_pool 序列中间值豁免）+ ②级 data.json↔原文 md 行号回核），入口仍是 check_html.py
 - `scripts/check_render.py` — 渲染测量门禁（可选但默认执行）：headless Chrome/Edge 真渲染后测量 SVG 文本重叠/HTML 溢出 .sheet/横向裁剪 + v0.0.22 起 empty-svg 关键 SVG 非空检测（长城 JS 团灭事故补口）+ v0.0.25 起 svgclip SVG 文本出视口检测（赢合 segbridge 长标签裁切补口）；`--png` 按章分片截图供 Phase 8 视觉验收；找不到浏览器声明跳过 exit 0，发现问题 exit 1
 - `scripts/gate.py` — 三道门禁单入口（v0.0.13）：calc → check_html --json → check_render 一条命令，统一退出码

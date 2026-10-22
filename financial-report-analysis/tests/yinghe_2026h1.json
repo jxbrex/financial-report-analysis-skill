@@ -1669,6 +1669,33 @@
     "interest_arrears": {
       "cur": null,
       "note": "利息实付未单列拆分（L1337 合并列示），无法计算机"
+    },
+    "sankey": {
+      "period_type": "本期",
+      "rev": 60.9011,
+      "cost": 48.5827,
+      "gross": 12.3184,
+      "tax_sur": 0.2599,
+      "sell": 1.7191,
+      "admin": 1.6099,
+      "rd": 4.4663,
+      "fin": 0.1748,
+      "impair": 0.7531,
+      "other_lump": 0.2982,
+      "op": 3.6335,
+      "nonop": -0.0773,
+      "tax": -0.1248,
+      "np": 3.6811,
+      "np_at": 3.5074,
+      "minority": 0.1737,
+      "ocf": 10.1287,
+      "capex": 0.2762,
+      "fcf": 9.8525,
+      "gap": 6.4476,
+      "cum": null,
+      "cum_prev": null,
+      "src": "合并利润表/合并现金流量表（机械复算）",
+      "note": "v1.7 桑基图选填块（形态与判读见 factor-analysis.md 六·五节）"
     }
   },
   "recon": {

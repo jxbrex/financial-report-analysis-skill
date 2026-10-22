@@ -70,16 +70,28 @@ SDK 完全等价；本环境无权限接口（40203）清单不变，报错文�
 | `dividend` | 分红历史 |
 | `irm_qa_sh` / `irm_qa_sz` | 互动易/e 互动问答（投资者在追问什么） |
 
-## 二·五、Q4 单季数据（年报分析的必做拆解，见 report-types.md）
+## 二·五、单季数据拆解（Q4 年报必做 + Q3 桑基单季口径）
+
+**单季差额通用规则（v0.1.4 起）**：单季 = 本累计期 − 上一累计期——Q4 = 年报 − 三季报、
+Q3 = 三季报 − 半年报、Q2 = 半年报 − 一季报；Q1 = 一季报本身无需差额。
 
 - **取数两条路**：
   1. 原文相减：年报「报告期分季度的主要会计数据」表（多数年报直接披露四个单季的
-     收入/归母净利/扣非/经营现金流，Grep 锚点「分季度」）——首选
+     收入/归母净利/扣非/经营现金流，Grep 锚点「分季度」）——Q4 首选；Q3 单季若工作区
+     已有半年报存档（`reports/archive/json/` 或 clean md），优先复用存档
   2. tushare 补充：`fina_indicator` 的 `q_sales_yoy`/`q_profit_yoy`/`q_gsprofit_margin`
-     （单季同比与单季毛利率，period=20251231 即 Q4 单季口径）；或用
-     `income`/`daily` 拉三季报（period=20250930）与年报相减
+     （单季同比与单季毛利率，period=20251231 即 Q4 单季口径）；**上一累计期累计值**用
+     `income`/`cashflow` 按 period=上一期末取（如 Q3 差额取 period=20260630）——
+     桑基 Q3 单季差额的默认通道，结果落 `derived.sankey.cum_prev`（src 必填）；
+     tushare 不可用（港股/未配置 token）时妙想 `mx_ashare_finance_data` 兜底，
+     再无第二源按纪律标 [单源]
+- **tushare 字段对照实测**（宁德 2026 轮）：税金及附加=`biz_tax_surchg`、
+  其他收益=`oth_income`、信用/资产减值=`credit_impa_loss`/`assets_impair_loss`
+  （负=损失）、营业利润=`operate_profit`、OCF=`cashflow.n_cashflow_act`、
+  资本开支=`cashflow.c_pay_acq_const_fiolta`；**资产处置收益 tushare 无字段**
+  （`nca_disploss` 常 null）——桑基明细行该项走原文或并入残差
 - **注意**：年报若披露「季度数据与已披露定期报告数据差异说明」，以年报口径为准
-- 五项异常检测阈值见 report-types.md 年报节；结果写入 data.json `derived.q4`
+- Q4 五项异常检测阈值见 report-types.md 年报节；结果写入 data.json `derived.q4`
 
 ## 三、mx-ds MCP（检索与宏观补充）
 

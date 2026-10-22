@@ -529,6 +529,33 @@
         "target": 0.1,
         "hit": false
       }
+    },
+    "sankey": {
+      "period_type": "本期",
+      "rev": 91.5029,
+      "cost": 54.8802,
+      "gross": 36.6227,
+      "tax_sur": 0.9141,
+      "sell": 4.1934,
+      "admin": 5.5712,
+      "rd": 3.6578,
+      "fin": 4.4706,
+      "impair": 14.5174,
+      "other_lump": 0.1268,
+      "op": 3.425,
+      "nonop": 0.0,
+      "tax": 0.5879,
+      "np": 2.8371,
+      "np_at": 2.807,
+      "minority": 0.0301,
+      "ocf": 13.1036,
+      "capex": 34.9901,
+      "fcf": -21.8865,
+      "gap": 10.2665,
+      "cum": null,
+      "cum_prev": null,
+      "src": "合并利润表/合并现金流量表（机械复算）",
+      "note": "v1.7 桑基图选填块（形态与判读见 factor-analysis.md 六·五节）"
     }
   },
   "recon": {

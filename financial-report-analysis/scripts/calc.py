@@ -45,6 +45,7 @@ from calc_common import (FAIL, WARN, OK, SKIP, Report, num, val, rel_dev,
 from calc_dupont import check_dupont, check_dupont_dt, check_dupont5y
 from calc_evidence import check_cycle_evidence, check_threshold_check, check_peers, compute_segment_quadrant
 from calc_risk import check_risk_models, check_stress, check_cash_ts
+from calc_sankey import check_sankey
 from calc_models import fill_derived
 from calc_slots import write_fillsheet, build_slots
 
@@ -781,6 +782,7 @@ def main():
     check_recon_coverage(data, rep, min_recon=min_recon)
     check_segments(data, rep)
     check_segment_quadrant(data, rep)
+    check_sankey(data, rep)
     check_assertions(data, rep)
     check_interest_arrears(data, rep)
     check_signals(data, rep)

@@ -1,6 +1,6 @@
 # HANDOFF · 交接文档
 
-> 版本 **0.1.3** · 截至 2026-10-10 · 本文档面向「下一个接手这个项目的人/AI 会话」
+> 版本 **0.1.4** · 截至 2026-10-22 · 本文档面向「下一个接手这个项目的人/AI 会话」
 > 仓库：https://github.com/jxbrex/financial-report-analysis-skill（**私密**）
 > 部署：`C:/Users/rexji/.agents/skills/financial-report-analysis/`（由 `deploy.cmd` 镜像）
 
@@ -233,6 +233,16 @@ financial-report-analysis/
   ⑥check_html 两处既有 WARN 基线港股同款命中：s1-v15-shape 因子分位表无降级豁免、
   s2-shape 把四线卡 ✅ 判定徽章计入绿徽——**v0.1.2 已修**（分位降级声明行豁免 +
   四线考核表整表剔除再数徽章），蜜雪 WARN 3→1、赢合/海康同款误报同步消除
+- **桑基图卡（v0.1.4）三坑**：①fill_js 元组漏注册新 JS 槽=不断锚、静默画零值图
+  （勘察标记的最易漏点——加槽四件套=_js_slots + write_fillsheet + fill_js + 模板调用区注册）；
+  ②支流末端必须伸进**不透明**盒体——半透明流带（fill-opacity）盖不住线帽端头
+  （宁德轮「直角茬」实证）；③模板 JS 运行时错误用 node shim 全脚本复现定位最快
+  （grossH 漏声明 ReferenceError 实证——症状是「报错点之后的图全空」而非全局团灭，
+  与 js-dup-decl 的整段 SyntaxError 团灭形态不同）
+- **桑基符号路由只在 calc_sankey.route_items**（财务费用正→并入费用盒 / 其他损益负→挪减项侧 /
+  减值净转回→加项），drawSankey 只画不判；改符号规则改 calc 勿改 JS
+- **fill 幂等金标准的连锁**：新增 fill 自动产出的 derived 块时，可算 fixture 必须同步落块
+  （否则幂等 diff 破，万华轮实证）；茅台 WARN==0 硬锚要求新校验缺省只许 SKIP 不许 WARN
 - **阿里轮实测（港股年报首验，2026FY，全流程 136min vs 蜜雪 73.3min——体量 3 倍+两处技能盲区返工）**：
   ①US GAAP 映射要点：fin_exp 填「利息费用−利息收入」净额（可为负，schema 允许——DFL/DOL/ROIC 的
   EBIT 依赖它）；OCF 桥起点=净利润（v0.1.2 参数化生效）；无收现行/无扣非/无在建工程科目——
@@ -263,10 +273,10 @@ financial-report-analysis/
 | # | 局限 | 影响 |
 |---|---|---|
 | 1 | ~~港股全流程未跑过~~ **港股半年报已首验**（蜜雪 2026H1）+ **港股年报已首验**（阿里巴巴 09988 2026FY，2026-10-10 三道门禁绿；US GAAP 准则、人民币呈报、3-31 财年止） | 残留：美股全流程未验证；render 年报二期（见 11） |
-| 2 | **季报/招股书两种报告类型未实测**（年报、半年报均已多份实战） | report-types.md 对季报/招股书的裁剪规则仍是纸面推演 |
+| 2 | ~~**季报/招股书两种报告类型未实测**~~ **季报已首验**（中国移动 600941 2026Q3，2026-10-21 三道门禁绿 + 已视觉验收；report-types.md 季报裁剪规则总体符实） | 残留：招股书未实测；季报路径三处技能缺口见 N6 |
 | 3 | **industry-profiles.md 八类模式零实测** | 工程建造的合同资产勾稽、农业的生物资产盘点、经销商压货三条件、医药的研发资本化/license-out 勾稽都没在真实样本上跑过 |
 | 4 | ~~**P1-17 四象限未端到端跑过**~~ **已首验**（阿里 2026FY：四分部 delta 口径全字段复算自洽；港股分部无成本披露→EBITA 倒挤成本口径适配，calc 两条口径 WARN 预期内） | 断言验证/周期定位/费用ROI 此前已多份实战 |
-| 5 | **回看机制已落、真实数据实测待披露季** | 现存全部 watchlist（特变/移动/恒瑞 2026H1）跟踪线指向 2026Q3/2026FY、均未披露；真实首测须等披露季 |
+| 5 | ~~**回看机制已落、真实数据实测待披露季**~~ **回看模式已首验**（移动 H1→Q3，2026-10-21：5 条 watchlist 照抄 tripwire 原文，1 未兑现含归因+4 待观察，review 子块按冻结纪律落库） | 阿里 watchlist 待 FY2027 中报回看；特变/恒瑞待 2026FY |
 | 6 | 康得新 **A5/B2/B3 三条等式因附注未披露而无法执行** | 换个披露更全的造假样本可验证这三条 |
 | 7 | **存量旧版式报告不追溯**（纪律 7） | 新门禁对旧报告的 WARN/FAIL 全属预期：T8① 噪音、internal-ref、percentile-map、gap-declaration、js-dup-decl/assert-trunc/empty-svg（长城事故样本留档）同类 |
 | 8 | **比率趋势数据依赖 tushare 可得性** | 世界线披露晚于库更新时当期 hist 取报告提取值；重述公司历史期口径断裂，趋势缺 hist 合法（schema 血泪 7） |
@@ -357,6 +367,61 @@ financial-report-analysis/
 
 ---
 
+## 四·十一、当前未发布轮：v0.1.4（2026-10-22，桑基图卡模板化）
+
+> 触发：宁德 2026Q3 季报轮，用户拿来别家工具的桑基图要求「我们的报告也要有」——
+> 先按纪律 6 以一次性呈现层补图落地成品，经用户 6 轮视觉迭代定稿形态
+> （盒式节点/费用盒 2×2/支流汇入主流/现金流横条双段同规格居中/第三段按体量/汇流平滑），
+> 用户定案「写到 skill 里去」。回归 189→**209 全绿**（+13 条桑基断言 + 复审轮
+> 补 7 条：茅台 gap<0 分流形态 render 重放 3 条 + 桑基降级构造用例 4 条）。
+
+### 修订（全部落地）
+
+1. **derived.sankey 选填块（schema 1.7）**：20 科目 + period_type（本期/单季差额）+
+   单季差额 cum/cum_prev 卡口；不适用降级（rev/毛利/营业利润/净利/归母/OCF 非正、
+   少数股东为负、Q3 缺上一累计期原料）整块 null 合法；income 加三选填叶
+   （other_income/disposal_income/op_profit，桑基明细行原料，①b 派单模板同步补三项选提）
+2. **calc_sankey.py 新模块**：compute_sankey（公式唯一定义处，fill/check 共用）+
+   route_items 符号路由（减项/加项数组唯一出处，JS 只画不判）+ check_sankey 复算比对
+   （容差复用 tol_bridge）；缺省只 SKIP 不 WARN（茅台 WARN==0 硬锚不破）。
+   **坑（回归抓出）**：减值/营业外/少数股东未单列的公司（茅台/康得新实证）一度被误降级——
+   未单列减值按 0 计、少数股东按恒等式差额推算、营业外净额按 0 计
+3. **模板 drawSankey + S3 插卡**（净利桥后、OCF 桥前）：盒式节点/流带∝金额/双比例尺
+   （S=264/rev、S2=min(S,54/gross)——高毛利率公司毛利扇出溢出防御）/加项支流汇入主流
+   /②段净调整负=分流·正=双源汇入（净利盒+净调整绿盒→横条）/③段盒高∝体量
+   （k=106/max(capex,|fcf|)）+FCF 按符号变色；降级=render s3.sankey_drop 删 svg 换声明卡
+4. **JS 槽链**：calc_slots.build_sankey_slot（负载唯一出处，_js_slots 与 check_html 共用）
+   + fill_js 元组注册 + fillsheet SANKEY 段 + srcline 机械槽（口径随 period_type 变化）
+5. **机检**：check_html 规则 24 sankey-slot（FAIL，仅 --json；无槽无图→不适用，
+   静态 svg 无槽→一次性补图豁免）；check_render KEY_SVG_IDS 加 sankey
+6. **Q3 单季差额通用取数**（data-sources 二·五 从 Q4 专属升级；tushare 上一累计期字段
+   实测对照：biz_tax_surchg/oth_income/operate_profit/c_pay_acq_const_fiolta；
+   资产处置收益 tushare 无字段走原文）
+7. **文档登记**：factor-analysis.md 新六·五节、report-types 三类型适用声明、
+   SKILL.md Phase 1/2/4/8 登记 + 版本 0.1.4
+
+### 验证
+
+- 回归 189→**202 全绿**：calc 阳性⑨（桑基改值必 exit 1）+ check_html 阳性⑫⑬
+  （槽正确判 OK/改值必 FAIL）+ 赢合 render 重放（fillsheet 逐字锁 golden 仅多 SANKEY 段、
+  断锚 exit 0、check_html 仅 placeholder FAIL、check_render 0 问题）；
+- 幂等金标准连锁：茅台/康得新/万华 fixture 同步落 sankey 块（可算公司都该有块），
+  万科连亏样本合法无块（降级 SKIP）；
+- 宁德端到端预验（临时副本，不碰成品）：手画 25 数与 compute_sankey 复算逐位一致，
+  破坏测试双卡口同时命中；
+- 赢合产物渲染画出**双源汇入分支**（净调整 +6.45 为正）与**小 capex 盒高塌缩**（0.28 亿）——
+  两分支非宁德形态，属新增覆盖；
+- 模板 JS 运行时验证：node shim 全脚本跑通（grossH 漏声明 ReferenceError 实证被抓，
+  该 bug 曾致 holders 图空白）；
+- **ponytail-review 复审（2026-10-22 用户触发，发现已当场修复）**：①单季差额口径下
+  其他损益明细行误从 cum 子块取数（cum 只有 20 个短键）→ 明细行全丢，修为 cur 读
+  statements、prev 读 cum_prev；②加项盒明细行无上限（4 明细+残差=5 行溢出 58px 盒），
+  槽侧封顶 4 行；③drawSankey 双源汇入分支横条带厚度误用 ocf 口径（应 np 口径）+
+  三处流带落点封边 cap 越界细条；④fill 幂等盲区：已计算的 sankey 块遭遇降级形态
+  （转亏）时旧块残留不降——fill 现置 null（无 rev 的部分预填种子块保留不吞）。
+
+---
+
 ## 五、下一步工作计划
 
 > 治理（v0.0.22 用户定案）：本节只留**未完成**事项；已完成任务的记录移入 supersede/
@@ -376,8 +441,38 @@ financial-report-analysis/
 - 阿里轮验收实证：calc exit 0（--min-recon 12 显式）+ check_html exit 0 + check_render 0 问题 + 章节齐全（s0~s8，review 无上期降级删除）+ 数字抽查 12 项与原文一致 + 已视觉验收（--png 分片）
 
 **任务 2：季报 + 招股书各一次（局限 2）**
-- 各挑一家熟悉的公司；季报走轻量版（P2/P4/P7 精简），招股书走专属模块
-- 验收：两种类型各产出一份报告并通过两道门禁；发现 report-types.md 与实际不符处即修正
+- ~~季报走轻量版~~ **季报已完成**（移动 2026Q3：P2/P4/P7 精简路径可行；勾稽实测上限 7/17、render 季报路径三缺口见 N6）；剩余：招股书走专属模块
+- 验收：招股书包类型产出一份报告并通过两道门禁；发现 report-types.md 与实际不符处即修正
+
+**任务 2·补（N6）：季报路径三处技能缺口（移动 Q3 首验实证，专项修订轮修）**
+- ①`_PERIOD_SUFFIX`（calc_common.py）缺「季报」键 → hist_periods 返回 None →
+  dupont5y.period_start/end 空串 → render s1.d5 表头定位串退化为 `<tr><th>因子</th><th>`
+  匹配左卡（4 列）IndexError；同因 TREND/NCR_TS/EFF_TS 的 labels 空数组（empty-svg 隐患）。
+  本轮绕过：fillsheet.json 手填 p_start/p_end + 三组 labels
+- ②`--min-recon auto` 校准表按 meta.market 精确串匹配，长串市场名（「A股（红筹，香港注册；
+  港股 941.HK）」）miss 退回 WARN 态；**季报实测结构性上限 7/17**（A3/A5/B1/B2/B3/D 组
+  无附注/无母公司报表不可执行）——校准表 A 股季报=8 对无商誉/在建的公司高估 1 条，
+  显式给 7 通过（B4 商誉简化 roll 做了才到 7）
+- ③render 季报路径呈现缺口三小处：review 回看卡与导航链接整卡缺失（手工插回）；
+  X6 行读数「（半年口径）」硬编码（季报应为三季口径）；S5 在建表首行 demo 文案
+  「期末余额为零」不感知实际余额——均手工修正，二期随年报路径一起脚本化
+
+**任务 2·补 2（N6 二验：宁德时代 300750 2026Q3，2026-10-21，三道门禁全绿 + 已视觉验收）**：
+与移动同窗口并行的第二份季报（纪律 6 场景实证：双报告共享技能源，各自绕过未当场修）。
+N6 三处缺口全部复现（同根因、同绕过）；增量发现：
+- ②变体：宁德 recon 结构性可执行仅 **4/17**（A2/A4/A7/A8——A1 缺受限资金明细、
+  A6 缺折旧摊销，比移动 7 条还低；季报可执行条数随公司披露 4~7 浮动），校准表
+  「A股季报=8」对宁德高估 4 条；市场名「A股（创业板）+H股（03750.HK）」同样 miss
+  退回 WARN 态（未显式给数，WARN 人工确认合法）
+- ④新增：**calc Altman 对三季报 interim 年化（×4/3）未接入**——meta.market_cap_cur
+  已填 11,988.28 亿仍判「分量字段不齐」合法 null；Ohlson 正常（O=-1.63、P=0.164 中档）。
+  手算 Altman Z≈2.26（三季报 ×4/3 年化，灰色区）备查，未入报告（T8① 无源）
+- ⑤新增：SGR 对 est 级 dividend_paid 不采纳置 null（季报分红拆分天然 est）——
+  「未提取置 null」与「est 不可用」的口径边界待修订轮定夺
+- 回看第二例：半年报 5 条 tripwire → ❌ 2（库存 DIO、capex 节奏）/⏳ 3（合同负债、
+  碳酸锂、产能利用率）；❌ 主归因=「时点错」（触发窗口后移），review 子块已冻结落库
+- 效率：全流程约 140min（含首验排障 render IndexError/labels/Altman + 双份并行争用；
+  对照半年报基线 53-65min）
 
 ### P1（深度验证）
 

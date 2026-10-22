@@ -63,6 +63,7 @@ MOUTAI = HERE / "moutai_2025.json"
 KANGDEXIN = HERE / "kangdexin_2018.json"
 VANKE = HERE / "vanke_2026h1.json"
 WANHUA = HERE / "wanhua_2026h1.json"
+YINGHE = HERE / "yinghe_2026h1.json"
 
 # calc.py 的汇总行（唯一机器可读摘要）
 SUMMARY_RE = re.compile(
@@ -973,6 +974,49 @@ def main():
                         "figtitle 降级声明在（注意 srcline 原文含该词，须带 figtitle 前缀判定）")],
                       "ncrline 降级路径失效。"):
             return 1
+        # 茅台（年报·净调整<0 分流形态）槽链覆盖（v0.1.4）：与赢合 gap>0 双源汇入
+        # 双形态对照——fill+render 管道产出桑基卡且机检 sankey-slot 判 OK
+        _cpm = _work / "moutai.json"
+        shutil.copy(MOUTAI, _cpm)
+        subprocess.run([sys.executable, str(CALC), str(_cpm), "--fill"],
+                       capture_output=True, text=True, encoding="utf-8", errors="replace")
+        _outm = _work / "moutai.html"
+        subprocess.run([sys.executable, str(SKILL / "scripts" / "render_report.py"),
+                        str(_cpm), "-o", str(_outm)], capture_output=True, text=True,
+                       encoding="utf-8", errors="replace")
+        _htm = _outm.read_text(encoding="utf-8") if _outm.exists() else ""
+        _ckm = subprocess.run([sys.executable, str(SKILL / "scripts" / "check_html.py"),
+                               str(_outm), "--json", str(_cpm)], capture_output=True,
+                              text=True, encoding="utf-8", errors="replace") if _outm.exists() else None
+        if not _block("render 重放·茅台（gap<0 分流形态，v0.1.4）",
+                      [('const SANKEY={"pt": "本期"' in _htm, "茅台 SANKEY 槽填充（本期口径）"),
+                       ('"gap": -237.88' in _htm, "净调整负值进槽（分流形态数据）"),
+                       (_ckm is not None and "[OK  ] sankey-slot" in (_ckm.stdout or ""),
+                        "check_html sankey-slot 判 OK")],
+                      "茅台 render 重放失败，看上方明细。"):
+            return 1
+        # 桑基整卡降级构造用例（v0.1.4）：净利改负 → compute_sankey 返回 None →
+        # 槽 null → render 删 svg + figtitle 换声明（对齐 ncr_drop 形态）
+        _d3 = json.loads((HERE / "yinghe_2026h1.json").read_text(encoding="utf-8"))
+        _d3["statements"]["income"]["np_total"]["cur"] = -3.68
+        _d3["statements"]["income"]["np_at"]["cur"] = -3.51
+        _cp3 = _work / "yinghe_sankey_drop.json"
+        _cp3.write_text(json.dumps(_d3, ensure_ascii=False), encoding="utf-8")
+        subprocess.run([sys.executable, str(CALC), str(_cp3), "--fill"],
+                       capture_output=True, text=True, encoding="utf-8", errors="replace")
+        _out3 = _work / "yinghe_sankey_drop.html"
+        _rr3 = subprocess.run([sys.executable, str(SKILL / "scripts" / "render_report.py"),
+                               str(_cp3), "-o", str(_out3)], capture_output=True, text=True,
+                              encoding="utf-8", errors="replace")
+        _h3 = _out3.read_text(encoding="utf-8") if _out3.exists() else ""
+        if not _block("sankey 降级构造用例（v0.1.4）",
+                      [(_rr3.returncode == 0, f"降级路径 render exit {_rr3.returncode}"),
+                       ('id="sankey"' not in _h3, "sankey svg 已删（empty-svg 门禁兼容）"),
+                       ('<div class="figtitle">资金流向桑基图不适用' in _h3,
+                        "figtitle 降级声明在"),
+                       ('const SANKEY=null;' in _h3, "SANKEY 槽为 null（JS 守卫 no-op）")],
+                      "sankey 降级路径失效。"):
+            return 1
     finally:
         shutil.rmtree(_work, ignore_errors=True)
 
@@ -1222,6 +1266,9 @@ def main():
     d_avg = copy.deepcopy(load_json(VANKE))
     d_avg["statements"]["balance"]["payable"]["prev"] = None   # ⑦ avg 不再期末冒充平均
     r_avg = _run_calc_json(d_avg, "avg.json")
+    d_sk = copy.deepcopy(load_json(YINGHE))
+    d_sk["derived"]["sankey"]["np_at"] += 1                    # ⑨ 桑基科目改错（v0.1.4）
+    r_sk = _run_calc_json(d_sk, "sankey.json")
     # ⑧ effects_ratio=null 合法形态（直测）：三效应全零时 check_dupont 不得逼分析师造数
     d_er = copy.deepcopy(base)
     for _nm in ("net_margin", "asset_turnover", "equity_multiplier"):
@@ -1259,6 +1306,8 @@ def main():
         (c_er["effects_ratio"] is None and not fails_er,
          "阳性⑧：三效应全零 + effects_ratio=null 合法形态 check_dupont 零 FAIL"
          "（不再逼分析师造数，v0.1.1）"),
+        (r_sk.returncode == 1 and "sankey" in (r_sk.stdout or ""),
+         "阳性⑨：桑基科目值改错必 exit 1（sankey 复算比对，v0.1.4）"),
     ]
     if not _block("calc FAIL 判据阳性（v0.1.1 审计补口）", calc_pos_checks,
                   "calc FAIL 判据阳性失效——门禁对坏数据失语，逐条核对上方 ❌。"):
@@ -1317,6 +1366,17 @@ def main():
         t8_fw = _run_html_str(_SECT + f'<div class="card"><p>利用率＞{_v0:.2f}%</p></div></div>')
         t8_hw = _run_html_str(_SECT + f'<div class="card"><p>利用率&gt;{_v0:.2f}%</p></div></div>')
         t8_bare = _run_html_str(_SECT + f'<div class="card"><p>利用率 {_v0:.2f}%</p></div></div>')
+    # SANKEY 数据槽正反构造（v0.1.4）：正确判 OK / 改值必 FAIL
+    from calc_slots import build_sankey_slot as _bsk
+    _ysk = _bsk(load_json(YINGHE))
+    sk_ok = _run_html_str(_SECT + '<div class="card"><p>桑基</p></div></div>'
+                          '<script>const SANKEY=' + json.dumps(_ysk, ensure_ascii=False)
+                          + ';</script>', YINGHE)
+    _skbd = json.loads(json.dumps(_ysk))
+    _skbd["rev"] = round(_skbd["rev"] + 1, 2)
+    sk_bad = _run_html_str(_SECT + '<div class="card"><p>桑基</p></div></div>'
+                           '<script>const SANKEY=' + json.dumps(_skbd, ensure_ascii=False)
+                           + ';</script>', YINGHE)
     html_pos_checks = [
         (hr_bad.returncode == 1 and "[FAIL] hardrule" in (hr_bad.stdout or ""),
          "阳性①：真渐变 background:linear-gradient 必 FAIL（hardrule）"),
@@ -1346,6 +1406,10 @@ def main():
          and "[FAIL] num-vs-json" in (t8_bare.stdout or ""),
          f"阳性⑪：T8① 全角＞/半角&gt; 阈值语境同豁免、裸写窗内值必 FAIL"
          f"（全角符号补豁免且判据未松，v0.1.1；取值 {_v0}）"),
+        ("[OK  ] sankey-slot" in (sk_ok.stdout or "") and "一致" in (sk_ok.stdout or ""),
+         "阳性⑫：SANKEY 槽正确值判 OK（sankey-slot，v0.1.4）"),
+        ("[FAIL] sankey-slot" in (sk_bad.stdout or ""),
+         "阳性⑬：SANKEY 槽改值必 FAIL（sankey-slot，v0.1.4）"),
     ]
     if not _block("check_html FAIL 判据阳性（v0.1.1 审计补口）", html_pos_checks,
                   "check_html FAIL 判据阳性失效，逐条核对上方 ❌。"):
