@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-calc.py — financial-report-analysis 的计算自检门禁（Phase 7.5）
+calc.py — bo-financial-analyzer 的计算自检门禁（Phase 7.5）
 
 用法：
     python scripts/calc.py reports/xxx.json
@@ -729,7 +729,7 @@ ICON = {FAIL: "🔴", WARN: "🟡", OK: "✅", SKIP: "⚪"}
 
 
 def main():
-    ap = argparse.ArgumentParser(description="financial-report-analysis 计算自检门禁")
+    ap = argparse.ArgumentParser(description="bo-financial-analyzer 计算自检门禁")
     ap.add_argument("json_path", help="data.json 路径")
     ap.add_argument("--fill", action="store_true",
                     help="预填 derived 机械字段（ratios/杜邦族/cycle_evidence/threshold_check/risk_models/stress/cash_ts/segment_quadrant/单期八项）"

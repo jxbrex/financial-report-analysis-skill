@@ -12,5 +12,5 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.x"
-      - name: 金标准回归（calc 三例 + check_html/T8 冒烟 + md_clean 合成样本 + 构造用例）
-        run: python financial-report-analysis/tests/run_regression.py
+      - name: 金标准回归（calc 四例 + render 重放/渲染冒烟 + check_html/T8 冒烟 + md_clean 双合成样本 + 构造用例）
+        run: python bo-financial-analyzer/tests/run_regression.py

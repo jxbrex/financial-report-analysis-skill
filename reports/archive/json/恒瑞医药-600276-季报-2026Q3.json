@@ -1,0 +1,1346 @@
+{
+  "meta": {
+    "company": "恒瑞医药",
+    "code": "600276.SH",
+    "market": "A股（另有H股 01276.HK）",
+    "period": "20260930",
+    "report_type": "季报",
+    "disclose_date": "2026-10-28",
+    "unit": "亿元",
+    "source_md": "reports/archive/原始报告/恒瑞医药2026年第三季度报告.clean.md",
+    "analyst_date": "2026-10-28",
+    "market_cap_cur": 3023.0,
+    "schema_version": "1.7",
+    "currency": "CNY",
+    "accounting_standard": "CAS",
+    "industry_profile": "医药健康",
+    "cycle_stage": "结构升级期：创新药与对外许可上行、仿制药集采下行；创新药内部非肿瘤高增长而抗肿瘤低增，不按全面上行外推",
+    "note": "三季报未经审计；statements 流量为前三季累计，balance.prev=2025-12-31；hist=2022-2026 各年前三季同口径；Q3 单季=9M−H1；市值为东方财富 2026-10-27 A股总市值"
+  },
+  "statements": {
+    "income": {
+      "revenue": {
+        "cur": 244.08763,
+        "prev": 231.88082,
+        "hist": [
+          159.45305,
+          170.13632,
+          201.89304,
+          231.88082,
+          244.08763
+        ],
+        "level": "disc",
+        "src": "clean L23/L313-L316；tushare income 双源一致",
+        "note": "前三季收入 +5.26%；产品销售 214.76 亿 +2.52%，对外许可 27.81 亿 +31.12%"
+      },
+      "cost": {
+        "cur": 32.25793,
+        "prev": 31.95441,
+        "hist": [
+          26.68748,
+          26.57554,
+          28.33183,
+          31.95441,
+          32.25793
+        ],
+        "level": "disc",
+        "src": "clean L321；tushare income 双源一致"
+      },
+      "gross_profit": {
+        "cur": 211.8297,
+        "prev": 199.92641,
+        "level": "der",
+        "src": "clean L313/L321 推算",
+        "note": "毛利率 86.78%，同比 +0.56pct"
+      },
+      "tax_surcharge": {
+        "cur": 2.36329,
+        "prev": 2.00622,
+        "level": "disc",
+        "src": "clean L322"
+      },
+      "sell_exp": {
+        "cur": 64.74887,
+        "prev": 67.80485,
+        "level": "disc",
+        "src": "clean L323",
+        "note": "同比 -4.50%，销售费用率 26.53%（上期 29.24%）"
+      },
+      "admin_exp": {
+        "cur": 20.50806,
+        "prev": 21.2685,
+        "level": "disc",
+        "src": "clean L324"
+      },
+      "rd_exp": {
+        "cur": 54.22969,
+        "prev": 49.45319,
+        "level": "disc",
+        "src": "clean L325/L148",
+        "note": "费用化研发；MD&A 研发投入总额 71.46 亿，推算资本化 17.23 亿、资本化率 24.11%"
+      },
+      "fin_exp": {
+        "cur": -1.16288,
+        "prev": -3.33066,
+        "level": "disc",
+        "src": "clean L326",
+        "note": "负数=净收益；净收益同比收窄 2.17 亿"
+      },
+      "interest_exp": {
+        "cur": 0.03999,
+        "prev": 0.12353,
+        "level": "disc",
+        "src": "clean L328"
+      },
+      "interest_inc": {
+        "cur": 10.16587,
+        "prev": 4.96728,
+        "level": "disc",
+        "src": "clean L330"
+      },
+      "impair_loss": {
+        "cur": -0.99412,
+        "prev": -0.34016,
+        "level": "der",
+        "src": "clean L337-L338",
+        "note": "负数=损失；信用 -0.10717+资产 -0.88695"
+      },
+      "invest_income": {
+        "cur": -1.0783,
+        "prev": -0.40823,
+        "level": "disc",
+        "src": "clean L332-L334",
+        "note": "联营合营亏损 -1.33695 亿"
+      },
+      "fv_change_income": {
+        "cur": 8.0362,
+        "prev": 0.978,
+        "level": "disc",
+        "src": "clean L336"
+      },
+      "other_income": {
+        "cur": 1.85,
+        "prev": 3.26665,
+        "level": "disc",
+        "src": "clean L331"
+      },
+      "non_op_income": {
+        "cur": 0.13018,
+        "prev": 0.04233,
+        "level": "disc",
+        "src": "clean L341"
+      },
+      "other_biz_income": {
+        "cur": null,
+        "prev": null,
+        "src": "clean L313-L321 未单列",
+        "note": "非主业收入占比复算时本科目 null 按 0 计"
+      },
+      "disposal_income": {
+        "cur": 0.9825,
+        "prev": 0.02453,
+        "level": "disc",
+        "src": "clean L339"
+      },
+      "non_op_net": {
+        "cur": -2.65264,
+        "prev": -2.12505,
+        "level": "der",
+        "src": "clean L341-L342 推算"
+      },
+      "op_profit": {
+        "cur": 79.93894,
+        "prev": 66.24512,
+        "level": "disc",
+        "src": "clean L340"
+      },
+      "np_total": {
+        "cur": 69.23154,
+        "prev": 57.60235,
+        "level": "disc",
+        "src": "clean L345"
+      },
+      "np_at": {
+        "cur": 69.23404,
+        "prev": 57.5117,
+        "hist": [
+          31.7339,
+          34.73779,
+          46.19576,
+          57.5117,
+          69.23404
+        ],
+        "level": "disc",
+        "src": "clean L25/L349；tushare income 双源一致"
+      },
+      "np_dt": {
+        "cur": 62.43162,
+        "prev": 55.89197,
+        "level": "disc",
+        "src": "clean L26",
+        "note": "cur 为披露值；prev 按披露同比 +11.70% 倒推，属 der 参照值"
+      },
+      "minority_np": {
+        "cur": -0.0025,
+        "prev": 0.09066,
+        "level": "disc",
+        "src": "clean L351"
+      },
+      "income_tax": {
+        "cur": 8.05476,
+        "prev": 6.51773,
+        "level": "disc",
+        "src": "clean L344"
+      },
+      "by_segment": [
+        {
+          "name": "创新药销售收入",
+          "basis": "product",
+          "rev_cur": 138.71,
+          "rev_prev": null,
+          "cost_cur": null,
+          "cost_prev": null,
+          "vol_cur": null,
+          "vol_prev": null,
+          "vol_unit": null,
+          "price_cur": null,
+          "price_prev": null,
+          "price_unit": null,
+          "intercompany_eliminated": null,
+          "src": "clean L150-L152",
+          "note": "同比 +17.05%；抗肿瘤 98.65 亿 +3.13%，非肿瘤 40.06 亿 +75.36%"
+        },
+        {
+          "name": "仿制药销售收入",
+          "basis": "product",
+          "rev_cur": 76.05,
+          "rev_prev": null,
+          "cost_cur": null,
+          "cost_prev": null,
+          "vol_cur": null,
+          "vol_prev": null,
+          "vol_unit": null,
+          "price_cur": null,
+          "price_prev": null,
+          "price_unit": null,
+          "intercompany_eliminated": null,
+          "src": "clean L163-L168",
+          "note": "同比 -16.41%，占药品销售收入 35.41%"
+        },
+        {
+          "name": "创新药对外许可收入",
+          "basis": "license",
+          "rev_cur": 27.81,
+          "rev_prev": null,
+          "cost_cur": null,
+          "cost_prev": null,
+          "vol_cur": null,
+          "vol_prev": null,
+          "vol_unit": null,
+          "price_cur": null,
+          "price_prev": null,
+          "price_unit": null,
+          "intercompany_eliminated": null,
+          "src": "clean L159-L162",
+          "note": "同比 +31.12%；同期首付款及里程碑款收现 43.43 亿"
+        }
+      ]
+    },
+    "balance": {
+      "cash": {
+        "cur": 434.4677,
+        "prev": 409.55482,
+        "level": "disc",
+        "src": "clean L245；tushare balancesheet 双源一致"
+      },
+      "restricted_cash": {
+        "cur": null,
+        "prev": null,
+        "src": "clean L245/L435",
+        "note": "季报无附注；货币资金与现金等价物差 6.52 亿，受限与定期无法拆分"
+      },
+      "ar": {
+        "cur": 53.29365,
+        "prev": 51.46562,
+        "hist": [
+          56.9061,
+          56.2515,
+          56.73776,
+          50.95387,
+          53.29365
+        ],
+        "hist_ye": [
+          46.32515,
+          58.91397,
+          51.94494,
+          49.14873,
+          51.46562
+        ],
+        "level": "disc",
+        "src": "clean L249；hist 为 tushare 历年 9-30，hist_ye 为上年 12-31"
+      },
+      "ar_notes": {
+        "cur": 11.16466,
+        "prev": 7.62846,
+        "level": "der",
+        "src": "clean L248/L250 推算"
+      },
+      "other_ar": {
+        "cur": 0.13115,
+        "prev": 0.2817,
+        "level": "disc",
+        "src": "clean L252"
+      },
+      "inventory": {
+        "cur": 30.42839,
+        "prev": 28.78412,
+        "hist": [
+          23.04861,
+          24.78936,
+          25.30975,
+          27.40688,
+          30.42839
+        ],
+        "hist_ye": [
+          24.02673,
+          24.50575,
+          23.14026,
+          24.17118,
+          28.78412
+        ],
+        "level": "disc",
+        "src": "clean L253；hist/hist_ye 为 tushare"
+      },
+      "contract_liab": {
+        "cur": 29.31844,
+        "prev": 19.12553,
+        "level": "disc",
+        "src": "clean L278",
+        "note": "较年初 +53.30%；季报未拆许可预收与其他合同负债"
+      },
+      "payable": {
+        "cur": 20.227,
+        "prev": 22.70459,
+        "hist": [
+          17.13929,
+          16.64657,
+          15.39939,
+          22.24775,
+          20.227
+        ],
+        "hist_ye": [
+          22.52777,
+          17.67549,
+          15.10329,
+          19.67259,
+          22.70459
+        ],
+        "level": "disc",
+        "src": "clean L277；hist/hist_ye 为 tushare"
+      },
+      "fixed_assets": {
+        "cur": 62.13722,
+        "prev": 58.30331,
+        "level": "disc",
+        "src": "clean L260"
+      },
+      "cip": {
+        "cur": 24.90657,
+        "prev": 20.06375,
+        "level": "disc",
+        "src": "clean L261"
+      },
+      "goodwill": {
+        "cur": null,
+        "prev": null,
+        "src": "clean L256-L272 无商誉科目"
+      },
+      "st_debt": {
+        "cur": 3.54107,
+        "prev": null,
+        "level": "disc",
+        "src": "clean L275",
+        "note": "本期新增短期借款；上年末原表为—"
+      },
+      "noncur_due_1y": {
+        "cur": 0.38519,
+        "prev": 0.30926,
+        "level": "disc",
+        "src": "clean L282"
+      },
+      "lt_debt": {
+        "cur": 0.29023,
+        "prev": 0.43307,
+        "level": "disc",
+        "src": "clean L286",
+        "note": "仅租赁负债，无长期借款/应付债券"
+      },
+      "total_assets": {
+        "cur": 767.19524,
+        "prev": 698.67316,
+        "hist": [
+          401.75042,
+          428.71391,
+          483.38099,
+          683.2754,
+          767.19524
+        ],
+        "hist_ye": [
+          392.66222,
+          423.55009,
+          437.84507,
+          501.35645,
+          698.67316
+        ],
+        "level": "disc",
+        "src": "clean L38/L273；hist/hist_ye 为 tushare"
+      },
+      "total_liab": {
+        "cur": 93.82216,
+        "prev": 80.70492,
+        "hist": [
+          28.65322,
+          26.64805,
+          40.06581,
+          82.95022,
+          93.82216
+        ],
+        "level": "disc",
+        "src": "clean L292"
+      },
+      "equity_at": {
+        "cur": 668.14411,
+        "prev": 612.72069,
+        "hist": [
+          367.53048,
+          396.36901,
+          437.67909,
+          595.04251,
+          668.14411
+        ],
+        "level": "disc",
+        "src": "clean L39/L301"
+      },
+      "minority_eq": {
+        "cur": 5.22898,
+        "prev": 5.24755,
+        "level": "disc",
+        "src": "clean L302"
+      },
+      "retained_cur": {
+        "cur": 457.70698,
+        "prev": 401.73355,
+        "level": "disc",
+        "src": "clean L300"
+      },
+      "surplus_reserve": {
+        "cur": 34.28011,
+        "prev": 34.28011,
+        "level": "disc",
+        "src": "clean L299"
+      },
+      "dividend_paid": {
+        "cur": 13.2606,
+        "prev": 12.7413,
+        "level": "disc",
+        "src": "2026H1 所有者权益变动表；clean L426 前三季分配股利/利息合计与 H1 相同",
+        "note": "2025 年度分红已于 H1 实施，Q3 分配付现合计未再增加"
+      },
+      "prepayment": {
+        "cur": 11.18915,
+        "prev": 10.56558,
+        "level": "disc",
+        "src": "clean L251"
+      },
+      "fin_assets": {
+        "cur": 31.19217,
+        "prev": 21.43818,
+        "level": "der",
+        "src": "clean L247/L257/L259 推算"
+      },
+      "payable_construction": {
+        "cur": null,
+        "prev": null,
+        "src": "季报未单列"
+      },
+      "total_cur_assets": {
+        "cur": 545.53738,
+        "prev": 514.90372,
+        "level": "disc",
+        "src": "clean L255"
+      },
+      "total_cur_liab": {
+        "cur": 68.97123,
+        "prev": 63.69237,
+        "level": "disc",
+        "src": "clean L284"
+      }
+    },
+    "cashflow": {
+      "ocf": {
+        "cur": 78.4365,
+        "prev": 91.1043,
+        "hist": [
+          21.87574,
+          43.08871,
+          45.85446,
+          91.1043,
+          78.4365
+        ],
+        "level": "disc",
+        "src": "clean L27/L403；tushare cashflow 双源一致",
+        "note": "前三季 -13.90%；Q3 单季 58.57 亿 +21.76%"
+      },
+      "sales_cash": {
+        "cur": 249.47126,
+        "prev": 261.73262,
+        "level": "disc",
+        "src": "clean L394",
+        "note": "收现比 1.022（上期 1.129）"
+      },
+      "capex": {
+        "cur": 26.70616,
+        "prev": 17.14462,
+        "hist": [
+          15.34616,
+          13.70473,
+          15.24668,
+          17.14462,
+          26.70616
+        ],
+        "level": "disc",
+        "src": "clean L410；tushare cashflow 双源一致",
+        "note": "同比 +55.77%；含固定资产、无形资产和其他长期资产，季报无法拆研发资本化付现"
+      },
+      "dep_amort": {
+        "cur": null,
+        "prev": null,
+        "src": "clean L387-L436 无补充资料"
+      },
+      "wage_cash": {
+        "cur": 58.64348,
+        "prev": 54.6251,
+        "level": "disc",
+        "src": "clean L399"
+      },
+      "interest_paid": {
+        "cur": null,
+        "prev": null,
+        "src": "clean L426 股利与利息合并，无法拆分"
+      }
+    }
+  },
+  "notes": {
+    "ar_aging": [],
+    "ar_writeoff": {
+      "cur": null,
+      "src": "季报无应收附注",
+      "note": "A4 仅按零核销假设做方向性闭环，待年报复核"
+    },
+    "ar_provision": {
+      "cur": null,
+      "prev": null,
+      "charged": null,
+      "reversed": null,
+      "src": "季报未披露"
+    },
+    "ar_factoring": {
+      "cur": null,
+      "src": "季报未披露"
+    },
+    "inventory_mix": [],
+    "inventory_provision": {
+      "cur": null,
+      "prev": null,
+      "cur_reversed": null,
+      "src": "季报未披露"
+    },
+    "cip_projects": [],
+    "goodwill_test": {
+      "growth_assumption": null,
+      "discount_rate": null,
+      "src": "无商誉，不适用"
+    },
+    "audit": {
+      "opinion": "未经审计（季度报告）",
+      "kam": [],
+      "fee_cur": null,
+      "fee_prev": null,
+      "auditor_changed": false,
+      "src": "clean L12-L13/L235-L237"
+    },
+    "employees": {
+      "headcount_cur": null,
+      "headcount_prev": null,
+      "src": "季报未披露员工人数"
+    },
+    "subsequent_events": [
+      {
+        "date": "2026-10-28",
+        "event": "注射用甲苯磺酸瑞马唑仑新增 ICU 机械通气镇静适应症获批",
+        "verifies": "创新药管线期后进展；未见大额退货、合同解除、诉讼、违约或控股股东质押等重大风险事项",
+        "src": "公司临2026-161公告"
+      },
+      {
+        "date": "2026-Q4",
+        "event": "HRS-1596 授权诺和诺德交易预计 Q4 交割，协议含 3 亿美元首付款",
+        "verifies": "后续对外许可收入与现金节奏；交割和收入确认仍属未来事项，不计入本期",
+        "src": "clean L192-L199+界面新闻 2026-10-27"
+      }
+    ],
+    "shareholders": {
+      "holder_num_cur": 604338,
+      "holder_num_prev": 539160,
+      "top10_changes": [
+        "控股股东恒瑞集团 Q3 捐赠 87 万股，期末持股 23.16%，无质押",
+        "连云港金控质押 4,800 万股，非控股股东"
+      ],
+      "pledge_ratio": 0.0,
+      "src": "clean L77/L91-L100/L133-L136",
+      "holder_ts": {
+        "labels": [
+          "2026-06",
+          "2026-09"
+        ],
+        "num": [
+          539160,
+          604338
+        ],
+        "px": [
+          null,
+          12.09
+        ],
+        "note": "仅两期，降级为文字行"
+      }
+    },
+    "capacity": []
+  },
+  "peers": [
+    {
+      "name": "复星医药",
+      "code": "600196.SH",
+      "gross_margin": 0.4971,
+      "rd_ratio": 0.1024,
+      "debt_to_assets": 0.4789,
+      "net_margin": 0.1066,
+      "asset_turnover": 0.2468,
+      "equity_multiplier": 1.919,
+      "roe": 0.0542,
+      "src": "东方财富 2026 三季报，2026-10-28 取数；业务含医药工业与流通，口径可比性有限"
+    },
+    {
+      "name": "信立泰",
+      "code": "002294.SZ",
+      "gross_margin": 0.7419,
+      "rd_ratio": 0.105,
+      "debt_to_assets": 0.2175,
+      "net_margin": 0.1728,
+      "asset_turnover": 0.3322,
+      "equity_multiplier": 1.278,
+      "roe": 0.0723,
+      "src": "东方财富 2026 三季报，2026-10-28 取数"
+    },
+    {
+      "name": "艾力斯",
+      "code": "688578.SH",
+      "gross_margin": 0.9489,
+      "rd_ratio": 0.07384,
+      "debt_to_assets": 0.1102,
+      "net_margin": 0.4543,
+      "asset_turnover": 0.5718,
+      "equity_multiplier": 1.124,
+      "roe": 0.2865,
+      "src": "东方财富 2026 三季报，2026-10-28 取数；单品放量阶段与恒瑞多管线平台不同"
+    }
+  ],
+  "expectations": [
+    {
+      "institution": "中金公司",
+      "date": "2026-10-28",
+      "view": "前三季业绩略好于市场预期；Q3 创新药销售 50.62 亿，抗肿瘤收入同比恢复正增长",
+      "src": "中金公司《创新药销售改善，国际化全面加速》"
+    },
+    {
+      "institution": "国金证券",
+      "date": "2026-10-28",
+      "forecast_np_2026": 90.0,
+      "forecast_np_2027": 108.0,
+      "forecast_np_2028": 129.0,
+      "previous_forecast_np_2026": 87.0,
+      "src": "国金证券三季报点评；预测为机构观点而非公司指引"
+    }
+  ],
+  "derived": {
+    "np_bridge": [
+      {
+        "item": "毛利",
+        "delta": 11.90329
+      },
+      {
+        "item": "税金及附加",
+        "delta": -0.35707
+      },
+      {
+        "item": "销售费用",
+        "delta": 3.05598
+      },
+      {
+        "item": "管理费用",
+        "delta": 0.76044
+      },
+      {
+        "item": "研发费用",
+        "delta": -4.7765
+      },
+      {
+        "item": "财务费用",
+        "delta": -2.16778
+      },
+      {
+        "item": "其他收益",
+        "delta": -1.41665
+      },
+      {
+        "item": "投资收益",
+        "delta": -0.67007
+      },
+      {
+        "item": "公允价值变动",
+        "delta": 7.0582
+      },
+      {
+        "item": "资产处置/营业外净",
+        "delta": 0.43038
+      },
+      {
+        "item": "减值（信用+资产）",
+        "delta": -0.65396
+      },
+      {
+        "item": "所得税",
+        "delta": -1.53703
+      },
+      {
+        "item": "少数股东",
+        "delta": 0.09316
+      }
+    ],
+    "ocf_bridge": [],
+    "wc_devour": {
+      "amount": null,
+      "share_of_np": null,
+      "note": "季报无现金流量表补充资料，OCF 调节桥降级；不以资产负债表变动硬凑吞噬额"
+    },
+    "rev_factors": {
+      "volume": null,
+      "price": null,
+      "mix": null,
+      "src": "clean L145-L168",
+      "note": "季报无量价，降级为业务结构读数：创新药+17.05%、仿制药-16.41%、许可+31.12%；因披露值四舍五入，不伪造分部桥闭合"
+    },
+    "q4": {
+      "rev": 89.53179,
+      "np": 24.57965,
+      "rev_share": 0.36684,
+      "gm_q4": 0.87575,
+      "gm_q1q3": 0.86319,
+      "impair_share": null,
+      "exp_ratio_q4": null,
+      "exp_ratio_q1q3": null,
+      "src": "借用 q4 块装 Q3 单季=9M−H1；收入/归母与 clean L23/L25 披露一致；gm_q1q3 栏填 H1 毛利率"
+    },
+    "sankey": null,
+    "threshold_check": {
+      "shell_line": {
+        "roe": 0.1036,
+        "target": 0.065,
+        "net_margin": 0.2836,
+        "hit": false
+      },
+      "refinance_line": {
+        "roe": 0.1036,
+        "target": 0.1,
+        "hit": true
+      },
+      "incentive_line": {
+        "target_desc": "",
+        "actual": null,
+        "target": null,
+        "ratio": null,
+        "share_payment": null,
+        "hit": null,
+        "src": "季报未披露股权激励考核目标，本期不做贴线判定"
+      }
+    },
+    "ratios": {
+      "roe": {
+        "cur": 0.1036,
+        "hist": [
+          0.0863,
+          0.0876,
+          0.1055,
+          0.0967,
+          0.1036
+        ],
+        "prev": 0.0967
+      },
+      "gross_margin": {
+        "cur": 0.8678,
+        "hist": [
+          0.8326,
+          0.8438,
+          0.8597,
+          0.8622,
+          0.8678
+        ],
+        "prev": 0.8622
+      },
+      "net_margin": {
+        "cur": 0.2836,
+        "hist": [
+          0.199,
+          0.2042,
+          0.2288,
+          0.248,
+          0.2836
+        ],
+        "prev": 0.248
+      },
+      "net_cash_ratio": {
+        "cur": 1.1329,
+        "hist": [
+          0.6893,
+          1.2404,
+          0.9926,
+          1.5841,
+          1.1329
+        ],
+        "prev": 1.5841
+      },
+      "debt_to_assets": {
+        "cur": 0.1223,
+        "hist": [
+          0.0713,
+          0.0622,
+          0.0829,
+          0.1214,
+          0.1223
+        ],
+        "prev": 0.1214
+      },
+      "equity_multiplier": {
+        "cur": 1.1482,
+        "hist": [
+          1.0931,
+          1.0816,
+          1.1044,
+          1.1483,
+          1.1482
+        ],
+        "prev": 1.1483
+      },
+      "cash_to_sales": {
+        "cur": 1.0221,
+        "hist": [
+          1.0221
+        ]
+      },
+      "asset_turnover": {
+        "cur": 0.333,
+        "hist": [
+          0.4014,
+          0.3993,
+          0.4383,
+          0.3915,
+          0.333
+        ],
+        "prev": 0.3915
+      },
+      "dso": {
+        "cur": 78.3267,
+        "hist": [
+          118.152,
+          123.5345,
+          98.2431,
+          78.785,
+          78.3267
+        ],
+        "prev": 78.785
+      },
+      "dio": {
+        "cur": 334.9962,
+        "hist": [
+          321.9206,
+          338.5202,
+          312.0916,
+          294.5758,
+          334.9962
+        ],
+        "prev": 294.5758
+      },
+      "dpo": {
+        "cur": 242.8865,
+        "hist": [
+          271.2597,
+          235.697,
+          196.4836,
+          239.418,
+          242.8865
+        ],
+        "prev": 239.418
+      },
+      "ccc": {
+        "cur": 170.4363,
+        "hist": [
+          168.8129,
+          226.3576,
+          213.8511,
+          133.9427,
+          170.4363
+        ],
+        "prev": 133.9427
+      },
+      "dfl": {
+        "cur": 0.985,
+        "hist": [
+          0.985
+        ]
+      },
+      "short_debt_cover": {
+        "cur": 130.6343
+      },
+      "incr_expense_eff": {
+        "cur": 3.8056
+      },
+      "incr_sales_eff": {
+        "cur": -3.9944
+      },
+      "nonrecurring_share": {
+        "cur": 0.0983
+      },
+      "non_main_rev_share": {
+        "cur": 0.029
+      },
+      "ocf_to_liab": {
+        "cur": 0.8988
+      },
+      "roic": {
+        "cur": 0.1061
+      }
+    },
+    "dupont": {
+      "margin_effect": 0.016,
+      "turnover_effect": -0.0191,
+      "leverage_effect": -0.0,
+      "roe_product_cur": 0.1084,
+      "roe_product_prev": 0.1115,
+      "closure_gap": 0.01,
+      "driver": "周转率",
+      "driver_fragile": true,
+      "effects_ratio": 1.1904,
+      "driver_second": "净利率",
+      "margin_drill": {
+        "op_effect": 0.0497,
+        "tax_effect": -0.0049,
+        "interest_effect": -0.0096,
+        "minority_effect": 0.0004
+      },
+      "turnover_drill": {
+        "top1_subject": "货币资金",
+        "top1_share": 0.3636,
+        "top2_subject": "金融资产",
+        "top2_share": 0.1423,
+        "wc_share": 0.1001,
+        "capex_share": 0.1266
+      },
+      "leverage_drill": {
+        "ib_cur": 4.2165,
+        "ib_prev": 0.7423,
+        "ni_cur": 49.5454,
+        "ni_prev": 41.8301,
+        "ib_to_equity_cur": 0.0063,
+        "ni_to_equity_cur": 0.0742,
+        "ni_share": 0.9216,
+        "dfl_delta": null,
+        "quality_upgrade": null
+      }
+    },
+    "dupont_dt": {
+      "margin_effect": 0.0066,
+      "turnover_effect": -0.0172,
+      "leverage_effect": -0.0,
+      "roe_product_cur": 0.0978,
+      "roe_product_prev": 0.1084,
+      "closure_gap": 0.0128,
+      "driver": "周转率",
+      "driver_fragile": false,
+      "effects_ratio": 2.5933,
+      "driver_second": "净利率",
+      "triggered": true
+    },
+    "dupont5y": {
+      "margin_effect": 0.0371,
+      "turnover_effect": -0.0212,
+      "leverage_effect": 0.0052,
+      "roe_product_cur": 0.1084,
+      "roe_product_prev": 0.0873,
+      "closure_gap": -0.0038,
+      "driver": "净利率",
+      "driver_fragile": false,
+      "effects_ratio": 1.7506,
+      "driver_second": "周转率",
+      "period_start": "",
+      "period_end": "",
+      "roe_start": 0.0863,
+      "roe_end": 0.1036,
+      "percentile": {
+        "net_margin": 1.0,
+        "asset_turnover": 0.0,
+        "equity_multiplier": 0.75
+      }
+    },
+    "cycle_evidence": {
+      "rev_growth": [
+        null,
+        0.067,
+        0.1867,
+        0.1485,
+        0.0526
+      ],
+      "gross_margin": [
+        0.8326,
+        0.8438,
+        0.8597,
+        0.8622,
+        0.8678
+      ],
+      "capex_growth": [
+        null,
+        -0.107,
+        0.1125,
+        0.1245,
+        0.5577
+      ],
+      "periods": []
+    },
+    "risk_models": {
+      "altman_z": null,
+      "ohlson_o": {
+        "cur": -4.2127,
+        "prob": 0.0146,
+        "level": "低"
+      }
+    },
+    "cash_ts": {
+      "ncr_mean5": 1.1279,
+      "ncr_neg_years": 0,
+      "fcf_to_np_mean5": 0.7495,
+      "fcf_neg_years": 0,
+      "ncr": [
+        0.6893,
+        1.2404,
+        0.9926,
+        1.5841,
+        1.1329
+      ],
+      "fcf_to_np": [
+        0.2058,
+        0.8459,
+        0.6626,
+        1.286,
+        0.7472
+      ],
+      "periods": []
+    },
+    "segment_quadrant": {
+      "y_mode": "level",
+      "x0": null,
+      "y0": null,
+      "rows": [
+        {
+          "name": "创新药销售收入",
+          "g": null,
+          "m": null,
+          "dm": null,
+          "w": 0.5718,
+          "p": null,
+          "quadrant": null,
+          "rank_gap": 2,
+          "p_minus_w": null
+        },
+        {
+          "name": "仿制药销售收入",
+          "g": null,
+          "m": null,
+          "dm": null,
+          "w": 0.3135,
+          "p": null,
+          "quadrant": null,
+          "rank_gap": 1,
+          "p_minus_w": null
+        },
+        {
+          "name": "创新药对外许可收入",
+          "g": null,
+          "m": null,
+          "dm": null,
+          "w": 0.1146,
+          "p": null,
+          "quadrant": null,
+          "rank_gap": 1,
+          "p_minus_w": null
+        }
+      ]
+    }
+  },
+  "recon": {
+    "A2_retained": {
+      "lhs": 457.70698,
+      "rhs": 457.70692,
+      "verdict": "闭合",
+      "explanation": "",
+      "src": "clean L299-L300+L349；2026H1 分红 13.2606 亿"
+    },
+    "A4_rev_cash": {
+      "lhs": 249.47126,
+      "rhs": 280.64756,
+      "verdict": "可解释",
+      "explanation": "偏差 -31.18 亿/-11.1%：1.13 通用含税系数高估，27.81 亿许可收入适用税率与药品销售不同，仅该项按 6% 修正即可收窄约 1.95 亿；对外许可收现 43.43 亿与确认收入 27.81 亿不同步、票据背书及出口免税季报未给明细。收现比仍 1.022、合同负债较年初 +53.3%，不支持系统性收入激进，但收现比较上年 1.129 回落已列观察",
+      "src": "clean L394+L313+L248-L250+L278；核销按零假设"
+    },
+    "A7_implied_rate": {
+      "lhs": 0.01613,
+      "rhs": 0.05,
+      "verdict": "闭合",
+      "explanation": "利息费用 0.03999 亿÷平均有息负债约 2.48 亿=1.61%（前三季，粗年化 2.15%），低于 5% 基准；有息负债仅 4.22 亿，指标判别力有限",
+      "src": "clean L328+L275/L282/L286"
+    },
+    "A8_invest_income": {
+      "lhs": -0.04099,
+      "rhs": 0.1,
+      "verdict": "闭合",
+      "explanation": "投资收益 -1.0783 亿÷平均金融资产 26.32 亿=-4.10%，未超 10% 上界；亏损来自联营合营，8.04 亿公允价值变动单列，不与投资收益混同",
+      "src": "clean L332-L336+L247/L257/L259"
+    }
+  },
+  "assertions": [
+    {
+      "id": "A1",
+      "text": "Q3 利润总额、归母及扣非利润高增主要因本报告期对外许可收入增加",
+      "account": "营业收入-对外许可/净利润",
+      "verdict": "通过",
+      "evidence": "前三季许可收入 27.81 亿 +31.12%，Q3 单季推算 13.59 亿；公司披露 Q3 归母 +88.92%、扣非 +90.93%，收入与利润方向一致",
+      "missing": "",
+      "source": "clean L59-L67/L159-L162"
+    },
+    {
+      "id": "A2",
+      "text": "创新药销售收入保持稳健增长，但全年增速与年初目标存在差距",
+      "account": "营业收入-创新药",
+      "verdict": "通过",
+      "evidence": "前三季创新药 138.71 亿 +17.05%；其中抗肿瘤仅 +3.13%、非肿瘤 +75.36%，支持增长同时证实结构分化，公司主动下调全年预期",
+      "missing": "",
+      "source": "clean L149-L158"
+    },
+    {
+      "id": "A3",
+      "text": "前三季累计研发投入 71.46 亿元，其中费用化研发投入 54.23 亿元",
+      "account": "研发投入/开发支出",
+      "verdict": "通过",
+      "evidence": "利润表研发费用 54.22969 亿与 MD&A 一致；差额 17.23 亿为资本化投入，推算资本化率 24.11%",
+      "missing": "",
+      "source": "clean L145-L148/L325"
+    },
+    {
+      "id": "A4",
+      "text": "前三季收到对外许可首付款及里程碑款现金 43.43 亿元，确认收入 27.81 亿元",
+      "account": "经营现金流/合同负债",
+      "verdict": "通过",
+      "evidence": "收现高于确认收入 15.62 亿，合同负债较年初增加 10.19 亿，方向相符；季报未拆许可专属合同负债，不能做逐笔闭合",
+      "missing": "许可合同负债与剩余履约义务明细",
+      "source": "clean L159-L162/L278"
+    }
+  ],
+  "signals": [
+    {
+      "id": "G1",
+      "level": "g",
+      "verdict": "反向未触发",
+      "type": "signal",
+      "title": "存贷双高",
+      "data": "货币资金/总资产 56.63%，有息负债/总资产仅 0.55%",
+      "evidence": "现金 434.47 亿；短借 3.54+一年内到期 0.39+租赁 0.29 亿，净现金约 430.25 亿",
+      "source": "clean L245/L275/L282/L286"
+    },
+    {
+      "id": "G2",
+      "level": "g",
+      "verdict": "反向未触发",
+      "type": "signal",
+      "title": "利息收入与货币资金不匹配",
+      "data": "利息收入 10.17 亿÷平均货币资金 422.01 亿=2.41%（前三季，粗年化约 3.21%）",
+      "evidence": "高于 1% 警戒线，现金真实性有利息收入旁证",
+      "source": "clean L330/L245"
+    },
+    {
+      "id": "G3",
+      "level": "g",
+      "verdict": "反向未触发",
+      "type": "signal",
+      "title": "应收账款异常",
+      "data": "应收同比约 +4.60%，低于收入 +5.26%；应收/收入未恶化",
+      "evidence": "期末应收 53.29 亿，上年同期 50.95 亿；季报无账龄与计提附注，年报继续复核",
+      "source": "clean L249+tushare 20250930"
+    },
+    {
+      "id": "G4",
+      "level": "g",
+      "verdict": "反向未触发",
+      "type": "signal",
+      "title": "控股股东高质押/短债覆盖不足",
+      "data": "控股股东质押 0；（货币资金+OCF）÷（短借+一年内到期）约 130.6 倍",
+      "evidence": "连云港金控质押 4,800 万股但非控股股东；债务覆盖极充裕",
+      "source": "clean L91-L100/L245/L403/L275/L282"
+    },
+    {
+      "id": "G5",
+      "level": "g",
+      "verdict": "反向未触发",
+      "type": "signal",
+      "title": "非经常性损益撑利润",
+      "data": "扣非/归母 90.15%，非经占归母 9.82%；Q3 扣非增速 90.93% 高于归母 88.92%",
+      "evidence": "公允价值变动收益 8.04 亿需单独跟踪，但本期利润高增并非靠非经兜底",
+      "source": "clean L25-L26/L54/L336"
+    },
+    {
+      "id": "Y1",
+      "level": "y",
+      "verdict": "观察",
+      "type": "signal",
+      "title": "创新药增长低于年初目标，抗肿瘤仅低个位数增长",
+      "severity": 0.62,
+      "data": "前三季创新药 +17.05%；抗肿瘤 +3.13%，非肿瘤 +75.36%；公司明确全年与目标有差距",
+      "concern": "创新药是主业估值锚，老品种竞争与院内准入慢会压低持续增长斜率",
+      "evidence": "Q3 有所改善但不足以上修全年；高增长主要由非肿瘤品种承担，抗肿瘤基本盘仍偏弱",
+      "source": "clean L149-L158"
+    },
+    {
+      "id": "Y2",
+      "level": "y",
+      "verdict": "观察",
+      "type": "signal",
+      "title": "Q3 利润高增依赖对外许可，收入节奏具有项目性",
+      "severity": 0.55,
+      "data": "前三季许可收入 27.81 亿 +31.12%，Q3 单季约 13.59 亿；公司将 Q3 利润高增归因于许可收入增加",
+      "concern": "许可首付款和里程碑款不是稳定订阅收入，直接外推 Q3 的 88.92% 利润增速会高估持续性",
+      "evidence": "同期许可收现 43.43 亿、合同负债 29.32 亿提供后续缓冲，但季报无剩余履约义务，无法精确排定确认节奏",
+      "source": "clean L59-L67/L159-L162/L278"
+    },
+    {
+      "id": "Y3",
+      "level": "y",
+      "verdict": "观察",
+      "type": "signal",
+      "title": "累计收现比回落，Q3 现金流修复尚待全年确认",
+      "severity": 0.38,
+      "data": "前三季销售收现 -4.70% vs 收入 +5.26%，收现比 1.129→1.022；OCF -13.90% 但净现比 1.13",
+      "concern": "若收现比继续跌破 1 且应收增速反超收入，收入质量才会实质性弱化",
+      "evidence": "Q3 单季 OCF 58.57 亿 +21.76%，已超过单季归母 24.58 亿；累计下滑含上年许可收现高基数，暂不判现金流恶化",
+      "source": "clean L27/L394/L403"
+    },
+    {
+      "id": "Y4",
+      "level": "y",
+      "verdict": "观察",
+      "type": "signal",
+      "title": "研发资本化与长期资产投入继续上升",
+      "severity": 0.42,
+      "data": "前三季研发资本化率 24.11%；购建长期资产付现 26.71 亿 +55.77%；开发支出 48.18 亿",
+      "concern": "资本化会延后费用确认，若比例突破 30% 或后续减值，利润含金量需下修",
+      "evidence": "当前比例未超 30%，开发支出较年初略降；但资本开支增速远高于收入，季报无项目拆分，年报需核对转固、摊销与减值",
+      "source": "clean L148/L263-L264/L410"
+    }
+  ],
+  "watchlist": [
+    {
+      "indicator": "创新药收入增速与抗肿瘤基本盘",
+      "current": "2026 前三季创新药 +17.05%，抗肿瘤 +3.13%，非肿瘤 +75.36%",
+      "tripwire": "若 2026 年报创新药收入增速<20%且抗肿瘤增速仍低于 5%，则创新药增长质量下修成立",
+      "upper": "20%",
+      "upper_meaning": "全年创新药增速回到 20% 以上则 Q4 放量修复",
+      "lower": "20%",
+      "lower_meaning": "低于 20% 则年初 30%+ 目标明显落空",
+      "source": "clean L150-L158；公司年初目标与前三季实际",
+      "badge": "disc",
+      "review": {
+        "verdict": null,
+        "actual": null,
+        "attribution": null
+      }
+    },
+    {
+      "indicator": "产品销售收入 vs 对外许可依赖",
+      "current": "前三季产品销售 +2.52%，许可收入 27.81 亿占总收入 11.39%",
+      "tripwire": "若 2026 年报产品销售增速仍低于 5%且许可收入贡献超过总收入增量的一半，则内生增长不足成立",
+      "upper": "5%",
+      "upper_meaning": "产品销售增速超过 5% 则主业修复",
+      "lower": "5%",
+      "lower_meaning": "持续低于 5% 则增长依赖许可项目",
+      "source": "clean L145-L162；阈值参考当前产品销售增速与收入结构",
+      "badge": "der",
+      "review": {
+        "verdict": null,
+        "actual": null,
+        "attribution": null
+      }
+    },
+    {
+      "indicator": "许可收入接续与合同负债",
+      "current": "前三季许可收入 27.81 亿、收现 43.43 亿；期末合同负债 29.32 亿（未拆许可专属）",
+      "tripwire": "若后续两期许可收入连续同比下降且合同负债跌破 15 亿，则对外许可收入断档成立",
+      "upper": "25 亿",
+      "upper_meaning": "合同负债维持 25 亿以上则后续确认仍有缓冲",
+      "lower": "15 亿",
+      "lower_meaning": "跌破 15 亿且许可收入连降则接续不足",
+      "source": "clean L159-L162/L278；阈值参考 2026H1 剩余履约义务 17.32 亿与本期合同负债",
+      "badge": "der",
+      "review": {
+        "verdict": null,
+        "actual": null,
+        "attribution": null
+      }
+    },
+    {
+      "indicator": "研发资本化率与开发支出减值",
+      "current": "前三季资本化率 24.11%，开发支出 48.18 亿",
+      "tripwire": "若资本化率连续两期>30%，或出现开发支出大额减值，则资本化激进成立、利润含金量下修",
+      "upper": "30%",
+      "upper_meaning": "连续两期超过 30% 触发复核",
+      "lower": "20%",
+      "lower_meaning": "回到 20% 以下则资本化压力缓释",
+      "source": "clean L148/L264；30% 为技能研发资本化关注线",
+      "badge": "der",
+      "review": {
+        "verdict": null,
+        "actual": null,
+        "attribution": null
+      }
+    },
+    {
+      "indicator": "收现比与全年净现比",
+      "current": "前三季收现比 1.022、净现比 1.13；Q3 单季 OCF 58.57 亿",
+      "tripwire": "若 2026 全年收现比<1.0且净现比<0.7，则现金流质量恶化成立（剔除 BD 首付款集中收现干扰后判断）",
+      "upper": "1.05",
+      "upper_meaning": "收现比回到 1.05 以上且净现比大于 1 则修复确认",
+      "lower": "1.0/0.7",
+      "lower_meaning": "收现比破 1 且净现比破 0.7 双条件触发",
+      "source": "clean L394/L403；历史收现比与 2023-2025 全年净现比均大于 1",
+      "badge": "der",
+      "review": {
+        "verdict": null,
+        "actual": null,
+        "attribution": null
+      }
+    }
+  ]
+}

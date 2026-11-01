@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-ts_fetch.py — financial-report-analysis 的 tushare HTTP 取数通道（Phase 1/2/6/7 双源核对）
+ts_fetch.py — bo-financial-analyzer 的 tushare HTTP 取数通道（Phase 1/2/6/7 双源核对）
 
 用法：
     python scripts/ts_fetch.py income --params ts_code=600519.SH period=20241231 \
@@ -98,7 +98,7 @@ def _parse_params(tokens):
 
 def main():
     ap = argparse.ArgumentParser(
-        description="tushare HTTP 取数（financial-report-analysis 双源核对通道）")
+        description="tushare HTTP 取数（bo-financial-analyzer 双源核对通道）")
     ap.add_argument("api_name",
                     help="接口名，如 income / balancesheet / cashflow / fina_indicator / stk_holdernumber / report_rc")
     ap.add_argument("--params", nargs="*", default=[],

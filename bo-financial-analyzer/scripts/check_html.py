@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-check_html.py — financial-report-analysis 的报告机检门禁（HTML 层）
+check_html.py — bo-financial-analyzer 的报告机检门禁（HTML 层）
 
 calc.py 只校验数据层（data.json）；报告 HTML 层此前没有任何机器校验入口。
 本脚本补这个缺口：在交付前扫一遍最终 HTML，挡住「占位符没填完」「违反模板
@@ -634,7 +634,7 @@ def check_sankey_slot(raw, data, rep):
 # ─────────────────────────── 主流程 ───────────────────────────
 
 def main():
-    ap = argparse.ArgumentParser(description="financial-report-analysis 报告 HTML 机检")
+    ap = argparse.ArgumentParser(description="bo-financial-analyzer 报告 HTML 机检")
     ap.add_argument("html_path", help="报告 HTML 路径")
     ap.add_argument("--json", dest="json_path", default=None,
                     help="data.json 路径：启用 T8 数字回验（①级 HTML↔json 笔误检测 + ②级 json↔原文 md 核对）")

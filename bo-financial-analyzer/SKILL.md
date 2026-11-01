@@ -1,5 +1,5 @@
 ---
-name: financial-report-analysis
+name: bo-financial-analyzer
 description: >
   📑 上市公司年报/半年报/季报/招股说明书分析器。用户在对话中提供定期报告或招股说明书
   文件（PDF/DOCX/HTML）并要求分析时使用；也适用于「分析一下这份年报」「帮我读这份
@@ -8,13 +8,13 @@ description: >
 metadata:
   clawdbot:
     emoji: "📑"
-    version: "0.1.5"
+    version: "0.1.6"
     requires:
       anyBins: ["python"]
     os: ["win32", "darwin", "linux"]
 ---
 
-# 上市公司报告分析器（Financial Report Analysis）
+# Bo-FinancialAnalyzer（上市公司财报与招股书分析器）
 
 > **执行前必读（防幻觉）**：本技能内容已通过 Skill 工具完整注入上下文，你**不需要**
 > 用 Read/Bash 去读取任何本地路径下的 SKILL.md。你拥有 Bash/Read/Write/markitdown/
@@ -29,7 +29,7 @@ metadata:
 每层结论必须能回溯到下层证据（定义与阈值见
 `references/frameworks.md` 与 `references/redflags.md`）。
 
-**独立性声明**：本技能与股票分析类 skill（如 stock-deep-analysis）**完全独立**——互不依赖、
+**独立性声明**：本技能与股票分析类 skill（如 bo-equity-researcher）**完全独立**——互不依赖、
 互不承诺接口，`reports/archive/json/*.json` 只是本技能自己的中间产物而非下游契约，需要联动时另行立项。
 **不产出跨维度加权合成分**：财报分析的产出是「排除与揭示」（这份报告哪里可疑、哪里被解释），
 不是「质量排序」。
@@ -42,7 +42,7 @@ metadata:
 
 **❌ 不要使用本技能：**
 - 用户只问单个指标或行情 → 直接调数据接口回答
-- 用户要的是二级市场全面估值与买卖建议、多空立场构建 → 用 stock-deep-analysis。
+- 用户要的是二级市场全面估值与买卖建议、多空立场构建 → 用 bo-equity-researcher。
   本技能以**已发生事项的解读**为主，方向性判断仅两种合法形态：① 多期已发生数据的结构判定
   （周期定位、账龄迁移、剪刀差趋势）；② 条件化触发线（「若 X 连续两期则 Y 成立」式可证伪的
   if-then）。**无条件未来断言与多空立场归股票分析 skill**
@@ -482,5 +482,6 @@ Roll-forward（应收/存货/在建工程/商誉）+ C 组周期联动（CCC/DPO
 | 0.1.3 | 2026-10-10 | 阿里港股年报首验反馈轮：hist_periods 非日历年财年（FY 标签）+ render 期次映射修复 + 趋势图 labels 取最长序列；T8② 单位换算补百万元档 + 千位符数字解析修复；stackH 钳位撞车去重；分位白描 X/N 支持 n<5 窗口；--min-recon auto 补港股年报=12；md_clean 补 US GAAP「合併*」章节名；data-sources 补妙想双通道+yahoo_finance 兜底链 |
 | 0.1.4 | 2026-10-22 | S3 资金流向桑基图卡模板化（三段式/符号路由进 calc/净调整正负双形态/盒高按体量/降级声明卡）；schema 1.7（derived.sankey 选填块 + income 三选填叶）；check_html sankey-slot 机检（规则 24）+ KEY_SVG_IDS 注册；Q3 单季差额通用取数规则（data-sources 二·五） |
 | 0.1.5 | 2026-10-22 | ponytail-audit 全技能审计修复轮（19 条）：md_clean 表题/分隔行误并、cash_ts 与周期证据 filter-then-zip 跨期错配、T8① 全角减号 − 与 pct 后缀失明、三处合法形态崩管道（dupont_dt 裸数字/效应比 None/桥 delta None）、sum_bridge 非 dict 静默、cur=null 脱钩盲区、render 转义缺口、_jd 大小写、sect 右界静默、recon 矛盾双行、桑基 cum_prev 提醒级 WARN、turnover_drill skip_none、ratio-hist 具名 WARN、四象限聚合 None 当 0、gate 吞 stderr/前导空格、ts_fetch 截断落盘、dupont-stack/sankey-slot 形态与无槽感知、四处测试真空补口（T8② 双态/gate 红测/spill·clipped·pageclip 阳性/分位 _win_n 红测）；回归 209→252 |
+| 0.1.6 | 2026-11-01 | 技能更名为 Bo-FinancialAnalyzer；源目录、报告品牌、CI 与部署路径同步；bo-equity-researcher 引用更新 |
 
 逐版本详情以 handoff/supersede/ 与 git tag 为唯一真源（AGENTS.md 定案）。

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-run_regression.py — financial-report-analysis 的金标准回归测试
+run_regression.py — bo-financial-analyzer 的金标准回归测试
 
 【它在测什么】
 四个冻结样本（fixture）经 Phase 7.5 门禁 scripts/calc.py 后，必须同时满足门禁结论
@@ -55,8 +55,8 @@ for _s in (sys.stdout, sys.stderr):
     try: _s.reconfigure(encoding="utf-8")
     except (AttributeError, ValueError): pass
 
-HERE = Path(__file__).resolve().parent          # …/financial-report-analysis/tests
-SKILL = HERE.parent                             # …/financial-report-analysis
+HERE = Path(__file__).resolve().parent          # …/bo-financial-analyzer/tests
+SKILL = HERE.parent                             # …/bo-financial-analyzer
 CALC = SKILL / "scripts" / "calc.py"
 
 MOUTAI = HERE / "moutai_2025.json"
@@ -339,7 +339,7 @@ def report_case(case, proc, verbose):
 
 
 def main():
-    ap = argparse.ArgumentParser(description="financial-report-analysis 金标准回归测试")
+    ap = argparse.ArgumentParser(description="bo-financial-analyzer 金标准回归测试")
     ap.add_argument("--verbose", action="store_true", help="附带 calc.py 的完整原始输出")
     args = ap.parse_args()
 
@@ -347,7 +347,7 @@ def main():
     # import 全靠它；原先埋在中段，前置块提前 return 会跳过后续 import 的隐式顺序坑）
     sys.path.insert(0, str(SKILL / "scripts"))
 
-    print("=== financial-report-analysis 金标准回归 · calc.py 四例 ===")
+    print("=== bo-financial-analyzer 金标准回归 · calc.py 四例 ===")
     print(f"技能根：{SKILL}")
     print(f"门禁：  {CALC}")
 
@@ -922,8 +922,13 @@ def main():
         if not _block("render_report 重放金标准（v0.1.0 N4，赢合全链）",
                       [(_r.returncode == 0, f"calc --fill exit {_r.returncode}"),
                        (_md == _gold, "fillsheet.md 与金标准逐字一致（write_fillsheet 重构锁）"),
-                       (_rr.returncode == 0,
-                        f"render 锚自检 exit {_rr.returncode}（{(_rr.stdout or '')[:200]}）"),
+                       (_rr.returncode == 0
+                        and "分析 — Bo-FinancialAnalyzer</title>" in _html
+                        and "BO-FINANCIALANALYZER · " in _html
+                        and "— financial-report-analysis</title>" not in _html
+                        and "FINANCIAL REPORT ANALYSIS" not in _html,
+                        f"render 锚自检 exit {_rr.returncode}（{(_rr.stdout or '')[:200]}）；"
+                        "成品品牌 Bo-FinancialAnalyzer/BO-FINANCIALANALYZER 且旧品牌清零"),
                        ('const SEG_BRIDGE=[["锂电池专用生产设备", 22.26]' in _html,
                         "SEG_BRIDGE 分部轴机械生成（by_segment Δ）"),
                        ("64.58 倍" in _html
@@ -2204,6 +2209,40 @@ def main():
     ]
     if not _block("v0.1.5 构造断言（md_clean 两形态 + ts_fetch 静态）", v15_misc,
                   "v0.1.5 md_clean/ts_fetch 锁失败，逐条核对上方 ❌。"):
+        return 1
+
+    # ══ 更名命名契约（RED）：本技能定名 Bo-FinancialAnalyzer（目录 bo-financial-analyzer）══
+    # 断言目标命名；旧命名下本块 5 条应全 ❌，更名落地后由 257 条全绿锁死。
+    _skill_md = (SKILL / "SKILL.md").read_text(encoding="utf-8")
+    _tmpl_html = (SKILL / "assets" / "report-template.html").read_text(encoding="utf-8")
+    _render_src = (SKILL / "scripts" / "render_report.py").read_text(encoding="utf-8")
+    _fm = re.search(r"\A---\n(.*?)\n---\n", _skill_md, re.S)
+    _fm_name_m = re.search(r"^name:\s*(\S+)", _fm.group(1), re.M) if _fm else None
+    # 标题/页眉（kicker）品牌的锚文本：render_report.py 的 sub1 搜索串必须与模板逐字一致（断锚契约）
+    _new_title_anchor = "<title>{{公司名}} {{报告期}}{{报告类型}}分析 — Bo-FinancialAnalyzer</title>"
+    _new_kicker_anchor = "BO-FINANCIALANALYZER · {{上市地}}"
+    naming_checks = [
+        (SKILL.name == "bo-financial-analyzer",
+         f"技能目录名 SKILL.name == 'bo-financial-analyzer'（现值：{SKILL.name}）"),
+        (_fm_name_m is not None and _fm_name_m.group(1) == "bo-financial-analyzer",
+         "SKILL.md frontmatter 含 name: bo-financial-analyzer"),
+        ("# Bo-FinancialAnalyzer（上市公司财报与招股书分析器）" in _skill_md,
+         "SKILL.md 一级标题为「# Bo-FinancialAnalyzer（上市公司财报与招股书分析器）」"),
+        ("bo-equity-researcher" in _skill_md and "bo-equity-researcher" in _tmpl_html
+         and "stock-deep-analysis" not in _skill_md
+         and "stock-deep-analysis" not in _tmpl_html,
+         "SKILL.md 与活动模板引用改用 bo-equity-researcher 且不再含 stock-deep-analysis"),
+        (_new_title_anchor in _tmpl_html and _new_title_anchor in _render_src
+         and "— Bo-FinancialAnalyzer</title>" in _render_src
+         and _new_kicker_anchor in _tmpl_html and _new_kicker_anchor in _render_src
+         and "BO-FINANCIALANALYZER · " in _render_src
+         and "— financial-report-analysis</title>" not in (_tmpl_html + _render_src)
+         and "FINANCIAL REPORT ANALYSIS" not in (_tmpl_html + _render_src),
+         "模板与 render_report.py 的 HTML 标题/页眉品牌均为 Bo-FinancialAnalyzer（kicker 大写）"
+         "且 sub1 锚文本与模板一致、旧品牌清零"),
+    ]
+    if not _block("更名命名契约（bo-financial-analyzer / Bo-FinancialAnalyzer）", naming_checks,
+                  "更名命名契约未满足：Bo-FinancialAnalyzer 更名未落地，逐条核对上方 ❌。"):
         return 1
 
     failed = total - passed

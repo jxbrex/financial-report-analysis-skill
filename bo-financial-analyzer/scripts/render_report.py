@@ -123,11 +123,11 @@ def fill_js(r, js):
 
 
 def fill_meta(r, m):
-    r.sub1("<title>{{公司名}} {{报告期}}{{报告类型}}分析 — financial-report-analysis</title>",
-           f"<title>{_E(m['company'])} {_E(m['sub_lead'])}分析 — financial-report-analysis</title>",
+    r.sub1("<title>{{公司名}} {{报告期}}{{报告类型}}分析 — Bo-FinancialAnalyzer</title>",
+           f"<title>{_E(m['company'])} {_E(m['sub_lead'])}分析 — Bo-FinancialAnalyzer</title>",
            "meta.title")
-    r.sub1("FINANCIAL REPORT ANALYSIS · {{上市地}}",
-           f"FINANCIAL REPORT ANALYSIS · {_E(m['market'])}", "meta.kicker")
+    r.sub1("BO-FINANCIALANALYZER · {{上市地}}",
+           f"BO-FINANCIALANALYZER · {_E(m['market'])}", "meta.kicker")
     r.sub1("<h1>{{公司名}}（{{代码}}）</h1>", f"<h1>{_E(m['title'])}</h1>", "meta.h1")
     r.sub1("<b>{{报告期}}{{报告类型}}</b> 分析报告 · 报告发布于 {{披露日期}} · 分析生成于 {{生成日期}}",
            f"<b>{_E(m['sub_lead'])}</b> 分析报告 · 报告发布于 {_E(m['disclose_date'])} · "

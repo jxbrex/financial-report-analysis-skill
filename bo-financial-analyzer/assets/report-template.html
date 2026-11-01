@@ -3,10 +3,10 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>{{公司名}} {{报告期}}{{报告类型}}分析 — financial-report-analysis</title>
+<title>{{公司名}} {{报告期}}{{报告类型}}分析 — Bo-FinancialAnalyzer</title>
 <style>
 /* ═══════════════════════════════════════════════════════════════
- 财报分析报告模板 · financial-report-analysis
+ 财报分析报告模板 · bo-financial-analyzer
  视觉基底：暖墨赭石色系（去蓝）+ 浅色卡片
  使用方式：复制本文件为最终报告文件名，替换 {{占位}} 与
  「◆ SLOT」注释标记的内容；JS 区只填数据数组，不改绘图逻辑。
@@ -175,7 +175,7 @@ html{scroll-behavior:smooth}
 
  <!-- ══ 页眉 ◆ SLOT: 公司名/代码/报告类型/报告期 ══ -->
  <div class="masthead fade">
- <div class="kicker">FINANCIAL REPORT ANALYSIS · {{上市地}}</div>
+ <div class="kicker">BO-FINANCIALANALYZER · {{上市地}}</div>
  <h1>{{公司名}}（{{代码}}）</h1>
  <div class="sub"><b>{{报告期}}{{报告类型}}</b> 分析报告 · 报告发布于 {{披露日期}} · 分析生成于 {{生成日期}}</div>
  </div>
@@ -228,7 +228,7 @@ html{scroll-behavior:smooth}
  </div>
  <p class="lede">{{一段话说清这家公司本期发生了什么：业绩主线 + 利润第一驱动 + 最大隐忧}}</p>
  <!-- ◆ 分歧锚（默认保留；认为多余可删本卡）：只陈列同一事实的两种解读，
- 不做倾向判断——多空立场构建归 stock-deep-analysis，本报告只到「可证伪的 if-then」为止；
+ 不做倾向判断——多空立场构建归 bo-equity-researcher，本报告只到「可证伪的 if-then」为止；
  两种读法的验证条件进 s8 跟踪清单 -->
  <div class="card">
  <div class="figtitle">分歧锚：同一事实的两种解读，不做倾向裁决</div>

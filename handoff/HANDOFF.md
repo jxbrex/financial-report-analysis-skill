@@ -1,8 +1,8 @@
 # HANDOFF · 交接文档
 
-> 版本 **0.1.5** · 截至 2026-10-22 · 本文档面向「下一个接手这个项目的人/AI 会话」
-> 仓库：https://github.com/jxbrex/financial-report-analysis-skill（**私密**）
-> 部署：`C:/Users/rexji/.agents/skills/financial-report-analysis/`（由 `deploy.cmd` 镜像）
+> 版本 **0.1.6** · 截至 2026-11-01 · 本文档面向「下一个接手这个项目的人/AI 会话」
+> 仓库：https://github.com/jxbrex/financial-report-analysis-skill（**公开**）
+> 部署：`C:/Users/rexji/.agents/skills/bo-financial-analyzer/`（由 `deploy.cmd` 镜像）
 
 ---
 
@@ -27,7 +27,7 @@
 ### 技能现在的构成（36 个源文件）
 
 ```
-financial-report-analysis/
+bo-financial-analyzer/
 ├── SKILL.md                    # 11 个 Phase（0→8，含 2.5 勾稽验算、7.5 QC 门禁）+ 版本记录
 ├── references/                 # 10 份方法库
 │   ├── articulation.md         #   勾稽核对手册：A组8条恒等式+B组4条roll-forward+C组2条周期+D组5条母公司
@@ -69,7 +69,7 @@ financial-report-analysis/
 │   ├── md_clean_synth.md       #   md_clean 合成金标准（自包含，四类病理；v0.0.17 起不再依赖原始 md）
 │   ├── md_clean_synth2.md      #   第二合成金标准（v0.1.5：表题行误并/分隔行污染两形态）
 │   ├── t8_demo.html            #   T8 数字回验验收样例（改错版由回归运行时改数生成）
-│   └── run_regression.py       #   唯一回归入口：252 条断言 + check_html/T8/渲染冒烟 + 构造用例
+│   └── run_regression.py       #   唯一回归入口：257 条断言 + check_html/T8/渲染冒烟 + 构造用例
 ```
 
 ### 三道机器门禁 + 一条回归
@@ -89,7 +89,7 @@ financial-report-analysis/
    分位白描映射）；v0.0.19 起加 **assertion-count**（FAIL：断言 figtitle 三态计数
    a+b+c=N 且与表内徽章/底稿 assertions 一致）与 **recon-label**（勾稽三态旧长标签）、
    **decimal-places**（可见数字 ≥3 位小数）两条 WARN；v0.0.21 起加 **gap-declaration**（FAIL：s4 ❓ 断言须进「数据缺口声明」行）；v0.0.22 起加 **js-dup-decl**（FAIL：数据槽顶层 const 重复声明——JS 团灭防线）与 **assert-trunc**（FAIL：断言 text/evidence 填充截断，--json）。exit 0 才允许交付。
-3. **`python tests/run_regression.py`** —— 任何改动后必跑，**252 条断言**全绿才算没改坏
+3. **`python tests/run_regression.py`** —— 任何改动后必跑，**257 条断言**全绿才算没改坏
    （含 calc 四例 + check_html 冒烟 + T8 数字回验 + md_clean 合成样本 + 构造用例
    + fillsheet JS 槽形态冒烟）。
 
@@ -283,9 +283,9 @@ financial-report-analysis/
 |---|---|---|
 | 1 | ~~港股全流程未跑过~~ **港股半年报已首验**（蜜雪 2026H1）+ **港股年报已首验**（阿里巴巴 09988 2026FY，2026-10-10 三道门禁绿；US GAAP 准则、人民币呈报、3-31 财年止） | 残留：美股全流程未验证；render 年报二期（见 11） |
 | 2 | ~~**季报/招股书两种报告类型未实测**~~ **季报已首验**（中国移动 600941 2026Q3，2026-10-21 三道门禁绿 + 已视觉验收；report-types.md 季报裁剪规则总体符实） | 残留：招股书未实测；季报路径三处技能缺口见 N6 |
-| 3 | **industry-profiles.md 八类模式零实测** | 工程建造的合同资产勾稽、农业的生物资产盘点、经销商压货三条件、医药的研发资本化/license-out 勾稽都没在真实样本上跑过 |
+| 3 | **industry-profiles.md 医药健康已首验**（恒瑞 2026Q3：研发资本化/license-out/创新药结构调焦真实落地） | 其余七类仍零实测：工程建造合同资产、农业生物资产、经销商压货三条件等待样本 |
 | 4 | ~~**P1-17 四象限未端到端跑过**~~ **已首验**（阿里 2026FY：四分部 delta 口径全字段复算自洽；港股分部无成本披露→EBITA 倒挤成本口径适配，calc 两条口径 WARN 预期内） | 断言验证/周期定位/费用ROI 此前已多份实战 |
-| 5 | ~~**回看机制已落、真实数据实测待披露季**~~ **回看模式已首验**（移动 H1→Q3，2026-10-21：5 条 watchlist 照抄 tripwire 原文，1 未兑现含归因+4 待观察，review 子块按冻结纪律落库） | 阿里 watchlist 待 FY2027 中报回看；特变/恒瑞待 2026FY |
+| 5 | ~~**回看机制已落、真实数据实测待披露季**~~ **已三验**（移动/宁德/恒瑞 H1→Q3；恒瑞 2026Q3：❌3+⏳2，review 子块按冻结纪律落库） | 阿里 watchlist 待 FY2027 中报；特变/恒瑞待 2026FY 持续验证 |
 | 6 | 康得新 **A5/B2/B3 三条等式因附注未披露而无法执行** | 换个披露更全的造假样本可验证这三条 |
 | 7 | **存量旧版式报告不追溯**（纪律 7） | 新门禁对旧报告的 WARN/FAIL 全属预期：T8① 噪音、internal-ref、percentile-map、gap-declaration、js-dup-decl/assert-trunc/empty-svg（长城事故样本留档）同类 |
 | 8 | **比率趋势数据依赖 tushare 可得性** | 世界线披露晚于库更新时当期 hist 取报告提取值；重述公司历史期口径断裂，趋势缺 hist 合法（schema 血泪 7） |
@@ -536,25 +536,34 @@ N6 三处缺口全部复现（同根因、同绕过）；增量发现：
 - 效率：全流程约 140min（含首验排障 render IndexError/labels/Altman + 双份并行争用；
   对照半年报基线 53-65min）
 
+**任务 2·补 3（N6 三验：恒瑞医药 600276 2026Q3，2026-10-28，三道门禁全绿 + 已视觉验收）**：
+第三份季报、医药健康 profile 首次真实样本；N6 既有缺口全部复现并只在呈现层绕过：
+- recon 可执行 **4/17**（A2/A4/A7/A8），显式 `--min-recon 4`；Altman 三季报年化未接入，
+  市值已填仍合法 null，报告只呈现 Ohlson 低风险并声明单模型边界
+- Q3 单季少数股东损益为负，桑基按规则降级；fill 会保留无 rev 的 cum/cum_prev 种子，
+  须人工确认降级后把 derived.sankey 置 null 再跑 fill，方能消 FAIL（未改数据凑图）
+- 新增呈现缺口：ncrline 均值与 y=1 标签在均值接近 1 时重叠，13px/20px 下移仍撞，
+  本报告 24px 双视口零问题；watchlist 阈值符号出现 `&amp;gt;/&amp;lt;` 双重转义，手工改回
+- 医药健康重点勾稽真实落地：许可收入/收现/合同负债联动、研发资本化率 24.11%、
+  创新药与仿制药结构分化；未把存货、在建和合同负债绝对水平机械判雷
+- 回看第三例：半年报 5 条 → ❌ 3（许可断档/主业恶化/资本化激进未兑现）/⏳ 2
+  （创新药全年目标、全年净现比）；review 子块冻结落库、❌ 归因齐全
+- calc 44 OK/0 FAIL；check_html 0 FAIL；check_render 双视口 0 问题并逐章目检。
+  bare-number 84 处为表格/阈值重复读数人工确认；json-md 10 处均为 der 推算值或比率无原文 literal
+
 ### P1（深度验证）
 
 **任务 3：行业 profile 实测（局限 3）**
 - 挑一家**工程建造**（验证合同资产/合同结算勾稽、完工百分比激进）或**农业养殖**（生物资产盘点）
 - 验收：industry-profiles.md 中该模式的重点勾稽项被真实触发；该降级的信号确实降级（不误报）
 
-**任务 4：回看模式真实数据实测（局限 5，等披露季）**
-- 机制层（T6）已完成：schema review 子块 + 冻结纪律 + 模板归因列 + check_html review-shape
-  （examples/lookback-demo 构造样本已随清理轮退役，形态由模板 SLOT 与 schema 承载）
-- 剩余：2026Q3/2026FY 披露后，对特变/移动/恒瑞之一做新报告，验收回顾章照抄 tripwire
-  原文 + 逐条 ✅/❌/⏳ + 归因 + review 子块落库
-
 ---
 
 ## 六、工作纪律（改代码前必读）
 
-1. **技能源只在 `financial-report-analysis/` 改**；用户级 skills 目录是部署副本，
+1. **技能源只在 `bo-financial-analyzer/` 改**；用户级 skills 目录是部署副本，
    由 `deploy.cmd`（robocopy /MIR）覆盖 —— **绝不要直接改部署副本，会被覆盖掉**
-2. **任何改动后先跑回归**：`python financial-report-analysis/tests/run_regression.py` 须 exit 0
+2. **任何改动后先跑回归**：`python bo-financial-analyzer/tests/run_regression.py` 须 exit 0
 3. **改 `calc.py` / `extraction-schema.md` / 任一 fixture 后，回归是强制的**
 4. **禁止为了让测试变绿而改 fixture 数值** —— 先确认是门禁改坏了还是样本期望值需调整
 5. 改完 → 跑 `deploy.cmd` → **新会话才生效**（技能列表在会话启动时加载）
@@ -568,7 +577,7 @@ N6 三处缺口全部复现（同根因、同绕过）；增量发现：
 ```bash
 # 1. 确认环境
 cd "D:/KimiCodeProject/Financial Report Analysis"
-python financial-report-analysis/tests/run_regression.py   # 应 252/252 通过
+python bo-financial-analyzer/tests/run_regression.py   # 应 257/257 通过
 
 # 2. 部署（如需让技能在当前机器生效）
 cmd //c deploy.cmd
@@ -603,3 +612,4 @@ cmd //c deploy.cmd
 | `supersede/v0.0.22_2026-10-01.md` | v0.0.22（长城·埃斯顿双报告复盘轮：三条新门禁 js-dup-decl/assert-trunc/empty-svg + s1 㗊四宫格 + 派发窗 7 代理 + 流程治理） |
 | `supersede/v0.0.23_2026-10-01.md` | v0.0.23（海康反馈轮：effline 标签避让、s1-grid4 机检、s7 汇总口径、四维表评价列纪律） |
 | `supersede/v0.0.24-v0.1.1_2026-10-03~09.md` | v0.0.24~v0.1.1（全库审计清理+四象限 schema 1.5 / 赢合反馈轮 deltaBars+svgclip / N4 fill→render 脚本化+schema 1.6 / v0.1.1 审计 20 项修复） |
+| `supersede/v0.1.6_2026-11-01.md` | v0.1.6（技能更名 Bo-FinancialAnalyzer：源目录/报告品牌/CI/部署路径同步，回归 252→257；发布前 README 全面校准、仓库转公开） |
