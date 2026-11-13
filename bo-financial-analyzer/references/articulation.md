@@ -56,19 +56,21 @@ updated: 2026-09-10
   境外资金汇率折算差、期末在途资金（银行未达账项）
 
 ### A2 未分配利润滚动
-- **公式**：期末未分配利润 = 期初 + 归母净利 − 提取盈余公积 − 现金分红（± 前期差错更正/其他权益变动）
+- **公式**：期末未分配利润 = 期初 + 归母净利 − 提取盈余公积 − 本期权益扣减分红（± 前期差错更正/其他权益变动）
 - **数据位置**：资产负债表「未分配利润」「盈余公积」两期 + 利润表归母净利
   + 所有者权益变动表「利润分配」各行 / 利润分配附注；
-  data.json: `statements.balance.retained_cur` / `surplus_reserve` / `dividend_paid`、
-  `statements.income.np_at`、`recon.A2_retained`
+  data.json: `statements.balance.retained_cur` / `surplus_reserve` / `dividend_declared`、
+  `statements.income.np_at`、`recon.A2_retained`。`dividend_declared` 是本期权益扣减，
+  不是期后拟派或现金流量表实付；旧底稿无此键时才兼容 `balance.dividend_paid`，A2 倒挤值必须降级 SKIP
 - **lhs / rhs**：`lhs = retained_cur.cur`；
-  `rhs = retained_cur.prev + np_at.cur − (surplus_reserve.cur − surplus_reserve.prev) − dividend_paid.cur`
+  `rhs = retained_cur.prev + np_at.cur − (surplus_reserve.cur − surplus_reserve.prev) − dividend_declared.cur`
+  （旧底稿无 `dividend_declared` 键时才兼容 `dividend_paid`）
 - **阈值**：偏差率 > **2%** 立案（calc.py 已内置 A2 校验，`check_retained_roll` 用同一等式，
   不平会给 WARN；recon 填了则按 closure 0.02 强判三态）
 - **异常含义**：等式不平本身就是信号——指向**前期差错更正、OCI 结转（其他综合收益转留存）、
   永续债/其他权益工具利息从留存中扣除、股份支付行权结转**；同时验证分红能力与利润是否匹配
   （高利润却常年不分红 + 大股东高质押 = redflags 黄色表「高利润低分红+高质押」组合，要警惕）
-- **合理解释**：中期已分红（`dividend_paid` 需含中期，只填年度分红必然不平）、
+- **合理解释**：中期已分红（`dividend_declared` 需含本期中期权益扣减，只填年末分红必然不平）、
   专项储备/安全生产费提取、同一控制下合并追溯调整期初、子公司向少数股东分红不影响本等式（别误加）
 
 ### A3 间接法现金流量调节表 ★全报告最大单项缺口，盈利质量第一解剖刀

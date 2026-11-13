@@ -1,0 +1,59 @@
+{
+  "source": "mx_finance_search_notice（东方财富公告检索）",
+  "retrieved_at": "2026-11-13",
+  "query": "南方乳业2026年三季报扣非、单季数据及上市公告书实际募资精确值",
+  "q3_report": {
+    "date": "2026-10-29",
+    "url": "https://pdf.dfcfw.com/pdf/H2_AN202610291831186014_1.pdf",
+    "unit": "元",
+    "audit": "未经审计",
+    "9m": {
+      "revenue_cur": 1370592912.02,
+      "revenue_prev": 1324139504.10,
+      "np_at_cur": 163163160.84,
+      "np_at_prev": 176129218.10,
+      "np_dt_cur": 159913386.24,
+      "np_dt_prev": 175871387.61,
+      "ocf_cur": 274781267.38,
+      "ocf_prev": 304524057.78
+    },
+    "q3_single": {
+      "revenue_cur": 474327936.19,
+      "revenue_prev": 470322786.72,
+      "np_at_cur": 60256133.43,
+      "np_at_prev": 53503048.27,
+      "np_dt_cur": 58889852.33,
+      "np_dt_prev": 53696577.08,
+      "ocf_cur": 67131742.66,
+      "ocf_prev": 95056391.56
+    },
+    "balance": {
+      "total_assets_cur": 3248870164.71,
+      "total_assets_prev": 2666643244.40,
+      "equity_at_cur": 2530892626.26,
+      "equity_at_prev": 1905933521.76,
+      "money_cap_cur": 1065223163.29,
+      "prepayment_cur": 86159655.28
+    },
+    "management_notes": "三季报称货币资金与资本公积增长源于IPO募资；短期借款清零；预付增长源于收储青贮饲料；2026年1-9月未实施利润分配，上年同期分红6000万元。",
+    "litigation_total": 18366676.66,
+    "litigation_to_net_assets": 0.0072,
+    "major_litigation": "报告期内未发生重大诉讼仲裁；一宗二审案件涉诉7,375,946.50元，截至2026-10-26尚未收到二审裁判文书。",
+    "investigation_penalty": "否",
+    "fund_occupancy_by_shareholders": "否"
+  },
+  "listing_announcement": {
+    "date": "2026-10-14",
+    "url": "https://pdf.dfcfw.com/pdf/H2_AN202610141830467542_1.pdf",
+    "unit": "元",
+    "gross_proceeds_actual": 499981478.85,
+    "issue_cost_actual_ex_vat": 36030656.76,
+    "net_proceeds_actual": 463950822.09,
+    "new_share_capital": 35185185.00,
+    "capital_reserve_added": 428765637.09,
+    "post_issue_shares": 185185185.00,
+    "issue_price": 14.21,
+    "post_issue_market_cap_at_issue_price": 2631481478.85,
+    "note": "实际募资净额4.639508亿元，区别于招股书预计净额4.636207亿元；实际发行费用3603.07万元，区别于概算3636.08万元。"
+  }
+}

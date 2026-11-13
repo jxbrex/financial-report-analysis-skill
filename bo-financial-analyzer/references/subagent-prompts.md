@@ -25,6 +25,8 @@
 资产负债表（货币资金/应收/存货/合同负债/商誉/在建工程/有息负债四科目/总资产/归母净资产），
 本期+上期+hist 最小 5 期（旧→新）；
 母公司：货币资金/未分配利润/其他应收款/投资收益/经营现金流净额（D 组勾稽用）。
+A2 原料须提取 `balance.dividend_declared`：取权益变动表本期归母股利扣减，本期未扣减为真实 0；
+期后拟派且本期未获批准的金额不计入，另在 note 说明，不与现金流实付或 A2 倒挤值混用。
 用 index.json 的「财务报告」章节定位切片。
 落盘骨架：`{"statements": {"balance": {}}, "parent_statements": {…}}`
 
@@ -52,11 +54,12 @@ ar_factoring`）/存货明细（`inventory_mix/inventory_provision`）/在建工
 用 index.json 的「附注」关键块定位切片。
 落盘骨架：`{"notes": {"ar_aging": …, "inventory_mix": …, "cip_projects": […], "goodwill_test": …}}`
 
-## ②b 损益与经营附注提取 → 压缩表回传（Phase 4 桥原料，不落盘）
+## ②b 损益与经营附注提取 → `_chunks/{stem}/notes_pl.json`
 
 提取【公司名】（【代码】）【报告期】：收入构成（分产品/分地区）/成本构成/研发费用明细/
 长短期借款结构（利率与期限分布）。这些是收入桥/净利桥/隐含利率的原料，
-无独立 schema 块——按「字段=值+出处」压缩表回传，供主线 Phase 4 算桥。
+无独立 schema 成品块——原料落 `notes.operating_extract` 作中间证据，主线审核后映射到
+正式字段；不得把未映射字段直接并入底稿。回传「字段=值+出处」压缩摘要供主线核对。
 
 ## ③ MD&A 断言与语气 → `_chunks/{stem}/assertions.json`
 
@@ -88,6 +91,7 @@ px=环比增减% 首期 null——Tushare stk_holdernumber 取数，v0.1.0 起 r
 date/event/verifies/src）；无重大事项则明确回传「已检查，无重大期后事项」。
 ② 同业：用 mx 工具取【所属申万行业】3~5 家可比公司同报告期关键指标
 （收入/归母净利/毛利率/净利率/周转率/权益乘数/ROE——v0.0.15 起扩杜邦四列），
-落 `peers` 块（src=取数接口+日期必填），注明币种与会计准则差异。
+落 `peers` 块（src=取数接口+日期必填），注明币种与会计准则差异。**peers 只放同业**，
+不要把本公司放入；render 会从 statements 自动加本公司行，重复提供会出现两行。
 ③ 机构预期：券商一致预期/目标价（若有，压缩表回传即可）。
 落盘骨架：`{"notes": {"subsequent_events": […]}, "peers": […]}`

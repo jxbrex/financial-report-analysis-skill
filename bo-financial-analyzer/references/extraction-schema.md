@@ -31,8 +31,8 @@
 |---|---|---|
 | `cur` | 本期值（亿元） | 必填，未披露填 null |
 | `prev` | 上期值 | 同上；招股书=上一完整年度 |
-| `hist` | 多期数组，**旧→新** | 选填；趋势图与 P1-13 五期分析消费，缺省至少 3 期。趋势科目（见三）hist 深度 5 期，同类型滚动：年报对 FY、半年报对 H1；末位=cur |
-| `hist_ye` | 各年 **12-31 年末**序列，**旧→新** | 选填，**仅半年报**给 balance 的 ar/inventory/payable/total_assets 填（平均余额比率的期初口径）；长度=hist，hist_ye[i]=第 i 期 H1 的上年末（12-31），末位=prev。年报不填（期初=hist 前一期天然正确）；缺此字段时 calc 退化为 hist 前一期（窗口错配，趋势不做） |
+| `hist` | 多期数组，**旧→新** | 选填；趋势图与 P1-13 五期分析消费，缺省至少 3 期。趋势科目（见三）hist 深度 5 期，同类型滚动：年报对 FY、半年报对 H1、季报对同一季度；末位=cur |
+| `hist_ye` | 各年 **12-31 年末**序列，**旧→新** | 选填，**半年报与季报**给 balance 的 ar/inventory/payable/total_assets 填（平均余额比率的期初口径）；长度=hist，hist_ye[i]=第 i 期报告所在年度的上年末（12-31），末位=prev。年报不填（期初=hist 前一期天然正确）；缺此字段时 calc 退化为 hist 前一期（窗口错配，趋势不做） |
 | `level` | **证据等级**：`disc` 披露 / `der` 推算 / `est` 估算 | P2-19：报告中的关键数字必须带对应徽章；`disc`=主表或附注直接披露，`der`=由两个以上披露值运算得到，`est`=含假设的测算。缺省视为 `disc` |
 | `src` | 出处：行号或「章节名+表名」 | **必填**，calc.py 校验非空 |
 | `note` | 原始口径/换算说明/异常备注 | 选填；`est` 必须在此写明假设 |
@@ -106,7 +106,8 @@
       "minority_eq":      { "cur": null, "prev": null, "src": "" },
       "retained_cur":     { "cur": null, "prev": null, "src": "", "note": "未分配利润（A2 滚动勾稽）" },
       "surplus_reserve":  { "cur": null, "prev": null, "src": "", "note": "盈余公积（A2 用其本期提取额）" },
-      "dividend_paid":    { "cur": null, "prev": null, "src": "", "note": "本年实际分配现金股利（归母股东口径）=「分配股利、利润或偿付利息支付的现金」− 利息实付（interest_paid）− 子公司支付给少数股东的股利；拆分不可得时置 null 并在 note 声明（v1.4 起支撑内生增长率）" },
+      "dividend_declared": { "cur": null, "prev": null, "src": "", "note": "A2 专用的本期权益扣减分红，取权益变动表归母股利扣减；期后拟派且本期未获批准的不得计入；本期未扣减为真实 0。旧底稿无此键时才兼容 balance.dividend_paid；若其为 A2 倒挤值则跳过 A2，禁止循环验证" },
+      "dividend_paid":    { "cur": null, "prev": null, "src": "", "note": "归母股东分红补充口径（存量底稿可能为宣告或实付，须由 src 辨明）；SGR 优先用 cashflow 实付拆分，只有 cashflow 无此键才回退本字段；cashflow.cur 显式 null 表示拆分不可得，不回退；禁止用 A2 倒挤值冒充真实分红" },
       "prepayment":       { "cur": null, "prev": null, "src": "", "note": "预付款项（采购侧资产；A4 收入-收现闭环不用此项，相关的是预收/合同负债）" },
       "fin_assets":       { "cur": null, "prev": null, "src": "", "note": "交易性金融资产+长期股权投资+其他非流动金融资产（A8 用）" },
       "payable_construction": { "cur": null, "prev": null, "src": "", "note": "应付工程设备款（A6 用，常未单列，可 null）" },
@@ -119,7 +120,8 @@
       "capex":       { "cur": null, "prev": null, "hist": [], "src": "", "note": "购建固定资产等支付的现金" },
       "dep_amort":   { "cur": null, "prev": null, "src": "", "note": "折旧+摊销（补充资料）" },
       "wage_cash":   { "cur": null, "prev": null, "src": "", "note": "支付给职工的现金（人效三维）" },
-      "interest_paid": { "cur": null, "prev": null, "src": "", "note": "分配股利利润或偿付利息支付的现金中的利息部分" }
+      "interest_paid": { "cur": null, "prev": null, "src": "", "note": "分配股利利润或偿付利息支付的现金中的利息部分" },
+      "dividend_paid": { "cur": null, "prev": null, "src": "", "note": "归母股东实付分红=分配股利利润或偿付利息支付的现金−interest_paid−子公司付少数股东股利；SGR 优先用本字段；只有 cashflow 无此键才回退 balance；本字段 cur 显式 null 表示拆分不可得，不回退，也不得用 A2 倒挤值冒充" }
     }
   },
 
@@ -159,6 +161,8 @@
     "subsequent_events": [ { "date": "", "event": "", "verifies": "", "src": "" } ],
     "shareholders": { "holder_num_cur": null, "holder_num_prev": null, "top10_changes": [],
                       "pledge_ratio": null, "src": "",
+                      "mgmt_changes_total": {"increase": null, "decrease": null, "src": "",
+                                             "note": "选填：董监高直接持股同口径合计，单位股；净额=increase−decrease，报告换算万股；缺字段不从股东名册倒推"},
                       "holder_ts": { "labels": [], "num": [], "px": [],
                                      "note": "v1.6 选填：户数时序（Tushare stk_holdernumber）——labels=期末日 YYYY-MM、num=户数（户，与 holder_num_cur 同单位同精度）、px=环比增减%（首期 null）；三数组等长；≥3 期才画 holders 图，缺块/不足则降级两期文字行" } },
     "capacity": [ { "product": "", "capacity": null, "output": null, "utilization": null, "src": "" } ]
@@ -186,7 +190,7 @@
       "non_main_rev_share": { "cur": null, "note": "(营业外收入+其他业务收入+投资收益+公允价值变动)÷营业收入（X33 收入结构口径；与 nonrecurring_share 的利润调整口径不同源，勿混）" },
       "ocf_to_liab": { "cur": null, "note": "OCF÷平均总负债（X6）；人话：照现在的造血能力，还清全部负债 ≈ 1/x 年" },
       "roic": { "cur": null, "note": "v1.4 投入资本回报率=NOPAT÷平均投入资本（有息负债+归母权益，期初取 prev；有息=null 按 0、全 null 才整块 null）：NOPAT=EBIT×(1−有效税率)，EBT≤0 时有效税率按 0（亏损期无税盾）；期间口径不年化（同 ROE 约定）；去杠杆口径——与含杠杆的 ROE 并列读，ROE−ROIC 差值大=回报靠杠杆撑；单期指标（上期需 T-2 投入资本，不可得）" },
-      "sustainable_growth": { "cur": null, "note": "v1.4 内生增长率=留存率×ROE（留存率=1−dividend_paid÷np_at）：成长质量的可持续性读数——不依赖外部融资时利润能支撑的增速；np_at≤0 或 dividend_paid 未提取时置 null（亏损期符号无解读意义）" }
+      "sustainable_growth": { "cur": null, "note": "v1.4 内生增长率=留存率×ROE（留存率=1−dividend_paid÷np_at）：成长质量的可持续性读数——不依赖外部融资时利润能支撑的增速；np_at≤0 或两处均未提取才置 null（cashflow 优先；仅 cashflow 无此键才回退 balance；显式 null 不回退；亏损期符号无解读意义）。est 输入可计算，但报告徽章继承 est，不得标成普通 der" }
     },
     "dupont": { "driver": "净利率|周转率|杠杆", "margin_effect": null, "turnover_effect": null,
                 "leverage_effect": null, "roe_product_cur": null, "roe_product_prev": null,
@@ -347,16 +351,30 @@
 }
 ```
 
+**户数结构兼容（v0.1.7）**：`holder_num_cur/prev` 标准形态为纯数值（户）；旧底稿的
+`value 对象`（如 `{"value":345863,"unit":"户"}`）由槽位层读取 value，单位仍按户换算万户。
+value 非数值时保持未知，不强行转换。
+
 **`source_md` 契约（v0.0.13）**：新报告指向 `scripts/md_clean.py` 产出的
 `{stem}.clean.md`（唯一工作副本；T8② 行号回核对其执行）；v0.0.13 前的存量 json 仍指
 原始 md——快照不回改，两种文件在 `reports/archive/原始报告/` 共存。
 
+**招股书期间与专属块（招股书首验）**：`meta.period` 取最近审计年度末，`meta.period_basis`
+写明主数据期；三表 `cur/prev/hist` 只放完整审计年度。审计截止日后的期间数据放
+`notes.operating_extract.ipo.reviewed_financials_*`（键名=`reviewed_financials_年份+期次`，如
+`2026h1`/`2027q1`；多块并存时按期间取最新），必须标注**审阅非审计**；比较期由该键推导：
+资产负债表对上年末，损益/现金流对上年同期。上市后实际经营与募资放同级
+`post_listing_validation`，标未审/验资来源，报告年份取公告日期。
+期后数据**不得混入**年度 `hist`，不得把半年与全年直接计算同比。发行方案、募投和发行前后股权分别放
+`ipo.issue_terms / use_of_proceeds_plan / use_of_proceeds_final / shareholding_pre_post`；
+计划拟募、招股书预计净募与上市验资实际净募分列，禁止互相覆盖。
+
 **趋势比率 hist 规则**（三、derived.ratios 骨架）：
 - 14 个趋势比率（roe/gross_margin/net_margin/net_cash_ratio/cash_to_sales/debt_to_assets/
   asset_turnover/equity_multiplier/dso/dio/dpo/ccc/dfl/dol）hist 为 **5 期同类型滚动**（年报对 FY、
-  半年报对 H1），旧→新；**末位必须等于 cur**（报告提取值）；prev = 倒数第 2 期
+  半年报对 H1、季报对同一季度），旧→新；**末位必须等于 cur**（报告提取值）；prev = 倒数第 2 期
 - avg 类比率（asset_turnover/dso/dio/dpo/ccc）首期无期初余额不可机复算，由 calc.py 跳过；
-  期初口径（上一年 12-31）与半年报 `hist_ye` 的填写/退化规则见二节叶子表 `hist_ye` 行
+  期初口径（上一年 12-31）与半年报/季报 `hist_ye` 的填写/退化规则见二节叶子表 `hist_ye` 行
 - 历史重述（如康得新 2019 追溯重述）致口径断裂时允许缺 hist 并在 note 说明，
   报告趋势降级两期呈现
 - 单期专用比率（short_debt_cover/incr_expense_eff/incr_sales_eff/nonrecurring_share/non_main_rev_share/ocf_to_liab）不序列化
@@ -386,10 +404,17 @@
 - `tripwire`：**条件化触发线，必须是 if-then 形态**（「若 X 连续两期……则 Y 成立」），
   **禁止无条件预测**——方向性判断的合法形态见 SKILL.md「何时不用」
 - `upper` / `upper_meaning` / `lower` / `lower_meaning`（T5，**选填但至少给一侧**）：
-  上下阈值带，形态 `毛利率 45.2% → >46% 证实提价逻辑 / <43% 成本承压`；阈值必须有依据
-  （历史中枢 / 同业水平 / 管理层指引），依据写进 `source` 或 `note`；确实无法数字化阈值的
-  指标允许只保留 `tripwire` 的 if-then 句式
-- `source`：数据来源；`badge ∈ disc/der/est`：读数证据等级，与报告徽章一致
+  沿用历史字段名，分别承载改善侧/风险侧观察值，**不要求 upper 的数值大于 lower**；形态
+  `毛利率 45.2% → >46% 证实提价逻辑 / <43% 成本承压`。阈值必须有依据（历史中枢 / 同业水平 /
+  管理层指引），依据写进 `source` 或 `note`；确实无法数字化阈值的指标允许只保留
+  `tripwire` 的 if-then 句式
+- `upper_op` / `lower_op`（v0.1.7，选填）：对应上述两侧的显示符号，只许 `<` 或 `>`，
+  **默认分别为** `>` / `<`，兼容旧底稿。高值风险型指标（如发出商品占比、减值计提、成本）
+  常需 `upper_op="<"`（回落为改善）与 `lower_op=">"`（突破为风险）；calc 对含义措辞与
+  实际符号冲突给 WARN，不自动改值，非法符号 FAIL
+- `source`：对外数据来源（如公司定期报告/公告/Tushare），不填 `clean L…` 等过程定位；
+  存量旧式定位在槽位层归一为「公司定期报告」并保留后续依据，历史底稿不回改；
+  `badge ∈ disc/der/est`：读数证据等级，与报告徽章一致
 - 下期回看（SKILL.md Phase 0 第 5 条）直接消费本块，逐条核对 `tripwire` 是否触发
 
 **`review` 子块（T6 冻结/归档语义）**：
@@ -400,10 +425,24 @@
   （可组合，须附一句依据）
 - 回看报告「上期跟踪回顾」章第一列必须**照抄原 `tripwire` 原文**，禁止美化改写
 
+**回看报告顶层 `review[]`**（v0.1.7）：本期分析新产生的回看工作数组，与写入上期底稿的
+`watchlist[].review` 子块不是同一层。每项含 `tripwire/verdict/actual/attribution`，
+`tripwire` 照抄上期原字段；render 据此机械生成兑现计数、徽章和复盘行。无旧报告时该数组
+缺省，回看章及导航整段删除。
+
 **`assertions[]` 字段说明**（P1-12 断言验证表落库）：
 `verdict ∈ 通过/不成立/无法验证`；判「不成立」**必须**填 `evidence`（反证数字）；
 判「无法验证」**必须**填 `missing`（缺什么数据）。calc.py 会机械校验这三条规则。
 判「不成立」的断言应同时在 `signals` 落一条 `type=assertion` 的条目。
+
+**`big_moves[]` 大动解释字段**（v0.1.7，选填）：每项含 `subject/change/explanation/source`，
+分别为变动科目、幅度、管理层解释与对外来源；只填实际提取到的结构化条目。缺省或空数组
+只表示未形成结构化清单，报告不得据此宣称全部大动均已解释；上期指引兑现行仍由分析师判断。
+
+**`expectations[]` 预期对照字段**（v0.1.7）：每项可含 `institution/date/src`，以及按目标年度命名的
+`forecast_rev_YYYY` / `forecast_np_YYYY`（数值、单位亿元）。仅年报对 `meta.period` 所对应年度
+计算预测中位数与偏离度；无日期或披露日后的预测不得混入。半年报/季报的累计实际不与全年
+预测直接比较；无同年度预期时偏离度写「不适用」。取数窗口仍按 data-sources.md 执行。
 
 ## 四、recon 块的填写规则（配合 articulation.md）
 

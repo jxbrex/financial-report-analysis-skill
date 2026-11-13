@@ -246,7 +246,7 @@ def build_index(lines):
             sections.append({"name": s, "line": i + 1})
             seen_hk.add(s)
         for k in BLOCK_KEYS:
-            if k not in blocks and s.startswith(k) and len(s) <= 60:
+            if k not in blocks and re.fullmatch(rf"(?:[0-9一二三四五六七八九十]+[、.]\s*)?{re.escape(k)}(?:\s*（[^）]*）)?", s):
                 blocks[k] = i + 1
     return {"sections": sections, "blocks": blocks}
 

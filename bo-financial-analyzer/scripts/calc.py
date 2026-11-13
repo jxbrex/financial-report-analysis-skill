@@ -41,7 +41,7 @@ for _s in (sys.stdout, sys.stderr):
 
 from calc_common import (FAIL, WARN, OK, SKIP, Report, num, val, rel_dev,
                          tol_bridge, RATIO_HIST_SPECS, build_ratio_calcs,
-                         ratio_hist_series)
+                         ratio_hist_series, watch_ops, compute_interest_arrears)
 from calc_dupont import check_dupont, check_dupont_dt, check_dupont5y
 from calc_evidence import check_cycle_evidence, check_threshold_check, check_peers, compute_segment_quadrant
 from calc_risk import check_risk_models, check_stress, check_cash_ts
@@ -146,7 +146,7 @@ def check_structure(data, rep):
             elif abs(nums[-1] - float(cur)) > max(0.005 * abs(float(cur)), 0.005):
                 bad_hist += 1
                 rep.add(FAIL, "hist", f"{loc}.hist 末位 {nums[-1]} ≠ cur {cur}（hist 必须旧→新且以本期收尾）")
-        # hist_ye（半年报平均余额比率的期初口径）：末位必须 = prev（本期期初）
+        # hist_ye（半年报/季报平均余额比率的年初期初口径）：末位必须 = prev（本期期初）
         hye = node.get("hist_ye")
         prev = node.get("prev")
         if isinstance(hye, list) and hye:
@@ -248,7 +248,7 @@ def check_balance_identity(data, rep):
 
 
 def check_retained_roll(data, rep):
-    """A2 未分配利润滚动：期末 = 期初 + 归母净利 − 提取盈余公积 − 分红。"""
+    """A2 未分配利润滚动：期末 = 期初 + 归母净利 − 提取盈余公积 − 本期权益扣减分红。"""
     b = lambda f, k="cur": val(data, "statements", "balance", f, key=k)
     cur, prev = b("retained_cur"), b("retained_cur", "prev")
     np_at = val(data, "statements", "income", "np_at")
@@ -259,7 +259,13 @@ def check_retained_roll(data, rep):
     s_cur, s_prev = b("surplus_reserve"), b("surplus_reserve", "prev")
     if s_cur is not None and s_prev is not None:
         surplus_draw = s_cur - s_prev
-    div = b("dividend_paid") or 0.0
+    declared = b("dividend_declared")
+    legacy = data.get("statements", {}).get("balance", {}).get("dividend_paid", {})
+    legacy_source = f"{legacy.get('src', '')} {legacy.get('note', '')}"
+    if declared is None and "倒挤" in legacy_source:
+        rep.add(SKIP, "A2", "旧底稿分红为A2倒挤值，缺独立权益扣减证据，不作循环验证")
+        return
+    div = (declared if declared is not None else b("dividend_paid")) or 0.0
     rhs = prev + np_at - (surplus_draw or 0.0) - div
     dev = abs(cur - rhs) / max(abs(cur), 1e-9)
     if dev <= 0.02:
@@ -678,20 +684,57 @@ def check_assertions(data, rep):
         rep.add(OK, "assertions", f"{len(arr)} 条断言结构合法（其中判「不成立」{n_bad} 条，应已进 signals）")
 
 
+def check_watchlist(data, rep):
+    """阈值措辞与实际显示符号冲突时提醒；字段名不代表数值大小，也不自动改值。"""
+    items = data.get("watchlist")
+    if not items:
+        rep.add(SKIP, "watchlist-direction", "watchlist 未填，方向检查不适用")
+        return
+    fails0 = rep.counts()[FAIL]
+    conflicts = []
+    low_cues = ("<", "≤", "回落", "低于", "降至", "跌破", "下方")
+    high_cues = (">", "≥", "高于", "超过", "突破", "反弹", "上升", "上行",
+                 "增加", "拉长", "恶化", "升破")
+    for i, item in enumerate(items):
+        if not isinstance(item, dict):
+            rep.add(FAIL, "watchlist-direction", f"watchlist[{i}] 不是对象")
+            continue
+        name = item.get("indicator") or f"第{i + 1}项"
+        for field in ("upper_op", "lower_op"):
+            if item.get(field) is not None and item[field] not in ("<", ">"):
+                rep.add(FAIL, "watchlist-direction", f"「{name}」{field}={item[field]!r}，只许 < 或 >")
+        for field, op, meaning in zip(("upper", "lower"), watch_ops(item),
+                                      ("upper_meaning", "lower_meaning")):
+            text = str(item.get(meaning) or "")
+            low = any(cue in text for cue in low_cues)
+            high = any(cue in text for cue in high_cues)
+            expected = "<" if low and not high else ">" if high and not low else None
+            if expected and op != expected:
+                conflicts.append(f"「{name}」{field} 当前为 {op}，含义「{text}」更似 {expected}；"
+                                 f"请核对 {field}_op，不自动改值")
+    for msg in conflicts:
+        rep.add(WARN, "watchlist-direction", msg)
+    if not conflicts and rep.counts()[FAIL] == fails0:
+        rep.add(OK, "watchlist-direction", f"{len(items)} 项阈值方向与含义一致（无语义词时不猜方向）")
+
+
 # --min-recon auto 校准表（v0.1.2）：A 股三档见 report-types.md；港股半年报 8 = 蜜雪 2026H1
 # 实测结构性上限（无直接法收现 A4/B1、无存货增加额附注 B2、无在建工程科目 B3、无母公司
 # 单体报表 D 组）——13 是 A 股披露假设，港股照套会把合法缺披露误升 FAIL。
 # v0.1.3：港股年报 12 = 阿里巴巴 2026FY 实测上限——年报比半年报多出 B4（商誉附注年度披露）
 # 与 D 组 4/5（附注 30 母公司简明财务资料，S-X 4-08(e)(3) 披露），仍缺 A4/B1/B2/B3/D3。
+# v0.1.7：A 股季报下限 4 = 移动/宁德/恒瑞三例实际可执行 4~7 的最低值，仅拦截明显漏做；
 # 未实证组合不入表；auto 查不到时退回 WARN 态并提示显式给数。
-AUTO_MIN_RECON = {("A股", "年报"): 15, ("A股", "半年报"): 13, ("A股", "季报"): 8,
-                  ("港股", "半年报"): 8, ("港股", "年报"): 12}
+# A 股招股书下限 14 = 南方乳业 2025FY 首验实际可执行数（B2/B3缺完整流量、B4无商誉），
+# 仅拦截明显漏做，不是披露质量目标。
+AUTO_MIN_RECON = {("A股", "年报"): 15, ("A股", "半年报"): 13, ("A股", "季报"): 4,
+                  ("A股", "招股书"): 14, ("港股", "半年报"): 8, ("港股", "年报"): 12}
 
 
 def check_recon_coverage(data, rep, min_recon=None):
     """recon 覆盖率：非空时统计已执行的等式，提醒未做项（缺数合法，漏做不可）。
     min_recon（--min-recon）给定时未达标由 WARN 升 FAIL——建议阈值见 report-types.md
-    （年报 ≥15/17、半年报 ≥13、季报 ≥8）；recon 为空仍 SKIP（无法区分不适用与漏做）。"""
+    （年报 ≥15/17、半年报 ≥13、季报 ≥4）；recon 为空仍 SKIP（无法区分不适用与漏做）。"""
     recon = data.get("recon") or {}
     if not recon:
         rep.add(SKIP, "recon-coverage", "recon 为空，覆盖率不适用")
@@ -713,8 +756,16 @@ def check_interest_arrears(data, rep):
     """应付未付利息（A7 副算，P1-15）：为正说明计提利息未实际支付。"""
     node = (data.get("derived") or {}).get("interest_arrears")
     amt = num(node.get("cur")) if isinstance(node, dict) else num(node)
+    expected = compute_interest_arrears(data)
+    if expected is None:
+        rep.add(SKIP if amt is None else WARN, "interest_arrears",
+                "缺利息费用或实际付息，无法复算" if amt is not None else "未填（缺 interest_paid 时可跳过）")
+        return
     if amt is None:
-        rep.add(SKIP, "interest_arrears", "未填（缺 interest_paid 时可跳过）")
+        rep.add(WARN, "interest_arrears", f"可复算为 {expected:+.4f} 亿但 derived 未填——请用 --fill 补齐")
+        return
+    if abs(amt - expected) > max(0.00005, abs(expected) * 0.0001):
+        rep.add(FAIL, "interest_arrears", f"填 {amt:+.4f} 亿，复算 {expected:+.4f} 亿——差额不符")
         return
     if amt > 0:
         rep.add(WARN, "interest_arrears", f"应付未付利息 +{amt:.2f} 亿（已计提未付）——单期可能是付息日错期，"
@@ -736,8 +787,8 @@ def main():
                          "并产出 {stem}.fillsheet.md 填充速查表；判断字段（桥/rev_factors/recon/notes）不动")
     ap.add_argument("--min-recon", type=lambda s: s if s == "auto" else int(s),
                     default=None, metavar="N|auto",
-                    help="recon 已判定等式条数下限（A 股：年报 15、半年报 13、季报 8；港股半年报 8）；"
-                         "auto = 按 meta.market+report_type 查校准表（v0.1.2，未知组合退回 WARN 态）；"
+                    help="recon 已判定等式条数下限（A 股：年报 15、半年报 13、季报 4；港股半年报 8）；"
+                         "auto = 按主上市市场前缀+report_type 查校准表（未知组合退回 WARN 态）；"
                          "未达标时 recon-coverage 由 WARN 升 FAIL（v0.0.17，任务 5）")
     args = ap.parse_args()
 
@@ -784,7 +835,10 @@ def main():
     check_recon(data, rep)
     min_recon = args.min_recon
     if min_recon == "auto":
-        _mk = ((data.get("meta") or {}).get("market"), (data.get("meta") or {}).get("report_type"))
+        _meta = data.get("meta") or {}
+        _market = _meta.get("market") or ""
+        _market = next((m for m in ("A股", "港股", "美股") if _market.startswith(m)), _market)
+        _mk = (_market, _meta.get("report_type"))
         min_recon = AUTO_MIN_RECON.get(_mk)
         if min_recon is None:
             print(f"🟡 --min-recon auto：校准表无「{_mk[0] or '?'}/{_mk[1] or '?'}」组合，"
@@ -796,6 +850,7 @@ def main():
     check_segment_quadrant(data, rep)
     check_sankey(data, rep)
     check_assertions(data, rep)
+    check_watchlist(data, rep)
     check_interest_arrears(data, rep)
     check_signals(data, rep)
 

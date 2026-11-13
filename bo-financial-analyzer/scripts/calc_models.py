@@ -8,7 +8,7 @@
 import json
 import pathlib
 
-from calc_common import build_ratio_calcs, ratio_hist_series, RATIO_HIST_SPECS
+from calc_common import build_ratio_calcs, ratio_hist_series, RATIO_HIST_SPECS, compute_interest_arrears
 from calc_dupont import compute_dupont, compute_dupont_dt, compute_dupont5y
 from calc_evidence import compute_cycle_evidence, compute_threshold_check, compute_segment_quadrant
 from calc_risk import compute_altman, compute_ohlson, compute_stress, compute_cash_ts
@@ -129,4 +129,13 @@ def fill_derived(data):
             # 无 rev 的部分预填块（Q3 cum_prev 种子）保留不吞
             der["sankey"] = None
             n += 1
+    ia = compute_interest_arrears(data)
+    old_ia = der.get("interest_arrears")
+    old_ia = old_ia if isinstance(old_ia, dict) else {}
+    if ia is not None:
+        der["interest_arrears"] = _filled({"cur": R4(ia)}, old_ia, "note")
+        n += 1
+    elif old_ia.get("cur") is not None:
+        der["interest_arrears"] = _filled({"cur": None}, old_ia, "note", "src", "level")
+        n += 1
     return n

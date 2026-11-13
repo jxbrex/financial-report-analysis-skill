@@ -29,6 +29,13 @@ def num(x):
     return None
 
 
+def watch_ops(item):
+    """watchlist 改善侧/风险侧的显示符号；旧底稿缺省保持 >upper / <lower。"""
+    upper = item.get("upper_op") or ">"
+    lower = item.get("lower_op") or "<"
+    return upper if upper in ("<", ">") else ">", lower if lower in ("<", ">") else "<"
+
+
 def leaf(d, *path):
     cur = d
     for p in path:
@@ -43,6 +50,13 @@ def val(d, *path, key="cur"):
     if isinstance(node, dict):
         return num(node.get(key))
     return num(node)
+
+
+def compute_interest_arrears(data):
+    """应付未付利息：利息费用−实际付息；任一输入缺失均返回 None。"""
+    exp = val(data, "statements", "income", "interest_exp")
+    paid = val(data, "statements", "cashflow", "interest_paid")
+    return None if exp is None or paid is None else exp - paid
 
 
 def rel_dev(a, b):
@@ -142,7 +156,11 @@ def build_ratio_calcs(data):
     roic = None if (nopat is None or ic is None) else safe_div(nopat, avg(ic, ic_p))
     # N2 内生增长率（v0.0.17）：留存率×ROE；np_at≤0（亏损期符号无解读意义）或分红未提取 → None；
     # roe 取下方 out 的唯一定义处复算值（不另写公式），故 sgr 在 out 构建后计算并入
+    # 分红优先现金流拆分；仅当 cashflow 从未出现该字段才回退 balance，明确 null 不回退
+    dv_node = leaf(data, "statements", "cashflow", "dividend_paid")
     dv = S("cashflow", "dividend_paid")
+    if not isinstance(dv_node, dict) or "cur" not in dv_node:
+        dv = S("balance", "dividend_paid")
 
     # 14 项趋势比率委托 ratio_hist_expect（当期取值字典含上期余额）——
     # 全脚本比率公式只此一份，杜绝双份维护漂移
@@ -213,7 +231,7 @@ def series_of(data, sec, field):
 
 
 def series_of_ye(data, sec, field):
-    """科目年末序列（hist_ye）：半年报平均余额比率的期初口径（各年 12-31）。
+    """科目年末序列（hist_ye）：半年报/季报平均余额比率的年初期初口径（各年 12-31）。
     末位=prev（cur 期的期初）。无 hist_ye 返回 []（年报形态，期初退化为 hist 前一期）。"""
     node = leaf(data, "statements", sec, field) or {}
     return [num(x) for x in node.get("hist_ye") or []]
@@ -311,8 +329,17 @@ def ratio_hist_series(data, name):
 # ─── 期间标签与批量比对助手（v0.0.15，被杜邦/证据/风险三族共用） ───
 
 # 期间标签倒推：同类型滚动（年报对 FY、半年报对 H1……），period 的 MMDD 与 report_type 必须一致
-_PERIOD_SUFFIX = {"年报": ("1231", ""), "半年报": ("0630", "H1"),
+_PERIOD_SUFFIX = {"年报": ("1231", ""), "招股书": ("1231", ""), "半年报": ("0630", "H1"),
                   "一季报": ("0331", "Q1"), "三季报": ("0930", "Q3")}
+
+
+def canonical_report_type(meta):
+    """对外通用「季报」按报告期末日映射为内部细分类型；其他类型原样返回。"""
+    rt = meta.get("report_type")
+    if rt == "季报":
+        period = str(meta.get("period") or "")
+        return {"0331": "一季报", "0930": "三季报"}.get(period[4:8])
+    return rt
 
 
 def hist_periods(meta, n):
@@ -320,7 +347,7 @@ def hist_periods(meta, n):
     v0.1.3：年报不再限定 12-31 月结——非日历年财年（港股/美股常见，阿里 3-31 财年止实证）
     用 FY 形态标签（FY2022=截至 2022-03-31 财年）；半年报/季报仍按 MMDD 卡死。"""
     period = str(meta.get("period") or "")
-    rt = meta.get("report_type")
+    rt = canonical_report_type(meta)
     if rt not in _PERIOD_SUFFIX or len(period) != 8 or not period.isdigit():
         return None
     md, suffix = _PERIOD_SUFFIX[rt]

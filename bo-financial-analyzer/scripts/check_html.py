@@ -59,6 +59,10 @@ calc.py 只校验数据层（data.json）；报告 HTML 层此前没有任何机
                   （v0.1.4 资金流向桑基图卡）——负载唯一出处 calc_slots.build_sankey_slot，
                   逐键复算比对（含 minus/plus 路由数组与明细行）；无槽且无 svg#sankey
                   → 不适用；有静态 svg 而无 JS 槽 → 一次性呈现层补图豁免（宁德 2026Q3 先例）。
+  25. text-contrast [FAIL]（v0.1.7）活动模板 muted/warn 小字 WCAG AA 对比度；
+                  faint 装饰色不得用于文字。只检查固定 token，不是通用 CSS 审计器。
+  26. svg-a11y [FAIL]（v0.1.7）非装饰 SVG 须有 role=img 与非空可访问名称；
+                  aria-labelledby 引用须存在，aria-hidden=true 的装饰图豁免。
 
 呈现文本族（check_html_text.py，本入口调用）：
   2. bare-number  [WARN] ★ 关键数字没有挂证据等级徽章（.badge.disc/der/est）。
@@ -144,7 +148,7 @@ from check_html_text import (  # noqa: F401
     check_ocf_bridge_shape, check_figtitle_attribution, check_inspection_verdict,
     check_internal_ref, check_srcline_dup, check_s1_v15_shape, check_percentile_map,
     check_recon_label, check_decimal_places, check_assertion_counts,
-    check_gap_declaration)
+    check_gap_declaration, check_text_contrast)
 
 
 ICON = {FAIL: "🔴", WARN: "🟡", OK: "✅"}
@@ -250,6 +254,36 @@ def check_hardrules(raw, css_ranges, rep):
     if len(details) > DETAIL_CAP:
         details = details[:DETAIL_CAP] + [f"…另有 {len(details) - DETAIL_CAP} 处"]
     rep.add(FAIL, "hardrule", f"违反模板硬规则 {len(viol)} 处", details)
+
+
+def check_svg_accessibility(raw, rep):
+    """非装饰 SVG 必须有 role=img 与非空名称；aria-labelledby 引用须真实存在。"""
+    def attr(attrs, name):
+        m = re.search(rf'\b{name}\s*=\s*["\']([^"\']*)["\']', attrs, re.I)
+        return m.group(1) if m else None
+
+    ids = set(re.findall(r'\bid\s*=\s*["\']([^"\']+)["\']', raw))
+    bad, total = [], 0
+    for m in re.finditer(r"<svg\b([^>]*)>", raw, re.I):
+        attrs = m.group(1)
+        if (attr(attrs, "aria-hidden") or "").lower() == "true":
+            continue
+        total += 1
+        name = attr(attrs, "id") or f"第 {line_of(raw, m.start())} 行"
+        if attr(attrs, "role") != "img":
+            bad.append(f"{name} 缺 role=\"img\"")
+        label = attr(attrs, "aria-label")
+        refs = (attr(attrs, "aria-labelledby") or "").split()
+        has_refs = bool(refs) and all(x in ids for x in refs)
+        if not (label and label.strip()) and not has_refs:
+            bad.append(f"{name} 缺非空 aria-label 或有效 aria-labelledby")
+        missing = [x for x in refs if x not in ids]
+        if missing:
+            bad.append(f"{name} 的 aria-labelledby 引用不存在：{', '.join(missing)}")
+    if bad:
+        rep.add(FAIL, "svg-a11y", f"非装饰 SVG 可访问名称/角色问题 {len(bad)} 处", bad[:DETAIL_CAP])
+    else:
+        rep.add(OK, "svg-a11y", f"{total} 张非装饰 SVG 均有 role=img 与有效可访问名称")
 
 
 # ─────────────────────────── 5. 必备要素 ───────────────────────────
@@ -680,6 +714,8 @@ def main():
     check_bare_numbers(body, rep, args.verbose, secs)
     check_srcline(body, rep, args.verbose, secs)
     check_hardrules(raw, css_ranges, rep)
+    check_text_contrast(raw, rep)
+    check_svg_accessibility(raw, rep)
     check_js_dup_decl(raw, script_ranges, rep)
     check_required(body, rep)
     check_structure(body, rep, secs)

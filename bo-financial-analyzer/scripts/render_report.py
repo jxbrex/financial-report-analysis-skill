@@ -11,7 +11,7 @@
 分析师填孔后 check_html 占位符门禁清零方可交付（流程语义与手写时代一致）。
 
 锚自检：每条锚必须唯一命中，否则打印断锚清单 exit 1（模板改版漂移时脚本显式报错，
-不静默错填）。一期覆盖半年报路径；年报专属（Q4 卡/review 回看卡）保留模板原样残留孔。
+不静默错填）。review 卡与 Q4 读数已机械填充；Q4 标题和转固核对仍由分析师判断。
 """
 from __future__ import annotations
 
@@ -103,8 +103,8 @@ def _rebuild(cells, edits, row=""):
             continue
         e = edits[i]
         text, cls, mode = (e + ("span",))[:3] if isinstance(e, tuple) else (e, None, "span")
-        if cls and mode == "tdclass":
-            out.append(f'<td class="{cls}">{text}</td>')
+        if mode == "tdclass":
+            out.append(f'<td class="{cls}">{text}</td>' if cls else f"<td>{text}</td>")
         elif cls:
             out.append(f'<td{attrs}><span class="{cls}">{text}</span></td>')
         else:
@@ -150,9 +150,25 @@ def fill_meta(r, m):
 
 def drop_review(r, data):
     if data.get("review"):
-        return  # 回看模式二期填充；有 review 块时保留模板原样残留孔
+        return
     r.re1(r" <!-- ══ 上期跟踪回顾.*?\n </div>\n\n(?= <!-- ══ 核心结论)", "", "drop.review")
     r.sub1(' <a href="#review" title="回溯 · 上期跟踪回顾">回顾</a>\n', "", "drop.toc_review")
+
+
+def fill_review(r, review):
+    rows = review.get("rows") or []
+    if not rows:
+        return
+    r.sub1('<div class="v">{{m}}/{{n}}</div>',
+           f'<div class="v">{review["met"]}/{review["total"]}</div>', "review.count")
+    r.sub1('<div class="r">✅ 兑现 {{a}} · ❌ 未兑现 {{b}} · ⏳ 待观察 {{c}}</div>',
+           f'<div class="r">{review["counts_txt"]}</div>', "review.counts")
+    gen = "\n ".join(
+        f'<tr><td>{item["tripwire"]}</td><td class="txt"><span class="badge {item["cls"]}">'
+        f'{item["verdict"]}</span></td><td class="txt">{item["note"]}</td></tr>'
+        for item in rows)
+    r.re1(r'<tr><td>\{\{上期清单第 1 条.*?</tr>\n <tr><td>\{\{上期清单第 2 条.*?</tr>\n'
+          r' <tr><td>\{\{上期清单第 3 条.*?</tr>', gen, "review.rows")
 
 
 def fill_s1(r, s1, m):
@@ -181,13 +197,18 @@ def fill_s1(r, s1, m):
                 row = s1["table4"][idx]
 
                 def _fn4(tr, row=row):
+                    cells = _cells(tr)
                     edits = {}
+                    if row.get("badge") and '<span class="badge ' in cells[0][2]:
+                        edits[0] = re.sub(r'<span class="badge [^"]+">[^<]*</span>',
+                                          f'<span class="badge {row["badge"]}">{_BADGE_TXT[row["badge"]]}</span>',
+                                          cells[0][2], count=1)
                     if "{{" in tr:
                         edits[1] = row["cur"]
                         if "<td>{{}}</td>" in tr or re.search(r"<td>\{\{", tr):
                             edits[2] = row["prev"]
                         edits[3] = (row["delta"], row["cls"] or None)
-                    return _rebuild(_cells(tr), edits, tr)
+                    return _rebuild(cells, edits, tr)
                 tbody = _row_replace(tbody, anchor, _fn4, r, f"s1.t4.{anchor}")
             seg = seg[:i] + tbody + seg[j:]
 
@@ -311,6 +332,18 @@ def fill_s1(r, s1, m):
                 tbody = _row_replace(tbody, label, _fnp, r, f"s1.pctile.{label}")
             return seg[:i] + tbody + seg[j:]
         r.in_sect("s1", _pct)
+    else:
+        r.re1(r' <div class="card">\n <div class="figtitle">\{\{结论式：五年模式叙事.*?'
+              r'\n </div>\n </div>\n <div class="fig">',
+              ' <div class="card"><div class="figtitle">累计归因与因子分位降级：'
+              '同口径平均余额序列不足三年</div><p class="lede">现有披露未形成足够的同口径历史序列，'
+              '平均余额周转还缺相应期初；不虚构历史，不用两期点冒充累计趋势。'
+              '本期杜邦归因与下期条件化跟踪仍保留。</p><div class="srcline">'
+              '数据来源：公司各期报告 · 累计归因/分位因同口径序列不足而不适用'
+              '</div></div>\n </div>\n <div class="fig">', "s1.d5_drop")
+        r.re1(r' <div class="takeaway">修复路径：.*?</div>',
+              ' <div class="takeaway">修复路径：累计分位证据不足，不做回到历史中枢的估算；'
+              '只保留当期归因与下期条件化跟踪。</div>', "s1.d5_drop_repair")
 
     # 周期定位判词行
     stage = m.get("cycle_stage")
@@ -389,7 +422,7 @@ def fill_s2(r, s2):
         if tk.get("q4_na"):
             tbody = _row_replace(
                 tbody, "Q4 集中度",
-                lambda tr: ('<tr><td>Q4 集中度</td><td>—（半年报不适用）</td><td>≤40%</td>'
+                lambda tr: (f'<tr><td>Q4 集中度</td><td>{tk.get("q4_na_label") or "—（不适用）"}</td><td>≤40%</td>'
                             f'<td>—</td><td class="txt">—</td></tr>'),
                 r, "s2.tk.q4")
         return seg[:i] + tbody + seg[j:]
@@ -420,6 +453,15 @@ def fill_s3(r, s3):
         r.re1(r'<div class="figtitle">\{\{结论式：经营现金流净额（OCF）.*?\}\}</div>',
               '<div class="figtitle">OCF 调节桥未披露：现金流量表补充资料缺失，'
               '本卡降级为声明（间接法调节明细不可得）</div>', "s3.ocf_drop_title")
+    if s3.get("seg_drop"):
+        # 分部上期金额未披露时 SEG_BRIDGE 合法为空：删空图换声明，保留总收入端点行
+        r.re1(r' <svg id="segbridge".*?</svg>\n', "", "s3.seg_drop_svg")
+        r.re1(r'<div class="figtitle">\{\{结论式：Δ收入归因.*?\}\}</div>',
+              '<div class="figtitle">分部收入变动桥未绘制：分部增减缺少可比金额，'
+              '本卡仅保留总收入变动</div>', "s3.seg_drop_title")
+        r.re1(r' <div class="srcline">数据来源：\{\{报告 MD&A 产销量表 / 分部收入附注\}\}.*?</div>\n',
+              ' <div class="srcline">数据来源：定期报告合并利润表 · 分部增减缺少可比金额，'
+              '不绘制收入桥</div>\n', "s3.seg_drop_src")
     if s3.get("brends_seg"):
         r.re1(r'<div class="brends">基期收入 .*?</div>',
               f'<div class="brends">{s3["brends_seg"]}</div>', "s3.brends_seg")
@@ -464,8 +506,35 @@ def fill_s3(r, s3):
         return seg[:i] + tbody + seg[j:]
     r.in_sect("s3", _s3)
 
+    q4_rows = s3.get("q4_rows") or []
+    if q4_rows:
+        def _s3q4(seg):
+            t = _table_seg(seg, "<tr><th>检验项</th>", r, "s3.q4")
+            if not t:
+                return seg
+            i, j = t
+            tbody = seg[i:j]
+            for row in q4_rows:
+                def _fnq4(tr, row=row):
+                    cells = _cells(tr)
+                    return _rebuild(cells, {1: row["read"],
+                                            3: f'<span class="badge {row["cls"]}">{row["verdict"]}</span>'}, tr)
+                tbody = _row_replace(tbody, row["item"], _fnq4, r, f"s3.q4.{row['item']}")
+            return seg[:i] + tbody + seg[j:]
+        r.in_sect("s3", _s3q4)
+
 
 def fill_s4(r, s4):
+    big_rows = s4.get("big_moves") or []
+    if big_rows:
+        gen = "\n ".join(f'<tr><td>{x["subject"]}</td><td>{x["change"]}</td>'
+                          f'<td class="txt">{x["explanation"]}</td></tr>' for x in big_rows)
+        r.re1(r'<tr><td>\{\{科目\}\}</td><td>\{\{%\}\}</td>.*?</tr>',
+              gen, "s4.big_moves")
+    if s4.get("big_src"):
+        r.re1(r'<div class="srcline">数字大动而文字不解释.*?</div>',
+              f'<div class="srcline">数据来源：{s4["big_src"]} · 数字大动而文字不解释，本身就是信号</div>',
+              "s4.big_src")
     rows = s4.get("rows") or []
     if rows:
         gen = "\n ".join(
@@ -489,9 +558,19 @@ def fill_s4(r, s4):
 
 def fill_s5(r, s5):
     if s5.get("cip_empty"):
+        balance = s5.get("cip_balance")
+        if balance:
+            label = f"在建工程（期末余额{balance:.2f}亿，无项目附注）"
+            verdict = '<span class="badge y">⚠️ 观察</span>'
+        elif balance == 0:
+            label = "在建工程（期末余额为零，无项目附注）"
+            verdict = '<span class="badge g">✅ 无挂账</span>'
+        else:
+            label = "在建工程（期末余额未披露，无项目附注）"
+            verdict = '<span class="badge y">⚠️ 观察</span>'
         r.re1(r'<tr><td>\{\{项目名\}\}.*?</tr>',
-              '<tr><td>在建工程（期末余额为零，无项目附注）</td><td>—</td><td>—</td><td>—</td>'
-              '<td>—</td><td class="txt"><span class="badge g">✅ 无挂账</span></td></tr>',
+              f'<tr><td>{label}</td><td>—</td><td>—</td><td>—</td>'
+              f'<td>—</td><td class="txt">{verdict}</td></tr>',
               "s5.cip_empty")
     elif s5.get("cip_rows"):
         gen = "\n ".join(
@@ -516,6 +595,17 @@ def fill_s6(r, s6):
     if rows:
         r.re1(r'<tr><td>\{\{\}\}</td><td>\{\{%\}\}</td><td>\{\{%或「零质押」\}\}</td>.*?</tr>',
               "\n ".join(rows), "s6.top10")
+    mgmt = s6.get("mgmt")
+    if mgmt:
+        change = (f'<span class="{mgmt["cls"]}">{mgmt["text"]}</span>' if mgmt["cls"]
+                  else mgmt["text"])
+        r.re1(r'<tr><td>高管增减持（合计）</td>.*?</tr>',
+              f'<tr><td>高管增减持（合计）</td><td>—</td><td>—</td><td class="txt">{change}</td></tr>',
+              "s6.mgmt")
+        if mgmt.get("src"):
+            r.re1(r'<div class="srcline">数据来源：Tushare top10_holders.*?</div>',
+                  f'<div class="srcline">数据来源：{mgmt["src"]}；Tushare stk_holdertrade 可交叉核对 · '
+                  '质押率&gt;70% 徽章化并进 <a href="#s2">风险清单</a></div>', "s6.mgmt_src")
     hd = s6.get("holders") or {}
     if not hd.get("has_ts"):
         r.re1(r' <div class="fig">\n <div class="figtitle">\{\{结论式：户数走向一句话.*?\n </div>\n',
@@ -528,7 +618,7 @@ def fill_s6(r, s6):
 
 
 def fill_s7(r, s7, m):
-    # 预期对照表：实际列机械，预期/偏离留孔
+    # 预期对照表：actual/预测中位数/偏离均走槽位；旧槽缺行时保留实际列兼容路径
     def _s7e(seg):
         t = _table_seg(seg, "<tr><th>指标</th><th>实际</th><th>一致预期</th>", r, "s7.expect")
         if not t:
@@ -536,7 +626,16 @@ def fill_s7(r, s7, m):
         i, j = t
         tbody = seg[i:j]
         pl = m.get("period_label") or ""
+        exp_rows = {row["key"]: row for row in s7.get("expect_rows") or []}
         for anchor, key in (("营业收入（亿元）", "rev"), ("归母净利（亿元）", "np")):
+            row = exp_rows.get(key)
+            if row:
+                actual = f"{row['actual']}（{pl}）" if row["actual"] != "—" else "—"
+                edits = {1: actual, 2: row["forecast"],
+                         3: (row["delta"], row["cls"] or None, "tdclass")}
+                tbody = _row_replace(tbody, anchor, lambda tr, edits=edits: _rebuild(_cells(tr), edits, tr),
+                                     r, f"s7.exp.{key}")
+                continue
             v = s7.get("expect_actual", {}).get(key)
             if v:
                 tbody = _row_replace(
@@ -544,6 +643,9 @@ def fill_s7(r, s7, m):
                     lambda tr, v=v: _rebuild(_cells(tr), {1: f"{v}（{pl}）"}, tr), r, f"s7.exp.{key}")
         return seg[:i] + tbody + seg[j:]
     r.in_sect("s7", _s7e)
+    if s7.get("expect_src"):
+        r.re1(r'<div class="srcline">数据来源：Tushare report_rc.*?</div>',
+              f'<div class="srcline">数据来源：{s7["expect_src"]}</div>', "s7.expect_src")
 
     # peers 表：本公司行 + 同业行 + 对比行整表生成
     pr = s7.get("peers") or {}
@@ -604,11 +706,12 @@ def fill_s8(r, s8):
     for c in s8.get("cards") or []:
         badge = c.get("badge") or "disc"
         badge = badge if badge in ("disc", "der", "est") else "disc"  # 进 class 属性，白名单兜底
-        cards.append(f'<div class="card">\n <div class="figtitle">{_E(c["indicator"])}</div>\n'
-                     f' <div class="wv">{_E(c["current"])} <span class="badge {badge}">'
+        # 四个文本槽均已由 calc_slots._TXT 转义，wb 还含合法实体；此处再 _E 会双重转义
+        cards.append(f'<div class="card">\n <div class="figtitle">{c["indicator"]}</div>\n'
+                     f' <div class="wv">{c["current"]} <span class="badge {badge}">'
                      f'{_BADGE_TXT.get(badge, "披露")}</span></div>\n'
-                     f' <div class="wb">{_E(c["wb"])}</div>\n'
-                     f' <div class="srcline">数据来源：{_E(c["srcline"])}</div>\n </div>')
+                     f' <div class="wb">{c["wb"]}</div>\n'
+                     f' <div class="srcline">数据来源：{c["srcline"]}</div>\n </div>')
     if not cards:
         return
     inner = "\n ".join(cards[:4])
@@ -626,9 +729,84 @@ def fill_s8(r, s8):
     r.in_sect("s8", _s8)
 
 
+def fill_ipo(r, ipo, report_type):
+    if report_type != "招股书":
+        r.re1(r" <!-- ══ 招股书专章.*?\n </div>\n\n(?= <!-- ══ S1 财务总览)", "", "drop.ipo")
+        r.sub1(" {{IPO_NAV}}\n", "", "drop.ipo_nav")
+        return
+    r.sub1(" {{IPO_NAV}}", ' <a href="#ipo" title="IPO 发行、募投与期后核验">发行</a>', "ipo.nav")
+    for key, field in (("IPO_ISSUE_TITLE", "issue_title"), ("IPO_PLAN_TITLE", "plan_title"),
+                       ("IPO_INTERIM_TITLE", "interim_title"), ("IPO_EQUITY_TITLE", "equity_title"),
+                       ("IPO_INTERIM_NOTE", "interim_note"), ("IPO_POST_NOTE", "post_note")):
+        r.sub1("{{" + key + "}}", _E(ipo.get(field) or "未披露"), "ipo." + field)
+
+    def _gap(n, text):
+        return f'<tr><td colspan="{n}" class="txt">{_E(text)}</td></tr>'
+    issue_rows = [
+        f'<tr><td>{_E(x.get("item"))}</td><td>{_E(x.get("value"))} '
+        f'<span class="badge disc">披露</span></td><td class="txt">{_E(x.get("note"))}</td></tr>'
+        for x in ipo.get("issue_rows") or []
+    ]
+    plan_rows = [
+        f'<tr><td>{_E(x.get("name"))}</td><td>{_E(x.get("total"))} '
+        f'<span class="badge disc">披露</span></td><td>{_E(x.get("raised"))}</td>'
+        f'<td class="txt">{_E(x.get("period"))}</td><td class="txt">{_E(x.get("capacity"))}；'
+        f'{_E(x.get("benefit"))}</td></tr>'
+        for x in ipo.get("plan_rows") or []
+    ]
+    interim_rows = [
+        f'<tr><td>{_E(x.get("item"))}</td><td>{_E(x.get("cur"))} '
+        f'<span class="badge disc">审阅</span></td><td>{_E(x.get("prev"))}</td>'
+        f'<td>{_E(x.get("change"))} <span class="badge der">推算</span></td>'
+        f'<td class="txt">{_E(x.get("scope"))}</td></tr>'
+        for x in ipo.get("interim_rows") or []
+    ]
+    equity_rows = [
+        f'<tr><td>{_E(x.get("holder"))}</td><td>{_E(x.get("pre"))} '
+        f'<span class="badge disc">披露</span></td><td>{_E(x.get("post"))}</td></tr>'
+        for x in ipo.get("equity_rows") or []
+    ]
+    post_rows = [
+        f'<tr><td>{_E(x.get("item"))}</td><td>{_E(x.get("cur"))}</td><td>{_E(x.get("prev"))}</td>'
+        f'<td>{_E(x.get("change"))}</td><td class="txt"><span class="badge disc">{_E(x.get("scope"))}</span></td></tr>'
+        for x in ipo.get("post_rows") or []
+    ]
+    for key, rows, n, gap in (
+        ("IPO_ISSUE_ROWS", issue_rows, 3, "发行方案未结构化披露"),
+        ("IPO_PLAN_ROWS", plan_rows, 5, "募投项目未结构化披露"),
+        ("IPO_INTERIM_ROWS", interim_rows, 5, "期后审阅数据未结构化披露"),
+        ("IPO_EQUITY_ROWS", equity_rows, 3, "发行前后股权未结构化披露"),
+        ("IPO_POST_ROWS", post_rows, 5, "无上市后实际数据，不作兑现核验"),
+    ):
+        r.sub1("{{" + key + "}}", "\n".join(rows) if rows else _gap(n, gap), "ipo." + key)
+
+
+def drop_ipo_inapplicable(r):
+    r.re1(r' <div class="sect">\n <div class="secthead" id="s6">.*?\n </div>\n\n(?= <!-- ══ S7)',
+          ' <div class="sect">\n <div class="secthead" id="s6"><span class="no">06</span>'
+          '<span class="t">股东结构</span><span class="line"></span><span class="tag">发行前后股权 · 招股书适用</span></div>\n'
+          ' <div class="card"><div class="figtitle">股东户数与二级市场增减持：上市前不适用</div>'
+          '<p class="lede">发行前后股权、控股股东与实控人控制比例见 <a href="#ipo">招股书专章</a>；'
+          '不以招股书静态股东名册冒充定期报告的户数或交易趋势。</p>'
+          '<div class="srcline">数据来源：招股说明书股本结构章节 · 股东户数/高管交易模块裁剪</div></div>\n </div>\n\n',
+          "drop.ipo_s6")
+    def _s7(seg):
+        out = re.sub(r' <div class="card">\n <div class="figtitle">\{\{结论式：vs 一致预期.*?'
+                     r'\n </div>\n(?= <!-- ◆ peers)',
+                     ' <div class="card"><div class="figtitle">机构一致预期：上市前不适用</div>'
+                     '<p class="lede">招股书无上市前券商一致预期；若已有上市后实际值，预测兑现核验见 '
+                     '<a href="#ipo">招股书专章</a>，不与年度主表混算。</p>'
+                     '<div class="srcline">数据来源：招股说明书及上市后公告 · 机构预期模块裁剪</div></div>\n',
+                     seg, count=1, flags=re.S)
+        if out == seg:
+            r.miss.append("drop.ipo_expect: 一致预期卡锚未命中")
+        return out
+    r.in_sect("s7", _s7)
+
+
 def drop_q4(r, report_type):
     if report_type == "年报":
-        return  # 年报 Q4 卡二期填充
+        return  # 年报保留 Q4 卡，读数由 fill_s3 机械填充
     r.re1(r' <!-- ◆ Q4 卡（年报专属）：.*?\n <div class="card">\n <div class="figtitle">\{\{结论式：Q4 五项检验.*?\n </div>\n',
           "", "drop.q4")
 
@@ -683,6 +861,7 @@ def main():
     m = slots["meta"]
     r = R(TEMPLATE.read_text(encoding="utf-8"))
     drop_review(r, data)
+    fill_review(r, slots.get("review") or {})
     drop_q4(r, m.get("report_type") or "")
     fill_js(r, slots["js"])
     fill_meta(r, m)
@@ -694,6 +873,9 @@ def main():
     fill_s6(r, slots.get("s6") or {})
     fill_s7(r, slots.get("s7") or {}, m)
     fill_s8(r, slots.get("s8") or {})
+    fill_ipo(r, slots.get("ipo") or {}, m.get("report_type") or "")
+    if m.get("report_type") == "招股书":
+        drop_ipo_inapplicable(r)
 
     if r.miss:
         print("🔴 断锚清单（模板结构与锚配置不符，未产出）：")

@@ -1,6 +1,6 @@
 # HANDOFF · 交接文档
 
-> 版本 **0.1.6** · 截至 2026-11-01 · 本文档面向「下一个接手这个项目的人/AI 会话」
+> 版本 **0.1.7（发布流程）** · 截至 2026-11-13 · 本文档面向「下一个接手这个项目的人/AI 会话」
 > 仓库：https://github.com/jxbrex/financial-report-analysis-skill（**公开**）
 > 部署：`C:/Users/rexji/.agents/skills/bo-financial-analyzer/`（由 `deploy.cmd` 镜像）
 
@@ -54,7 +54,7 @@ bo-financial-analyzer/
 │   │                             锚定填充断锚 exit 1；判断槽残留 {{}} 孔，一期半年报路径
 │   ├── check_html.py           #   Phase 8 报告层门禁入口（结构/硬规则族 + 主流程）
 │   ├── check_html_common.py    #   报告机检共享助手
-│   ├── check_html_text.py      #   呈现文本族 15 条检查（v0.0.19 拆出；PCTILE_LABEL 居此）
+│   ├── check_html_text.py      #   呈现文本族 16 条检查（含 v0.1.7 text-contrast；PCTILE_LABEL 居此）
 │   ├── check_html_t8.py        #   T8 数字回验整族（①级笔误检测 + hist_pool 豁免 + ②级行号回核 + v0.0.22 assert-trunc 断言填充截断）
 │   ├── check_render.py         #   渲染测量门禁（headless Chrome/Edge，--png 分片截图；v0.0.22 起 empty-svg 关键 SVG 非空检测）
 │   ├── gate.py                 #   三道门禁单入口
@@ -66,10 +66,11 @@ bo-financial-analyzer/
 │   ├── kangdexin_2018.json     #   造假样本（应命中；含 parent_statements + D 组判定）
 │   ├── vanke_2026h1.json       #   连亏地产样本（v0.0.17 固化：扣非双版/双驱动真实触发）
 │   ├── wanhua_2026h1.json      #   周期股样本（v0.0.18 固化：双驱动第二样本/ROIC·SGR 首验/白描分位锚点）
+│   ├── qingyue_2022.json       #   新准则造假样本（v0.1.7 N5：处罚×收入KAM×少计减值，A2权益扣减口径）
 │   ├── md_clean_synth.md       #   md_clean 合成金标准（自包含，四类病理；v0.0.17 起不再依赖原始 md）
 │   ├── md_clean_synth2.md      #   第二合成金标准（v0.1.5：表题行误并/分隔行污染两形态）
 │   ├── t8_demo.html            #   T8 数字回验验收样例（改错版由回归运行时改数生成）
-│   └── run_regression.py       #   唯一回归入口：257 条断言 + check_html/T8/渲染冒烟 + 构造用例
+│   └── run_regression.py       #   唯一回归入口：402 条断言 + check_html/T8/渲染冒烟 + 构造用例
 ```
 
 ### 三道机器门禁 + 一条回归
@@ -88,9 +89,9 @@ bo-financial-analyzer/
    FAIL 规则（**internal-ref** 内部引用禁词 / **srcline-dup** 拼接纪律 / **percentile-map**
    分位白描映射）；v0.0.19 起加 **assertion-count**（FAIL：断言 figtitle 三态计数
    a+b+c=N 且与表内徽章/底稿 assertions 一致）与 **recon-label**（勾稽三态旧长标签）、
-   **decimal-places**（可见数字 ≥3 位小数）两条 WARN；v0.0.21 起加 **gap-declaration**（FAIL：s4 ❓ 断言须进「数据缺口声明」行）；v0.0.22 起加 **js-dup-decl**（FAIL：数据槽顶层 const 重复声明——JS 团灭防线）与 **assert-trunc**（FAIL：断言 text/evidence 填充截断，--json）。exit 0 才允许交付。
-3. **`python tests/run_regression.py`** —— 任何改动后必跑，**257 条断言**全绿才算没改坏
-   （含 calc 四例 + check_html 冒烟 + T8 数字回验 + md_clean 合成样本 + 构造用例
+   **decimal-places**（可见数字 ≥3 位小数）两条 WARN；v0.0.21 起加 **gap-declaration**（FAIL：s4 ❓ 断言须进「数据缺口声明」行）；v0.0.22 起加 **js-dup-decl**（FAIL：数据槽顶层 const 重复声明——JS 团灭防线）与 **assert-trunc**（FAIL：断言 text/evidence 填充截断，--json）；v0.1.7 起加 **text-contrast**（FAIL：muted/warn 小字对比度 <4.5:1 或 faint 装饰色用于文字）与 **svg-a11y**（FAIL：非装饰 SVG 缺 role=img、可访问名称或有效引用）。exit 0 才允许交付。
+3. **`python tests/run_regression.py`** —— 任何改动后必跑，**402 条断言**全绿才算没改坏
+   （含 calc 五例 + check_html 冒烟 + T8 数字回验 + md_clean 合成样本 + 构造用例
    + fillsheet JS 槽形态冒烟）。
 
 ---
@@ -281,206 +282,16 @@ bo-financial-analyzer/
 
 | # | 局限 | 影响 |
 |---|---|---|
-| 1 | ~~港股全流程未跑过~~ **港股半年报已首验**（蜜雪 2026H1）+ **港股年报已首验**（阿里巴巴 09988 2026FY，2026-10-10 三道门禁绿；US GAAP 准则、人民币呈报、3-31 财年止） | 残留：美股全流程未验证；render 年报二期（见 11） |
-| 2 | ~~**季报/招股书两种报告类型未实测**~~ **季报已首验**（中国移动 600941 2026Q3，2026-10-21 三道门禁绿 + 已视觉验收；report-types.md 季报裁剪规则总体符实） | 残留：招股书未实测；季报路径三处技能缺口见 N6 |
-| 3 | **industry-profiles.md 医药健康已首验**（恒瑞 2026Q3：研发资本化/license-out/创新药结构调焦真实落地） | 其余七类仍零实测：工程建造合同资产、农业生物资产、经销商压货三条件等待样本 |
+| 1 | ~~港股全流程未跑过~~ **港股半年报已首验**（蜜雪 2026H1）+ **港股年报已首验**（阿里巴巴 09988 2026FY，2026-10-10 三道门禁绿；US GAAP 准则、人民币呈报、3-31 财年止） | 当前范围仅 A 股/H 股；render 年报二期（见 11） |
+| 2 | **季报与招股书均已首验**（移动2026Q3；南方乳业2025FY招股书，2026-11-13三道门禁绿+视觉验收） | 报告类型首验清零；仍需更多公司检验阈值与披露差异 |
+| 3 | **医药健康、工程建造、农业养殖与渠道零售已首验**（恒瑞、中国化学、牧原、南方乳业；经销商压货三条件未同向成立，渠道库存缺口明示） | 其余四类仍需样本；渠道零售需继续获取终端动销证据 |
 | 4 | ~~**P1-17 四象限未端到端跑过**~~ **已首验**（阿里 2026FY：四分部 delta 口径全字段复算自洽；港股分部无成本披露→EBITA 倒挤成本口径适配，calc 两条口径 WARN 预期内） | 断言验证/周期定位/费用ROI 此前已多份实战 |
-| 5 | ~~**回看机制已落、真实数据实测待披露季**~~ **已三验**（移动/宁德/恒瑞 H1→Q3；恒瑞 2026Q3：❌3+⏳2，review 子块按冻结纪律落库） | 阿里 watchlist 待 FY2027 中报；特变/恒瑞待 2026FY 持续验证 |
-| 6 | 康得新 **A5/B2/B3 三条等式因附注未披露而无法执行** | 换个披露更全的造假样本可验证这三条 |
+| 5 | ~~**回看机制已落、真实数据实测待披露季**~~ **已四验**（移动/宁德/恒瑞 H1→Q3；牧原 2025FY→2026Q3：✅1+❌1+⏳2，review 子块按冻结纪律落库） | 阿里 watchlist 待 FY2027 中报；牧原/特变/恒瑞待 2026FY 持续验证 |
+| 6 | 康得新 A5/B2/B3 缺披露；清越已补验 A5/B3，B2 仍缺本期生产入库额 | B2 仍需披露完整存货增加额的样本；不以倒挤冒充验证 |
 | 7 | **存量旧版式报告不追溯**（纪律 7） | 新门禁对旧报告的 WARN/FAIL 全属预期：T8① 噪音、internal-ref、percentile-map、gap-declaration、js-dup-decl/assert-trunc/empty-svg（长城事故样本留档）同类 |
 | 8 | **比率趋势数据依赖 tushare 可得性** | 世界线披露晚于库更新时当期 hist 取报告提取值；重述公司历史期口径断裂，趋势缺 hist 合法（schema 血泪 7） |
 | 9 | **移动 json 的 src 行号与现行 md 不匹配**（T8②级 104/107 miss） | v0.0.4 底稿行号体系；下份移动报告重建底稿时按新 schema 修复 |
 | 10 | **70% 升档阈值真实触发仍待样本**（长城无息 87% 达标但杠杆非主驱动、升档正确地未触发） | 首验场景：首份「杠杆为主驱动+无息>70%+|ΔDFL|<0.1」公司 |
-| 11 | **render 二期（年报专属路径未脚本化）**：Q4 卡/review 回看卡填充、预期对照表（schema expectations 块）、高管增减持块、big_moves 大动表提取——一期半年报路径全覆盖 | 阿里 2026FY 实测：245 残留孔手工填充（含 Q4 卡 5 行/期后徽章列 7 处/big_moves/高管增减持/预期对照），可行但最重单点；二期回测样本可继续用腾讯 00700 或直接基于阿里 fillsheet 沉淀 |
-
----
-
-## 四·九、当前未发布轮：v0.1.2（2026-10-10，蜜雪港股首跑反馈轮）
-
-> 触发：蜜雪轮记账的五项技能缺口（运维速查末条①②⑤⑥ + 效率治理）用户定案「都修吧」。
-> 专项修订轮，回归 177→189 全绿（+12 构造断言）。
-
-### 修订（全部落地）
-
-1. **OCF 桥起点标签参数化**：calc_slots `brends_ocf` 与模板端点柱标签由硬编码「净利润」
-   改为取 `derived.ocf_bridge` 首行科目名（剥括号注）——港股间接法起点「税前利润」自动正确，
-   A 股五例 fixture 首行均「净利润」，产出逐字不变（金标准零 diff）
-2. **`--min-recon auto`**：calc.py 加 AUTO_MIN_RECON 校准表（meta.market+report_type 查表：
-   A 股 15/13/8，港股半年报 8=蜜雪实测结构性上限；未知组合退回 WARN 态并提示显式给数），
-   gate.py 透传去 type=int 限制
-3. **check_html 两缺口**：s1-v15-shape 分位表降级声明行豁免（「分位不可用/分位需/分位卡降级」
-   行不计缺白描）；s2-shape 数徽章前整表剔除四线贴线考核卡（表头「检测线」锚）——
-   该卡固定 3 枚 badge g 是赢合/海康/蜜雪三份现行版式的共同误报源
-4. **md_clean 港式索引**：HK_SECTION_NAMES 精确整行匹配 + 去重取首现（港式章节无编号、
-   以页眉形式整篇重复）；BLOCK_KEYS 补港式主表/附注（中期簡明前缀两态）——蜜雪 md 实测
-   索引 0 → 11 节/5 块
-5. **SKILL.md 流程治理**：方法库阅读按 report_type 预裁剪（港美股路径 A 股专属条目跳读，
-   蜜雪全量重读 27.2min 实证）；派发窗改 run_in_background 后台派发（前台阻塞 8min 实证）；
-   Phase 7.5 指令改 `--min-recon auto`
-
-### 验证
-
-- 回归 177→189 全绿（+12：OCF 标签 fill/模板契约、auto 三方向、分位豁免正负、
-  四线卡剔除正负、港式 md 索引三断言）；
-- 蜜雪真实产物端到端：check_html WARN 3→1（s1-v15/s2-shape 转 OK，仅剩 bare-number
-  人工确认类），calc `--min-recon auto` 正确识别「港股半年报 → 8」；
-- 赢合/海康（现行版式）s2-shape 误报同步消除；茅台黄金样本（v0.0.4 旧版式）两条规则
-  输出与基线逐字一致（「未找到章节」WARN，零口径漂移）。
-
----
-
-## 四·十、当前未发布轮：v0.1.3（2026-10-10，阿里港股年报首验反馈轮）
-
-> 触发：阿里巴巴 09988 2026FY 年报首验（三道门禁绿）撞出的四处技能缺口
-> （局限 12/13/14 + md_clean US GAAP 章节名），用户定案「顺手修掉」。
-> 报告轮+修订轮合并执行，回归 189 全绿（零新增断言——全部为存量路径修复）。
-
-### 修订（全部落地）
-
-1. **非日历年财年支持**（hist_periods 盲区三连锁，局限 12）：
-   ①calc_common `hist_periods` 年报不再卡 12-31 月结，非日历年财年产 FY 形态标签
-   （FY2022=截至 2022-03-31；A 股 12-31 路径零漂移）；②calc_slots `_period_label` 加
-   report_type 参数，年报一律 FY（修阿里 period=20260331 误标「2026Q1」致 render
-   文件名错+五年表头锚退化崩溃）；③`_js_slots` 趋势图 labels 改取最长 hist 序列期数
-   （修「cash_ts 4 期截断 rev 5 期」隐患），空 labels 致 empty-svg 团灭链路根除
-2. **T8② 单位换算补百万元档**（×1e2，局限 13）：港股/美股年报百万元列报（阿里实证
-   ②级 207/233 miss → 修后 28 miss，命中率 88%）
-3. **stackH 钳位撞车去重**（模板 JS，局限 14）：负向窄段同钳左缘且同奇偶层时标签
-   重叠——钳位后同层同 x 登记去重右移 92px（阿里产物补丁移植入模板）
-4. **分位白描 X/N**（calc_slots `_pctile_label` + check_html_text `check_percentile_map`
-   同步感知窗口期数）：n<5 窗口按 X=N−v·(N−1) 白描（阿里四年窗口 0.6667→「2/4」）；
-   n=5 走 PCTILE_LABEL 契约锁映射不变；窗口期数本地推导不落库（幂等纪律，回归零漂移）
-5. **`--min-recon auto` 补（港股，年报）=12**（阿里实测上限：D 组 4/5+B4 多出半年报）
-6. **md_clean 补 US GAAP 港式章节名**（「合併利潤表/合併資產負債表/合併現金流量表」等
-   合併*前缀族 + 業務概覽/公司治理報告等年报章节名）——阿里 md 索引 4 节/1 块 → 11 节/6 块，
-   与蜜雪半年报齐平；clean.md 重跑逐字一致（幂等）
-7. **data-sources.md 补港美股取数兜底链**（妙想积分场景）：妙想两条通道额度独立——
-   mx_* MCP 与 skill 直连（mx_data.py / mkapi2 端点 + MX_APIKEY）互不占用，MCP 耗尽先切
-   skill 直连（阿里轮实测港股查询成功）；再兜底 yahoo_finance（`get_financial_statement`
-   年度三表近四年，双重上市标的同账同源；PDD 毛利率/阿里 FY2023 现金流实证有效）
-8. **T8② 千位符数字解析修复**（ponytail 复核时构造断言抓出）：`PLAIN_NUM_RE` 匹配
-   「131,530」整体但 `float()` 拒逗号静默跳过——②级回核对财报千位符数字整体失明
-   （A 股同病）；改去逗号再解析，一行修复
-
-### 验证
-
-- ponytail-review 复核（用户触发）：Must fix 无；Should fix 两条（缺防回退断言/分位窗口
-  期数三处内联重复）已当场修掉——顺带抓出第 8 条千位符失明（构造断言的价值实证）；
-- 回归 189→**199 全绿**（+10 条 v0.1.3 构造断言：FY 标签三方向/分位 X:N 双口径/百万档
-  命中与不误报/auto 港股年报=12/labels 最长序列+前置 null 对齐）；
-- 阿里端到端临时复验（不碰成品）：fill 自动产 p_start=FY2023/分位「2/4」/labels 五期；
-  render 直接产正确文件名与期次标签、stackH 补丁随模板产出；
-- 阿里成品报告在修订后门禁链下三道全绿（成品分位 badge 同步 1/4 口径）；
-- ②级 miss 残留 28/233 逐条确认：全部为 der 推算值（原文本无此数）+ 范围型 src 超
-  ±2 行号窗——两类均属可解释，候选项「②级跳过 level=der 叶子」记入后续评估。
-
----
-
-## 四·十一、当前未发布轮：v0.1.4（2026-10-22，桑基图卡模板化）
-
-> 触发：宁德 2026Q3 季报轮，用户拿来别家工具的桑基图要求「我们的报告也要有」——
-> 先按纪律 6 以一次性呈现层补图落地成品，经用户 6 轮视觉迭代定稿形态
-> （盒式节点/费用盒 2×2/支流汇入主流/现金流横条双段同规格居中/第三段按体量/汇流平滑），
-> 用户定案「写到 skill 里去」。回归 189→**209 全绿**（+13 条桑基断言 + 复审轮
-> 补 7 条：茅台 gap<0 分流形态 render 重放 3 条 + 桑基降级构造用例 4 条）。
-
-### 修订（全部落地）
-
-1. **derived.sankey 选填块（schema 1.7）**：20 科目 + period_type（本期/单季差额）+
-   单季差额 cum/cum_prev 卡口；不适用降级（rev/毛利/营业利润/净利/归母/OCF 非正、
-   少数股东为负、Q3 缺上一累计期原料）整块 null 合法；income 加三选填叶
-   （other_income/disposal_income/op_profit，桑基明细行原料，①b 派单模板同步补三项选提）
-2. **calc_sankey.py 新模块**：compute_sankey（公式唯一定义处，fill/check 共用）+
-   route_items 符号路由（减项/加项数组唯一出处，JS 只画不判）+ check_sankey 复算比对
-   （容差复用 tol_bridge）；缺省只 SKIP 不 WARN（茅台 WARN==0 硬锚不破）。
-   **坑（回归抓出）**：减值/营业外/少数股东未单列的公司（茅台/康得新实证）一度被误降级——
-   未单列减值按 0 计、少数股东按恒等式差额推算、营业外净额按 0 计
-3. **模板 drawSankey + S3 插卡**（净利桥后、OCF 桥前）：盒式节点/流带∝金额/双比例尺
-   （S=264/rev、S2=min(S,54/gross)——高毛利率公司毛利扇出溢出防御）/加项支流汇入主流
-   /②段净调整负=分流·正=双源汇入（净利盒+净调整绿盒→横条）/③段盒高∝体量
-   （k=106/max(capex,|fcf|)）+FCF 按符号变色；降级=render s3.sankey_drop 删 svg 换声明卡
-4. **JS 槽链**：calc_slots.build_sankey_slot（负载唯一出处，_js_slots 与 check_html 共用）
-   + fill_js 元组注册 + fillsheet SANKEY 段 + srcline 机械槽（口径随 period_type 变化）
-5. **机检**：check_html 规则 24 sankey-slot（FAIL，仅 --json；无槽无图→不适用，
-   静态 svg 无槽→一次性补图豁免）；check_render KEY_SVG_IDS 加 sankey
-6. **Q3 单季差额通用取数**（data-sources 二·五 从 Q4 专属升级；tushare 上一累计期字段
-   实测对照：biz_tax_surchg/oth_income/operate_profit/c_pay_acq_const_fiolta；
-   资产处置收益 tushare 无字段走原文）
-7. **文档登记**：factor-analysis.md 新六·五节、report-types 三类型适用声明、
-   SKILL.md Phase 1/2/4/8 登记 + 版本 0.1.4
-
-### 验证
-
-- 回归 189→**202 全绿**：calc 阳性⑨（桑基改值必 exit 1）+ check_html 阳性⑫⑬
-  （槽正确判 OK/改值必 FAIL）+ 赢合 render 重放（fillsheet 逐字锁 golden 仅多 SANKEY 段、
-  断锚 exit 0、check_html 仅 placeholder FAIL、check_render 0 问题）；
-- 幂等金标准连锁：茅台/康得新/万华 fixture 同步落 sankey 块（可算公司都该有块），
-  万科连亏样本合法无块（降级 SKIP）；
-- 宁德端到端预验（临时副本，不碰成品）：手画 25 数与 compute_sankey 复算逐位一致，
-  破坏测试双卡口同时命中；
-- 赢合产物渲染画出**双源汇入分支**（净调整 +6.45 为正）与**小 capex 盒高塌缩**（0.28 亿）——
-  两分支非宁德形态，属新增覆盖；
-- 模板 JS 运行时验证：node shim 全脚本跑通（grossH 漏声明 ReferenceError 实证被抓，
-  该 bug 曾致 holders 图空白）；
-- **ponytail-review 复审（2026-10-22 用户触发，发现已当场修复）**：①单季差额口径下
-  其他损益明细行误从 cum 子块取数（cum 只有 20 个短键）→ 明细行全丢，修为 cur 读
-  statements、prev 读 cum_prev；②加项盒明细行无上限（4 明细+残差=5 行溢出 58px 盒），
-  槽侧封顶 4 行；③drawSankey 双源汇入分支横条带厚度误用 ocf 口径（应 np 口径）+
-  三处流带落点封边 cap 越界细条；④fill 幂等盲区：已计算的 sankey 块遭遇降级形态
-  （转亏）时旧块残留不降——fill 现置 null（无 rev 的部分预填种子块保留不吞）。
-
----
-
-## 四·十二、当前未发布轮：v0.1.5（2026-10-22，ponytail-audit 全技能审计修复轮）
-
-> 触发：ponytail-audit 全技能审计（6 只读子代理逐行深读约 7k 行脚本+模板+回归，48 条原始发现，
-> 主代理逐条复核取证后定案 20 条），用户定案修 1–19（第 20 条精简打包不修）。
-> 执行：三批 coder 并行修脚本（按文件所有权划分，不许碰回归文件）+ 一批集中写断言。
-> 回归 209→**252 全绿**（+43 条构造断言，三条破坏测试实证「改坏必红」）。
-
-### 修订（19 条全部落地，按审计编号）
-
-1. **md_clean 两处碎行误并**（生产实证 500+ 处）：is_frag 排除 `^单位[:：]` 表题行
-   （万科「| 单位：元 | 项目 |」表题成列名）；并上行分支加分隔行守卫（万华股东名断行进分隔行）。
-   新增 tests/md_clean_synth2.md 自包含金标准锁两形态
-2. **filter-then-zip 跨期错配**（cash_ts + cycle_evidence）：ocf/np/capex 不再各自过滤 null 再按位置
-   配对——原始索引对齐，缺期该期置 None；周期证据 yoy 同改 + GM 线独立成块（门槛=三线均 <2 期才 None）
-3. **T8① 双盲区**：PLAIN_NUM_RE 认全角减号 −（①②两级消费点归一化；存量报告 196 处 −数字此前
-   脱离比对）+ is_pct 认 pct 词边界（模板法定「±x.xpct」形态此前误路由亿元池）
-4. **三处合法形态崩管道**：dupont_dt 裸数字节点 isinstance 守卫 / render 效应比 None 写
-   「效应比不适用（三效应≈0）」/ fillsheet 桥 delta 非数值写「—」
-5. **sum_bridge 非 dict** → return (None, n) 走「不完整」路径（不再静默跳过致 calc 放行、--fill 崩栈）
-6. **check_structure cur=null 脱钩 FAIL**（仅 hist 非空判，src 批注形态误伤 10 节点已收窄——见速查①）
-7. **render 转义缺口**：fill_meta/peers 名/s8 卡面过 _E（html.escape），badge 进 class 白名单
-   （disc/der/est）；文件名拼接保持原文（不过 _E）
-8. **_jd `</` 转义大小写不敏感**（`</SCRIPT>` 突破脚本块同级盲区）
-9. **render sect() 右界双失入断锚清单**（不再 h[i:-1] 静默截断）
-10. **recon FAIL+OK 矛盾双行**（explanation 空 FAIL 后 continue）+ signals 缺 level 只报一次
-11. **桑基单季差额 cum_prev 提醒级 WARN**（纯输入无外部锚，门禁仅验自洽——诚实边界）+
-    顺手修 calc_sankey 缺 WARN 导入存量隐患
-12. **turnover_drill cmp_fields 补 skip_none**（单科目合法形态 fill 产物自检矛盾消除）
-13. **ratio-hist 具名 WARN**（科目序列整体缺失时已填 hist 无法复算——手工 hist 不再零校验直进趋势图）
-14. **四象限聚合 None 当 0 消除**（任一分部缺成本 → y0/ps 整块 None，与行级守卫同口径）
-15. **gate 吞 stderr + 前导空格吞 🔴/🟡 明细**（calc/check_html 非零退出回显 stderr 尾部；
-    透传过滤改 lstrip 后判断）
-16. **ts_fetch --out 落盘全量**（截断仅约束 stdout；limit 负数按 0；文案区分显示/落盘）
-17. **四处测试真空补口**：T8② 断言钉执行态双态文案（md 缺失「未执行」/ 存在「精确命中」）、
-    gate 退出码汇聚红测、check_render spill/clipped/pageclip 三探测器阳性构造页、
-    分位 _win_n HTML 级红测（四年窗口「1/4」OK /「1/5」FAIL）
-18. **dupont-stack/sankey-slot 两缺口**：steps 元素形态守卫（不再 ValueError 崩）+
-    无槽分支数据感知 WARN（数据在而槽被删不再静默 OK）
-19. **newline="\n" 补齐**（calc.py --fill 两处 / calc_slots fillsheet / md_clean 两处——
-    render_report:701 已有先例，Windows 下不再 CRLF 污染 diff）
-
-### 验证
-
-- 回归 209→252 全绿（两跑一次 + 收尾一次）；三条破坏测试（render 文案/steps 守卫/cash_ts 守卫）
-  改坏必红、恢复必绿；四 fixture 汇总行与基线逐字一致（茅台 0/0、康得新 0/4、万科 0/2、万华 0/2）
-- 黄金样本对比（HEAD vs 工作区 check_html 对茅台 v0.0.4 成品）：diff 仅 +2 行——有意新增的
-  dupont-stack/sankey-slot 无槽 WARN，FAIL 3 不变（T8① 修复在黄金样本零新 FAIL）
-- 赢合 fillsheet 逐字锁 / render 重放金标准零 diff（批次 B 隔离 worktree 验证 + 合并后回归锁）
-- 两处实证收窄（已记速查①与四·十二 2/6）：cur-null 检查 hist-only 口径；周期证据 None 门槛
-  「三线均 <2 期」（康得新单点 GM 形态避撞幂等金标准）
 
 ---
 
@@ -489,73 +300,18 @@ bo-financial-analyzer/
 > 治理（v0.0.22 用户定案）：本节只留**未完成**事项；已完成任务的记录移入 supersede/
 > 对应轮次文件，不堆删除线。HANDOFF 本体=长期节 + 当前未发布轮 + 全部待完成。
 
-### 自我审核候选方向（未动工项）
-
-**N5. 新准则造假样本扩充（排雷库回归覆盖单一）**
-康得新是 2018 旧准则样本，「抓漏报」金标准只有它一个——收入准则/金融工具准则切换后
-的造假手法（如合同资产操纵、供应链融资藏债）无回归覆盖。留意下一个公开定性的造假案例
-（处罚决定书+当年年报可得的），固化为第五个 fixture。
-
 ### P0（接着做，价值最高）
 
-**任务 1：跑通港股/美股全流程（局限 1）**——港股半年报（蜜雪 2026H1）与**港股年报（阿里巴巴 2026FY，2026-10-10 三道门禁绿）均已首验**
-- 剩余：美股路径仍待首验；回看机制真实数据验证待「同公司第二份报告」（阿里 watchlist 已落库，FY2027 中报可回看）
+**任务 1：A 股/H 股全流程与回看**——港股半年报（蜜雪 2026H1）与**港股年报（阿里巴巴 2026FY，2026-10-10 三道门禁绿）均已首验**
+- **美股移出范围（2026-11-12 用户定案）**：只考虑 A 股与 H 股，不再列美股首验待办；既有方法说明保留，不删功能。
+- 剩余：持续回看已落库清单（牧原 2025FY→2026Q3 已完成；阿里 watchlist 待 FY2027 中报可回看）
 - 阿里轮验收实证：calc exit 0（--min-recon 12 显式）+ check_html exit 0 + check_render 0 问题 + 章节齐全（s0~s8，review 无上期降级删除）+ 数字抽查 12 项与原文一致 + 已视觉验收（--png 分片）
-
-**任务 2：季报 + 招股书各一次（局限 2）**
-- ~~季报走轻量版~~ **季报已完成**（移动 2026Q3：P2/P4/P7 精简路径可行；勾稽实测上限 7/17、render 季报路径三缺口见 N6）；剩余：招股书走专属模块
-- 验收：招股书包类型产出一份报告并通过两道门禁；发现 report-types.md 与实际不符处即修正
-
-**任务 2·补（N6）：季报路径三处技能缺口（移动 Q3 首验实证，专项修订轮修）**
-- ①`_PERIOD_SUFFIX`（calc_common.py）缺「季报」键 → hist_periods 返回 None →
-  dupont5y.period_start/end 空串 → render s1.d5 表头定位串退化为 `<tr><th>因子</th><th>`
-  匹配左卡（4 列）IndexError；同因 TREND/NCR_TS/EFF_TS 的 labels 空数组（empty-svg 隐患）。
-  本轮绕过：fillsheet.json 手填 p_start/p_end + 三组 labels
-- ②`--min-recon auto` 校准表按 meta.market 精确串匹配，长串市场名（「A股（红筹，香港注册；
-  港股 941.HK）」）miss 退回 WARN 态；**季报实测结构性上限 7/17**（A3/A5/B1/B2/B3/D 组
-  无附注/无母公司报表不可执行）——校准表 A 股季报=8 对无商誉/在建的公司高估 1 条，
-  显式给 7 通过（B4 商誉简化 roll 做了才到 7）
-- ③render 季报路径呈现缺口三小处：review 回看卡与导航链接整卡缺失（手工插回）；
-  X6 行读数「（半年口径）」硬编码（季报应为三季口径）；S5 在建表首行 demo 文案
-  「期末余额为零」不感知实际余额——均手工修正，二期随年报路径一起脚本化
-
-**任务 2·补 2（N6 二验：宁德时代 300750 2026Q3，2026-10-21，三道门禁全绿 + 已视觉验收）**：
-与移动同窗口并行的第二份季报（纪律 6 场景实证：双报告共享技能源，各自绕过未当场修）。
-N6 三处缺口全部复现（同根因、同绕过）；增量发现：
-- ②变体：宁德 recon 结构性可执行仅 **4/17**（A2/A4/A7/A8——A1 缺受限资金明细、
-  A6 缺折旧摊销，比移动 7 条还低；季报可执行条数随公司披露 4~7 浮动），校准表
-  「A股季报=8」对宁德高估 4 条；市场名「A股（创业板）+H股（03750.HK）」同样 miss
-  退回 WARN 态（未显式给数，WARN 人工确认合法）
-- ④新增：**calc Altman 对三季报 interim 年化（×4/3）未接入**——meta.market_cap_cur
-  已填 11,988.28 亿仍判「分量字段不齐」合法 null；Ohlson 正常（O=-1.63、P=0.164 中档）。
-  手算 Altman Z≈2.26（三季报 ×4/3 年化，灰色区）备查，未入报告（T8① 无源）
-- ⑤新增：SGR 对 est 级 dividend_paid 不采纳置 null（季报分红拆分天然 est）——
-  「未提取置 null」与「est 不可用」的口径边界待修订轮定夺
-- 回看第二例：半年报 5 条 tripwire → ❌ 2（库存 DIO、capex 节奏）/⏳ 3（合同负债、
-  碳酸锂、产能利用率）；❌ 主归因=「时点错」（触发窗口后移），review 子块已冻结落库
-- 效率：全流程约 140min（含首验排障 render IndexError/labels/Altman + 双份并行争用；
-  对照半年报基线 53-65min）
-
-**任务 2·补 3（N6 三验：恒瑞医药 600276 2026Q3，2026-10-28，三道门禁全绿 + 已视觉验收）**：
-第三份季报、医药健康 profile 首次真实样本；N6 既有缺口全部复现并只在呈现层绕过：
-- recon 可执行 **4/17**（A2/A4/A7/A8），显式 `--min-recon 4`；Altman 三季报年化未接入，
-  市值已填仍合法 null，报告只呈现 Ohlson 低风险并声明单模型边界
-- Q3 单季少数股东损益为负，桑基按规则降级；fill 会保留无 rev 的 cum/cum_prev 种子，
-  须人工确认降级后把 derived.sankey 置 null 再跑 fill，方能消 FAIL（未改数据凑图）
-- 新增呈现缺口：ncrline 均值与 y=1 标签在均值接近 1 时重叠，13px/20px 下移仍撞，
-  本报告 24px 双视口零问题；watchlist 阈值符号出现 `&amp;gt;/&amp;lt;` 双重转义，手工改回
-- 医药健康重点勾稽真实落地：许可收入/收现/合同负债联动、研发资本化率 24.11%、
-  创新药与仿制药结构分化；未把存货、在建和合同负债绝对水平机械判雷
-- 回看第三例：半年报 5 条 → ❌ 3（许可断档/主业恶化/资本化激进未兑现）/⏳ 2
-  （创新药全年目标、全年净现比）；review 子块冻结落库、❌ 归因齐全
-- calc 44 OK/0 FAIL；check_html 0 FAIL；check_render 双视口 0 问题并逐章目检。
-  bare-number 84 处为表格/阈值重复读数人工确认；json-md 10 处均为 der 推算值或比率无原文 literal
 
 ### P1（深度验证）
 
-**任务 3：行业 profile 实测（局限 3）**
-- 挑一家**工程建造**（验证合同资产/合同结算勾稽、完工百分比激进）或**农业养殖**（生物资产盘点）
-- 验收：industry-profiles.md 中该模式的重点勾稽项被真实触发；该降级的信号确实降级（不误报）
+**任务 2：行业 profile 实测（局限 3）**
+- 工程建造、农业养殖与渠道零售已由中国化学、牧原、南方乳业首验；后者压货三条件未同向成立，
+  渠道库存未披露，不以缺数定罪。其余四类仍需真实样本。
 
 ---
 
@@ -577,7 +333,7 @@ N6 三处缺口全部复现（同根因、同绕过）；增量发现：
 ```bash
 # 1. 确认环境
 cd "D:/KimiCodeProject/Financial Report Analysis"
-python bo-financial-analyzer/tests/run_regression.py   # 应 257/257 通过
+python bo-financial-analyzer/tests/run_regression.py   # 应 402/402 通过
 
 # 2. 部署（如需让技能在当前机器生效）
 cmd //c deploy.cmd
@@ -613,3 +369,5 @@ cmd //c deploy.cmd
 | `supersede/v0.0.23_2026-10-01.md` | v0.0.23（海康反馈轮：effline 标签避让、s1-grid4 机检、s7 汇总口径、四维表评价列纪律） |
 | `supersede/v0.0.24-v0.1.1_2026-10-03~09.md` | v0.0.24~v0.1.1（全库审计清理+四象限 schema 1.5 / 赢合反馈轮 deltaBars+svgclip / N4 fill→render 脚本化+schema 1.6 / v0.1.1 审计 20 项修复） |
 | `supersede/v0.1.6_2026-11-01.md` | v0.1.6（技能更名 Bo-FinancialAnalyzer：源目录/报告品牌/CI/部署路径同步，回归 252→257；发布前 README 全面校准、仓库转公开） |
+| `supersede/v0.1.2-v0.1.5_2026-10-10~22.md` | v0.1.2~v0.1.5（港股首跑与非日历年财年、桑基图、全技能审计修复） |
+| `supersede/v0.1.7_2026-11-12~13.md` | v0.1.7（自主进化：季报与招股书支持、呈现与图表门禁、清越第五金标准、A2与利息差额口径；回归257→402） |

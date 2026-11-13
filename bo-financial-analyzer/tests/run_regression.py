@@ -4,7 +4,7 @@
 run_regression.py — bo-financial-analyzer 的金标准回归测试
 
 【它在测什么】
-四个冻结样本（fixture）经 Phase 7.5 门禁 scripts/calc.py 后，必须同时满足门禁结论
+五个冻结样本（fixture）经 Phase 7.5 门禁 scripts/calc.py 后，必须同时满足门禁结论
 与样本语义，用来抓「改坏门禁」这一类回归：
   · tests/moutai_2025.json     贵州茅台 2025 年报 —— 干净样本，抓**误报**（假阳性）
   · tests/kangdexin_2018.json  康得新 2018 年报   —— 造假样本，抓**漏报**（假阴性）
@@ -12,16 +12,21 @@ run_regression.py — bo-financial-analyzer 的金标准回归测试
                                扣非双版/双驱动护栏的真实触发锚点 + fill 块级 note 保留
   · tests/wanhua_2026h1.json   万华化学 2026 半年报 —— 周期股样本（v0.0.18 固化，N3 落地）：
                                周期证据链 + 双驱动护栏第二真实样本 + ROIC/内生增长率首验锚点
+  · tests/qingyue_2022.json    清越科技 2022 年报 —— 新准则造假样本（v0.1.7 固化，N5）：
+                               外部处罚 × 收入 KAM × 少计减值 + 三期现金背离
 
 断言清单
   [共同] calc.py exit code == 0（FAIL 清零），汇总 FAIL == 0
   [茅台] WARN == 0；recon 中 verdict 为「无法解释/可解释」的条目 == 0；
-         v0.0.12 四项新检查（dupont/risk-models/stress/cash-ts）输出行存在
+         A2 倒挤分红降级 SKIP；v0.0.12 四项新检查输出行存在
   [康得新] signals >= 11 条；其中 level=='r' 的红色信号 >= 6 条；
            recon 命中（verdict != 闭合）>= 3 条；Altman 复算被执行
   [万科] WARN == 2（interest_arrears + recon-coverage 两条合法 WARN）；
          dupont_dt.triggered（扣非双版）与 dupont.driver_fragile（双驱动）真实命中；
          Altman 危险区 + Ohlson 中；risk_models 块级 note 存活
+  [清越] 三期净现比均 <0.5；非经占比约45.42%；标准无保留+收入KAM与处罚交叉；
+         应收计提率真实下降但不得以未达增速差阈值为由放行；闭合≠真实；
+         A2 权益扣减与期后拟派分红不混用
 门禁改钝（干净样本冒出 WARN、造假样本不再报警）都会让本脚本 exit 1。
 
 【怎么跑】
@@ -31,7 +36,7 @@ run_regression.py — bo-financial-analyzer 的金标准回归测试
 
 【改动纪律】
 只要动了 scripts/calc.py 或 references/extraction-schema.md，提交前必须跑本脚本，
-且必须双例全绿；改错比率、删 src、破坏桥闭合等反例应能把它打红。
+且必须五例全绿；改错比率、删 src、破坏桥闭合等反例应能把它打红。
 
 【实现约定】
   · 门禁结论走 subprocess 调 calc.py，只断言 exit code；
@@ -63,6 +68,7 @@ MOUTAI = HERE / "moutai_2025.json"
 KANGDEXIN = HERE / "kangdexin_2018.json"
 VANKE = HERE / "vanke_2026h1.json"
 WANHUA = HERE / "wanhua_2026h1.json"
+QINGYUE = HERE / "qingyue_2022.json"
 YINGHE = HERE / "yinghe_2026h1.json"
 
 # calc.py 的汇总行（唯一机器可读摘要）
@@ -117,7 +123,7 @@ def load_json(path):
 
 
 def _prologue(case, proc, data, warn=None):
-    """四例公共序言：exit 0 + 汇总行可解析 + FAIL==0 + schema 1.6（可选 WARN 数锚，
+    """五例公共序言：exit 0 + 汇总行可解析 + FAIL==0 + schema 1.6（可选 WARN 数锚，
     warn=(期望值, 合法性说明)）。汇总行不可解析返回 None（调用方直接 return）。"""
     case.expect(proc.returncode == 0, f"calc.py exit 0（实际 {proc.returncode}）")
     summary = parse_summary(proc.stdout)
@@ -142,6 +148,8 @@ def check_moutai(case, proc, data):
     """干净样本：抓误报。"""
     if _prologue(case, proc, data, (0, "干净样本零误报")) is None:
         return
+    case.expect(any("[SKIP] A2 " in line for line in (proc.stdout or "").splitlines()),
+                "A2 拒绝用旧底稿的倒挤分红制造闭合；缺权益扣减额时降级 SKIP")
 
     loose = [(k, v) for k, v in recon_hits(data) if v in ("无法解释", "可解释")]
     case.expect(not loose,
@@ -324,6 +332,51 @@ def check_wanhua(case, proc, data):
                     f"检查被执行：calc.py 输出含 {code} 行")
 
 
+def check_qingyue(case, proc, data):
+    """清越科技 2022：新准则造假样本，锁现金质量与外部硬证据的交叉核验。"""
+    if _prologue(case, proc, data) is None:
+        return
+    case.expect(not any("[WARN] A2 " in line for line in (proc.stdout or "").splitlines()),
+                "A2 使用本期权益扣减分红，不把期后拟派利润误扣一次")
+
+    rr = (data.get("derived") or {}).get("ratios") or {}
+    ncr = (rr.get("net_cash_ratio") or {}).get("hist") or []
+    case.expect(len(ncr) == 3 and all(isinstance(x, (int, float)) and x < 0.5 for x in ncr),
+                f"2020-2022 净现比连续三期 <0.5（实际 {ncr}）")
+    nonrecurring = (rr.get("nonrecurring_share") or {}).get("cur")
+    case.expect(isinstance(nonrecurring, (int, float))
+                and abs(nonrecurring - 0.45417664) < 0.0001,
+                f"非经常项占归母净利约 45.42%（实际 {nonrecurring}）")
+
+    notes = data.get("notes") or {}
+    audit = notes.get("audit") or {}
+    kams = audit.get("kam") or []
+    case.expect(audit.get("opinion") == "标准无保留"
+                and any("收入" in (k.get("topic") or "") for k in kams),
+                "标准无保留意见与收入确认 KAM 同时保留，不以审计意见排除异常")
+    ar_provision = notes.get("ar_provision") or {}
+    ar_cur = (ar_provision.get("cur") or 0) / ((data["statements"]["balance"]["ar"]["cur"])
+                                               + ar_provision.get("cur", 0))
+    ar_prev = (ar_provision.get("prev") or 0) / ((data["statements"]["balance"]["ar"]["prev"])
+                                                 + ar_provision.get("prev", 0))
+    case.expect(abs(ar_cur - 0.006287694) < 0.000001
+                and abs(ar_prev - 0.009297236) < 0.000001 and ar_cur < ar_prev,
+                f"应收计提率由约 0.93% 降至 0.63%（实际 {ar_prev:.4%}→{ar_cur:.4%}）")
+
+    sigs = {s.get("id"): s for s in (data.get("signals") or []) if isinstance(s, dict)}
+    for sig_id in ("QY_NCR", "QY_NONRECURRING", "QY_KAM_PENALTY", "QY_AR_PENALTY"):
+        case.expect(sigs.get(sig_id, {}).get("level") == "r"
+                    and bool(sigs.get(sig_id, {}).get("source")),
+                    f"{sig_id} 红色信号已落库，且有出处（实际 {sigs.get(sig_id)}）")
+    case.expect("csrc.gov.cn" in (sigs.get("QY_AR_PENALTY") or {}).get("source", "")
+                and "20pct" not in (sigs.get("QY_AR_PENALTY") or {}).get("data", ""),
+                "应收减值由处罚硬证据升级，不虚称达到 20pct 增速差阈值")
+    case.expect(any(v.get("verdict") == "闭合" for v in (data.get("recon") or {}).values()
+                    if isinstance(v, dict))
+                and any("闭合≠真实" in str(s.get("evidence", "")) for s in sigs.values()),
+                "勾稽闭合与期后处罚并存，明确闭合≠真实")
+
+
 def report_case(case, proc, verbose):
     print(f"\n【{case.title}】{case.fixture.relative_to(SKILL)}")
     for ok, desc in case.results:
@@ -347,11 +400,11 @@ def main():
     # import 全靠它；原先埋在中段，前置块提前 return 会跳过后续 import 的隐式顺序坑）
     sys.path.insert(0, str(SKILL / "scripts"))
 
-    print("=== bo-financial-analyzer 金标准回归 · calc.py 四例 ===")
+    print("=== bo-financial-analyzer 金标准回归 · calc.py 五例 ===")
     print(f"技能根：{SKILL}")
     print(f"门禁：  {CALC}")
 
-    missing = [p for p in (CALC, MOUTAI, KANGDEXIN, VANKE, WANHUA) if not p.exists()]
+    missing = [p for p in (CALC, MOUTAI, KANGDEXIN, VANKE, WANHUA, QINGYUE) if not p.exists()]
     if missing:
         for p in missing:
             print(f"❌ 缺少文件：{p}")
@@ -389,6 +442,7 @@ def main():
         ("康得新 2018 年报 · 造假样本（抓漏报）", KANGDEXIN, check_kangdexin),
         ("万科A 2026 半年报 · 连亏地产样本（扣非双版/双驱动真实触发）", VANKE, check_vanke),
         ("万华化学 2026 半年报 · 周期股样本（双驱动第二样本/ROIC·SGR 首验锚点）", WANHUA, check_wanhua),
+        ("清越科技 2022 年报 · 新准则造假样本（外部处罚交叉验证）", QINGYUE, check_qingyue),
     ):
         proc = run_calc(fixture)
         case = Case(title, fixture)
@@ -1045,7 +1099,7 @@ def main():
     fill_checks = []
     with tempfile.TemporaryDirectory() as td2:
         for fx in ("moutai_2025.json", "kangdexin_2018.json", "vanke_2026h1.json",
-                   "wanhua_2026h1.json"):
+                   "wanhua_2026h1.json", "qingyue_2022.json"):
             src = HERE / fx
             dst = Path(td2) / fx
             dst.write_text(src.read_text(encoding="utf-8"), encoding="utf-8")
@@ -1174,6 +1228,30 @@ def main():
                   "md_clean 金标准断言失败。"):
         return 1
 
+    # 牧原实证：编号主表不得漏识别、后被政策说明文字冒充（索引行必须落在 clean md 实际标题）
+    with tempfile.TemporaryDirectory() as _tdi:
+        _mi = Path(_tdi) / "numbered.md"
+        _mi.write_text(
+            "第三节 管理层讨论与分析\n\n本期收入 123.45 亿元，经营讨论正文保留。\n\n"
+            "3、合并利润表\n\n| 项目 | 本期 |\n| --- | --- |\n| 营业收入 | 100.00 |\n\n"
+            "会计政策变更\n\n合并利润表 母公司利润表\n\n| 营业成本 | 80.00 |\n\n"
+            "三、关键审计事项\n\n关键审计事项是我们根据职业判断确定的事项，正文不得冒名。\n",
+            encoding="utf-8")
+        _ri = subprocess.run([sys.executable, str(SKILL / "scripts" / "md_clean.py"),
+                              str(_mi), "--out-dir", _tdi], capture_output=True, text=True,
+                             encoding="utf-8", errors="replace")
+        _ic = (Path(_tdi) / "numbered.clean.md").read_text(encoding="utf-8")
+        _ii = json.loads((Path(_tdi) / "numbered.index.json").read_text(encoding="utf-8"))
+        _iline = _ic.splitlines().index("3、合并利润表") + 1
+        _kline = _ic.splitlines().index("三、关键审计事项") + 1
+    if not _block("md_clean 编号主表索引（牧原实证）",
+                  [(_ri.returncode == 0 and _ii.get("blocks", {}).get("合并利润表") == _iline,
+                    "编号主表入索引且指向实际标题，不被后续政策说明冒名"),
+                   (_ii.get("blocks", {}).get("关键审计事项") == _kline,
+                    "中文编号标题入索引，后续正文不得冒名")],
+                  "编号主表索引失效。"):
+        return 1
+
     # ── v0.0.15 构造用例（公式层直测，不动 fixture 文件）──
     # 扣非双版触发 / 双驱动护栏 / 话语权型杠杆升档——两条规则无真实 fixture 覆盖
     # （茅台非经 0.03% 不触发、杠杆非主驱动），用 deepcopy 构造临界场景验证
@@ -1236,7 +1314,7 @@ def main():
         return 1
 
     # ── calc FAIL 判据阳性（v0.1.1 全库审计补口）──
-    # 变异实证：四例都是合法样本只断言 exit 0，门禁 FAIL 判据被改钝/误删时回归照样全绿
+    # 变异实证：五例都是合法样本只断言 exit 0，门禁 FAIL 判据被改钝/误删时回归照样全绿
     # （M4 check_signals 清空、M5 ratio-hist FAIL→WARN 均无感）。每个破坏样本锁一片
     # FAIL 分支（exit 1 + 关键码），v0.1.1 修复的新判据同锁。
     def _run_calc_json(obj, name):
@@ -1471,6 +1549,16 @@ def main():
             lambda d: d["notes"]["shareholders"].pop("holder_ts", None), "yh_holders")
         rr_c, h_cip = _replay(lambda d: d["notes"].pop("cip_projects", None), "yh_cip")
 
+        def _cip_nonzero(d):
+            d["notes"].pop("cip_projects", None)
+            d["statements"]["balance"]["cip"]["cur"] = 19.7268
+        rr_cn, h_cn = _replay(_cip_nonzero, "yh_cip_nonzero")
+
+        def _cip_missing(d):
+            d["notes"].pop("cip_projects", None)
+            d["statements"]["balance"]["cip"]["cur"] = None
+        rr_cm, h_cm = _replay(_cip_missing, "yh_cip_missing")
+
         def _no_missing(d):
             for a in d.get("assertions") or []:
                 a.pop("missing", None)
@@ -1479,6 +1567,10 @@ def main():
         def _seg_off(d):
             d["statements"]["income"]["by_segment"][0]["rev_cur"] += 5.0
         rr_s, h_seg = _replay(_seg_off, "yh_seg")
+        def _seg_missing(d):
+            for _seg in d["statements"]["income"]["by_segment"]:
+                _seg["rev_prev"] = None
+        rr_se, h_se = _replay(_seg_missing, "yh_seg_empty")
         rr_o, h_ocf = _replay(lambda d: d["derived"].pop("ocf_bridge", None), "yh_ocf")
     render_pos_checks = [
         (anchor_fail, "断锚阳性：锚复制成双份必 exit 1 且打印断锚清单（v0.1.1）"),
@@ -1486,7 +1578,13 @@ def main():
          and "时序不足 3 期降级" in h_holders,
          "降级①：删 holder_ts → 户数图卡降级两期文字行（holders_drop）"),
         (rr_c.returncode == 0 and "在建工程（期末余额为零" in h_cip,
-         "降级②：删 cip_projects → 在建降级行（cip_empty）"),
+         "降级②：删 cip_projects → 真实零余额在建降级行（cip_empty）"),
+        (rr_cn.returncode == 0 and "在建工程（期末余额19.73亿，无项目附注）" in h_cn
+         and "⚠️ 观察" in h_cn and "期末余额为零" not in h_cn and "无挂账" not in h_cn,
+         "降级②b：非零在建缺项目附注 → 显示真实余额并观察，不冒充零余额（牧原 Q3 实证）"),
+        (rr_cm.returncode == 0 and "在建工程（期末余额未披露，无项目附注）" in h_cm
+         and "⚠️ 观察" in h_cm and "期末余额为零" not in h_cm,
+         "降级②c：在建余额未披露 → 保持未知，不写成零"),
         (rr_g.returncode == 0 and "数据缺口声明" not in h_gap,
          "降级③：断言全无 missing → 数据缺口声明行整行删（gap_drop）"),
         (rr_s.returncode == 0 and '"其他"' in h_seg,
@@ -1494,6 +1592,10 @@ def main():
         (rr_o.returncode == 0 and 'id="ocfbridge"' not in h_ocf
          and "OCF 调节桥未披露" in h_ocf,
          "降级⑤：删 ocf_bridge → 桥卡降级声明（ocf_drop，v0.1.1 新增）"),
+        (rr_se.returncode == 0 and "const SEG_BRIDGE=[];" in h_se
+         and 'id="segbridge"' not in h_se and "分部收入变动桥未绘制" in h_se
+         and "（收入变动 +18.26 亿）" in h_se and "（分部合计" not in h_se,
+         "降级⑥：分部上期金额缺失 → 空桥删 svg 换声明，端点行只称收入变动（恒瑞 Q3 实证）"),
     ]
     if not _block("render 断锚与降级路径阳性（v0.1.1 审计补口）", render_pos_checks,
                   "render 断锚/降级路径失效，逐条核对上方 ❌。"):
@@ -1940,11 +2042,14 @@ def main():
                               capture_output=True, text=True, encoding="utf-8", errors="replace")
         h_b = out_b.read_text(encoding="utf-8") if out_b.exists() else ""
 
-        # ③ watchlist badge 非法值 → fill_s8 class 白名单兜底 disc（不进 class 属性）
+        # ③④ watchlist badge 白名单 + 文本单次转义共用一张真实 render 构造卡
         cp_c = _fill_copy(lambda d: d.update(watchlist=[{
-            "indicator": "测试跟踪卡", "current": "1.0", "badge": "bogus",
+            "indicator": "测试<跟踪卡>", "current": "1.0 & 可比", "badge": "bogus",
             "upper": "2", "upper_meaning": "偏高", "lower": "0", "lower_meaning": "偏低",
-            "tripwire": "熔断句", "source": "测试来源"}]), "v15_badge")
+            "tripwire": "增速<5% & OCF<0 则复核", "source": "测试&来源"}, {
+            "indicator": "旧底稿来源卡", "current": "1.0", "badge": "disc",
+            "upper": "2", "upper_meaning": "偏高", "lower": "0", "lower_meaning": "偏低",
+            "tripwire": "熔断句", "source": "clean L150-L158/L162、L456"}]), "v15_badge")
         out_c = _wr15 / "v15_badge.html"
         rr_c = subprocess.run([sys.executable, str(SKILL / "scripts" / "render_report.py"),
                                str(cp_c), "-o", str(out_c)],
@@ -1984,6 +2089,15 @@ def main():
         (rr_c.returncode == 0 and "bogus" not in h_c
          and '<span class="badge disc">披露</span>' in h_c,
          "⑬③badge 非法值：class 白名单兜底 disc，产物无 badge bogus"),
+        ('<div class="figtitle">测试&lt;跟踪卡&gt;</div>' in h_c
+         and '<div class="wv">1.0 &amp; 可比' in h_c
+         and '<div class="wb">&gt; 2 偏高 / &lt; 0 偏低；增速&lt;5% &amp; OCF&lt;0 则复核</div>' in h_c
+         and '<div class="srcline">数据来源：测试&amp;来源</div>' in h_c
+         and "&amp;gt;" not in h_c and "&amp;lt;" not in h_c,
+         "⑬④watchlist 标题/读数/阈值/来源只转义一次，不产生 &amp;gt;/&amp;lt;"),
+        ('<div class="srcline">数据来源：公司定期报告</div>' in h_c
+         and "数据来源：clean" not in h_c,
+         "⑬⑤旧式 clean L 来源定位归一为公司定期报告，不留空来源或斜杠残渣"),
         (_rc_anchor == 1 and "断锚清单" in _anchor_out and "段落右界未找到" in _anchor_out,
          "⑭sect() 右界断锚：摘页脚锚必 exit 1 且断锚清单含「段落右界未找到」"),
     ]
@@ -2211,6 +2325,965 @@ def main():
                   "v0.1.5 md_clean/ts_fetch 锁失败，逐条核对上方 ❌。"):
         return 1
 
+    # ── v0.1.7 季报类型归一化：三份真实 Q3 底稿共同根因的自包含回归锁 ──
+    from calc_common import hist_periods as _hp17
+    from calc_risk import compute_altman as _ca17
+    _d17 = json.loads(YINGHE.read_text(encoding="utf-8"))
+    _d17["meta"].update({"period": "20260930", "report_type": "季报"})
+    _alt17, _why17 = _ca17(_d17)
+    _d17_ref = json.loads(YINGHE.read_text(encoding="utf-8"))
+    _d17_ref["meta"].update({"period": "20260930", "report_type": "三季报"})
+    _alt17_ref, _why17_ref = _ca17(_d17_ref)
+    v17_type = [
+        (_hp17({"period": "20260930", "report_type": "季报"}, 5)
+         == ["2022Q3", "2023Q3", "2024Q3", "2025Q3", "2026Q3"],
+         "v0.1.7①：通用季报 + 0930 倒推五期 Q3 标签"),
+        (_hp17({"period": "20260331", "report_type": "季报"}, 2) == ["2025Q1", "2026Q1"],
+         "v0.1.7①：通用季报 + 0331 倒推 Q1 标签"),
+        (_hp17({"period": "20260630", "report_type": "季报"}, 2) is None,
+         "v0.1.7①：通用季报遇到 0630 不猜季度，返回 None"),
+        (_hp17({"period": "20260930", "report_type": "三季报"}, 2) == ["2025Q3", "2026Q3"],
+         "v0.1.7①：显式三季报标签行为零漂移"),
+        (_alt17_ref is not None and _alt17 == _alt17_ref and _alt17.get("annualized") is True,
+         f"v0.1.7①：通用季报 Altman 与显式三季报一致且流量年化（ref={_alt17_ref}, got={_alt17}）"),
+    ]
+    if not _block("v0.1.7 季报类型归一化构造用例", v17_type,
+                  "v0.1.7 季报类型归一化失败，逐条核对上方 ❌。"):
+        return 1
+
+    _r17_a4 = _auto_run("A股", "季报", drop=10)
+    _r17_long4 = _auto_run("A股（创业板）+H股（03750.HK）", "季报", drop=10)
+    _r17_long3 = _auto_run("A股（创业板）+H股（03750.HK）", "季报", drop=11)
+    v17_auto = [
+        ("覆盖下限 4" in (_r17_a4.stdout or "")
+         and "未达 --min-recon 4" not in (_r17_a4.stdout or ""),
+         "v0.1.7②：A股季报 4/17 达真实样本最低可执行数，不升覆盖率 FAIL"),
+        ("覆盖下限 4" in (_r17_long4.stdout or "")
+         and "未达 --min-recon 4" not in (_r17_long4.stdout or ""),
+         "v0.1.7②：A股+H股长市场名按主上市地识别，4/17 不升覆盖率 FAIL"),
+        ("未达 --min-recon 4" in (_r17_long3.stdout or ""),
+         "v0.1.7②：长市场名季报降至 3/17 必升覆盖率 FAIL（阈值方向）"),
+    ]
+    if not _block("v0.1.7 auto 市场识别与季报下限构造用例", v17_auto,
+                  "v0.1.7 auto 修复失败，逐条核对上方 ❌。"):
+        return 1
+
+    _tmpl17 = (SKILL / "assets" / "report-template.html").read_text(encoding="utf-8")
+    _contrast_ok = _run_html_str(_tmpl17, json_path=None)
+    _contrast_muted = _run_html_str(
+        re.sub(r"--muted:rgba\(58,42,28,\.\d+\)", "--muted:rgba(58,42,28,.20)", _tmpl17),
+        json_path=None)
+    _contrast_warn = _run_html_str(
+        re.sub(r"--warn:#[0-9A-Fa-f]{6}", "--warn:#B8860B", _tmpl17), json_path=None)
+    _contrast_faint = _run_html_str(
+        _tmpl17.replace("color:var(--muted)", "color:var(--faint)", 1), json_path=None)
+    v17_contrast = [
+        ("[OK  ] text-contrast" in (_contrast_ok.stdout or ""),
+         "v0.1.7③：活动模板 muted/warn 文字对比度达 WCAG AA 且 faint 不承载文字"),
+        ("[FAIL] text-contrast" in (_contrast_muted.stdout or ""),
+         "v0.1.7③：muted 透明度改坏为 .20 必 FAIL"),
+        ("[FAIL] text-contrast" in (_contrast_warn.stdout or ""),
+         "v0.1.7③：warn 改回旧浅色 #B8860B 必 FAIL（含徽章实底）"),
+        ("[FAIL] text-contrast" in (_contrast_faint.stdout or "")
+         and "faint" in (_contrast_faint.stdout or ""),
+         "v0.1.7③：faint 装饰色重新用于文字必 FAIL"),
+        ("[OK  ] text-contrast" in (t8_ok.stdout or "")
+         and "不适用" in (t8_ok.stdout or ""),
+         "v0.1.7③：无模板色 token 的通用页面明确不适用，不误报"),
+    ]
+    if not _block("v0.1.7 小字对比度门禁构造用例", v17_contrast,
+                  "v0.1.7 对比度门禁失败，逐条核对上方 ❌。"):
+        return 1
+
+    # ── v0.1.7 中国化学实战反馈：SGR 回退、激励槽、S5/X6 文案 ──
+    from calc_common import build_ratio_calcs as _brc17
+    from calc_slots import build_slots as _bs17
+    _d17_sgr = json.loads(YINGHE.read_text(encoding="utf-8"))
+    _sgr_ref = _brc17(_d17_sgr)["sustainable_growth"]
+    _d17_sgr["statements"]["cashflow"].pop("dividend_paid", None)
+    _sgr_fallback = _brc17(_d17_sgr)["sustainable_growth"]
+    _d17_m = json.loads(MOUTAI.read_text(encoding="utf-8"))
+    _d17_k = json.loads(KANGDEXIN.read_text(encoding="utf-8"))
+    _d17_inc = json.loads(YINGHE.read_text(encoding="utf-8"))
+    _d17_inc["derived"]["threshold_check"]["incentive_line"] = {
+        "actual": 0.094, "target": 0.0925, "ratio": 0.094 / 0.0925,
+        "hit": True, "src": "构造激励公告"}
+    _inc17 = _bs17(_d17_inc)["s2"]["threshold"]["incentive"]
+    _d17_year = json.loads(YINGHE.read_text(encoding="utf-8"))
+    _d17_year["meta"]["report_type"] = "年报"
+    _d17_q3 = json.loads(YINGHE.read_text(encoding="utf-8"))
+    _d17_q3["meta"].update({"report_type": "季报", "period": "20260930"})
+    _x6_year = _bs17(_d17_year)["s7"]["inspection"]["x6"]
+    _x6_q3 = _bs17(_d17_q3)["s7"]["inspection"]["x6"]
+    _x6_h1 = _bs17(_d17_inc)["s7"]["inspection"]["x6"]
+    v17_feedback = [
+        (_sgr_ref is not None and _sgr_fallback == _sgr_ref,
+         f"v0.1.7④：cashflow 分红字段缺失时回退 balance，SGR={_sgr_fallback}"),
+        (round(_brc17(_d17_m)["sustainable_growth"], 4) == 0.0721,
+         "v0.1.7④：茅台仍优先现金流真实分红，SGR 0.0721 零漂移"),
+        (_brc17(_d17_k)["sustainable_growth"] is None,
+         "v0.1.7④：cashflow 明确 null 时不许回退 balance 造出 SGR"),
+        (_inc17["read"] == "9.40%" and _inc17["target"] == "9.25%"
+         and _inc17["dist"] == "+0.15pct",
+         f"v0.1.7④：激励槽位输出 actual/target/dist（{_inc17}）"),
+        ("年度口径" in _x6_year, "v0.1.7④：X6 年报显示年度口径"),
+        ("半年口径" in _x6_h1, "v0.1.7④：X6 半年报保持半年口径"),
+        ("三季口径" in _x6_q3, "v0.1.7④：X6 通用季报+0930 显示三季口径"),
+        ("本年投入（亿元）" in _tmpl17 and "本年转固（亿元）" in _tmpl17
+         and "<th>预计转固时点</th>" not in _tmpl17,
+         "v0.1.7④：S5 表头与 invested_cur/transferred 实际语义一致"),
+        ((lambda s: s.count('"dividend_paid"') >= 2
+          and "cashflow 无此键才回退 balance" in s and "两处均未提取才置 null" in s)
+         ((SKILL / "references" / "extraction-schema.md").read_text(encoding="utf-8")),
+         "v0.1.7④：schema 同时登记 cashflow 优先与 balance 回退，显式 null 不回退"),
+    ]
+    if not _block("v0.1.7 中国化学反馈修复构造用例", v17_feedback,
+                  "v0.1.7 中国化学反馈修复失败，逐条核对上方 ❌。"):
+        return 1
+
+    def _pctile17(label):
+        rows = ''.join(f'<tr><td>{name}</td><td><span class="badge disc">{label}</span></td></tr>'
+                       for name in ('净利率', '总资产周转率', '权益乘数'))
+        return _run_html_str(
+            _S1H + '<div class="card"><table class="data">'
+            '<tr><th>因子</th><th>五年位置</th></tr>' + rows +
+            '</table><svg id="ncrline"></svg><div>周期定位：非周期行业</div></div></div>',
+            json_path=None)
+    _pct17_n4 = _pctile17('2/4')
+    _pct17_n5 = _pctile17('2/5')
+    _pct17_bad_order = _pctile17('5/4')
+    _pct17_bad_n = _pctile17('2/1')
+    v17_pctile = [
+        ('[WARN] s1-v15-shape' not in (_pct17_n4.stdout or ''),
+         'v0.1.7⑤：四年窗口 X/4 白描不再被 X/5 旧正则误报'),
+        ('[WARN] s1-v15-shape' not in (_pct17_n5.stdout or ''),
+         'v0.1.7⑤：X/5 存量形态保持兼容'),
+        ('[WARN] s1-v15-shape' in (_pct17_bad_order.stdout or ''),
+         'v0.1.7⑤：5/4 分子大于分母不得视作合法白描'),
+        ('[WARN] s1-v15-shape' in (_pct17_bad_n.stdout or ''),
+         'v0.1.7⑤：X/1 非有效窗口不得豁免'),
+    ]
+    if not _block('v0.1.7 X/N 分位形态构造用例', v17_pctile,
+                  'v0.1.7 X/N 分位形态修复失败，逐条核对上方 ❌。'):
+        return 1
+
+    # ── v0.1.7 T8② PDF 数字内部空格归一化（中国化学实战）──
+    from check_html_t8 import _value_in_text as _vit17, check_json_vs_md as _cjm17
+    from check_html_common import Report as _Report17
+    _pdf17_two = '货币资金 4 2,984,543,907.21 5 0,066,643,108.35'
+    with tempfile.TemporaryDirectory() as _td17:
+        _md17 = Path(_td17) / 'spaced.md'
+        _md17.write_text('净利润 7 ,077,046,813.43 元\n', encoding='utf-8')
+        _data17 = {'meta': {'source_md': str(_md17)},
+                   'statements': {'income': {'np_total': {'cur': 70.7705, 'src': 'L1'}}}}
+        _rep17 = _Report17()
+        _cjm17(_data17, Path(_td17) / 'data.json', _rep17)
+    _t8_integration17 = any(r[0] == 'OK' and r[1] == 'json-md' and '1 处全部命中' in r[2]
+                            for r in _rep17.rows)
+    v17_pdf = [
+        (_vit17(70.7705, '净利润 7 ,077,046,813.43 元'),
+         'v0.1.7⑥：首位数字与千位逗号之间的空格可回核'),
+        (_vit17(429.85, '货币资金 4 2,984,543,907.21 元'),
+         'v0.1.7⑥：首个数字组被拆开时可按亿元回核'),
+        (_vit17(429.85, _pdf17_two) and _vit17(500.67, _pdf17_two),
+         'v0.1.7⑥：同一行两列分别命中，不吞换行、不跨行粘连'),
+        (not _vit17(12.50, '1 2.50'),
+         'v0.1.7⑥：无千位逗号的相邻数字不得归一化成 12.50'),
+        (_vit17(1315.30, '现金 131,530 百万元'),
+         'v0.1.7⑥：既有百万档与千位符行为保持'),
+        (_t8_integration17,
+         'v0.1.7⑥：check_json_vs_md 端到端命中，调用点不得先删千位逗号'),
+        (_vit17(31.41, '投资收益 十八、5  3,141,125,633.31 元'),
+         'v0.1.7⑥：附注编号与金额之间的双空格不合并'),
+        (_vit17(31.41, '投资收益 十八、5 3,141,125,633.31 元'),
+         'v0.1.7⑥：先查原文再查归一化，单空格编号不得遮住原值'),
+    ]
+    if not _block('v0.1.7 T8② PDF 数字空格构造用例', v17_pdf,
+                  'v0.1.7 T8② 数字空格修复失败，逐条核对上方 ❌。'):
+        return 1
+
+    # ── v0.1.7 SVG 可访问名称（非装饰图 role=img + 非空名称）──
+    _svg17_tpl = _run_html_str(_tmpl17, json_path=None)
+    _svg17_plain = _run_html_str('<svg id="chart"></svg>', json_path=None)
+    _svg17_decorative = _run_html_str('<svg aria-hidden="true"></svg>', json_path=None)
+    _svg17_labelled = _run_html_str('<h1 id="chart-title">趋势</h1><svg role="img" aria-labelledby="chart-title"></svg>', json_path=None)
+    _svg17_dangling = _run_html_str('<svg role="img" aria-labelledby="missing"></svg>', json_path=None)
+    _svg17_empty = _run_html_str('<svg role="img" aria-label=""></svg>', json_path=None)
+    v17_svg = [
+        ('[OK  ] svg-a11y' in (_svg17_tpl.stdout or ''),
+         'v0.1.7⑦：活动模板全部非装饰 SVG 具备 role=img 与可访问名称'),
+        ('[FAIL] svg-a11y' in (_svg17_plain.stdout or ''),
+         'v0.1.7⑦：无角色无名称 SVG 必 FAIL'),
+        ('[FAIL] svg-a11y' not in (_svg17_decorative.stdout or ''),
+         'v0.1.7⑦：aria-hidden 装饰 SVG 不误报'),
+        ('[FAIL] svg-a11y' not in (_svg17_labelled.stdout or ''),
+         'v0.1.7⑦：有效 aria-labelledby 引用判合规'),
+        ('[FAIL] svg-a11y' in (_svg17_dangling.stdout or ''),
+         'v0.1.7⑦：悬空 aria-labelledby 引用必 FAIL'),
+        ('[FAIL] svg-a11y' in (_svg17_empty.stdout or ''),
+         'v0.1.7⑦：空 aria-label 必 FAIL'),
+    ]
+    if not _block('v0.1.7 SVG 可访问名称构造用例', v17_svg,
+                  'v0.1.7 SVG 可访问名称检查失败，逐条核对上方 ❌。'):
+        return 1
+
+    # ── v0.1.7 ncrline 近 1 均值标签真实渲染回归（恒瑞 Q3）──
+    if "渲染门禁跳过" in render_out:
+        print("\n【v0.1.7 ncrline 标签避让】SKIP（本机无 Chrome/Edge）")
+    else:
+        _script17 = re.search(r'<script>(.*?)</script>', _tmpl17, re.S).group(1)
+        _ncr17 = ("const NCR_TS={labels:['2022Q3','2023Q3','2024Q3','2025Q3','2026Q3'],"
+                  "ncr:[0.6893,1.2404,0.9926,1.5841,1.1329],"
+                  "fcf:[0.2058,0.8459,0.6626,1.286,0.7472],mean:1.1279};")
+        _script17 = re.sub(r"const NCR_TS=\{.*?\};", _ncr17, _script17, count=1)
+        if "0.6893" not in _script17:
+            raise RuntimeError("模板 NCR_TS 槽替换失败——槽形态变了？")
+        _svg17 = re.search(r'<svg id="ncrline"[^>]*>.*?</svg>', _tmpl17, re.S).group(0)
+        _page17 = ('<!doctype html><html lang="zh-Hans"><head><meta charset="utf-8"><style>'
+                   ':root{--ink:rgb(58,42,28);--muted:rgba(58,42,28,.70);'
+                   '--faint:rgba(58,42,28,.32);--grid:rgba(58,42,28,.16);'
+                   '--data:rgb(171,94,38);--data2:rgb(203,158,108);--faintdata:rgb(233,213,187);'
+                   '--der:rgb(122,84,52);--good:#0F7B4F;--warn:#866000;--bad:#C0392B}'
+                   'body{padding:40px 20px}.sheet{width:100%;max-width:1040px;margin:0 auto}'
+                   'svg{width:100%;height:auto;display:block}</style></head><body>'
+                   '<div class="sheet">' + _svg17 + '<script>' + _script17 +
+                   '</script></div></body></html>')
+        _ncr17_path = HERE / '_v17_ncrline.html'
+        _ncr17_path.write_text(_page17, encoding='utf-8')
+        try:
+            _ncr17 = subprocess.run([sys.executable, str(SKILL / 'scripts' / 'check_render.py'),
+                                     str(_ncr17_path)], capture_output=True, text=True,
+                                    encoding='utf-8', errors='replace')
+        finally:
+            _ncr17_path.unlink(missing_ok=True)
+        if _ncr17.returncode != 0:
+            print(_ncr17.stdout)
+        if not _block('v0.1.7 ncrline 近 1 标签渲染用例',
+                      [(_ncr17.returncode == 0,
+                        f'v0.1.7⑧：均值1.13与y=1标签在真实浏览器不重叠（exit={_ncr17.returncode}）')],
+                      'v0.1.7 ncrline 标签仍重叠。'):
+            return 1
+
+    # ── v0.1.7 牧原实战：杜邦同层标签 + 负值柱碰年份轴的真实渲染回归 ──
+    if "渲染门禁跳过" in render_out:
+        print("\n【v0.1.7 牧原图表标签】SKIP（本机无 Chrome/Edge）")
+    else:
+        _label_cases = [
+            ('stackH', 'dupontstack', 'DUPONT_STACK',
+             "const DUPONT_STACK={steps:[['净利率',-4.2],['周转率',2.3],['杠杆',-3.4]],gap:0.4};"),
+            ('npchart', 'npchart', 'TREND',
+             "const TREND={labels:['2021','2022','2023','2024','2025'],"
+             "rev:[788.9,1248.26,1108.61,1379.47,1441.45],"
+             "np:[69.04,132.66,-42.63,178.81,154.87],"
+             "np_dt:[67.85,130.3,-40.26,187.47,159.88],"
+             "ocf:[162.95,230.11,98.93,375.43,300.56],"
+             "roe:[0.127,0.1848,-0.0679,0.2482,0.1993],"
+             "gm:[null,null,null,20.75,17.82],capex:[358.52,157.39,170.16,123.81,95.29],"
+             "rd:[8.08,11.42,16.58,17.47,16.48]};"),
+        ]
+        _label_results = []
+        for _case, _svgid, _slot, _data in _label_cases:
+            _js_label = re.search(r'<script>(.*?)</script>', _tmpl17, re.S).group(1)
+            _js_label = re.sub(rf"(?m)^const {_slot}=.*$", _data, _js_label, count=1)
+            if _data not in _js_label:
+                raise RuntimeError(f"模板 {_slot} 槽替换失败——不得在未执行脚本时假绿")
+            _svgtag = re.search(rf'<svg id="{_svgid}"[^>]*>.*?</svg>', _tmpl17, re.S).group(0)
+            _style_label = re.search(r'<style>.*?</style>', _tmpl17, re.S).group(0)
+            _page_label = ('<!doctype html><html lang="zh-Hans"><head><meta charset="utf-8">'
+                           + _style_label + '</head><body><div class="sheet"><div class="card">'
+                           + _svgtag + '</div><script>' + _js_label + '</script></div></body></html>')
+            _label_path = HERE / f'_v17_{_svgid}.html'
+            _label_path.write_text(_page_label, encoding='utf-8')
+            try:
+                _lr = subprocess.run([sys.executable, str(SKILL / 'scripts' / 'check_render.py'),
+                                      str(_label_path)], capture_output=True, text=True,
+                                     encoding='utf-8', errors='replace')
+            finally:
+                _label_path.unlink(missing_ok=True)
+            if _lr.returncode != 0:
+                print(_lr.stdout)
+            _label_results.append(_lr)
+        if not _block('v0.1.7 牧原图表标签真实渲染用例',
+                      [(_label_results[0].returncode == 0,
+                        'v0.1.7⑨：stackH 周转率/口径差同层标签不重叠'),
+                       (_label_results[1].returncode == 0,
+                        'v0.1.7⑩：npchart 2023 负值标签不碰年份轴')],
+                      '牧原图表标签重叠修复失效，看上方真实渲染明细。'):
+            return 1
+
+    # ── v0.1.7 牧原 Q3：watchlist 改善/风险侧的方向不可由字段名猜 ──
+    def _watch_run(item, name):
+        d = copy.deepcopy(base)
+        d["watchlist"] = [item]
+        return _run_calc_json(d, name)
+
+    _watch_high = {"indicator": "完全成本", "current": "11.5元/kg",
+                   "tripwire": "若连续两季度高于13元/kg，则降本叙事下修",
+                   "upper": "—", "upper_meaning": "不另设奖励线",
+                   "lower": "13元/kg", "lower_meaning": "突破则成本反弹",
+                   "source": "构造公司公告", "badge": "disc"}
+    _watch_low = {"indicator": "发出商品占比", "current": "28.3%",
+                  "tripwire": "若连续两期高于30%，则验收梗阻成立",
+                  "upper": "20%", "upper_meaning": "回落至20%以下=验收顺畅",
+                  "lower": "35%", "lower_meaning": "突破35%则风险确认",
+                  "source": "构造公司公告", "badge": "disc"}
+    _watch_high_bad = _watch_run(_watch_high, "watch_high_bad.json")
+    _watch_high_ok = _watch_run({**_watch_high, "lower_op": ">"}, "watch_high_ok.json")
+    _watch_low_bad = _watch_run(_watch_low, "watch_low_bad.json")
+    _watch_low_ok = _watch_run({**_watch_low, "upper_op": "<", "lower_op": ">"},
+                               "watch_low_ok.json")
+    _watch_invalid = _watch_run({**_watch_low, "upper_op": "≥"}, "watch_invalid.json")
+    _watch_slot = _bs17({**base, "watchlist": [
+        {**_watch_low, "upper_op": "<", "lower_op": ">"}]})["s8"]["cards"][0]["wb"]
+    _schema_watch = (SKILL / "references" / "extraction-schema.md").read_text(encoding="utf-8")
+    v17_watch = [
+        (_watch_high_bad.returncode == 0 and "[WARN] watchlist-direction" in _watch_high_bad.stdout,
+         "v0.1.7⑪：风险侧写「突破/反弹」却配 < 符号 → WARN，不自动改值"),
+        (_watch_high_ok.returncode == 0 and "[WARN] watchlist-direction" not in _watch_high_ok.stdout
+         and "[OK  ] watchlist-direction" in _watch_high_ok.stdout,
+         "v0.1.7⑪：风险侧显式 lower_op=> 后方向警告消失"),
+        (_watch_low_bad.returncode == 0 and "[WARN] watchlist-direction" in _watch_low_bad.stdout,
+         "v0.1.7⑪：改善侧写「回落/以下」却配 > 符号 → WARN"),
+        (_watch_low_ok.returncode == 0 and "[WARN] watchlist-direction" not in _watch_low_ok.stdout
+         and "[OK  ] watchlist-direction" in _watch_low_ok.stdout,
+         "v0.1.7⑪：改善侧显式 upper_op=< 后方向警告消失"),
+        (_watch_invalid.returncode == 1 and "[FAIL] watchlist-direction" in _watch_invalid.stdout,
+         "v0.1.7⑪：方向符号只许 < 或 >，非法值必 FAIL"),
+        (_watch_slot.startswith("&lt; 20%") and " / &gt; 35%" in _watch_slot,
+         f"v0.1.7⑪：S8 槽按 upper_op/lower_op 输出方向（{_watch_slot[:60]}）"),
+        ('`upper_op`' in _schema_watch and '`lower_op`' in _schema_watch
+         and "默认分别为" in _schema_watch,
+         "v0.1.7⑪：schema 登记可选方向字段与兼容默认值"),
+    ]
+    if not _block("v0.1.7 watchlist 阈值方向构造用例", v17_watch,
+                  "watchlist 阈值方向校验失败，逐条核对上方 ❌。"):
+        return 1
+
+    # ── v0.1.7 牧原 Q3：平均余额的年初期初同样适用于季报 ──
+    _schema_hye = (SKILL / "references" / "extraction-schema.md").read_text(encoding="utf-8")
+    _framework_hye = (SKILL / "references" / "frameworks.md").read_text(encoding="utf-8")
+    v17_hye = [
+        ("半年报与季报" in _schema_hye and "仅半年报" not in _schema_hye
+         and "hist_ye[i]=第 i 期" in _schema_hye,
+         "v0.1.7⑫：schema 明确 hist_ye 适用于半年报与季报，不再写仅半年报"),
+        ("半年报与季报" in _framework_hye and "季报=9-30" in _framework_hye
+         and "半年报/季报绝不取上年同期期末" in _framework_hye,
+         "v0.1.7⑫：方法库明确季报年初期初与同比期末不得混用"),
+    ]
+    if not _block("v0.1.7 hist_ye 季报口径文档契约", v17_hye,
+                  "hist_ye 季报口径文档未同步，逐条核对上方 ❌。"):
+        return 1
+
+    # ── v0.1.7 牧原 Q3：来源行号残渣与 DFL 空值呈现 ──
+    from calc_slots import _SRC as _SRC17
+    _src_two = _SRC17("公司2026Q3报告 L75/L82/L174/L286")
+    _src_many = _SRC17("公司2026Q3报告 L174/L230/L255/L439；1倍为公式覆盖线")
+    _src_model = _SRC17("公司2026Q3报告；L2 级辅助驾驶为正文术语")
+    _dfl_data = copy.deepcopy(base)
+    _dfl_data["derived"]["dupont"]["leverage_drill"]["dfl_delta"] = None
+    _dfl_slot = _bs17(_dfl_data)["s1"]["dupont"]["leverage_drill"]["dfl"]
+    v17_text_clean = [
+        (_src_two == "公司2026Q3报告",
+         f"v0.1.7⑬：两位及三位行号混合链完整剥离，不留下 L75/L82//（{_src_two}）"),
+        (_src_many == "公司2026Q3报告；1倍为公式覆盖线",
+         f"v0.1.7⑬：多行号来源不留 ///，且保留后续阈值依据（{_src_many}）"),
+        ("L2 级辅助驾驶" in _src_model,
+         "v0.1.7⑬：来源内 L2 型号/术语不误剥"),
+        (_dfl_slot == "—",
+         f"v0.1.7⑬：DFL 同比缺值槽显示 —，不把 None 注入报告（{_dfl_slot}）"),
+    ]
+    if not _block("v0.1.7 来源与空值文本清理构造用例", v17_text_clean,
+                  "来源或 DFL 空值清理失败，逐条核对上方 ❌。"):
+        return 1
+
+    # ── v0.1.7 牧原 Q3：回看卡机械填充，tripwire 冻结原文不回写 ──
+    def _review_render(items, name):
+        d = copy.deepcopy(base)
+        if items is not None:
+            d["review"] = items
+        with tempfile.TemporaryDirectory() as td:
+            cp = Path(td) / f"{name}.json"
+            cp.write_text(json.dumps(d, ensure_ascii=False), encoding="utf-8")
+            subprocess.run([sys.executable, str(CALC), str(cp), "--fill"],
+                           capture_output=True, text=True, encoding="utf-8", errors="replace")
+            out = Path(td) / f"{name}.html"
+            rr = subprocess.run([sys.executable, str(SKILL / "scripts" / "render_report.py"),
+                                 str(cp), "-o", str(out)], capture_output=True, text=True,
+                                encoding="utf-8", errors="replace")
+            html = out.read_text(encoding="utf-8") if out.exists() else ""
+            chk = subprocess.run([sys.executable, str(SKILL / "scripts" / "check_html.py"),
+                                  str(out)], capture_output=True, text=True,
+                                 encoding="utf-8", errors="replace") if out.exists() else None
+        return rr, html, chk
+
+    _review_items = [
+        {"tripwire": "若合同负债<5%且收入下降，则需求走弱", "verdict": "兑现",
+         "actual": "合同负债实际4%", "attribution": "口径一致"},
+        {"tripwire": "若毛利率连续两期低于10%，则盈利下修", "verdict": "未兑现",
+         "actual": "实际仍为12%", "attribution": "假设错：价格下降快于预期"},
+        {"tripwire": "若短债覆盖低于1倍，则压力升级", "verdict": "待观察",
+         "actual": "期末尚未披露", "attribution": "时点未到期"},
+    ]
+    _rr_review, _h_review, _ck_review = _review_render(_review_items, "review_filled")
+    _rr_noreview, _h_noreview, _ = _review_render(None, "review_empty")
+    _review_seg = _h_review.split('id="review"', 1)[-1].split('id="s0"', 1)[0]
+    _schema_review = (SKILL / "references" / "extraction-schema.md").read_text(encoding="utf-8")
+    v17_review = [
+        (_rr_review.returncode == 0 and '<div class="v">1/3</div>' in _h_review
+         and _review_seg.count("<tr><td>") == 3 and "{{" not in _review_seg
+         and "若合同负债&lt;5%且收入下降，则需求走弱" in _review_seg
+         and "实际仍为12%；假设错：价格下降快于预期" in _review_seg
+         and '<span class="badge r">未兑现</span>' in _review_seg,
+         "v0.1.7⑭：回看计数/行数/归因自动填充，tripwire 仅作 HTML 转义"),
+        (_rr_noreview.returncode == 0 and 'id="review"' not in _h_noreview
+         and 'href="#review"' not in _h_noreview,
+         "v0.1.7⑭：无 review 时仍删除回看章和导航"),
+        (_ck_review is not None and "[OK  ] review-shape" in _ck_review.stdout,
+         "v0.1.7⑭：机械填充后的回看归因机检通过"),
+        ("顶层 `review[]`" in _schema_review and "watchlist[].review" in _schema_review,
+         "v0.1.7⑭：schema 区分本期顶层回看数组与上期 watchlist 子块"),
+    ]
+    if not _block("v0.1.7 回看卡机械填充构造用例", v17_review,
+                  "回看卡机械填充失败，逐条核对上方 ❌。"):
+        return 1
+
+    # ── v0.1.7 SGR：估算分红可以计算，但结果证据等级必须继承 est ──
+    def _sgr_parts17(d):
+        d["derived"]["ratios"]["sustainable_growth"]["cur"] = _brc17(d)["sustainable_growth"]
+        row = next(r for r in _bs17(d)["s1"]["table4"] if r["key"] == "sustainable_growth")
+        return d["derived"]["ratios"]["sustainable_growth"]["cur"], row["badge"]
+
+    _sgr_est = copy.deepcopy(base)
+    _sgr_est["statements"]["cashflow"]["dividend_paid"] = {
+        "cur": 1.0, "prev": None, "level": "est", "src": "构造估算分红"}
+    _sgr_est_result = _sgr_parts17(_sgr_est)
+    _sgr_est_fallback = copy.deepcopy(base)
+    _sgr_est_fallback["statements"]["cashflow"].pop("dividend_paid", None)
+    _sgr_est_fallback["statements"]["balance"]["dividend_paid"] = {
+        "cur": 1.0, "prev": None, "level": "est", "src": "构造估算分红回退"}
+    _sgr_est_fallback_result = _sgr_parts17(_sgr_est_fallback)
+    _sgr_der = copy.deepcopy(base)
+    _sgr_der["statements"]["cashflow"]["dividend_paid"]["level"] = "der"
+    _sgr_der_result = _sgr_parts17(_sgr_der)
+    with tempfile.TemporaryDirectory() as _td_sgr:
+        _cp_sgr = Path(_td_sgr) / "sgr_est.json"
+        _cp_sgr.write_text(json.dumps(_sgr_est, ensure_ascii=False), encoding="utf-8")
+        subprocess.run([sys.executable, str(CALC), str(_cp_sgr), "--fill"],
+                       capture_output=True, text=True, encoding="utf-8", errors="replace")
+        _out_sgr = Path(_td_sgr) / "sgr_est.html"
+        _rr_sgr = subprocess.run([sys.executable, str(SKILL / "scripts" / "render_report.py"),
+                                  str(_cp_sgr), "-o", str(_out_sgr)],
+                                 capture_output=True, text=True, encoding="utf-8", errors="replace")
+        _h_sgr = _out_sgr.read_text(encoding="utf-8") if _out_sgr.exists() else ""
+    _schema_sgr = (SKILL / "references" / "extraction-schema.md").read_text(encoding="utf-8")
+    _framework_sgr = (SKILL / "references" / "frameworks.md").read_text(encoding="utf-8")
+    v17_sgr_est = [
+        (_sgr_est_result[0] is not None and _sgr_est_result[1] == "est",
+         f"v0.1.7⑮：cashflow est 分红仍计算 SGR，但徽章=est（{_sgr_est_result}）"),
+        (_sgr_est_fallback_result[0] is not None and _sgr_est_fallback_result[1] == "est",
+         f"v0.1.7⑮：cashflow 无键回退 balance est 时徽章同样=est（{_sgr_est_fallback_result}）"),
+        (_sgr_der_result[0] is not None and _sgr_der_result[1] == "der",
+         "v0.1.7⑮：der 分红对应的 SGR 徽章不变"),
+        ("est 输入可计算" in _schema_sgr and "徽章继承" in _schema_sgr
+         and "徽章继承" in _framework_sgr,
+         "v0.1.7⑮：schema 与方法库登记 est 计算及徽章继承边界"),
+        (_rr_sgr.returncode == 0
+         and '内生增长率（留存率×ROE） <span class="badge est">估算</span>' in _h_sgr,
+         "v0.1.7⑮：最终 HTML 的 SGR 徽章也必须为估算，不只修中间槽"),
+    ]
+    if not _block("v0.1.7 SGR 估算分红证据等级构造用例", v17_sgr_est,
+                  "SGR 估算分红证据等级失败，逐条核对上方 ❌。"):
+        return 1
+
+    # ── v0.1.7 牧原 Q3：降级声明不是归因图，不要求前瞻词 ──
+    _fig_drop17 = _run_html_str(
+        '<div class="figtitle">OCF 调节桥未披露：补充资料缺失，本卡降级为声明</div>')
+    _fig_true17 = _run_html_str('<div class="figtitle">净利桥：毛利是第一驱动</div>')
+    v17_fig_drop = [
+        ("[OK  ] figtitle-attribution" in _fig_drop17.stdout
+         and "[WARN] figtitle-attribution" not in _fig_drop17.stdout,
+         "v0.1.7⑯：未披露/降级声明不计入归因前瞻警告"),
+        ("[WARN] figtitle-attribution" in _fig_true17.stdout,
+         "v0.1.7⑯：真正归因标题缺前瞻词仍必须 WARN"),
+    ]
+    if not _block("v0.1.7 归因标题降级豁免构造用例", v17_fig_drop,
+                  "归因标题降级豁免失效，逐条核对上方 ❌。"):
+        return 1
+
+    # ── v0.1.7 牧原 Q3：非空短断言不是截断，空字段才需回填 ──
+    from check_html_t8 import check_assert_truncation as _cat17
+    from check_html_common import Report as _HtmlRep17
+    _short_rep17 = _HtmlRep17()
+    _short_text17 = "净利润下降主要系生猪价格下降"
+    _cat17(f"<div>{_short_text17}</div><div>毛利转负</div>", {"assertions": [
+        {"id": "Q2", "text": _short_text17, "evidence": "毛利转负"}]}, _short_rep17)
+    _empty_rep17 = _HtmlRep17()
+    _cat17("<div>毛利由正转负，与猪价下行方向一致</div>", {"assertions": [
+        {"id": "E1", "text": "", "evidence": "毛利由正转负，与猪价下行方向一致"}]}, _empty_rep17)
+    v17_short_assert = [
+        (not any(lv in (_FAIL, "WARN") and code == "assert-trunc"
+                 for lv, code, *_ in _short_rep17.rows),
+         "v0.1.7⑰：非空短断言/短证据不作截断或缺字段警告"),
+        (any(lv == "WARN" and code == "assert-trunc" and "E1" in msg
+             for lv, code, msg, *_ in _empty_rep17.rows),
+         "v0.1.7⑰：空 text 仍须 WARN 回填"),
+    ]
+    if not _block("v0.1.7 短断言截断误报构造用例", v17_short_assert,
+                  "短断言截断误报修复失败，逐条核对上方 ❌。"):
+        return 1
+
+    # ── v0.1.7 牧原年报：Q4 卡机械读数，缺数据不编造 ──
+    def _q4_render17(q4, name, report_type="年报"):
+        d = copy.deepcopy(base if report_type == "年报" else load_json(YINGHE))
+        d["derived"]["q4"] = q4
+        d["meta"]["report_type"] = report_type
+        with tempfile.TemporaryDirectory() as td:
+            cp = Path(td) / f"{name}.json"
+            cp.write_text(json.dumps(d, ensure_ascii=False), encoding="utf-8")
+            subprocess.run([sys.executable, str(CALC), str(cp), "--fill"],
+                           capture_output=True, text=True, encoding="utf-8", errors="replace")
+            out = Path(td) / f"{name}.html"
+            rr = subprocess.run([sys.executable, str(SKILL / "scripts" / "render_report.py"),
+                                 str(cp), "-o", str(out)], capture_output=True, text=True,
+                                encoding="utf-8", errors="replace")
+            return rr, out.read_text(encoding="utf-8") if out.exists() else ""
+
+    _q4_values17 = {"rev": 323.5496, "np": 7.0799, "rev_share": 0.2244612596,
+                    "gm_q4": 0.1467897698, "gm_q1q3": 0.1872665885,
+                    "impair_share": 0.8401627348, "exp_ratio_q4": 0.0749037485,
+                    "exp_ratio_q1q3": 0.0617183502, "src": "构造年报与三季报差额"}
+    _rr_q4, _h_q4 = _q4_render17(_q4_values17, "q4_filled")
+    _rr_q4_empty, _h_q4_empty = _q4_render17({}, "q4_empty")
+    _rr_q4_h1, _h_q4_h1 = _q4_render17(_q4_values17, "q4_h1", "半年报")
+    _q4_table17 = _h_q4.split("Q4 收入占全年", 1)[-1].split("</table>", 1)[0]
+    _q4_empty_table17 = _h_q4_empty.split("Q4 收入占全年", 1)[-1].split("</table>", 1)[0]
+    v17_q4 = [
+        (_rr_q4.returncode == 0 and all(x in _q4_table17 for x in
+         ("22.45%", "14.68% vs 18.73%", "84.02%", "7.49% vs 6.17%"))
+         and "观察" in _q4_table17 and "待结合附注核对" in _q4_table17
+         and "{{" not in _q4_table17,
+         "v0.1.7⑱：Q4 前四项读数/触线判定自动生成，转固项不冒充已披露"),
+        (_rr_q4_empty.returncode == 0 and "—" in _q4_empty_table17
+         and "无法核验" in _q4_empty_table17 and "22.45%" not in _q4_empty_table17,
+         "v0.1.7⑱：q4 缺数时显示空与无法核验，不带入旧值"),
+        (_rr_q4_h1.returncode == 0 and "Q4 收入占全年" not in _h_q4_h1,
+         "v0.1.7⑱：非年报仍删除 Q4 卡"),
+    ]
+    if not _block("v0.1.7 Q4 卡机械填充构造用例", v17_q4,
+                  "Q4 卡机械填充失败，逐条核对上方 ❌。"):
+        return 1
+
+    # ── v0.1.7 预期对照：同年度年报才可算，披露日后的预测不得混入 ──
+    _exp_valid17 = copy.deepcopy(base)
+    _rev17 = _exp_valid17["statements"]["income"]["revenue"]["cur"]
+    _np17 = _exp_valid17["statements"]["income"]["np_at"]["cur"]
+    _exp_valid17["expectations"] = [
+        {"institution": "构造A", "date": "2026-04-01", "forecast_rev_2025": round(_rev17 * 0.98, 2),
+         "forecast_np_2025": round(_np17 * 0.95, 2), "src": "构造研报A"},
+        {"institution": "构造B", "date": "2026-04-10", "forecast_rev_2025": _rev17,
+         "forecast_np_2025": _np17, "src": "构造研报B"},
+        {"institution": "披露后不可见", "date": "2026-05-01", "forecast_rev_2025": _rev17 * 2,
+         "forecast_np_2025": _np17 * 2, "src": "构造未来研报"},
+    ]
+    _exp_rows17 = _bs17(_exp_valid17)["s7"].get("expect_rows") or []
+    _exp_none17 = _bs17(base)["s7"].get("expect_rows") or []
+    _exp_h1_data17 = load_json(YINGHE)
+    _exp_h1_data17["expectations"] = [{"institution": "构造研报", "date": "2026-08-01",
+                                       "forecast_np_2026": 90.0, "src": "构造全年预测"}]
+    _exp_h1_rows17 = _bs17(_exp_h1_data17)["s7"].get("expect_rows") or []
+    with tempfile.TemporaryDirectory() as _td_exp:
+        _cp_exp = Path(_td_exp) / "expect.json"
+        _cp_exp.write_text(json.dumps(_exp_valid17, ensure_ascii=False), encoding="utf-8")
+        subprocess.run([sys.executable, str(CALC), str(_cp_exp), "--fill"],
+                       capture_output=True, text=True, encoding="utf-8", errors="replace")
+        _out_exp = Path(_td_exp) / "expect.html"
+        _rr_exp = subprocess.run([sys.executable, str(SKILL / "scripts" / "render_report.py"),
+                                  str(_cp_exp), "-o", str(_out_exp)],
+                                 capture_output=True, text=True, encoding="utf-8", errors="replace")
+        _h_exp = _out_exp.read_text(encoding="utf-8") if _out_exp.exists() else ""
+    with tempfile.TemporaryDirectory() as _td_exp_h1:
+        _cp_exp_h1 = Path(_td_exp_h1) / "expect_h1.json"
+        _cp_exp_h1.write_text(json.dumps(_exp_h1_data17, ensure_ascii=False), encoding="utf-8")
+        subprocess.run([sys.executable, str(CALC), str(_cp_exp_h1), "--fill"],
+                       capture_output=True, text=True, encoding="utf-8", errors="replace")
+        _out_exp_h1 = Path(_td_exp_h1) / "expect_h1.html"
+        _rr_exp_h1 = subprocess.run([sys.executable, str(SKILL / "scripts" / "render_report.py"),
+                                     str(_cp_exp_h1), "-o", str(_out_exp_h1)],
+                                    capture_output=True, text=True, encoding="utf-8", errors="replace")
+        _h_exp_h1 = _out_exp_h1.read_text(encoding="utf-8") if _out_exp_h1.exists() else ""
+    _exp_table17 = _h_exp.split('<tr><th>指标</th><th>实际</th><th>一致预期</th>', 1)[-1].split("</table>", 1)[0]
+    _exp_h1_table17 = _h_exp_h1.split('<tr><th>指标</th><th>实际</th><th>一致预期</th>', 1)[-1].split("</table>", 1)[0]
+    _schema_exp17 = (SKILL / "references" / "extraction-schema.md").read_text(encoding="utf-8")
+    v17_expect = [
+        (len(_exp_rows17) == 2 and _exp_rows17[0]["delta"] == "+1.01%"
+         and _exp_rows17[1]["delta"] == "+2.56%",
+         f"v0.1.7⑲：同年度预测中位数与偏离复算正确，披露日后预测剔除（{_exp_rows17}）"),
+        (len(_exp_none17) == 2 and all(r["delta"] == "不适用" for r in _exp_none17),
+         "v0.1.7⑲：无同年度预期时不计算偏离"),
+        (len(_exp_h1_rows17) == 2
+         and all(r["delta"] == "不适用" and "全年预测" in r["forecast"] for r in _exp_h1_rows17),
+         "v0.1.7⑲：半年报/季报不与全年预测直接比较"),
+        (_rr_exp.returncode == 0 and "+1.01%" in _exp_table17 and "+2.56%" in _exp_table17
+         and "{{" not in _exp_table17,
+         "v0.1.7⑲：最终预期表的 actual/forecast/偏离度全部机械填充"),
+        (_rr_exp_h1.returncode == 0 and "不适用" in _exp_h1_table17
+         and "{{" not in _exp_h1_table17 and "up|dn" not in _exp_h1_table17,
+         "v0.1.7⑲：非年报不适用行也清除单元格 class 占位符"),
+        ("forecast_rev_YYYY" in _schema_exp17 and "披露日后" in _schema_exp17,
+         "v0.1.7⑲：schema 登记预测字段与同年度/披露日边界"),
+    ]
+    if not _block("v0.1.7 预期对照表构造用例", v17_expect,
+                  "预期对照表机械填充失败，逐条核对上方 ❌。"):
+        return 1
+
+    # ── v0.1.7 大动表：只呈现有出处的结构化解释，缺清单不冒充全已解释 ──
+    def _big_render17(items, name):
+        d = copy.deepcopy(base)
+        if items is not None:
+            d["big_moves"] = items
+        with tempfile.TemporaryDirectory() as td:
+            cp = Path(td) / f"{name}.json"
+            cp.write_text(json.dumps(d, ensure_ascii=False), encoding="utf-8")
+            subprocess.run([sys.executable, str(CALC), str(cp), "--fill"],
+                           capture_output=True, text=True, encoding="utf-8", errors="replace")
+            out = Path(td) / f"{name}.html"
+            rr = subprocess.run([sys.executable, str(SKILL / "scripts" / "render_report.py"),
+                                 str(cp), "-o", str(out)], capture_output=True, text=True,
+                                encoding="utf-8", errors="replace")
+            return rr, out.read_text(encoding="utf-8") if out.exists() else ""
+
+    _big_items17 = [
+        {"subject": "货币资金", "change": "+65.11%", "explanation": "H股募资到账",
+         "source": "构造定期报告主要变动说明"},
+        {"subject": "资产减值损失", "change": "+120.30%", "explanation": "存货跌价增加",
+         "source": "构造定期报告主要变动说明"},
+    ]
+    _rr_big, _h_big = _big_render17(_big_items17, "big_filled")
+    _rr_big_empty, _h_big_empty = _big_render17(None, "big_empty")
+    _big_table17 = _h_big.split("变动 &gt;30% 的科目", 1)[-1].split('<tr class="total">', 1)[0]
+    _big_empty17 = _h_big_empty.split("变动 &gt;30% 的科目", 1)[-1].split('<tr class="total">', 1)[0]
+    _schema_big17 = (SKILL / "references" / "extraction-schema.md").read_text(encoding="utf-8")
+    v17_big = [
+        (_rr_big.returncode == 0 and "货币资金" in _big_table17 and "+65.11%" in _big_table17
+         and "H股募资到账" in _big_table17 and "资产减值损失" in _big_table17
+         and "{{科目}}" not in _big_table17,
+         "v0.1.7⑳：大动科目/幅度/管理层解释由 big_moves 机械生成"),
+        (_rr_big_empty.returncode == 0 and "无结构化大动清单" in _big_empty17
+         and "不据此宣称全部已解释" in _big_empty17 and "{{科目}}" not in _big_empty17,
+         "v0.1.7⑳：缺大动清单时明确降级，不宣称全部已解释"),
+        ("`big_moves[]`" in _schema_big17 and "`explanation`" in _schema_big17,
+         "v0.1.7⑳：schema 登记大动表字段与来源要求"),
+    ]
+    if not _block("v0.1.7 大动表机械填充构造用例", v17_big,
+                  "大动表机械填充失败，逐条核对上方 ❌。"):
+        return 1
+
+    # ── v0.1.7 海康实证：高管增减持按同口径合计，不从股东名册倒推 ──
+    def _mgmt_render17(total, name):
+        d = copy.deepcopy(base)
+        if total is not None:
+            d.setdefault("notes", {}).setdefault("shareholders", {})["mgmt_changes_total"] = total
+        with tempfile.TemporaryDirectory() as td:
+            cp = Path(td) / f"{name}.json"
+            cp.write_text(json.dumps(d, ensure_ascii=False), encoding="utf-8")
+            subprocess.run([sys.executable, str(CALC), str(cp), "--fill"],
+                           capture_output=True, text=True, encoding="utf-8", errors="replace")
+            out = Path(td) / f"{name}.html"
+            rr = subprocess.run([sys.executable, str(SKILL / "scripts" / "render_report.py"),
+                                 str(cp), "-o", str(out)], capture_output=True, text=True,
+                                encoding="utf-8", errors="replace")
+            return rr, out.read_text(encoding="utf-8") if out.exists() else ""
+
+    _rr_mgmt_up, _h_mgmt_up = _mgmt_render17(
+        {"increase": 469500, "decrease": 0, "src": "L1137", "note": "构造直接持股合计"}, "mgmt_up")
+    _rr_mgmt_down, _h_mgmt_down = _mgmt_render17(
+        {"increase": 100000, "decrease": 500000, "src": "构造公告", "note": "构造减持"}, "mgmt_down")
+    _rr_mgmt_none, _h_mgmt_none = _mgmt_render17(None, "mgmt_none")
+    _schema_mgmt17 = (SKILL / "references" / "extraction-schema.md").read_text(encoding="utf-8")
+    v17_mgmt = [
+        (_rr_mgmt_up.returncode == 0 and "净增持 46.95 万股" in _h_mgmt_up
+         and '<span class="up">净增持 46.95 万股</span>' in _h_mgmt_up
+         and "up|dn" not in _h_mgmt_up.split("高管增减持（合计）", 1)[-1].split("</tr>", 1)[0],
+         "v0.1.7㉑：高管净增持按股→万股换算并染 up"),
+        (_rr_mgmt_down.returncode == 0 and "净减持 40.00 万股" in _h_mgmt_down
+         and '<span class="dn">净减持 40.00 万股</span>' in _h_mgmt_down,
+         "v0.1.7㉑：高管净减持方向与金额正确"),
+        (_rr_mgmt_none.returncode == 0 and "不从股东名册倒推" in _h_mgmt_none
+         and "up|dn" not in _h_mgmt_none.split("高管增减持（合计）", 1)[-1].split("</tr>", 1)[0],
+         "v0.1.7㉑：缺同口径合计时明确未知，不从前十大名册倒推"),
+        ("mgmt_changes_total" in _schema_mgmt17 and "increase−decrease" in _schema_mgmt17,
+         "v0.1.7㉑：schema 登记高管交易合计字段与股/万股口径"),
+    ]
+    if not _block("v0.1.7 高管增减持构造用例", v17_mgmt,
+                  "高管增减持填充失败，逐条核对上方 ❌。"):
+        return 1
+
+    # ── v0.1.7 海康实证：户数允许数值或旧底稿 value 对象，单位不漂移 ──
+    def _holder_num17(value):
+        d = load_json(YINGHE)
+        d["notes"]["shareholders"]["holder_num_cur"] = value
+        try:
+            return _bs17(d)["s6"]["holders"]["cur_w"]
+        except (TypeError, AttributeError):
+            return None
+
+    _holder_obj17 = _holder_num17({"value": 47512, "unit": "户", "src": "构造原文"})
+    _holder_num17_value = _holder_num17(47512)
+    _holder_bad17 = _holder_num17({"value": "未披露"})
+    _schema_holder17 = (SKILL / "references" / "extraction-schema.md").read_text(encoding="utf-8")
+    v17_holder = [
+        (_holder_obj17 == 4.75 and _holder_num17_value == 4.75,
+         f"v0.1.7㉒：value 对象与纯数值均得到相同万户读数（{_holder_obj17}/{_holder_num17_value}）"),
+        (_holder_bad17 is None,
+         "v0.1.7㉒：value 非数值时保持未知，不强行转换"),
+        ("value 对象" in _schema_holder17 and "holder_num_cur" in _schema_holder17,
+         "v0.1.7㉒：schema 登记户数旧底稿 value 对象兼容"),
+    ]
+    if not _block("v0.1.7 户数结构兼容构造用例", v17_holder,
+                  "户数结构兼容失败，逐条核对上方 ❌。"):
+        return 1
+
+    # ── 招股书首验：主期=最近审计FY，期后审阅数据不混入年度hist ──
+    _d_ipo = load_json(KANGDEXIN)
+    _d_ipo["meta"].update({"period": "20181231", "report_type": "招股书"})
+    _d_ipo_ref = load_json(KANGDEXIN)
+    _alt_ipo, _ = _ca17(_d_ipo)
+    _alt_ipo_ref, _ = _ca17(_d_ipo_ref)
+    _r_ipo14 = _auto_run("A股（北交所）", "招股书")
+    _r_ipo13 = _auto_run("A股（北交所）", "招股书", drop=1)
+    ipo_calc_checks = [
+        (_hp17({"period": "20251231", "report_type": "招股书"}, 3) == ["2023", "2024", "2025"],
+         "招股书①：最近审计FY倒推三年标签，不虚构五年"),
+        (_hp17({"period": "20260630", "report_type": "招股书"}, 3) is None,
+         "招股书①：期后半年不得冒充主数据期"),
+        (_alt_ipo is not None and _alt_ipo == _alt_ipo_ref
+         and _alt_ipo.get("annualized") is False,
+         f"招股书①：主表按年度口径计算Altman（ref={_alt_ipo_ref}, got={_alt_ipo}）"),
+        ("覆盖下限 14" in (_r_ipo14.stdout or "")
+         and "未达 --min-recon 14" not in (_r_ipo14.stdout or ""),
+         "招股书②：南方乳业首验14/17下限，达标不升FAIL"),
+        ("未达 --min-recon 14" in (_r_ipo13.stdout or ""),
+         "招股书②：降至13/17必升FAIL，阈值方向钉死"),
+    ]
+    if not _block("招股书期间与计算口径构造用例", ipo_calc_checks,
+                  "招股书计算支持失败，逐条核对上方 ❌。"):
+        return 1
+
+    # ── 招股书专章槽位：计划/预计/实际与审阅/未审分层 ──
+    _d_ipo_slots = load_json(YINGHE)
+    _d_ipo_slots["meta"].update({"period": "20251231", "report_type": "招股书"})
+    _ipo_min = {
+        "issue_terms": {"issue_price": 14.21, "shares_offered": 3518.5185,
+                        "post_issue_total_shares": 18518.5185, "pe_post": 11.99},
+        "use_of_proceeds_plan": {"planned_raise": 5.50, "projects": [
+            {"name": "养殖基地", "total_investment": 4.436720, "planned_raise": 4.0,
+             "build_period": "2年", "benefit_assumption": None}]},
+        "use_of_proceeds_final": {"net_proceeds": 4.636207, "shortfall_vs_planned_raise": 0.863793},
+        "reviewed_financials_2026h1": {
+            "balance": {"total_assets": {"cur": 27.107424, "prev": 26.666432},
+                        "src": "构造审阅表"},
+            "income": {"revenue": {"cur": 8.962650, "prev": 8.538167},
+                       "np_at": {"cur": 1.029070, "prev": 1.226262}, "src": "构造审阅表"},
+            "cashflow": {"ocf": {"cur": 2.076495, "prev": 2.094677}, "src": "构造审阅表"}},
+        "shareholding_pre_post": {"table": [
+            {"holder": "控股股东", "pre_pct": 0.5101, "post_pct": 0.4132}]}
+    }
+    _d_ipo_slots.setdefault("notes", {}).setdefault("operating_extract", {})["ipo"] = _ipo_min
+    _d_ipo_slots["notes"]["operating_extract"]["post_listing_validation"] = {
+        "data": {"listing_announcement": {"net_proceeds_actual": 463950822.09},
+                 "q3_report": {"audit": "未经审计", "9m": {"np_at_cur": 163163160.84}}}}
+    _slots_ipo = _bs13(_d_ipo_slots).get("ipo")
+    _slots_non_ipo = _bs13(load_json(YINGHE)).get("ipo")
+    _tmpl_ipo = (SKILL / "assets" / "report-template.html").read_text(encoding="utf-8")
+    _schema_ipo = (SKILL / "references" / "extraction-schema.md").read_text(encoding="utf-8")
+    _rt_ipo = (SKILL / "references" / "report-types.md").read_text(encoding="utf-8")
+    _d_ipo_future = copy.deepcopy(_d_ipo_slots)
+    _ipo_future = _d_ipo_future["notes"]["operating_extract"]["ipo"]
+    _ipo_future["reviewed_financials_2027q1"] = _ipo_future.pop("reviewed_financials_2026h1")
+    _q3_future = _d_ipo_future["notes"]["operating_extract"]["post_listing_validation"]["data"]["q3_report"]
+    _q3_future["date"] = "2027-10-30"
+    _q3_future["9m"]["np_at_prev"] = 176129218.10
+    _slots_ipo_future = _bs13(_d_ipo_future).get("ipo")
+    ipo_slot_checks = [
+        (isinstance(_slots_ipo, dict) and _slots_ipo.get("issue", {}).get("price_raw") == 14.21
+         and _slots_ipo.get("planned_raise_raw") == 5.50
+         and _slots_ipo.get("expected_net_raw") == 4.636207
+         and _slots_ipo.get("actual_net_raw") == 4.6395082209,
+         f"招股书③：发行/拟募/预计/实际原值入槽（{_slots_ipo}）"),
+        (isinstance(_slots_ipo, dict) and len(_slots_ipo.get("plan_rows", [])) == 1
+         and len(_slots_ipo.get("equity_rows", [])) == 1
+         and len(_slots_ipo.get("interim_rows", [])) >= 4,
+         "招股书③：募投/股权/期后行均由数据生成"),
+        (isinstance(_slots_ipo, dict)
+         and _slots_ipo.get("issue_rows", [{}])[1].get("value", "").startswith("3,518.52")
+         and _slots_ipo.get("post_rows", [{}])[0].get("cur") == "46,395.08",
+         "招股书③：万股/万元大额显示带千位符，原值精度留底稿"),
+        (isinstance(_slots_ipo, dict) and "审阅" in _slots_ipo.get("interim_note", "")
+         and "非审计" in _slots_ipo.get("interim_note", "")
+         and "未审" in _slots_ipo.get("post_note", ""),
+         "招股书③：审阅非审计与上市后未审标签不丢"),
+        (_slots_ipo.get("interim_note") == "2026H1为审阅数据、非审计；资产负债表较2025年末，利润与现金流同比2025H1。",
+         "招股书③：南方乳业审阅期间文案零漂移"),
+        (isinstance(_slots_ipo_future, dict) and _slots_ipo_future.get("interim_rows")
+         and "2027Q1为审阅数据" in _slots_ipo_future.get("interim_note", "")
+         and any(x.get("scope") == "较2026年末" for x in _slots_ipo_future["interim_rows"])
+         and any(x.get("scope") == "同比2026Q1" for x in _slots_ipo_future["interim_rows"]),
+         "招股书③：2027Q1审阅块与2026年比较期按实际键名读取"),
+        (isinstance(_slots_ipo_future, dict)
+         and any(x.get("item", "").startswith("2027年前9月归母") for x in _slots_ipo_future.get("post_rows", [])),
+         "招股书③：上市后报告年份按公告日读取，不写死2026"),
+        (not _slots_non_ipo, "招股书③：非招股书不产生IPO槽"),
+        ('id="ipo"' in _tmpl_ipo and "{{IPO_ISSUE_ROWS}}" in _tmpl_ipo
+         and "{{IPO_PLAN_ROWS}}" in _tmpl_ipo and "{{IPO_EQUITY_ROWS}}" in _tmpl_ipo
+         and "{{IPO_INTERIM_ROWS}}" in _tmpl_ipo,
+         "招股书③：活动模板含条件专章与四类机械槽"),
+        ("period_basis" in _schema_ipo and "最近审计" in _rt_ipo
+         and "审阅" in _rt_ipo and "不得混入" in _schema_ipo,
+         "招股书③：schema与方法库登记审计主期/期后审阅分层"),
+    ]
+    if not _block("招股书专章槽位构造用例", ipo_slot_checks,
+                  "招股书专章槽位失败，逐条核对上方 ❌。"):
+        return 1
+
+    # ── 招股书render：条件专章/不适用裁剪/三年图轴/同名补桶 ──
+    def _render_ipo_test(d, stem):
+        from calc_models import fill_derived as _fill_ipo
+        _fill_ipo(d)
+        with tempfile.TemporaryDirectory() as td:
+            cp = Path(td) / f"{stem}.json"
+            cp.write_text(json.dumps(d, ensure_ascii=False), encoding="utf-8")
+            sp = Path(td) / f"{stem}.fillsheet.json"
+            sp.write_text(json.dumps(_bs13(d), ensure_ascii=False), encoding="utf-8")
+            out = Path(td) / f"{stem}.html"
+            rr = subprocess.run([sys.executable, str(SKILL / "scripts" / "render_report.py"),
+                                 str(cp), "-o", str(out)], capture_output=True, text=True,
+                                encoding="utf-8", errors="replace")
+            return rr, out.read_text(encoding="utf-8") if out.exists() else ""
+    _rr_ipo, _h_ipo = _render_ipo_test(_d_ipo_slots, "ipo_min")
+    _rr_ipo_non, _h_ipo_non = _render_ipo_test(load_json(YINGHE), "ipo_non")
+    _d_ipo_no_d5 = copy.deepcopy(_d_ipo_slots)
+    _d_ipo_no_d5["statements"]["balance"]["total_assets"].pop("hist", None)
+    _d_ipo_no_d5["derived"] = {}
+    _rr_ipo_no_d5, _h_ipo_no_d5 = _render_ipo_test(_d_ipo_no_d5, "ipo_no_d5")
+    _d_non_ipo_no_d5 = load_json(YINGHE)
+    _d_non_ipo_no_d5["statements"]["balance"]["total_assets"].pop("hist", None)
+    _d_non_ipo_no_d5["derived"] = {}
+    _rr_non_ipo_no_d5, _h_non_ipo_no_d5 = _render_ipo_test(_d_non_ipo_no_d5, "non_ipo_no_d5")
+    def _ipo_labels(html, key):
+        m = re.search(rf"(?m)^const {key}=.*?\blabels:(\[[^\]]*\])", html)
+        return json.loads(m.group(1)) if m else None
+    _d_other_bucket = {"meta": {"report_type": "招股书", "period": "20251231"},
+                       "statements": {"income": {"revenue": {"cur": 11, "prev": 10},
+                                      "by_segment": [{"name": "其他", "rev_cur": 1, "rev_prev": 1}]}}}
+    _seg_other = json.loads(re.search(r"(?m)^const SEG_BRIDGE=(.*);$",
+        _bs13(_d_other_bucket)["js"]["SEG_BRIDGE"]).group(1))
+    ipo_render_checks = [
+        (_rr_ipo.returncode == 0 and 'id="ipo"' in _h_ipo
+         and "{{IPO_" not in _h_ipo and "14.21 元/股" in _h_ipo
+         and "46,395.08" in _h_ipo,
+         f"招股书④：专章机械槽全部填充（{_rr_ipo.stdout}{_rr_ipo.stderr}）"),
+        (_rr_ipo_non.returncode == 0 and 'id="ipo"' not in _h_ipo_non
+         and "{{IPO_" not in _h_ipo_non,
+         "招股书④：非招股书整章与导航不残留"),
+        (all(((_ipo_labels(_h_ipo, k) or [])[-3:] == ["2023", "2024", "2025"])
+             for k in ("TREND", "NCR_TS", "EFF_TS")),
+         "招股书④：五张趋势图共用年度审计标签，不再空轴；真实三年样本在任务4锁"),
+        ('id="s6"' in _h_ipo and 'id="holders"' not in _h_ipo
+         and "发行前后股权" in _h_ipo and "上市前不适用" in _h_ipo
+         and "全年预测不与累计实际直接比较" not in _h_ipo,
+         "招股书④：户数与机构预期整卡裁剪，旧表身/闭合标签不残留"),
+        ("招股书不适用" in _h_ipo and "—（半年报不适用）" not in _h_ipo,
+         "招股书④：Q4不适用标签按真实报告类型显示"),
+        (len({name for name, _ in _seg_other}) == len(_seg_other)
+         and ["其他业务", 1.0] in _seg_other,
+         f"招股书④：既有其他分部与自动补桶不同名（{_seg_other}）"),
+        (_rr_ipo_no_d5.returncode == 0 and "{{period_start}}" not in _h_ipo_no_d5
+         and "累计归因与因子分位降级" in _h_ipo_no_d5 and "五年位置" not in _h_ipo_no_d5,
+         "招股书④：累计归因序列不足时整卡降级，不留分位空孔"),
+        (_rr_non_ipo_no_d5.returncode == 0 and "累计归因与因子分位降级" in _h_non_ipo_no_d5
+         and "招股书只披露三年审计主表" not in _h_non_ipo_no_d5
+         and "数据来源：招股说明书三年审计主表" not in _h_non_ipo_no_d5,
+         "招股书④：非招股书缺累计归因时也不得出现招股书专属措辞"),
+    ]
+    if not _block("招股书渲染与同名补桶构造用例", ipo_render_checks,
+                  "招股书渲染/补桶失败，逐条核对上方 ❌。"):
+        return 1
+
+    # ── 招股书T8：上市公告原始元值须换算成亿元/万元，且不能豁免真实笔误 ──
+    from check_html_t8 import check_numbers_vs_json as _check_t8post
+    from check_html_common import Report as _ReportT8Post
+    def _t8post(text, collision=True):
+        d = {"derived": {"ratios": {"dso": {"cur": 15.1488, "prev": 13.6938 if collision else 50.0}}},
+             "notes": {"operating_extract": {"post_listing_validation": {"data": {
+                 "q3_report": {"unit": "元", "9m": {"revenue_cur": 1370592912.02,
+                                                   "np_dt_cur": 159913386.24}},
+                 "listing_announcement": {"unit": "元", "net_proceeds_actual": 463950822.09}}}}}}
+        rep = _ReportT8Post()
+        _check_t8post(text, text, d, rep)
+        return rep
+    _t8post_ok = _t8post("<td>13.71</td><td>46,395.08</td>")
+    _t8post_bad = _t8post("<td>13.72</td>", collision=False)
+    t8_post_checks = [
+        (not any(lv == "FAIL" for lv, _, _, _ in _t8post_ok.rows)
+         and any("2 处数字匹配" in msg for _, _, msg, _ in _t8post_ok.rows),
+         f"招股书⑤：公告元值换算亿/万后按显示精度匹配（{_t8post_ok.rows}）"),
+        (any(lv == "FAIL" for lv, _, _, _ in _t8post_bad.rows),
+         "招股书⑤：改掉显示值仍必FAIL，单位补口不是豁免"),
+    ]
+    def _t8round(text):
+        d = {"derived": {"ratios": {"dio": {"cur": 45.9508, "prev": 47.945}}}}
+        rep = _ReportT8Post()
+        _check_t8post(text, text, d, rep)
+        return rep
+    _t8round_ok = _t8round("<td>47.95</td>")
+    _t8round_bad = _t8round("<td>47.96</td>")
+    _t8post_range = _t8post("公司预计2026年1-9月营业收入136,008.03～137,208.03万元（同比+2.71%～+3.62%），归母净利润15,967.69～16,967.69万元（同比-9.34%～-3.66%）", collision=False)
+    t8_post_checks += [
+        (not any(lv == "FAIL" for lv, _, _, _ in _t8round_ok.rows),
+         f"招股书⑤：半个显示单位边界不受浮点尾差误伤（{_t8round_ok.rows}）"),
+        (any(lv == "FAIL" for lv, _, _, _ in _t8round_bad.rows),
+         "招股书⑤：超出显示精度仍必FAIL，容差不扩大"),
+        (not any(lv == "FAIL" for lv, _, _, _ in _t8post_range.rows),
+         f"招股书⑤：预计区间端点不与实际值误撞（{_t8post_range.rows}）"),
+    ]
+    if not _block("招股书期后数字回验构造用例", t8_post_checks,
+                  "招股书T8单位换算失败，逐条核对上方 ❌。"):
+        return 1
+
+    # ── 清越实战：interest_arrears 是机械差额，fill 不得漏算，检查器不得照单全收 ──
+    from calc_models import fill_derived as _fill_ia
+    from calc import check_interest_arrears as _check_ia
+    from calc_common import Report
+    _ia = load_json(QINGYUE)
+    _ia["derived"].pop("interest_arrears", None)
+    _ia["derived"]["interest_arrears"] = {"note": "付息含资本化部分，需保留该口径说明"}
+    _fill_ia(_ia)
+    _ia_node = _ia["derived"]["interest_arrears"]
+    _ia_bad = copy.deepcopy(_ia)
+    _ia_bad["derived"]["interest_arrears"]["cur"] = 0.0
+    _ia_bad_rep = Report()
+    _check_ia(_ia_bad, _ia_bad_rep)
+    _ia_missing = copy.deepcopy(_ia)
+    _ia_missing["statements"]["cashflow"]["interest_paid"]["cur"] = None
+    _fill_ia(_ia_missing)
+    _ia_missing_rep = Report()
+    _check_ia(_ia_missing, _ia_missing_rep)
+    interest_arrears_checks = [
+        (isinstance(_ia_node.get("cur"), (int, float))
+         and abs(_ia_node["cur"] - (-0.0419)) < 1e-9,
+         f"清越：利息费用0.1925−实际付息0.2344=应付未付-0.0419（实际 {_ia_node.get('cur')}）"),
+        (_ia_node.get("note") == "付息含资本化部分，需保留该口径说明",
+         "interest_arrears 保留人工口径注释，不被机械填充覆盖"),
+        (any(lv == "FAIL" for lv, _, _ in _ia_bad_rep.rows),
+         f"interest_arrears 填0但输入可复算时必FAIL（{_ia_bad_rep.rows}）"),
+        (_ia_missing["derived"]["interest_arrears"].get("cur") is None
+         and any(lv == "SKIP" for lv, _, _ in _ia_missing_rep.rows),
+         "缺实际付息时保持未知并SKIP，不把缺失当0"),
+    ]
+    if not _block("interest_arrears 自动填充与复算构造用例", interest_arrears_checks,
+                  "利息差额机械字段漏算或失去复算，逐条核对上方 ❌。"):
+        return 1
+
     # ══ 更名命名契约（RED）：本技能定名 Bo-FinancialAnalyzer（目录 bo-financial-analyzer）══
     # 断言目标命名；旧命名下本块 5 条应全 ❌，更名落地后由 257 条全绿锁死。
     _skill_md = (SKILL / "SKILL.md").read_text(encoding="utf-8")
@@ -2251,7 +3324,7 @@ def main():
         print("❌ 回归未通过：逐条核对上方 ❌；先确认是 calc.py 改坏了还是样本期望值需调整，"
               "禁止为了让测试变绿而改 fixture 数值。")
         return 1
-    print("✅ 四例全绿：门禁既未误报干净样本、未漏报造假样本，也未错伤连亏样本与周期股样本。")
+    print("✅ 五例全绿：门禁既未误报干净样本、未漏报造假样本，也未错伤连亏样本与周期股样本。")
     return 0
 
 

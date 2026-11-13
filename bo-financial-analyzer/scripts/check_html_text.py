@@ -5,7 +5,8 @@ check_html_text.py — 报告机检的「呈现文本族」检查（v0.0.19 从 
 
 口径划分：本模块管「文字怎么呈现」——裸数字启发式、figtitle 文风、槽位长度、
 缩写展开、桥图项数、归因标题复述、判定列、内部引用禁词、srcline 拼接、杜邦双卡
-形态、分位白描映射、勾稽三态措辞、可见数字精度、断言计数自洽、数据缺口声明落点。
+形态、分位白描映射、勾稽三态措辞、可见数字精度、断言计数自洽、数据缺口声明落点、
+关键小字对比度。
 结构/硬规则类（占位符、外部资源、必备要素、锚点、章节形态、s2/s8/review、
 dupont-stack 数据槽比对、T8 数字回验）留在 check_html.py / check_html_t8.py。
 
@@ -223,12 +224,15 @@ FIGTITLE_PCT_RE = re.compile(r"[-+−]?\d+(?:\.\d+)?\s*(?:pct|%)")
 def check_figtitle_attribution(text, rep, secs):
     """归因类 figtitle（含 归因/桥/杜邦/ROE）两条启发式：
     ① 缺前瞻词（盯/验证/下期/关注/证伪/兑现）→ 疑似只报归因没落裁决；
-    ② 与紧随其后的表格共享 ≥2 个相同 pct 数字 → 疑似复述表格（数字只许在表格里）。"""
+    ② 与紧随其后的表格共享 ≥2 个相同 pct 数字 → 疑似复述表格（数字只许在表格里）。
+    未绘制/不适用/未披露/降级声明没有实际归因，不纳入本规则。"""
     hits = []
     for m in re.finditer(r'<div class="figtitle"[^>]*>(.*?)</div>', text, re.S):
         plain = re.sub(r"<[^>]+>", "", m.group(1))
         if not FIGTITLE_ATTR_RE.search(plain):
             continue
+        if re.search(r"未绘制|不适用|未披露|降级", plain):
+            continue  # 没有实际归因图，不要求四段式归因标题
         reasons = []
         if not FIGTITLE_FWD_RE.search(plain):
             reasons.append("缺前瞻词（盯/验证/下期/关注/证伪/兑现）")
@@ -368,14 +372,18 @@ def _table_containing(seg, kw):
     return m
 
 
-# 分位白描读数形态（v0.0.19 起 X/5：五年从高到低第 X；旧措辞「5 期中第 2 高」族退役）
-PCTILE_TEXT_RE = re.compile(r"(?<![\d/])[1-5]/5(?![\d/])")
+# 分位白描读数形态：X/N（N=2~5，X≤N；从窗口从高到低第 X）；旧措辞退役
+PCTILE_TEXT_RE = re.compile(r"(?<![\d/])([1-5])/([2-5])(?![\d/])")
 PCTILE_OLD_RE = re.compile(r"5 期最低|5 期中第 2 低|5 期中居中|5 期中第 2 高|5 期最高")
+
+
+def _pctile_text_ok(text):
+    return any(int(m.group(1)) <= int(m.group(2)) for m in PCTILE_TEXT_RE.finditer(text))
 
 
 def check_s1_v15_shape(text, rep):
     """S1 杜邦双卡形态：① 杜邦下钻子行 ≤3（每因子 ≤1 行密度纪律）；
-    ② 因子分位表（表头含「五年位置」）数据行必须带白描读数（v0.0.19 起 X/5 从高到低；
+    ② 因子分位表（表头含「五年位置」）数据行必须带白描读数（X/N 从窗口高到低；
        hist<3 合法降级的「分位不可用/分位需/分位降级」声明行豁免，v0.1.2 蜜雪实证），
        旧措辞「5 期中第 2 高」族与「上限区/下限区/常态区」档位标签均禁贴，
        且表内禁用「显著」统计措辞（n=5 位置读数非统计分位）；
@@ -400,10 +408,10 @@ def check_s1_v15_shape(text, rep):
         # 分位需 ≥3 期/分位卡降级」即合规形态，不是缺白描
         _deg = re.compile(r"分位不可用|分位需|分位卡?降级")
         live = [r for r in rows if not _deg.search(re.sub(r"<[^>]+>", "", r))]
-        nob = sum(1 for r in live if not PCTILE_TEXT_RE.search(r))
+        nob = sum(1 for r in live if not _pctile_text_ok(r))
         if nob:
             bad.append(f"因子分位表 {nob}/{len(live)} 行缺白描读数"
-                       f"（X/5：五年从高到低第 X，v0.0.19；降级声明行已豁免）")
+                       f"（X/N：窗口内从高到低第 X，X≤N；降级声明行已豁免）")
         if PCTILE_OLD_RE.search(tm.group(0)):
             bad.append("因子分位表仍用旧白描措辞「5 期中第 2 高」族——v0.0.19 起改 X/5 读数")
         if re.search(r"上限区|下限区|常态区", tm.group(0)):
@@ -625,3 +633,79 @@ def check_gap_declaration(body, rep):
                 "（text-mining.md 第七节呈现规范 2）")
     else:
         rep.add(OK, "gap-declaration", f"s4 ❓ 断言 {n_q} 处，数据缺口声明行在位且逐条覆盖")
+
+
+def _parse_rgb(value):
+    """解析模板所用的 #rrggbb / rgb() / rgba()，返回 (r, g, b, alpha)。"""
+    value = value.strip()
+    if re.fullmatch(r"#[0-9A-Fa-f]{6}", value):
+        return tuple(int(value[i:i + 2], 16) for i in (1, 3, 5)) + (1.0,)
+    m = re.fullmatch(
+        r"rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*(?:,\s*(\d+(?:\.\d+)?|\.\d+))?\s*\)",
+        value)
+    if not m:
+        return None
+    rgb = tuple(int(x) for x in m.groups()[:3])
+    alpha = float(m.group(4)) if m.group(4) is not None else 1.0
+    if any(x > 255 for x in rgb) or not 0 <= alpha <= 1:
+        return None
+    return rgb + (alpha,)
+
+
+def _over(color, background):
+    return tuple(color[i] * color[3] + background[i] * (1 - color[3]) for i in range(3))
+
+
+def _relative_luminance(rgb):
+    channels = [x / 255 for x in rgb]
+    linear = [x / 12.92 if x <= 0.04045 else ((x + 0.055) / 1.055) ** 2.4 for x in channels]
+    return 0.2126 * linear[0] + 0.7152 * linear[1] + 0.0722 * linear[2]
+
+
+def _contrast_ratio(foreground, background):
+    high, low = sorted((_relative_luminance(foreground), _relative_luminance(background)), reverse=True)
+    return (high + 0.05) / (low + 0.05)
+
+
+def check_text_contrast(raw, rep):
+    """活动模板关键小字色的 WCAG AA 窄门禁（普通文本 ≥4.5:1）；不是通用 CSS 审计器。"""
+    root = re.search(r":root\s*\{(.*?)\}", raw, re.S)
+    if root is None:
+        rep.add(OK, "text-contrast", "未使用活动模板色 token，文字对比度检查不适用")
+        return
+    tokens = dict(re.findall(r"--([\w-]+)\s*:\s*([^;]+)", root.group(1)))
+    if not {"bg", "muted", "warn"}.issubset(tokens):
+        rep.add(OK, "text-contrast", "未使用活动模板关键文字 token，文字对比度检查不适用")
+        return
+    bg = _parse_rgb(tokens["bg"])
+    if bg is None:
+        rep.add(FAIL, "text-contrast", "--bg 色值无法解析，无法复算文字对比度")
+        return
+    page_bg = _over(bg, (255, 255, 255))
+    white = (255, 255, 255)
+    bad = []
+    for token, backgrounds in (("muted", (("米色底", page_bg), ("白卡", white))),
+                               ("warn", (("米色底", page_bg), ("白卡", white)))):
+        color = _parse_rgb(tokens[token])
+        if color is None:
+            bad.append(f"--{token} 色值无法解析")
+            continue
+        for label, back in backgrounds:
+            ratio = _contrast_ratio(_over(color, back), back)
+            if ratio < 4.5:
+                bad.append(f"--{token} 在{label}仅 {ratio:.2f}:1（WCAG AA 普通文本 ≥4.5:1）")
+    badge = re.search(r"\.badge\.y\s*\{([^}]*)\}", raw, re.S)
+    badge_bg = re.search(r"background\s*:\s*([^;]+)", badge.group(1)) if badge else None
+    warn = _parse_rgb(tokens["warn"])
+    badge_color = _parse_rgb(badge_bg.group(1)) if badge_bg else None
+    if warn is not None and badge_color is not None:
+        back = _over(badge_color, white)
+        ratio = _contrast_ratio(_over(warn, back), back)
+        if ratio < 4.5:
+            bad.append(f"--warn 在黄色徽章实底仅 {ratio:.2f}:1（WCAG AA 普通文本 ≥4.5:1）")
+    if re.search(r"(?<![\w-])color\s*:\s*var\(\s*--faint\s*\)", raw):
+        bad.append("--faint 仅可承载边框/网格等装饰，不得用于 color 文字")
+    if bad:
+        rep.add(FAIL, "text-contrast", "；".join(bad))
+    else:
+        rep.add(OK, "text-contrast", "muted/warn 关键文字对比度均 ≥4.5:1；faint 仅作装饰")

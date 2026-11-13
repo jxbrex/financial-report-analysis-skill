@@ -8,7 +8,7 @@ description: >
 metadata:
   clawdbot:
     emoji: "📑"
-    version: "0.1.6"
+    version: "0.1.7"
     requires:
       anyBins: ["python"]
     os: ["win32", "darwin", "linux"]
@@ -325,7 +325,9 @@ Roll-forward（应收/存货/在建工程/商誉）+ C 组周期联动（CCC/DPO
 
 1. 确认 data.json 已按 `references/extraction-schema.md` 填齐本期分析涉及的全部块
 2. 运行：`python "<技能目录>/scripts/calc.py" reports/archive/json/xxx.json --min-recon auto`
-   （auto = 按 meta.market+report_type 查校准表（v0.1.2）：A 股年报 15 / 半年报 13 / 季报 8，
+   （auto = 按主上市市场前缀+report_type 查校准表：A 股年报 15 / 半年报 13 / 季报 4 /
+   招股书 14（南方乳业首验实测，仅防明显漏做）；季报 4
+   （v0.1.7 按移动/宁德/恒瑞三例实际可执行 4~7 的最低值校准，其余未执行项仍 WARN），
    **港股半年报 8**（蜜雪 2026H1 实测结构性上限：无直接法收现/补充资料/母公司单体报表等
    9 条不可执行）；未知组合退回 WARN 态并提示显式给数。v0.0.20 起接线为默认——
    卫星化学轮实证：不带该参数时 12/17 的覆盖率只报 WARN，漏提整份补充资料也拿了全绿）
@@ -383,8 +385,8 @@ Roll-forward（应收/存货/在建工程/商誉）+ C 组周期联动（CCC/DPO
    fillsheet 机械槽位已转好照抄即可，JS 图表标签由 fmt 助手兜底，原始精度留 data.json 底稿。
 2. 报告类型差异（哪些模块可裁剪）见 `references/report-types.md`：
    - 年报 = 全模块；半年报 = 同比为主 + 注明未经审计；季报 = 仅 P2/P4/P7 精简版；
-     招股书 = 三年一期趋势 + 募投项目 + 发行前后股权 + 风险提示专章（权重上调），
-     股东户数/机构预期等二级市场模块裁剪
+     招股书 = 最近审计年度趋势 + 期后审阅/未审更新 + 募投项目 + 发行前后股权 + 风险提示专章；
+     发行/募投/期后数据由 `calc_ipo.py` 机械入槽，股东户数/机构预期等二级市场模块裁剪
 3. **下期跟踪清单（P2-18）**：按 data.json 的 `meta.industry_profile`，从
    `references/industry-profiles.md` 取该模式的「先行指标建议集」（3~5 项）定制；
    无法归类时用通用缺省集（合同负债剪刀差 + 资本开支节奏 + 按行业补 2 项）并声明理由。
@@ -435,7 +437,8 @@ Roll-forward（应收/存货/在建工程/商誉）+ C 组周期联动（CCC/DPO
    估算 `.badge.est` 三级——报告中不允许出现「裸数字」
 5. 金额 ≥1000 带千位符；估算值必须标「估算」
 6. 不得输出买卖建议；结尾固定免责声明「本报告仅为信息分析，不构成投资建议」
-7. 模板硬规则：浅色卡片风、禁外部字体/CDN/JS、禁暗色背景与渐变投影
+7. 模板硬规则：浅色卡片风、禁外部字体/CDN/JS、禁暗色背景与渐变投影；muted/warn 小字
+   对比度 ≥4.5:1，faint 装饰色不用于文字（text-contrast 机检）
 8. **报告 HTML 机检（`scripts/check_html.py`）exit 0 是交付的前置条件**——占位符漏填、
    模板硬规则违规、必备要素缺失（下期跟踪清单/免责声明）不得交付；
    裸数字检查为启发式，命中项列「待人工确认」清单逐条判断
@@ -483,5 +486,6 @@ Roll-forward（应收/存货/在建工程/商誉）+ C 组周期联动（CCC/DPO
 | 0.1.4 | 2026-10-22 | S3 资金流向桑基图卡模板化（三段式/符号路由进 calc/净调整正负双形态/盒高按体量/降级声明卡）；schema 1.7（derived.sankey 选填块 + income 三选填叶）；check_html sankey-slot 机检（规则 24）+ KEY_SVG_IDS 注册；Q3 单季差额通用取数规则（data-sources 二·五） |
 | 0.1.5 | 2026-10-22 | ponytail-audit 全技能审计修复轮（19 条）：md_clean 表题/分隔行误并、cash_ts 与周期证据 filter-then-zip 跨期错配、T8① 全角减号 − 与 pct 后缀失明、三处合法形态崩管道（dupont_dt 裸数字/效应比 None/桥 delta None）、sum_bridge 非 dict 静默、cur=null 脱钩盲区、render 转义缺口、_jd 大小写、sect 右界静默、recon 矛盾双行、桑基 cum_prev 提醒级 WARN、turnover_drill skip_none、ratio-hist 具名 WARN、四象限聚合 None 当 0、gate 吞 stderr/前导空格、ts_fetch 截断落盘、dupont-stack/sankey-slot 形态与无槽感知、四处测试真空补口（T8② 双态/gate 红测/spill·clipped·pageclip 阳性/分位 _win_n 红测）；回归 209→252 |
 | 0.1.6 | 2026-11-01 | 技能更名为 Bo-FinancialAnalyzer；源目录、报告品牌、CI 与部署路径同步；bo-equity-researcher 引用更新 |
+| 0.1.7 | 2026-11-12 | 通用季报类型归一化（Q1/Q3 标签 + Altman 年化）；auto 主市场前缀识别与 A 股季报下限三例校准；WCAG 小字对比度修复与 text-contrast 机检；SVG 可访问名称、ncrline/stackH/npchart 标签避让、空分部桥降级、watchlist 单次转义、旧来源定位归一与 md_clean 标题索引修复；招股书期间/专属专章/T8期后单位与视觉裁剪首验（南方乳业）；回归 257→380 |
 
 逐版本详情以 handoff/supersede/ 与 git tag 为唯一真源（AGENTS.md 定案）。

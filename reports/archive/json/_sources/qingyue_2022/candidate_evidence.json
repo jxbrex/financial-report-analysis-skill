@@ -1,0 +1,56 @@
+{
+  "company": "清越科技",
+  "code": "688496.SH",
+  "status": "已固化为第五金标准：bo-financial-analyzer/tests/qingyue_2022.json",
+  "annual_report": {
+    "period": "2022FY",
+    "disclose_date": "2023-04-20",
+    "url": "https://pdf.dfcfw.com/pdf/H2_AN202304191585595702_1.pdf",
+    "local_pdf": "reports/archive/原始报告/清越科技-688496-年报-2022FY.pdf",
+    "source_md": "reports/archive/原始报告/清越科技-688496-年报-2022FY.clean.md",
+    "conversion": "PDF 4,230,883 bytes，%PDF-1.5；清洗11535→9881行，双不变量通过，136节/9关键块",
+    "unit": "亿元",
+    "core": {
+      "revenue": {"value": 10.4419330016, "src": "L327"},
+      "cost": {"value": 8.5258640176, "src": "L1632"},
+      "np_at": {"value": 0.5570597939, "src": "L328-L329"},
+      "np_dt": {"value": 0.3040524601, "src": "L330-L332"},
+      "ocf": {"value": -0.3053637945, "src": "L333-L334"},
+      "total_assets": {"value": 24.177771799, "src": "L338"},
+      "equity_at": {"value": 12.745094181, "src": "L337"}
+    },
+    "ar": {
+      "gross_cur": 2.1700522016,
+      "provision_cur": 0.0136446243,
+      "net_cur": 2.1564075773,
+      "gross_prev": 1.4264286187,
+      "provision_prev": 0.0132618319,
+      "net_prev": 1.4131667868,
+      "src": "L6662；管理层应收增长说明L1997"
+    },
+    "inventory": {"net_cur": 2.9252980202, "net_prev": 2.3111585821, "src": "L4649-L4650；风险章L1580"},
+    "audit": {
+      "opinion": "标准无保留",
+      "kam": ["收入确认", "固定资产及在建工程账面价值"],
+      "src": "L4491-L4567"
+    }
+  },
+  "penalty": {
+    "decision_no": "〔2026〕59号",
+    "url": "https://www.csrc.gov.cn/csrc/c101928/c7667584/content.shtml",
+    "retrieved_at": "2026-11-13",
+    "false_profit_2022_yuan": 47115576.91,
+    "false_profit_2022_pct_reported_total": 1.0853,
+    "false_profit_2023h1_yuan": 47535999.83,
+    "false_profit_2023h1_pct_abs_total": 1.4510,
+    "mechanisms": ["故意少计存货跌价准备", "少计应收账款减值损失", "虚假销售显示模组/芯片", "补缴税款未及时处理与披露"],
+    "hard_evidence": "处罚决定书明确显示模组发往北京分公司而非销售客户；并记载虚构采购合同支付资金、虚构销售回款以少计应收减值"
+  },
+  "expected_validation": [
+    "OCF为负且净现比<0.5，现金流信号应命中",
+    "收入确认KAM与处罚/收入异常应交叉核验，不得因标准无保留意见而排除",
+    "应收/存货减值须结合处罚硬证据，不依赖单一增速阈值",
+    "若三表勾稽仍闭合，必须明确闭合≠真实",
+    "原文2022归母0.5571亿与处罚虚增利润0.4712亿不得混成同一科目"
+  ]
+}

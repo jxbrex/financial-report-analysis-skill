@@ -89,6 +89,29 @@ def build_authority(data):
 
     walk_arrays(data, [])
 
+    # 招股书期后核验的原始公告以元列示；权威池补亿元/万元两种呈现换算。
+    # 仅覆盖 post_listing_validation 的经营与募资数值，不把股数、价格或比率混入金额池。
+    post = (((data.get("notes") or {}).get("operating_extract") or {})
+            .get("post_listing_validation") or {}).get("data") or {}
+    amount_keys = {"gross_proceeds_actual", "issue_cost_actual_ex_vat", "net_proceeds_actual",
+                   "capital_reserve_added", "post_issue_market_cap_at_issue_price", "litigation_total"}
+
+    def walk_post(node, path, unit=None):
+        if isinstance(node, dict):
+            unit = node.get("unit") or unit
+            for k, v in node.items():
+                if (unit == "元" and isinstance(v, (int, float)) and not isinstance(v, bool)
+                        and v != 0 and (k.endswith(("_cur", "_prev")) or k in amount_keys)):
+                    plain.append((v / 1e8, ".".join(path + [k]) + "（亿元）", ".".join(path)))
+                    plain.append((v / 1e4, ".".join(path + [k]) + "（万元）", ".".join(path)))
+                else:
+                    walk_post(v, path + [k], unit)
+        elif isinstance(node, list):
+            for i, v in enumerate(node):
+                walk_post(v, path + [str(i)], unit)
+
+    walk_post(post, ["notes", "operating_extract", "post_listing_validation", "data"])
+
     def uniq_of(entries):
         out = []
         for i, (v, p, leaf) in enumerate(entries):
@@ -121,6 +144,13 @@ def check_numbers_vs_json(body, raw, data, rep, verbose=False):
         txt = m.group(0).replace(",", "").replace("−", "-")  # 全角减号归一，float 不认 −
         # 外币语境豁免：后随 美元/欧元/港元 等币种的数字不是人民币科目（json 全部为人民币亿元）
         tail = text[m.end():m.end() + 12]
+        # 预计/区间语境的范围端点不是实际点值；避免与期后实际值的小偏差误撞。
+        # 招股书一句预告常连续列收入/归母/扣非，预计字样可能距端点超过40字。
+        range_context = text[max(0, m.start() - 200):m.end() + 200]
+        range_linked = (re.match(r"\s*(?:~|～|至|–|—)\s*[-+−]?\d", tail)
+                        or re.search(r"(?:~|～|至|–|—)\s*$", text[max(0, m.start() - 4):m.start()]))
+        if range_linked and re.search(r"预计|区间|范围", range_context):
+            continue
         if re.match(r'\s*(?:万|亿|百亿|千万)?\s*(?:美元|欧元|港元|港币|日元|HKD|USD|EUR)', tail):
             continue
         try:
@@ -138,7 +168,7 @@ def check_numbers_vs_json(body, raw, data, rep, verbose=False):
         dec = len(txt.partition(".")[2])
         tol = max(0.5 * (10 ** -dec), 1e-9)
         # 显示精度内相等且同号：|v − d| ≤ 半个显示精度（双向舍入都算匹配，宽容防误报）
-        if any(v * d > 0 and abs(v - d) <= tol for v, _, _ in match_pool):
+        if any(v * d > 0 and abs(v - d) <= tol + 1e-9 for v, _, _ in match_pool):
             matched += 1
             continue
         pool = uniq_pct if is_pct else uniq_plain
@@ -149,7 +179,7 @@ def check_numbers_vs_json(body, raw, data, rep, verbose=False):
         # 序列中间值的舍入呈现（周期表/信号行的五期读数），非笔误——不进独特值相近检查。
         # 豁免必须用显示精度 tol 而非近似窗：hist 末位=cur，0.15% 近似窗会把
         # cur/prev 的笔误一并赦免（回归改错样例 1688.9 vs revenue 1688.381 实证）
-        if any(v * d > 0 and abs(v - d) <= tol for v, _ in hist_pool):
+        if any(v * d > 0 and abs(v - d) <= tol + 1e-9 for v, _ in hist_pool):
             matched += 1
             continue
         bv, bp = min(same_sign, key=lambda vp: abs(vp[0] - d) / max(abs(vp[0]), 1e-9))
@@ -198,18 +228,21 @@ def _value_in_text(v, text):
     百万档覆盖以百万元列报的港股/美股年报（v0.1.3，阿里巴巴 2026FY 实证：US GAAP 年报
     百万元列报，②级 207/233 miss 的根因；1 亿元=100 百万元，故 ×1e2）；
     比较取绝对值——A 股报表以括号表示负数（如「(3,247,033 )」），符号由 src 语境与①级负责。"""
-    for m in PLAIN_NUM_RE.finditer(text):
-        try:
-            # 财报千位符数字（131,530）去逗号再解析——原 float() 直接拒逗号致②级对
-            # 千位符整体失明（v0.1.3 阿里年报实证；A 股 md 同样带千位符）；
-            # 全角减号同步归一（与①级 PLAIN_NUM_RE 同口径，v0.1.5）——float("−123")
-            # 抛 ValueError 被下方 except 吞掉反而失明
-            d = abs(float(m.group(0).replace(",", "").replace("−", "-")))
-        except ValueError:
-            continue
-        for cand in (abs(v), abs(v) * 1e2, abs(v) * 1e4, abs(v) * 1e5, abs(v) * 1e8):
-            if cand and abs(d - cand) / abs(cand) <= 0.05:
-                return True
+    # PDF 会把同一数字的首位与后续千位组拆开；仅归一化带千位逗号且含小数的同行形态。
+    # 只补单个空格：双空格常是附注编号/金额或相邻列边界；不吞换行、不处理无逗号数字。
+    # 先查原文，只有原文未命中才查归一化副本，避免小编号列被合并后反而遮住原值。
+    normalized = re.sub(r"\b(\d)[ \t](?=[\d,]*,[\d,]*\.\d)", r"\1", text)
+    variants = (text,) if normalized == text else (text, normalized)
+    for variant in variants:
+        for m in PLAIN_NUM_RE.finditer(variant):
+            try:
+                # 千位符与全角减号在取值时统一；float 拒绝的畸形 token 跳过
+                d = abs(float(m.group(0).replace(",", "").replace("−", "-")))
+            except ValueError:
+                continue
+            for cand in (abs(v), abs(v) * 1e2, abs(v) * 1e4, abs(v) * 1e5, abs(v) * 1e8):
+                if cand and abs(d - cand) / abs(cand) <= 0.05:
+                    return True
     return False
 
 
@@ -246,7 +279,7 @@ def check_json_vs_md(data, json_path, rep, verbose=False):
             for ln in lns:
                 for off in (0, -1, 1, -2, 2):
                     i = ln - 1 + off
-                    if 0 <= i < len(lines) and _value_in_text(v, lines[i].replace(",", "")):
+                    if 0 <= i < len(lines) and _value_in_text(v, lines[i]):
                         hit_off = off
                         break
                 if hit_off is not None:
@@ -330,9 +363,9 @@ def check_assert_truncation(body, data, rep, verbose=False):
     的（长城实证主流形态，如 evidence 第 58 字截断）同样命中。
     不判：json 值本身以「…」结尾的（底稿就写省略号）；「真前缀 + 等」是合法中文
     缩略形态，不纳入判据。
-    另出 WARN：底稿 text/evidence 缺失、空串或不足 ANCHOR_LEN 字的断言——这类字段
-    无锚点可判，且呈现层往往自撰文本（长城 A10：底稿 evidence 为空串、报告自撰 54 字
-    并以「…」收尾，是全表 63 个省略号单元格里唯一逃过 FAIL 的一个），须回填底稿才有依据。"""
+    另出 WARN：底稿 text/evidence 缺失或为空——呈现层不得自撰（长城 A10：底稿 evidence
+    为空串、报告自撰 54 字并以「…」收尾，是全表 63 个省略号单元格里唯一逃过 FAIL 的一个）。
+    非空但不足 ANCHOR_LEN 字的完整短句只跳过定位，不报警。"""
     items = data.get("assertions")
     if not isinstance(items, list) or not items:
         rep.add(OK, "assert-trunc", "底稿无 assertions 数组，填充截断检测跳过")
@@ -346,12 +379,14 @@ def check_assert_truncation(body, data, rep, verbose=False):
         if not isinstance(it, dict):
             continue
         aid = it.get("id") or "?"
-        short = []
+        missing = []
         for field in ("text", "evidence"):
             v = it.get(field)
-            if not isinstance(v, str) or len(v) < ANCHOR_LEN:
-                short.append(field)  # 底稿缺口：无锚点可判，转 WARN 清单
+            if not isinstance(v, str) or not v.strip():
+                missing.append(field)  # 底稿缺失/空串：呈现层不得自撰，转 WARN
                 continue
+            if len(v) < ANCHOR_LEN:
+                continue  # 非空短句只是无定位锚点，不等于截断或底稿缺失
             if v.endswith("…"):
                 continue
             checked += 1
@@ -374,8 +409,8 @@ def check_assert_truncation(body, data, rep, verbose=False):
                 hits.append(f"L{line_of(text, cut_at)} 断言 {aid} 的 {field} 被截断于第 {cut} 字"
                             f"（底稿全长 {len(v)} 字）：「{v[max(0, cut - 20):cut]}…」"
                             "——报告文本必须整句呈现，不许手工加省略号")
-        if short:
-            gaps.append((aid, short))
+        if missing:
+            gaps.append((aid, missing))
     if hits:
         details = hits
         if not verbose and len(details) > DETAIL_CAP:
@@ -393,8 +428,8 @@ def check_assert_truncation(body, data, rep, verbose=False):
         ids = "、".join(a for a, _ in gaps[:10])
         more = f"…（其余 {len(gaps) - 10} 条见明细）" if len(gaps) > 10 else ""
         rep.add(WARN, "assert-trunc",
-                f"底稿 text/evidence 为空或不足 {ANCHOR_LEN} 字（{len(gaps)} 条：{ids}{more}）——回填底稿后再判呈现；"
+                f"底稿 text/evidence 缺失或为空（{len(gaps)} 条：{ids}{more}）——回填底稿后再判呈现；"
                 "呈现层文本须有底稿依据（长城 A10 自撰截断实证）",
-                [f"断言 {a}：{'/'.join(f)} 缺失或不足 {ANCHOR_LEN} 字" for a, f in gaps])
+                [f"断言 {a}：{'/'.join(f)} 缺失或为空" for a, f in gaps])
 
 

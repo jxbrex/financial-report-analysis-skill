@@ -13,8 +13,9 @@ import re
 import statistics
 from html import escape as _htmlesc
 
-from calc_common import hist_periods, num
+from calc_common import hist_periods, num, canonical_report_type, watch_ops
 from calc_sankey import route_items
+from calc_ipo import build_ipo_slots
 
 # 呈现两位小数（fillsheet 机械槽位：原始精度留 json，报告可见数字 ≤2 位，v0.0.19）
 R2 = lambda x: None if x is None else round(x, 2)
@@ -52,6 +53,18 @@ _NO_SRC = lambda s: re.sub(r"(?<![A-Za-z0-9])[（(]?L\d{3,}[-\d, L]*[）)]?", ""
 _trunc2 = lambda s: re.sub(r"\d+\.\d{3,}", lambda m: f"{float(m.group(0)):.2f}", s)
 # json 原文进 HTML 文本槽的完整链：剥 L 行号 → 截长小数 → 转义
 _TXT = lambda s: _E(_trunc2(_NO_SRC(s)))
+
+def _SRC(s):
+    # 来源字段允许两位行号；正文 _TXT 仍保持三位起步，避免误伤 L2 等型号文本
+    line_refs = r"(?<![A-Za-z0-9])L\d{2,}(?:\s*[-/,、]\s*L?\d{2,})*"
+    raw = str(s or "")
+    tail = re.sub(r"^\s*clean\s+" + line_refs, "", raw, count=1)
+    if tail == raw:
+        cleaned = re.sub(line_refs, "", raw)
+        return _TXT(re.sub(r"\s+([；;，、])", r"\1", cleaned))
+    tail = re.sub(line_refs, "", tail).lstrip(" /+；;，、,")
+    return _TXT("公司定期报告" + ("；" + tail if tail else ""))
+
 # 数值/文本混合字段的转义：文本过 _TXT 链，数值直通（_TXT 会把数值 0 吞成空串）
 _TXTV = lambda x: _TXT(x) if isinstance(x, str) else x
 
@@ -367,9 +380,10 @@ def write_fillsheet(data, path):
     if wl:
         L.append("\n## S8 跟踪清单卡（逐条照抄；figtitle 自己写结论式）\n")
         for w in wl:
+            upper_op, lower_op = watch_ops(w)
             L.append(f"- 【{w.get('indicator')}】读数 {w.get('current')}（badge {w.get('badge')}）· "
-                     f">{w.get('upper')} {w.get('upper_meaning')} / <{w.get('lower')} {w.get('lower_meaning')} · "
-                     f"依据 {w.get('source')}")
+                     f"{upper_op}{w.get('upper')} {w.get('upper_meaning')} / "
+                     f"{lower_op}{w.get('lower')} {w.get('lower_meaning')} · 依据 {w.get('source')}")
 
     L.append("\n## 判断槽位清单（fillsheet 不给值，自己写；写法约束在模板注释）\n")
     L.append("- S0 亮点/风险 TOP3、lede、分歧锚、异常线索追查（锚点指向下方各章）")
@@ -537,12 +551,15 @@ def _js_slots(data):
         if seg and rev_d is not None:
             rest = round(rev_d - sum(v for _, v in seg), 2)
             if abs(rest) > 0.005:
-                seg.append(["其他", rest])
+                label = "其他业务" if any(name == "其他" for name, _ in seg) else "其他"
+                seg.append([label, rest])
     out["SEG_BRIDGE"] = f"const SEG_BRIDGE={_jd(seg)};"
+    out["seg_drop"] = not seg
     out["SEG_ENDS"] = f"const SEG_ENDS={_jd([R2(_v(inc, 'revenue', 'prev')), R2(_v(inc, 'revenue'))])};"
     out["brends_seg"] = (f"基期收入 {_F2(_v(inc, 'revenue', 'prev'))} 亿 →"
-                         f"（{'三效应合计' if _by_volume else '分部合计'} {rev_d:+.2f} 亿）→ "
-                         f"本期收入 {_F2(_v(inc, 'revenue'))} 亿" if rev_d is not None else "")
+                         f"（{'三效应合计' if _by_volume else '分部合计' if seg else '收入变动'} "
+                         f"{rev_d:+.2f} 亿）→ 本期收入 {_F2(_v(inc, 'revenue'))} 亿"
+                         if rev_d is not None else "")
 
     ob = der.get("ocf_bridge") or []
     items = [(x.get("item"), x.get("delta")) for x in ob
@@ -692,11 +709,15 @@ def build_slots(data):
             d_s = _arrow(d, nd=2) if d is not None else prev_missing
         return {"key": key, "label": label, "cur": cur_s or "—", "prev": prev_s or "—",
                 "delta": d_s, "cls": _cls_of(key, d), "badge": badge}
+    dv_node = cfs.get("dividend_paid")
+    if not isinstance(dv_node, dict) or "cur" not in dv_node:
+        dv_node = bal.get("dividend_paid")
+    sgr_badge = "est" if isinstance(dv_node, dict) and dv_node.get("level") == "est" else "der"
     slots["s1"]["table4"] = [
         _row("gross_margin", "毛利率", "pct", "der"),
         _row("net_margin", "净利率", "pct", None),
         _row("roic", "投入资本回报率", "pct", "der", "—（单期指标）"),
-        _row("sustainable_growth", "内生增长率", "pct", "der", "—（单期指标）"),
+        _row("sustainable_growth", "内生增长率", "pct", sgr_badge, "—（单期指标）"),
         _row("dio", "存货周转天数", "day", None),
         _row("dso", "应收周转天数", "day", None),
         _row("cash_to_sales", "收现比", "x", None),
@@ -768,7 +789,7 @@ def build_slots(data):
             "ib": f"{_F2(ib_prev_r) or '—'}→{_F2(ld_.get('ib_to_equity_cur')) or '—'}",
             "ni": f"{_F2(ni_prev_r) or '—'}→{_F2(ld_.get('ni_to_equity_cur')) or '—'}",
             "ni_share": f"{(ld_.get('ni_share') or 0) * 100:.1f}%",
-            "dfl": None if ld_.get("dfl_delta") is None else f"{ld_['dfl_delta']:+.2f}",
+            "dfl": "—" if ld_.get("dfl_delta") is None else f"{ld_['dfl_delta']:+.2f}",
             "quality_upgrade": bool(ld_.get("quality_upgrade")),
         }
 
@@ -865,12 +886,15 @@ def build_slots(data):
         "dist": (None if blk.get("roe") is None or blk.get("target") is None
                  else f"{(blk['roe'] - blk['target']) * 100:+.1f}pct"),
         "verdict": ("✅ 远离" if blk.get("hit") is False else ("🔴 贴线" if blk.get("hit") else "—"))}
+    inc_actual, inc_target = num(inc_.get("actual")), num(inc_.get("target"))
     slots["s2"]["threshold"] = {
         "shell": _line(shell, "ROE 6.5%"), "refi": _line(refi, "ROE 10%"),
-        "incentive": {"read": "—", "target": "—", "dist": "—",
+        "incentive": {"read": _PCT2(inc_actual) or "—", "target": _PCT2(inc_target) or "—",
+                      "dist": (f"{(inc_actual - inc_target) * 100:+.2f}pct"
+                               if inc_actual is not None and inc_target is not None else "—"),
                       "verdict": "✅ 无贴线场景" if inc_.get("hit") is None else
                                  ("✅ 远离" if inc_.get("hit") is False else "🔴 贴线")},
-        "q4_na": rt != "年报",  # 半年报/季报：Q4 集中度行机械「—（不适用）」
+        "q4_na": rt != "年报", "q4_na_label": f"—（{rt}不适用）",
     }
 
     # ── S3 净利桥（归并：投资/公允+其他收益+非经 → 非经常性损益一行）──
@@ -929,6 +953,7 @@ def build_slots(data):
                      "delta": (None if _v(inc, "np_at") is None or _v(inc, "np_at", "prev") is None
                                else f"{_v(inc, 'np_at') - _v(inc, 'np_at', 'prev'):+.2f}")},
         "brends_seg": js.get("brends_seg") or "", "brends_ocf": js.get("brends_ocf") or "",
+        "seg_drop": js["seg_drop"],
         # OCF 桥降级标记（补充资料未披露的合法 WARN 态）：空桥必删 svg，否则撞 empty-svg
         "ocf_drop": not any(isinstance(x.get("delta"), (int, float))
                             for x in (der.get("ocf_bridge") or [])),
@@ -942,19 +967,51 @@ def build_slots(data):
         slots["s3"]["wc"] = {"amount": f"{wcd['amount']:.2f}",
                              "share": f"{wcd.get('share_of_np', 0) * 100:+.1f}%"}
 
+    # Q4 卡：前四项由 derived.q4 机械判定；转固无结构化字段时只提示核对，不冒充未披露
+    q4 = der.get("q4") or {}
+    def _q4_judge(value, triggered):
+        if value is None:
+            return "y", "⚠️ 无法核验"
+        return ("y", "🟡 观察") if triggered else ("g", "✅ 未触线")
+    gm_gap = None if q4.get("gm_q4") is None or q4.get("gm_q1q3") is None else abs(q4["gm_q4"] - q4["gm_q1q3"])
+    exp_drop = None if q4.get("exp_ratio_q4") is None or q4.get("exp_ratio_q1q3") is None else q4["exp_ratio_q1q3"] - q4["exp_ratio_q4"]
+    q4_specs = [
+        ("Q4 收入占全年", _PCT2(q4.get("rev_share")) or "—", q4.get("rev_share"), (q4.get("rev_share") or 0) > 0.4),
+        ("Q4 毛利率 vs 前三季", f"{_PCT2(q4.get('gm_q4')) or '—'} vs {_PCT2(q4.get('gm_q1q3')) or '—'}",
+         gm_gap, gm_gap is not None and gm_gap > 0.05),
+        ("Q4 减值占全年", _PCT2(q4.get("impair_share")) or "—", q4.get("impair_share"),
+         (q4.get("impair_share") or 0) > 0.6),
+        ("Q4 费用率 vs 前三季", f"{_PCT2(q4.get('exp_ratio_q4')) or '—'} vs {_PCT2(q4.get('exp_ratio_q1q3')) or '—'}",
+         exp_drop, exp_drop is not None and exp_drop > 0.03),
+    ]
+    q4_rows = [{"item": item, "read": read,
+                "cls": _q4_judge(value, triggered)[0], "verdict": _q4_judge(value, triggered)[1]}
+               for item, read, value, triggered in q4_specs]
+    q4_rows.append({"item": "Q4 集中转固", "read": "待结合附注核对", "cls": "y", "verdict": "⚠️ 无法核验"})
+    slots["s3"]["q4_rows"] = q4_rows if rt == "年报" else []
+
     # ── S4 断言表（全机械行；分组行不生成，分析师可选后加）──
     _VD = {"通过": ("✅ 通过", "g"), "不成立": ("❌ 不成立", "r"), "无法验证": ("❓ 无法验证", "y")}
     ast = data.get("assertions") or []
     ast_rows = [{"id": a.get("id"), "text": _TXT(a.get("text")), "evidence": _TXT(a.get("evidence")),
                  "verdict_text": _VD.get(a.get("verdict"), ("—", ""))[0],
                  "badge_cls": _VD.get(a.get("verdict"), ("—", ""))[1],
-                 "source": _TXT(a.get("source")), "missing": _TXT(a.get("missing"))}
+                 "source": _SRC(a.get("source")), "missing": _TXT(a.get("missing"))}
                 for a in ast]
     c_pass = sum(1 for a in ast if a.get("verdict") == "通过")
     c_fail = sum(1 for a in ast if a.get("verdict") == "不成立")
     c_unk = sum(1 for a in ast if a.get("verdict") == "无法验证")
     gaps = [a for a in ast_rows if a["missing"]]
+    big_moves = data.get("big_moves") or []
+    big_rows = [{"subject": _TXT(x.get("subject")), "change": _TXT(x.get("change")),
+                 "explanation": _TXT(x.get("explanation"))} for x in big_moves if isinstance(x, dict)]
+    if not big_rows:
+        big_rows = [{"subject": "本期未形成结构化大动清单", "change": "—",
+                     "explanation": "无结构化大动清单；不据此宣称全部已解释"}]
+    big_src = "；".join(dict.fromkeys(_SRC(x.get("source")) for x in big_moves
+                                      if isinstance(x, dict) and x.get("source")))
     slots["s4"] = {
+        "big_moves": big_rows, "big_src": big_src,
         "rows": ast_rows,
         "figtitle_prefix": f"{len(ast)} 条断言：{c_pass} 通过 / {c_fail} 不成立 / {c_unk} 无法验证",
         "counts_txt": f"共 {len(ast)} 条断言：✅ {c_pass} / ❌ {c_fail} / ❓ {c_unk}",
@@ -962,7 +1019,7 @@ def build_slots(data):
                                                       for g in gaps)) if gaps else "",
     }
 
-    # ── S5 在建工程（空→降级行）/ 产能卡（空→整卡删）──
+    # ── S5 在建工程（无项目明细→按真实余额降级）/ 产能卡（空→整卡删）──
     cip = notes.get("cip_projects") or []
     slots["s5"] = {
         "cip_rows": [{"name": _TXT(p.get("name")), "budget": _TXTV(p.get("budget")),
@@ -970,12 +1027,14 @@ def build_slots(data):
                       "transferred": _TXTV(p.get("transferred")), "note": _TXT(p.get("note"))}
                      for p in cip],
         "cip_empty": not cip,
+        "cip_balance": _v(bal, "cip"),
         "cap_drop": not (notes.get("capacity") or []),
     }
 
     # ── S6 股东结构 ──
     sh = notes.get("shareholders") or {}
-    hn_c, hn_p = sh.get("holder_num_cur"), sh.get("holder_num_prev")
+    _holder_value = lambda x: num(x.get("value")) if isinstance(x, dict) else num(x)
+    hn_c, hn_p = _holder_value(sh.get("holder_num_cur")), _holder_value(sh.get("holder_num_prev"))
     top10 = []
     for t in sh.get("top10_changes") or []:
         if not isinstance(t, dict):  # 旧底稿字符串形态（万科轮前样本）：降级为名称行
@@ -998,7 +1057,18 @@ def build_slots(data):
         top10.append({"name": _TXT(t.get("name")), "nature": _TXT(t.get("nature")), "ratio": _TXT(ratio_txt),
                       "pledge_raw": _TXT(t.get("pledge_freeze")), "change_txt": share_txt or "—",
                       "change_cls": {"减持": "dn", "增持": "up"}.get(t.get("change_type"), "")})
+    mgmt_total = sh.get("mgmt_changes_total") or {}
+    mgmt_inc, mgmt_dec = num(mgmt_total.get("increase")), num(mgmt_total.get("decrease"))
+    if mgmt_inc is not None and mgmt_dec is not None:
+        net = mgmt_inc - mgmt_dec
+        mgmt_text = ("持股不变（增持/减持均为0）" if net == 0 else
+                     f"{'净增持' if net > 0 else '净减持'} {abs(net) / 10000:.2f} 万股")
+        mgmt = {"text": mgmt_text, "cls": "up" if net > 0 else "dn" if net < 0 else "",
+                "src": _SRC(mgmt_total.get("src")) or "公司定期报告董监高持股变动表"}
+    else:
+        mgmt = {"text": "未形成同口径高管交易清单，不从股东名册倒推", "cls": "", "src": ""}
     slots["s6"] = {
+        "mgmt": mgmt,
         "holders": {"cur_w": None if hn_c is None else round(hn_c / 10000, 2),
                     "prev_w": None if hn_p is None else round(hn_p / 10000, 2),
                     "has_ts": "num:[" in js["HOLDERS"] and "num:[]" not in js["HOLDERS"]},
@@ -1038,8 +1108,42 @@ def build_slots(data):
         txt = f"{dd * 100:+.2f}pct" if c in ("gross_margin", "rd_ratio", "debt_to_assets",
                                              "net_margin", "roe") else f"{dd:+.2f}"
         diff_row[c] = {"txt": txt, "cls": _peer_cls(c, sv)}
+    # 预期对照：仅年报比较同一目标年度；无日期或披露日后的预测不进入中位数
+    target_year = str(meta.get("period") or "")[:4]
+    disclose_date = str(meta.get("disclose_date") or "")
+    used_forecasts = []
+    for e in (data.get("expectations") or []):
+        if not isinstance(e, dict):
+            continue
+        date = str(e.get("date") or "")
+        if not date or (disclose_date and date > disclose_date):
+            continue
+        if any(num(e.get(f"forecast_{key}_{target_year}")) is not None for key in ("rev", "np")):
+            used_forecasts.append(e)
+    expect_med = {}
+    for key in ("rev", "np"):
+        values = [num(e.get(f"forecast_{key}_{target_year}")) for e in used_forecasts]
+        values = [v for v in values if v is not None]
+        if values:
+            expect_med[key] = statistics.median(values)
+    expect_rows = []
+    for key in ("rev", "np"):
+        actual = _v(inc, "revenue") if key == "rev" else _v(inc, "np_at")
+        forecast = expect_med.get(key) if rt == "年报" else None
+        delta = None if actual is None or forecast in (None, 0) else (actual - forecast) / abs(forecast) * 100
+        forecast_txt = _F2(forecast) if forecast is not None else (
+            "无同年度预期" if rt == "年报" else "全年预测不与累计实际直接比较")
+        expect_rows.append({"key": key, "actual": _F2(actual) or "—", "forecast": forecast_txt,
+                            "delta": f"{delta:+.2f}%" if delta is not None else "不适用",
+                            "cls": ("up" if delta > 0 else "dn" if delta < 0 else "") if delta is not None else ""})
+    if expect_med:
+        expect_src = (f"公开研报（{len(used_forecasts)} 家机构，最新 "
+                      f"{max(e['date'] for e in used_forecasts)}）· 目标年度 {target_year}；预测为机构观点")
+    else:
+        expect_src = "公开研报 · 仅年报同年度可比；无预测时不计算偏离"
     slots["s7"] = {
         "expect_actual": {"rev": _F2(_v(inc, "revenue")), "np": _F2(_v(inc, "np_at"))},
+        "expect_rows": expect_rows, "expect_src": expect_src,
         "peers": {"self": {c: {"txt": _peers_fmt(c, self_row.get(c)), "cls": _peer_cls(c, self_row.get(c))}
                           for c in _PCOLS},
                   "rows": [{"name": p.get("name"),
@@ -1052,6 +1156,8 @@ def build_slots(data):
     alt, ohl = rm.get("altman_z") or {}, rm.get("ohlson_o") or {}
     stc = (der.get("stress") or {}).get("scenarios") or []
     stress_txt = "/".join(_F2(sc.get("np_stressed")) or "—" for sc in stc)
+    _x6_period = {"年报": "年度", "半年报": "半年", "三季报": "三季", "一季报": "一季"}.get(
+        canonical_report_type(meta), "本期")
     slots["s7"]["inspection"] = {
         "rev_np": f"{_yoy(_v(inc, 'revenue'), _v(inc, 'revenue', 'prev'))} vs "
                   f"{_yoy(_v(inc, 'np_at'), _v(inc, 'np_at', 'prev'))}",
@@ -1059,7 +1165,7 @@ def build_slots(data):
                if rd_ratio_cur is not None else "{{研发费率 / 资本化率}}"),
         "short_debt_cover": f"{(ratios.get('short_debt_cover') or {}).get('cur'):.2f} 倍"
                             if (ratios.get("short_debt_cover") or {}).get("cur") is not None else "—",
-        "x6": (f"{(ratios.get('ocf_to_liab') or {}).get('cur'):.2f}（半年口径）"
+        "x6": (f"{(ratios.get('ocf_to_liab') or {}).get('cur'):.2f}（{_x6_period}口径）"
                if (ratios.get("ocf_to_liab") or {}).get("cur") is not None else "—"),
         "risk_models": (f"Altman Z={alt.get('cur'):.2f}（{alt.get('zone')}区）· "
                         f"Ohlson P={ohl.get('prob'):.2f}（{ohl.get('level')}）") if alt and ohl else "—",
@@ -1071,13 +1177,30 @@ def build_slots(data):
                                   "verifies": _TXT(e.get("verifies"))}
                                  for e in (notes.get("subsequent_events") or [])]
 
-    # ── S8 watchlist 卡（indicator 即 figtitle；wb 拼接上限/下限/熔断句）──
-    slots["s8"] = {"cards": [
-        {"indicator": _TXT(w.get("indicator")), "current": _TXT(w.get("current")),
-         "badge": w.get("badge"),
-         "wb": (f"&gt; {_TXT(w.get('upper'))} {_TXT(w.get('upper_meaning'))} / &lt; {_TXT(w.get('lower'))} "
-                f"{_TXT(w.get('lower_meaning'))}；{_TXT(w.get('tripwire'))}"),
-         "srcline": _TXT(w.get("source"))}
-        for w in (data.get("watchlist") or [])]}
+    # ── S8 watchlist 卡（indicator 即 figtitle；改善/风险侧符号由显式方向字段决定）──
+    cards = []
+    for w in (data.get("watchlist") or []):
+        upper_op, lower_op = watch_ops(w)
+        cards.append({"indicator": _TXT(w.get("indicator")), "current": _TXT(w.get("current")),
+                      "badge": w.get("badge"),
+                      "wb": (f"{_TXT(upper_op)} {_TXT(w.get('upper'))} {_TXT(w.get('upper_meaning'))} / "
+                             f"{_TXT(lower_op)} {_TXT(w.get('lower'))} {_TXT(w.get('lower_meaning'))}；"
+                             f"{_TXT(w.get('tripwire'))}"),
+                      "srcline": _SRC(w.get("source"))})
+    slots["s8"] = {"cards": cards}
+
+    review = data.get("review") or []
+    counts = {v: sum(1 for item in review if item.get("verdict") == v)
+              for v in ("兑现", "未兑现", "待观察")}
+    slots["review"] = {
+        "met": counts["兑现"], "total": len(review),
+        "counts_txt": f"✅ 兑现 {counts['兑现']} · ❌ 未兑现 {counts['未兑现']} · ⏳ 待观察 {counts['待观察']}",
+        "rows": [{"tripwire": _E(item.get("tripwire")), "verdict": item.get("verdict"),
+                  "cls": {"兑现": "g", "未兑现": "r", "待观察": "y"}.get(item.get("verdict"), "y"),
+                  "note": "；".join(x for x in (_TXT(item.get("actual")), _TXT(item.get("attribution"))) if x)}
+                 for item in review],
+    }
+    if rt == "招股书":
+        slots["ipo"] = build_ipo_slots(data)
     return slots
 
