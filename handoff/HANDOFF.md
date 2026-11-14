@@ -1,7 +1,7 @@
 # HANDOFF · 交接文档
 
 > 版本 **0.1.8（发布流程）** · 截至 2026-11-14 · 本文档面向「下一个接手这个项目的人/AI 会话」
-> 仓库：https://github.com/jxbrex/financial-report-analysis-skill（**公开**）
+> 仓库：https://github.com/jxbrex/bo-financial-analyzer（**公开**）
 > 部署：`C:/Users/rexji/.agents/skills/bo-financial-analyzer/`（由 `deploy.cmd` 镜像）
 
 ---
@@ -302,7 +302,9 @@ bo-financial-analyzer/
 
 ## 当前未发布轮（2026-11-14）
 
-- 暂无。最近完成 v0.1.8，完整轮次记录见 `supersede/v0.1.8_2026-11-13~14.md`。
+- 最近完成 v0.1.8，完整轮次记录见 `supersede/v0.1.8_2026-11-13~14.md`。
+- 仓库已于 2026-11-14 由 `financial-report-analysis-skill` 更名为 `bo-financial-analyzer`；
+  本地 remote、README 徽章、AGENTS 与本文件已同步，历史归档中的旧名保留作当时记录。
 
 ---
 

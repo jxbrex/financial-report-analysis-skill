@@ -79,7 +79,7 @@
 2. **提交**：相关改动一个 commit——技能源 + handoff/ + reports 产物（html/json）+
    计划/修订文档；PDF/md 按 .gitignore 不入库。提交信息写清「做了什么 + 为什么 + 怎么验证的」
 3. **打 tag**：annotated tag，版本号与 SKILL.md 的 `version` 一致，附变更摘要
-4. **推送**：`git push origin main --tags`（remote：公开仓库 jxbrex/financial-report-analysis-skill）
+4. **推送**：`git push origin main --tags`（remote：公开仓库 jxbrex/bo-financial-analyzer）
 5. **更新 latest release**：`gh release create <tag> --title "<tag>" --notes "<变更摘要>" --latest`；
    该 tag 已有 release 则改 `gh release edit <tag> --notes "<摘要>" --latest`
 6. **部署**：`cmd //c deploy.cmd` 镜像技能源到用户级 skills 目录（新会话生效）

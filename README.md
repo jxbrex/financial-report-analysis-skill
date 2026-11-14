@@ -2,9 +2,9 @@
 
 > 上市公司年报 / 半年报 / 季报 / 招股说明书分析技能（Agent Skill）——输入一份定期报告或招股说明书，产出一份单文件自包含 HTML 分析报告。
 
-[![版本](https://img.shields.io/badge/version-0.1.8-blue)](https://github.com/jxbrex/financial-report-analysis-skill/releases/latest)
+[![版本](https://img.shields.io/badge/version-0.1.8-blue)](https://github.com/jxbrex/bo-financial-analyzer/releases/latest)
 [![回归](https://img.shields.io/badge/%E5%9B%9E%E5%BD%92-437%2F437%20%E7%BB%BF-brightgreen)](bo-financial-analyzer/tests/run_regression.py)
-[![CI](https://github.com/jxbrex/financial-report-analysis-skill/actions/workflows/regression.yml/badge.svg)](https://github.com/jxbrex/financial-report-analysis-skill/actions/workflows/regression.yml)
+[![CI](https://github.com/jxbrex/bo-financial-analyzer/actions/workflows/regression.yml/badge.svg)](https://github.com/jxbrex/bo-financial-analyzer/actions/workflows/regression.yml)
 
 ---
 
