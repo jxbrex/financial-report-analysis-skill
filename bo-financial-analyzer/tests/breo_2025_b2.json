@@ -1,0 +1,38 @@
+{
+  "meta": {
+    "company": "倍轻松",
+    "code": "688793.SH",
+    "period": "20251231",
+    "report_type": "年报问询回复",
+    "unit": "万元",
+    "source_md": "reports/archive/原始报告/倍轻松-688793-年报问询回复-2025FY.clean.md",
+    "fixture_scope": "B2真实样本专用；仅含勾稽所需字段，非完整报告底稿"
+  },
+  "statements": {
+    "balance": {
+      "inventory": { "cur": 11055.37, "prev": 11650.53, "src": "L245-L246 存货期初/期末余额" }
+    },
+    "income": {
+      "cost": { "cur": 33064.87, "prev": 42765.80, "src": "L255-L257 应结转与报表列示营业成本" }
+    }
+  },
+  "notes": {
+    "inventory_flow": {
+      "purchase": { "cur": 30542.48, "prev": 39215.13, "src": "L247 本期购进" },
+      "direct_labor": { "cur": 333.70, "prev": 363.51, "src": "L250 直接人工成本" },
+      "outsourcing": { "cur": 1444.30, "prev": 1220.26, "src": "L251 委外加工" },
+      "manufacturing_freight": { "cur": 1692.64, "prev": 2054.52, "src": "L252 制造费用及运费" },
+      "period_expense_use": { "cur": 863.59, "prev": 1810.65, "src": "L248 期间费用领用材料及其他" },
+      "provision_writeoff": { "cur": 679.82, "prev": 1001.00, "src": "L249 存货跌价转销" }
+    }
+  },
+  "recon": {
+    "B2_inv_roll": {
+      "lhs": 12598.78,
+      "rhs": 11055.37,
+      "verdict": "可解释",
+      "explanation": "期初11650.53+购进30542.48+直接人工333.70+委外1444.30+制造费用及运费1692.64-营业成本33064.87=12598.78；与期末11055.37差1543.41（13.96%），恰为期间费用领用863.59+跌价转销679.82=1543.41，调整后精确闭合。",
+      "src": "L243-L257 营业成本与存货的勾稽验证"
+    }
+  }
+}

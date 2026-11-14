@@ -47,7 +47,7 @@ def _num_of(node, k):
 def build_authority(data):
     """权威值集：json 全部数值叶子。返回 (plain_entries, pct_entries, uniq_plain, uniq_pct, hist_pool)：
     plain = 各字段原值（金额/天数/倍数，供无 % 语境数字比较）；
-    pct = 仅 derived.ratios 的 ×100 变体（供带 % 语境数字比较）。
+    pct = derived.ratios、dupont5y 与比率型 recon 标量的 ×100 变体（供带 % 语境数字比较）。
     「独特性」= 与【其他叶子】的值 2% 内无碰撞（同一叶子 cur/prev 互撞不算）；
     笔误检测只在独特值上做：撞脸的值无法归因，报了也是噪音。
     hist_pool = 所有数组（hist/hist_ye/cycle_evidence/cash_ts 等）的数值元素（含
@@ -74,6 +74,20 @@ def build_authority(data):
                         hist_pool.append((float(v), f"{path}.{k}[{i}]"))
                         if path.startswith("derived.ratios"):
                             hist_pool.append((float(v) * 100, f"{path}.{k}[{i}]×100"))
+
+    d5 = (data.get("derived") or {}).get("dupont5y") or {}
+    for k in ("margin_effect", "turnover_effect", "leverage_effect", "closure_gap",
+              "roe_start", "roe_end", "roe_product_cur", "roe_product_prev"):
+        v = _num_of(d5, k)
+        if v is not None:
+            pct.append((v * 100, f"derived.dupont5y.{k}×100", "derived.dupont5y"))
+    for key in ("A7_implied_rate", "A8_invest_income", "D1_parent_cash",
+                "D3_parent_other_ar", "D4_parent_invest"):
+        node = (data.get("recon") or {}).get(key) or {}
+        for k in ("lhs", "rhs"):
+            v = _num_of(node, k)
+            if v is not None:
+                pct.append((v * 100, f"recon.{key}.{k}×100", f"recon.{key}"))
 
     def walk_arrays(node, path):
         """收集其余数组型数值（cycle_evidence/cash_ts/dupont5y 等）进 hist_pool。"""

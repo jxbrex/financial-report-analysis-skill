@@ -70,6 +70,9 @@ VANKE = HERE / "vanke_2026h1.json"
 WANHUA = HERE / "wanhua_2026h1.json"
 QINGYUE = HERE / "qingyue_2022.json"
 YINGHE = HERE / "yinghe_2026h1.json"
+BREO_B2 = HERE / "breo_2025_b2.json"
+YINGHE_LEVERAGE = HERE / "yinghe_2025_leverage.json"
+MIDEA_LEVERAGE_NEGATIVE = HERE / "midea_2025_leverage_negative.json"
 
 # calc.py 的汇总行（唯一机器可读摘要）
 SUMMARY_RE = re.compile(
@@ -1252,6 +1255,45 @@ def main():
                   "编号主表索引失效。"):
         return 1
 
+    with tempfile.TemporaryDirectory() as _tds:
+        _missing = Path(_tds) / "missing.md"
+        _missing.write_text(
+            "合并资产负债表\n合并利润表\n合并现金流量表\n\n"
+            "一、 基本情况\n\n"
+            "流动资产 非流动资产 资产合计 流动负债 非流动负债 负债合计 营业收入\n"
+            "| 资产合计 | 79,952,858,979 | 69,051,541,911 |\n", encoding="utf-8")
+        _rmiss = subprocess.run([sys.executable, str(SKILL / "scripts" / "md_clean.py"),
+                                 str(_missing), "--out-dir", _tds],
+                                capture_output=True, text=True, encoding="utf-8", errors="replace")
+        _normal = Path(_tds) / "normal.md"
+        _normal.write_text(
+            "合并资产负债表\n合并利润表\n合并现金流量表\n\n"
+            "| 流动资产合计 | 100.00 |\n| 非流动资产合计 | 200.00 |\n| 资产总计 | 300.00 |\n\n"
+            "一、 基本情况\n\n附注正文。\n", encoding="utf-8")
+        _rnorm = subprocess.run([sys.executable, str(SKILL / "scripts" / "md_clean.py"),
+                                 str(_normal), "--out-dir", _tds],
+                                capture_output=True, text=True, encoding="utf-8", errors="replace")
+        _plain = Path(_tds) / "plain.md"
+        _plain.write_text("一、 基本情况\n\n流动资产 非流动资产 资产合计\n", encoding="utf-8")
+        _rplain = subprocess.run([sys.executable, str(SKILL / "scripts" / "md_clean.py"),
+                                  str(_plain), "--out-dir", _tds],
+                                 capture_output=True, text=True, encoding="utf-8", errors="replace")
+        _missing_idx = json.loads((Path(_tds) / "missing.index.json").read_text(encoding="utf-8"))
+        _missing_warn = _missing_idx.get("statement_warnings") or []
+        _groups = ("流动资产合计", "非流动资产合计", "资产总计")
+    if not _block("md_clean 图片型主表缺失告警", [
+        (_rmiss.returncode == 0 and "主表文本完整性提示" in (_rmiss.stdout or "")
+         and "不阻断清洗" in (_rmiss.stdout or "")
+         and all(k in (_rmiss.stdout or "") for k in _groups)
+         and len(_missing_warn) == 1 and all(k in _missing_warn[0] for k in _groups),
+         "目录三表齐全但附注前主表资产行缺失：三组缺失名全部告警且写入sidecar，附注内同名行不得冒充主表"),
+        (_rnorm.returncode == 0 and "主表文本完整性提示" not in (_rnorm.stdout or ""),
+         "三类资产行齐全的正常主表不误报"),
+        (_rplain.returncode == 0 and "主表文本完整性提示" not in (_rplain.stdout or ""),
+         "无合并三表目录时不猜测、不告警"),
+    ], "图片型主表缺失告警失败。"):
+        return 1
+
     # ── v0.0.15 构造用例（公式层直测，不动 fixture 文件）──
     # 扣非双版触发 / 双驱动护栏 / 话语权型杠杆升档——两条规则无真实 fixture 覆盖
     # （茅台非经 0.03% 不触发、杠杆非主驱动），用 deepcopy 构造临界场景验证
@@ -1281,7 +1323,7 @@ def main():
                         if ratio2 else "构造·双驱动护栏：compute_dupont 返回 None（不应发生）"))
 
     d3 = copy.deepcopy(base)
-    d3["derived"]["ratios"]["equity_multiplier"]["prev"] = 1.42  # 杠杆效应放大为主驱动
+    d3["derived"]["ratios"]["equity_multiplier"]["prev"] = 1.10  # 权益乘数上升，构造正向杠杆主驱动
     r3 = calc_dupont.compute_dupont(d3)
     ld3 = (r3 or {}).get("leverage_drill") or {}
     constructed.append((bool(r3) and r3.get("driver") == "杠杆"
@@ -1311,6 +1353,90 @@ def main():
                    (any(lv == _FAIL and "y_mode" in msg for lv, _, msg in rep5.rows),
                     "v1.5 构造用例：声明 delta 但 cost_prev 缺 null → y_mode FAIL 且不 crash")],
                   "v1.5 构造用例断言失败。"):
+        return 1
+
+    # ── B2 完整存货流与杠杆升档真实样本（专用小底稿，非完整报告 fixture）──
+    from calc_common import build_ratio_calcs as _brc_real, ratio_hist_expect as _rhe_real
+    _b2real = load_json(BREO_B2)
+    _flow = _b2real["notes"]["inventory_flow"]
+    _b2node = _b2real["recon"]["B2_inv_roll"]
+    _b2lhs = (_flow["purchase"]["cur"] + _flow["direct_labor"]["cur"]
+              + _flow["outsourcing"]["cur"] + _flow["manufacturing_freight"]["cur"]
+              + _b2real["statements"]["balance"]["inventory"]["prev"]
+              - _b2real["statements"]["income"]["cost"]["cur"])
+    _b2adjusted = _b2lhs - _flow["period_expense_use"]["cur"] - _flow["provision_writeoff"]["cur"]
+    _b2rep = _Rep()
+    _calc.check_recon(_b2real, _b2rep)
+    _b2checks = [
+        (round(_b2lhs, 2) == 12598.78 == _b2node["lhs"],
+         f"倍轻松真实B2：完整增加额代入简化式 lhs={_b2lhs:.2f}"),
+        (round(_b2adjusted, 2) == 11055.37 == _b2node["rhs"],
+         f"倍轻松真实B2：期间领用+跌价转销解释后期末={_b2adjusted:.2f} 精确闭合"),
+        (abs(_b2lhs - _b2node["rhs"]) / _b2node["rhs"] > 0.05
+         and not any(lv == _FAIL for lv, _, _ in _b2rep.rows)
+         and any(code == "B2_inv_roll" and lv == "OK" for lv, code, _ in _b2rep.rows),
+         "倍轻松真实B2：简化式偏差>5%但披露调整项完整，判可解释且门禁无FAIL"),
+    ]
+    if not _block("B2 完整存货生产入库真实样本", _b2checks, "B2真实样本复算失败。"):
+        return 1
+
+    _lyreal = load_json(YINGHE_LEVERAGE)
+    _lycur = _brc_real(_lyreal)
+    _lyi = _lyreal["statements"]["income"]
+    _lyb = _lyreal["statements"]["balance"]
+    _lyprev = {
+        ("income", "revenue"): _lyi["revenue"]["prev"],
+        ("income", "np_at"): _lyi["np_at"]["prev"],
+        ("income", "np_total"): _lyi["np_total"]["prev"],
+        ("income", "income_tax"): _lyi["income_tax"]["prev"],
+        ("income", "fin_exp"): _lyi["fin_exp"]["prev"],
+        ("balance", "equity_at"): _lyb["equity_at"]["prev"],
+        ("balance", "total_assets"): _lyb["total_assets"]["prev"],
+        "total_assets_prev": _lyb["total_assets"]["hist"][0],
+    }
+    _lyreal["derived"]["ratios"] = {
+        name: {"cur": _lycur[name], "prev": _rhe_real(name, _lyprev)}
+        for name in ("net_margin", "asset_turnover", "equity_multiplier", "roe", "dfl")
+    }
+    _lydu = calc_dupont.compute_dupont(_lyreal)
+    _lyld = _lydu["leverage_drill"]
+    _lyh1 = calc_dupont.compute_dupont(load_json(YINGHE))
+    _mireal = load_json(MIDEA_LEVERAGE_NEGATIVE)
+    _micur = _brc_real(_mireal)
+    _mii = _mireal["statements"]["income"]
+    _mib = _mireal["statements"]["balance"]
+    _miprev = {
+        ("income", "revenue"): _mii["revenue"]["prev"],
+        ("income", "np_at"): _mii["np_at"]["prev"],
+        ("income", "np_total"): _mii["np_total"]["prev"],
+        ("income", "income_tax"): _mii["income_tax"]["prev"],
+        ("income", "fin_exp"): _mii["fin_exp"]["prev"],
+        ("balance", "equity_at"): _mib["equity_at"]["prev"],
+        ("balance", "total_assets"): _mib["total_assets"]["prev"],
+        "total_assets_prev": _mib["total_assets"]["hist"][0],
+    }
+    _mireal["derived"]["ratios"] = {
+        name: {"cur": _micur[name], "prev": _rhe_real(name, _miprev)}
+        for name in ("net_margin", "asset_turnover", "equity_multiplier", "roe", "dfl")
+    }
+    _midu = calc_dupont.compute_dupont(_mireal)
+    _mild = _midu["leverage_drill"]
+    _lychecks = [
+        (_lydu["driver"] == "杠杆" and abs(_lydu["leverage_effect"] - 0.01935) < 0.00005
+         and abs(_lydu["leverage_effect"]) > max(abs(_lydu["margin_effect"]), abs(_lydu["turnover_effect"])),
+         f"赢合2025FY真实杠杆：效应={_lydu['leverage_effect']:+.5f} 为第一驱动"),
+        (abs(_lyld["ni_share"] - 0.9735) < 0.0001 and abs(_lyld["dfl_delta"] - 0.0047) < 0.0001
+         and _lyld["quality_upgrade"] is True,
+         f"赢合2025FY真实杠杆：无息={_lyld['ni_share']:.4%} ΔDFL={_lyld['dfl_delta']:+.4f} → 升档"),
+        (_lyh1["driver"] == "杠杆" and _lyh1["leverage_drill"]["quality_upgrade"] is False,
+         f"赢合2026H1阴性对照：ΔDFL={_lyh1['leverage_drill']['dfl_delta']:+.4f}>0.1 → 不升档"),
+        (_midu["driver"] == "杠杆" and _midu["leverage_effect"] < 0
+         and _mild["ni_share"] > 0.7 and abs(_mild["dfl_delta"]) < 0.1
+         and _mild["quality_upgrade"] is False,
+         f"美的2025FY真实负样本：杠杆效应={_midu['leverage_effect']:+.5f}<0，"
+         f"无息={_mild['ni_share']:.2%} ΔDFL={_mild['dfl_delta']:+.4f} → 不得升档"),
+    ]
+    if not _block("杠杆升档真实触发样本", _lychecks, "杠杆真实样本复算失败。"):
         return 1
 
     # ── calc FAIL 判据阳性（v0.1.1 全库审计补口）──
@@ -1572,6 +1698,19 @@ def main():
                 _seg["rev_prev"] = None
         rr_se, h_se = _replay(_seg_missing, "yh_seg_empty")
         rr_o, h_ocf = _replay(lambda d: d["derived"].pop("ocf_bridge", None), "yh_ocf")
+        def _recon_gap(d):
+            d["recon"]["B2_inv_roll"] = {"lhs": None, "rhs": None, "verdict": "",
+                                         "explanation": "未披露完整增加额，未执行", "src": "构造缺口"}
+        rr_rg, h_recon_gap = _replay(_recon_gap, "yh_recon_gap")
+
+        def _cip_semantics(d):
+            d["notes"]["cip_projects"] = [
+                {"name": "流量存量分列", "budget": 10.0, "invested_cur": 1.23,
+                 "closing_balance": 4.56, "progress": 0.5, "transferred": 0.2, "src": "构造"},
+                {"name": "仅披露期末", "budget": None, "invested_cur": None,
+                 "closing_balance": 7.89, "progress": None, "transferred": None, "src": "构造"},
+            ]
+        rr_cs, h_cip_semantics = _replay(_cip_semantics, "yh_cip_semantics")
     render_pos_checks = [
         (anchor_fail, "断锚阳性：锚复制成双份必 exit 1 且打印断锚清单（v0.1.1）"),
         (rr_h.returncode == 0 and 'id="holders"' not in h_holders
@@ -1596,6 +1735,19 @@ def main():
          and 'id="segbridge"' not in h_se and "分部收入变动桥未绘制" in h_se
          and "（收入变动 +18.26 亿）" in h_se and "（分部合计" not in h_se,
          "降级⑥：分部上期金额缺失 → 空桥删 svg 换声明，端点行只称收入变动（恒瑞 Q3 实证）"),
+        (rr_rg.returncode == 0 and "B2 存货 roll-forward" in h_recon_gap
+         and "⚠️ 未执行" in h_recon_gap
+         and re.search(r"：13 条闭合[^\n]*1 项未执行（B2）", h_recon_gap),
+         "未执行勾稽不得计入闭合：B2空verdict须入清单并单列未执行计数"),
+        ("13 条闭合 · 2 项可解释 · 1 项未执行（B2）" in h_recon_gap,
+         "勾稽汇总须同时列出闭合、可解释与未执行数量"),
+        ("+6.29 倍 / 1257.8%" in h_recon_gap and "+6.29 亿 / 1257.8%" not in h_recon_gap,
+         "D3母公司其他应收款比率的偏差单位必须为倍而非亿"),
+        (rr_cs.returncode == 0 and "本期投入（亿元）" in h_cip_semantics
+         and "期末余额（亿元）" in h_cip_semantics
+         and re.search(r"流量存量分列</td><td>10.0</td><td>1.23</td><td>4.56</td>", h_cip_semantics)
+         and re.search(r"仅披露期末</td><td>—</td><td>—</td><td>7.89</td>", h_cip_semantics),
+         "在建工程本期投入与期末余额必须分字段、分列呈现，缺数保持未知"),
     ]
     if not _block("render 断锚与降级路径阳性（v0.1.1 审计补口）", render_pos_checks,
                   "render 断锚/降级路径失效，逐条核对上方 ❌。"):
@@ -1784,6 +1936,26 @@ def main():
          "v0.1.3⑤：labels 取最长序列（5 期 FY）+ 短序列前置 null 右对齐，不截断首期"))
     if not _block("v0.1.3 阿里港股年报首验反馈构造用例", v13_checks,
                   "v0.1.3 构造用例失败，逐条核对上方 ❌。"):
+        return 1
+
+    # 万华 2025FY：三因子 hist 为 5/4/5 期时，累计归因窗口是 2022→2025，
+    # 首端必须统一右对齐到倒数第 4 期，不能分别取各序列第 1 期。
+    _d5_window = {"derived": {"ratios": {
+        "net_margin": {"hist": [0.1694, 0.098, 0.0959, 0.0716, 0.0616]},
+        "asset_turnover": {"hist": [0.8466, 0.7727, 0.6665, 0.6595]},
+        "equity_multiplier": {"hist": [2.7783, 2.6136, 2.8542, 3.0999, 2.9824]}},
+        "dupont5y": {"period_start": "2022", "period_end": "2025", "percentile": {
+            "net_margin": 0.0, "asset_turnover": 0.0, "equity_multiplier": 0.6667}}}}
+    _d5_rows = _bs13(_d5_window)["s1"]["dupont5y"]["rows"]
+    _d5_equal = copy.deepcopy(_d5_window)
+    _d5_equal["derived"]["ratios"]["asset_turnover"]["hist"] = [0.95, 0.8466, 0.7727, 0.6665, 0.6595]
+    _d5_equal_rows = _bs13(_d5_equal)["s1"]["dupont5y"]["rows"]
+    if not _block("万华2025FY五年归因首端窗口回归", [
+        ([r["start"] for r in _d5_rows] == ["9.80%", "0.85", "2.61"],
+         f"5/4/5期 hist 首端统一取2022（实际 {[r['start'] for r in _d5_rows]}）"),
+        ([r["start"] for r in _d5_equal_rows] == ["16.94%", "0.95", "2.78"],
+         "5/5/5期等长序列仍取原首端，不受右对齐修复影响"),
+    ], "五年归因首端窗口修复失败，检查 calc_slots 与 compute_dupont5y 的窗口规则。"):
         return 1
 
     # ── v0.1.5 ponytail-audit 修复轮构造断言（批次 D：19 条修复的「破坏必红」集中锁）──
@@ -1981,6 +2153,68 @@ def main():
                   "v0.1.5 桑基锁失败，逐条核对上方 ❌。"):
         return 1
 
+    # 中国船舶 2025FY：fill 后的 26.645 在展示层仍须按四舍五入为 26.65，
+    # 且归母 78.48 + 少数股东 26.65 = 总净利 105.13，不能出现 0.01 亿显示断链。
+    _sk_round_data = load_json(YINGHE)
+    _sk_round_data["derived"]["sankey"].update({"np": 105.13, "np_at": 78.48, "minority": 26.645})
+    _sk_rounded = _bsk(_sk_round_data)
+    _sk_round_data["derived"]["sankey"]["minority"] = 26.6449
+    _sk_round_down = _bsk(_sk_round_data)
+    if not _block("中国船舶桑基少数股东舍入回归", [
+        (_sk_rounded["minority"] == 26.65
+         and round(_sk_rounded["np_at"] + _sk_rounded["minority"], 2) == _sk_rounded["np"],
+         f"26.645应四舍五入为26.65且显示层闭合（实际 {_sk_rounded}）"),
+        (_sk_round_down["minority"] == 26.64,
+         f"26.6449未达入位边界仍应为26.64（实际 {_sk_round_down['minority']}）"),
+    ], "桑基少数股东舍入修复失败，检查展示层舍入规则。"):
+        return 1
+
+    _d4_label_data = copy.deepcopy(base)
+    _d4_label_data["recon"].setdefault("D4_parent_invest", {}).update(
+        {"verdict": "可解释", "explanation": "构造D4异常行"})
+    _d4_labels = [r["eq"] for r in _bs15(_d4_label_data)["s2"]["recon_rows"]]
+    if not _block("D4母公司投资收益行名回归", [
+        ("D4 母公司投资收益/净利润" in _d4_labels
+         and "D4 母公司长期股权投资" not in _d4_labels,
+         f"D4异常勾稽行须与公式同名（实际 {_d4_labels}）"),
+    ], "D4行名修复失败，检查 calc_slots._RECON_NAME。"):
+        return 1
+
+    _rate_data = copy.deepcopy(base)
+    _rate_data["recon"]["A7_implied_rate"] = {"lhs": 0.055, "rhs": 0.05, "verdict": "可解释",
+                                              "explanation": "构造利率差", "src": "构造"}
+    _rate_data["recon"]["A8_invest_income"] = {"lhs": 0.10574907939407949, "rhs": 0.1,
+                                                "verdict": "可解释", "explanation": "构造收益率差", "src": "构造"}
+    _rate_dev = {r["eq"]: r["deviation"] for r in _bs15(_rate_data)["s2"]["recon_rows"]}
+    if not _block("利率型勾稽偏差单位回归", [
+        (_rate_dev.get("A7 隐含利率检验") == "+0.50pct / 10.0%"
+         and _rate_dev.get("A8 投资收益合理性") == "+0.57pct / 5.7%"
+         and all("亿" not in v for v in _rate_dev.values()),
+         f"A7/A8利率差须用pct而非亿（实际 {_rate_dev}）"),
+    ], "利率型偏差单位修复失败，检查 calc_slots.recon_rows。"):
+        return 1
+
+    _closed_data = copy.deepcopy(base)
+    _closed_data["recon"] = {
+        **{f"A{i:02d}": {"lhs": 1, "rhs": 1, "verdict": "闭合", "explanation": "", "src": "构造"}
+           for i in range(1, 14)},
+        "A14": {"lhs": 2, "rhs": 1, "verdict": "可解释", "explanation": "构造A", "src": "构造"},
+        "A15": {"lhs": 2, "rhs": 1, "verdict": "可解释", "explanation": "构造B", "src": "构造"},
+        "B2_inv_roll": {"lhs": None, "rhs": None, "verdict": "",
+                        "explanation": "未披露生产入库", "src": "构造"},
+    }
+    _closed_path = HERE / "_closed_count_tmp.md"
+    try:
+        _wfs15(_closed_data, str(_closed_path))
+        _closed_text = _closed_path.read_text(encoding="utf-8")
+    finally:
+        _closed_path.unlink(missing_ok=True)
+    if not _block("fillsheet 闭合计数剔除未执行", [
+        ("✅ 闭合 13 条一行汇总" in _closed_text and "✅ 闭合 14 条一行汇总" not in _closed_text,
+         "13闭合+2可解释+1未执行时，fillsheet只能汇总13条闭合"),
+    ], "fillsheet 闭合计数仍把未执行计入。"):
+        return 1
+
     # ⑪ fillsheet 桥 delta 守卫：np_bridge 环节 delta=None → 不抛异常且贡献额列为「—」
     d15_11 = copy.deepcopy(base)
     d15_11["derived"]["np_bridge"] = [{"item": "毛利", "delta": None},
@@ -2140,6 +2374,24 @@ def main():
             _SECT + '<div class="card"><p>净现比 33.66pct 水平</p></div></div>', _jpct)
     finally:
         os.unlink(_jpct)
+    # 数字政通 2025FY：五年归因标量也须进入 % 权威池；近值撞窗消除，独立错值仍报警。
+    with tempfile.NamedTemporaryFile("w", suffix=".json", delete=False, encoding="utf-8") as _jd5:
+        json.dump({"meta": {"company": "构造样本", "code": "000000", "period": "20251231",
+                            "report_type": "年报", "unit": "亿元"},
+                   "derived": {"ratios": {"asset_turnover": {"cur": 0.1471, "prev": 0.1545}},
+                               "dupont5y": {"turnover_effect": 0.147, "margin_effect": -0.3317}},
+                   "recon": {"A8_invest_income": {"lhs": 0.1544065}}},
+                  _jd5, ensure_ascii=False)
+        _jd5p = _jd5.name
+    try:
+        t8_d5_ok = _run_html_str(
+            _SECT + '<div class="card"><p>周转率累计贡献 +14.70pct</p></div></div>', _jd5p)
+        t8_d5_bad = _run_html_str(
+            _SECT + '<div class="card"><p>净利率累计贡献 -33.19pct</p></div></div>', _jd5p)
+        t8_recon_pct = _run_html_str(
+            _SECT + '<div class="card"><p>隐含收益率 15.44%</p></div></div>', _jd5p)
+    finally:
+        os.unlink(_jd5p)
     # ⑯ gate 红测：占位符残留走单入口必 exit 1 且汇总点名 check_html；正例容忍两种合法形态
     with tempfile.NamedTemporaryFile("w", suffix=".html", delete=False, encoding="utf-8") as _hf15:
         _hf15.write(_SECT + '<div class="card"><p>{{未填孔}}</p></div></div>')
@@ -2163,6 +2415,13 @@ def main():
         ("[FAIL] num-vs-json" in (t8_pct_bad.stdout or "")
          and "相近但不等" in (t8_pct_bad.stdout or ""),
          "⑮②pct 偏差 0.03%：33.66pct 对独特值 33.65 必 FAIL「相近但不等」（pct 词边界判据未松）"),
+        ("[FAIL] num-vs-json" not in (t8_d5_ok.stdout or ""),
+         "数字政通：五年归因+14.70pct不得误撞周转率14.71%"),
+        ("[FAIL] num-vs-json" in (t8_d5_bad.stdout or "")
+         and "相近但不等" in (t8_d5_bad.stdout or ""),
+         "数字政通：独立归因效应-33.19pct与底稿-33.17pct不符仍必FAIL"),
+        ("[FAIL] num-vs-json" not in (t8_recon_pct.stdout or ""),
+         "数字政通：A8隐含收益率15.44%不得误撞周转率15.45%"),
         (g_bad.returncode == 1 and "check_html 未通过（FAIL 未清零）" in (g_bad.stdout or ""),
          "⑯gate 红测：占位符残留必 exit 1 且 gate 汇总点名「check_html 未通过（FAIL 未清零）」"),
         (g_ok.returncode == 0
@@ -2429,9 +2688,9 @@ def main():
         ("年度口径" in _x6_year, "v0.1.7④：X6 年报显示年度口径"),
         ("半年口径" in _x6_h1, "v0.1.7④：X6 半年报保持半年口径"),
         ("三季口径" in _x6_q3, "v0.1.7④：X6 通用季报+0930 显示三季口径"),
-        ("本年投入（亿元）" in _tmpl17 and "本年转固（亿元）" in _tmpl17
-         and "<th>预计转固时点</th>" not in _tmpl17,
-         "v0.1.7④：S5 表头与 invested_cur/transferred 实际语义一致"),
+        ("本期投入（亿元）" in _tmpl17 and "期末余额（亿元）" in _tmpl17
+         and "本年转固（亿元）" in _tmpl17 and "<th>预计转固时点</th>" not in _tmpl17,
+         "S5 表头分列 invested_cur/closing_balance，并与 transferred 的流量语义一致"),
         ((lambda s: s.count('"dividend_paid"') >= 2
           and "cashflow 无此键才回退 balance" in s and "两处均未提取才置 null" in s)
          ((SKILL / "references" / "extraction-schema.md").read_text(encoding="utf-8")),
@@ -2556,11 +2815,24 @@ def main():
                                     encoding='utf-8', errors='replace')
         finally:
             _ncr17_path.unlink(missing_ok=True)
-        if _ncr17.returncode != 0:
-            print(_ncr17.stdout)
+        _cross_slot17 = ("const NCR_TS={labels:['2021','2022','2023','2024','2025'],"
+                         "ncr:[0.49,0.21,0.98,-0.02,-0.12],fcf:[0.08,0.01,0.53,0.15,0.75],mean:0.31};")
+        _cross_page17 = re.sub(r"const NCR_TS=\{.*?\};", _cross_slot17, _page17, count=1)
+        _cross_path17 = HERE / '_v17_ncr_cross.html'
+        _cross_path17.write_text(_cross_page17, encoding='utf-8')
+        try:
+            _cross17 = subprocess.run([sys.executable, str(SKILL / 'scripts' / 'check_render.py'),
+                                       str(_cross_path17)], capture_output=True, text=True,
+                                      encoding='utf-8', errors='replace')
+        finally:
+            _cross_path17.unlink(missing_ok=True)
+        if _ncr17.returncode != 0 or _cross17.returncode != 0:
+            print(_ncr17.stdout + _cross17.stdout)
         if not _block('v0.1.7 ncrline 近 1 标签渲染用例',
                       [(_ncr17.returncode == 0,
-                        f'v0.1.7⑧：均值1.13与y=1标签在真实浏览器不重叠（exit={_ncr17.returncode}）')],
+                        f'v0.1.7⑧：均值1.13与y=1标签在真实浏览器不重叠（exit={_ncr17.returncode}）'),
+                       (_cross17.returncode == 0,
+                        f'数字政通：-0.02与0.15跨线标签在真实浏览器不重叠（exit={_cross17.returncode}）')],
                       'v0.1.7 ncrline 标签仍重叠。'):
             return 1
 
@@ -2635,6 +2907,12 @@ def main():
     _watch_invalid = _watch_run({**_watch_low, "upper_op": "≥"}, "watch_invalid.json")
     _watch_slot = _bs17({**base, "watchlist": [
         {**_watch_low, "upper_op": "<", "lower_op": ">"}]})["s8"]["cards"][0]["wb"]
+    _watch_qual = _bs17({**base, "watchlist": [{
+        "indicator": "定性卡", "current": "未披露", "tripwire": "若下份报告仍未披露则继续观察",
+        "source": "公司定期报告", "badge": "der"}]})["s8"]["cards"][0]["wb"]
+    _watch_partial = _bs17({**base, "watchlist": [{
+        "indicator": "单侧阈值卡", "current": "8%", "lower": "10%", "lower_meaning": "低于10%观察",
+        "tripwire": "若低于10%则观察", "source": "公司定期报告", "badge": "der"}]})["s8"]["cards"][0]["wb"]
     _schema_watch = (SKILL / "references" / "extraction-schema.md").read_text(encoding="utf-8")
     v17_watch = [
         (_watch_high_bad.returncode == 0 and "[WARN] watchlist-direction" in _watch_high_bad.stdout,
@@ -2651,6 +2929,11 @@ def main():
          "v0.1.7⑪：方向符号只许 < 或 >，非法值必 FAIL"),
         (_watch_slot.startswith("&lt; 20%") and " / &gt; 35%" in _watch_slot,
          f"v0.1.7⑪：S8 槽按 upper_op/lower_op 输出方向（{_watch_slot[:60]}）"),
+        (_watch_qual.startswith("定性观察，无数值阈值；若下份报告仍未披露"),
+         f"定性跟踪卡无upper/lower时不得残留空阈值壳（{_watch_qual}）"),
+        (_watch_partial.startswith("&lt; 10% 低于10%观察；") and " / " not in _watch_partial
+         and "&gt;  " not in _watch_partial,
+         f"仅单侧有阈值时不得生成另一侧空壳（{_watch_partial}）"),
         ('`upper_op`' in _schema_watch and '`lower_op`' in _schema_watch
          and "默认分别为" in _schema_watch,
          "v0.1.7⑪：schema 登记可选方向字段与兼容默认值"),
@@ -2855,8 +3138,16 @@ def main():
     _rr_q4, _h_q4 = _q4_render17(_q4_values17, "q4_filled")
     _rr_q4_empty, _h_q4_empty = _q4_render17({}, "q4_empty")
     _rr_q4_h1, _h_q4_h1 = _q4_render17(_q4_values17, "q4_h1", "半年报")
+    _rr_q4_hot, _h_q4_hot = _q4_render17(dict(_q4_values17, rev_share=0.45), "q4_hot")
     _q4_table17 = _h_q4.split("Q4 收入占全年", 1)[-1].split("</table>", 1)[0]
     _q4_empty_table17 = _h_q4_empty.split("Q4 收入占全年", 1)[-1].split("</table>", 1)[0]
+    def _q4_s2row17(html):
+        m = re.search(r'<tr><td>Q4 集中度</td>.*?</tr>', html, re.S)
+        return m.group(0) if m else ""
+    _q4_s2_hot17 = _q4_s2row17(_h_q4_hot)
+    _q4_s2_safe17 = _q4_s2row17(_h_q4)
+    _q4_s2_empty17 = _q4_s2row17(_h_q4_empty)
+    _q4_s2_h117 = _q4_s2row17(_h_q4_h1)
     v17_q4 = [
         (_rr_q4.returncode == 0 and all(x in _q4_table17 for x in
          ("22.45%", "14.68% vs 18.73%", "84.02%", "7.49% vs 6.17%"))
@@ -2868,6 +3159,18 @@ def main():
          "v0.1.7⑱：q4 缺数时显示空与无法核验，不带入旧值"),
         (_rr_q4_h1.returncode == 0 and "Q4 收入占全年" not in _h_q4_h1,
          "v0.1.7⑱：非年报仍删除 Q4 卡"),
+        (_rr_q4_hot.returncode == 0 and "Q4 收入占 45.00%" in _q4_s2_hot17
+         and "+5.0pct" in _q4_s2_hot17 and '<span class="badge y">🟡 贴线</span>' in _q4_s2_hot17
+         and "{{" not in _q4_s2_hot17,
+         f"年报二期：Q4>40%时S2行机械填读数/距离/贴线徽章且无孔（{_q4_s2_hot17}）"),
+        ("Q4 收入占 22.45%" in _q4_s2_safe17 and "-17.6pct" in _q4_s2_safe17
+         and '<span class="badge g">✅ 远离</span>' in _q4_s2_safe17 and "{{" not in _q4_s2_safe17,
+         f"年报二期：Q4≤40%时S2行机械填远距离徽章（{_q4_s2_safe17}）"),
+        ("{{" in _q4_s2_empty17,
+         "年报二期：年报缺rev_share时S2行保留判断孔，不填零或编造"),
+        ("—（半年报不适用）" in _q4_s2_h117 and "{{" not in _q4_s2_h117
+         and "22.45%" not in _q4_s2_h117,
+         "年报二期：非年报S2行仍整行不适用，不带入Q4读数"),
     ]
     if not _block("v0.1.7 Q4 卡机械填充构造用例", v17_q4,
                   "Q4 卡机械填充失败，逐条核对上方 ❌。"):
@@ -2891,6 +3194,14 @@ def main():
     _exp_h1_data17["expectations"] = [{"institution": "构造研报", "date": "2026-08-01",
                                        "forecast_np_2026": 90.0, "src": "构造全年预测"}]
     _exp_h1_rows17 = _bs17(_exp_h1_data17)["s7"].get("expect_rows") or []
+    _exp_mixed17 = copy.deepcopy(_exp_valid17)
+    _exp_mixed17["meta"]["disclose_date"] = "2026-04-20"
+    _exp_mixed17["expectations"][0]["date"] = "20260401"
+    _exp_mixed17["expectations"][2]["date"] = "20260501"
+    _exp_mixed_slots17 = _bs17(_exp_mixed17)["s7"]
+    _exp_reverse17 = copy.deepcopy(_exp_valid17)
+    _exp_reverse17["meta"]["disclose_date"] = "20260420"
+    _exp_reverse_slots17 = _bs17(_exp_reverse17)["s7"]
     with tempfile.TemporaryDirectory() as _td_exp:
         _cp_exp = Path(_td_exp) / "expect.json"
         _cp_exp.write_text(json.dumps(_exp_valid17, ensure_ascii=False), encoding="utf-8")
@@ -2931,6 +3242,12 @@ def main():
          "v0.1.7⑲：非年报不适用行也清除单元格 class 占位符"),
         ("forecast_rev_YYYY" in _schema_exp17 and "披露日后" in _schema_exp17,
          "v0.1.7⑲：schema 登记预测字段与同年度/披露日边界"),
+        (_exp_mixed_slots17.get("expect_rows") == _exp_rows17
+         and "最新 2026-04-10" in _exp_mixed_slots17.get("expect_src", ""),
+         "万华实战：紧凑研报日期遇横线披露日，披露前保留且披露后剔除"),
+        (_exp_reverse_slots17.get("expect_rows") == _exp_rows17
+         and "最新 2026-04-10" in _exp_reverse_slots17.get("expect_src", ""),
+         "万华实战：横线研报日期遇紧凑披露日，披露后研报仍须剔除"),
     ]
     if not _block("v0.1.7 预期对照表构造用例", v17_expect,
                   "预期对照表机械填充失败，逐条核对上方 ❌。"):
@@ -3177,6 +3494,12 @@ def main():
                                       "by_segment": [{"name": "其他", "rev_cur": 1, "rev_prev": 1}]}}}
     _seg_other = json.loads(re.search(r"(?m)^const SEG_BRIDGE=(.*);$",
         _bs13(_d_other_bucket)["js"]["SEG_BRIDGE"]).group(1))
+    _d_other_both = {"meta": {"report_type": "招股书", "period": "20251231"},
+                     "statements": {"income": {"revenue": {"cur": 11, "prev": 10},
+                                    "by_segment": [{"name": "其他", "rev_cur": 1, "rev_prev": 1},
+                                                   {"name": "其他业务", "rev_cur": 0.5, "rev_prev": 0}]}}}
+    _seg_other_both = json.loads(re.search(r"(?m)^const SEG_BRIDGE=(.*);$",
+        _bs13(_d_other_both)["js"]["SEG_BRIDGE"]).group(1))
     ipo_render_checks = [
         (_rr_ipo.returncode == 0 and 'id="ipo"' in _h_ipo
          and "{{IPO_" not in _h_ipo and "14.21 元/股" in _h_ipo
@@ -3197,6 +3520,12 @@ def main():
         (len({name for name, _ in _seg_other}) == len(_seg_other)
          and ["其他业务", 1.0] in _seg_other,
          f"招股书④：既有其他分部与自动补桶不同名（{_seg_other}）"),
+        (len({name for name, _ in _seg_other_both}) == len(_seg_other_both)
+         and ["其他调整", 0.5] in _seg_other_both
+         and abs(sum(v for _, v in _seg_other_both) - 1.0) < 1e-9,
+         f"招股书④：其他与其他业务并存时补桶仍唯一且闭合（{_seg_other_both}）"),
+        ("missing" not in _bs13(_d_ipo_slots)["ipo"],
+         "招股书④：IPO槽不暴露未消费的missing键，空行缺口仍由render处理"),
         (_rr_ipo_no_d5.returncode == 0 and "{{period_start}}" not in _h_ipo_no_d5
          and "累计归因与因子分位降级" in _h_ipo_no_d5 and "五年位置" not in _h_ipo_no_d5,
          "招股书④：累计归因序列不足时整卡降级，不留分位空孔"),

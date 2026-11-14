@@ -151,8 +151,9 @@
     "inventory_provision": { "cur": null, "prev": null, "cur_reversed": null, "src": "",
                              "note": "cur_reversed=本期转回额（大额转回=黄色信号）" },
     "cip_projects": [
-      { "name": "", "budget": null, "invested_cur": null, "progress": null, "transferred": null,
-        "src": "", "note": "transferred=本年转固额" }
+      { "name": "", "budget": null, "invested_cur": null, "closing_balance": null,
+        "progress": null, "transferred": null, "src": "",
+        "note": "invested_cur=本期增加金额（流量）；closing_balance=期末余额（存量）；transferred=本年转固额。三者不得混填；工程累计投入占预算比例不是本期投入，未披露则置 null" }
     ],
     "goodwill_test": { "growth_assumption": "", "discount_rate": "", "src": "" },
     "audit": { "opinion": "标准无保留", "kam": [ { "topic": "", "mapped_accounts": [], "src": "" } ],
@@ -209,7 +210,7 @@
                         "margin_drill 四键 op/tax/interest/minority_effect = 净利率恒等四项分解的四效应；"
                         "turnover_drill 的 wc_share=Δ应收类+Δ存货 ÷ Δ总资产，capex_share=Δ在建+Δ固定资产 ÷ Δ总资产；|ΔTA|/TA<1% 时整块 null（总资产未动，定位无意义）；未提取科目不参与；"
                         "leverage_drill 的 ib=st_debt+noncur_due_1y+lt_debt，ni=payable+contract_liab（单项 null 按 0 计，三字段全 null 才整块 null）；"
-                        "quality_upgrade 三态：杠杆非主驱动时 null=不适用，true/false 判定口径同出处；"
+                        "quality_upgrade 三态：杠杆非主驱动时 null=不适用；仅杠杆主驱动且 leverage_effect>0 时才可 true，负向主驱动必须 false；其余判定口径同出处；"
                         "driver_fragile=双驱动护栏触发位（口径同出处），driver_second=第二驱动因子名" },
     "dupont_dt": { "driver": null, "margin_effect": null, "turnover_effect": null,
                    "leverage_effect": null, "roe_product_cur": null, "roe_product_prev": null,
@@ -441,8 +442,9 @@ value 非数值时保持未知，不强行转换。
 
 **`expectations[]` 预期对照字段**（v0.1.7）：每项可含 `institution/date/src`，以及按目标年度命名的
 `forecast_rev_YYYY` / `forecast_np_YYYY`（数值、单位亿元）。仅年报对 `meta.period` 所对应年度
-计算预测中位数与偏离度；无日期或披露日后的预测不得混入。半年报/季报的累计实际不与全年
-预测直接比较；无同年度预期时偏离度写「不适用」。取数窗口仍按 data-sources.md 执行。
+计算预测中位数与偏离度；无日期或披露日后的预测不得混入。`date` 与 `meta.disclose_date` 比较时兼容
+`YYYYMMDD` 与 `YYYY-MM-DD`，先统一为紧凑格式再比较；存储仍按第一节的日期规范。半年报/季报的累计实际
+不与全年预测直接比较；无同年度预期时偏离度写「不适用」。取数窗口仍按 data-sources.md 执行。
 
 ## 四、recon 块的填写规则（配合 articulation.md）
 

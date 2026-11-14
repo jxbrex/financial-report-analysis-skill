@@ -19,21 +19,24 @@
     期后审阅与股权槽位，南方乳业首验），入口仍是 calc.py
   - `scripts/render_report.py` — Phase 8 fill→render（v0.1.0，N4）：模板 + `{stem}.fillsheet.json`
     （calc --fill 同产）→ 报告骨架，机械槽位锚定填充（断锚 exit 1 打印清单）、判断槽残留 `{{}}` 孔
-    由分析师填（孔未清零占位符 FAIL 不交付）；review 卡与 Q4 读数已机械填充，Q4 判断孔手工
+    由分析师填（孔未清零占位符 FAIL 不交付）；review 卡、S2 Q4 集中度行与 S3 Q4 读数已机械填充，
+    Q4 标题和转固核对等判断孔手工
   - `scripts/check_html.py` — Phase 8 报告机检（占位符/裸数字启发式/数据来源/模板硬规则/必备要素/锚点/s8 阈值形态/回看归因 + v0.0.12 起缩写首现展开/OCF 桥项数/归因 figtitle 前瞻与复述/检验卡判定列四条 WARN + v0.0.15 起 s1 杜邦双卡形态/ΔROE 堆叠条数据槽比对 + v0.0.18 起 internal-ref 内部引用禁词/srcline-dup 拼接纪律/percentile-map 分位白描映射三条 FAIL + v0.0.19 起 assertion-count 断言计数 FAIL 与 recon-label 三态措辞/decimal-places 小数位两条 WARN + v0.0.21 起 gap-declaration ❓断言进数据缺口声明行 FAIL + v0.0.22 起 js-dup-decl 数据槽 const 重复声明 FAIL 与 assert-trunc 断言填充截断 FAIL + v0.0.23 起 s1-grid4 四宫格纯 svg FAIL + v0.1.4 起 sankey-slot 桑基数据槽比对 FAIL + v0.1.7 起 text-contrast 小字对比度 FAIL 与 svg-a11y 非装饰 SVG 角色/名称/引用 FAIL）；exit 0 才允许交付；
     模块布局：`check_html_common.py`（共享助手）+ `check_html_text.py`（呈现文本族 16 条检查，v0.0.19 拆出——加规则前置约定触发；PCTILE_LABEL 居此，check_html.py 再导出保契约锁锚点）+ `check_html_t8.py`（T8 数字回验：`--json` 启用，①级 HTML↔data.json 笔误检测（独特值 0.15% 窗口 FAIL + v0.0.19 hist_pool 序列中间值豁免）+ ②级 data.json↔原文 md 行号回核），入口仍是 check_html.py
 - `scripts/check_render.py` — 渲染测量门禁（可选但默认执行）：headless Chrome/Edge 真渲染后测量 SVG 文本重叠/HTML 溢出 .sheet/横向裁剪 + v0.0.22 起 empty-svg 关键 SVG 非空检测（长城 JS 团灭事故补口）+ v0.0.25 起 svgclip SVG 文本出视口检测（赢合 segbridge 长标签裁切补口）；`--png` 按章分片截图供 Phase 8 视觉验收；找不到浏览器声明跳过 exit 0，发现问题 exit 1
 - `scripts/gate.py` — 三道门禁单入口（v0.0.13）：calc → check_html --json → check_render 一条命令，统一退出码
-- `scripts/md_clean.py` — 财报 md 一次性确定性清洗（v0.0.13）：拼回 PDF 拆碎的逻辑表行、删重复分隔行与页眉页脚，产出 clean md 唯一工作副本 + 章节索引 sidecar；内置数字/文字双不变量，违反 exit 1
+- `scripts/md_clean.py` — 财报 md 一次性确定性清洗（v0.0.13）：拼回 PDF 拆碎的逻辑表行、删重复分隔行与页眉页脚，产出 clean md 唯一工作副本 + 章节索引 sidecar；内置数字/文字双不变量，违反 exit 1；目录三表齐全但附注前主表资产行缺失时，sidecar 增记 `statement_warnings`，提示渲染 PDF 原页核对但不阻断清洗
   - `tests/` — 金标准 fixtures + 回归入口：`moutai_2025.json`（干净样本，应零误报）、
     `kangdexin_2018.json`（造假样本，应命中）、`vanke_2026h1.json`（连亏地产样本，
     扣非双版/双驱动真实触发）、`wanhua_2026h1.json`（周期股样本，双驱动第二样本/
     ROIC·SGR 首验/白描分位锚点；v0.0.18 固化）、`qingyue_2022.json`（新准则造假样本：
     处罚×收入KAM×少计减值；v0.1.7 固化）、`yinghe_2026h1.json`（v0.1.0 render
     重放金标准：fillsheet.md 逐字锁 + 锚自检 + 孔数区间 + FAIL 仅 placeholder 一类）
+    + `breo_2025_b2.json`（B2 完整存货流真实专用样本）+ `yinghe_2025_leverage.json`
+    （话语权型杠杆真实专用样本）+ `midea_2025_leverage_negative.json`（负向杠杆不得升档）
     + `yinghe_2026h1.fillsheet.golden.md`、`md_clean_synth.md`（md_clean 合成金标准，自包含）
     + `md_clean_synth2.md`（v0.1.5 第二合成金标准：表题行/分隔行污染两形态）；
-    `run_regression.py` 是唯一回归入口（402 断言，含 check_html/T8/渲染冒烟与构造用例）
+    `run_regression.py` 是唯一回归入口（437 断言，含 check_html/T8/渲染冒烟与构造用例）
 - `reports/` — 产出目录。顶层只放成品 HTML（每公司只留最新版；`贵州茅台-600519-年报-2025FY-20260904.html`
   是黄金样本，改流程/模板后用它做回归对比）；原始报告（PDF/md）存 `reports/archive/原始报告/`，
   data.json 底稿存 `reports/archive/json/`

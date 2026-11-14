@@ -50,7 +50,8 @@ A 股半年报同样强制披露（report-types.md），找不到先换关键词
 
 提取【公司名】（【代码】）【报告期】：应收账款账龄与坏账准备（`ar_aging/ar_writeoff/ar_provision/
 ar_factoring`）/存货明细（`inventory_mix/inventory_provision`）/在建工程明细与转固
-（`cip_projects`：项目名/预算/累计投入/进度/本期转固）/商誉构成与减值测试（`goodwill_test`）。
+（`cip_projects`：项目名/预算/本期投入 `invested_cur`/期末余额 `closing_balance`/进度/本期转固；
+本期投入与期末余额分列，累计投入占预算比例不得换算后冒充本期投入）/商誉构成与减值测试（`goodwill_test`）。
 用 index.json 的「附注」关键块定位切片。
 落盘骨架：`{"notes": {"ar_aging": …, "inventory_mix": …, "cip_projects": […], "goodwill_test": …}}`
 

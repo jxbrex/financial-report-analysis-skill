@@ -131,5 +131,4 @@ def build_ipo_slots(data):
         "issue_title": "净募资低于拟投计划，差额需自筹" if isinstance(shortfall, (int, float)) and shortfall > 0 else "发行与募资口径分列核验",
         "plan_title": "募投项目已列明，收益测算未披露" if any(not p.get("benefit_assumption") for p in plan.get("projects") or []) else "募投项目与收益假设并列核验",
         "equity_title": "发行摊薄原股东比例，控制权变化另看合计口径",
-        "missing": not ipo,
     }

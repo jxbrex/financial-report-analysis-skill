@@ -1,0 +1,18 @@
+{
+  "company": "宁德时代",
+  "code": "300750.SZ",
+  "market": "A股+H股",
+  "period": "20251231",
+  "report_type": "年报",
+  "disclose_date": "2026-03-10",
+  "unit": "亿元",
+  "source_md": "reports/archive/原始报告/宁德时代-300750-2025FY.clean.md",
+  "analyst_date": "2026-11-14",
+  "market_cap_cur": 10998.9725369,
+  "schema_version": "1.7",
+  "currency": "CNY",
+  "accounting_standard": "CAS",
+  "industry_profile": "重资产制造（动力与储能电池）",
+  "cycle_stage": "上行期（销量与收入增长、毛利率回升；扩产与原料价格上行风险仍需跟踪）",
+  "src": "公司2025年报；Tushare daily_basic 2026-11-13总市值万元换算亿元"
+}

@@ -1,0 +1,9 @@
+{
+  "source": "东方财富A股财务数据，2026-11-13查询",
+  "periods": {
+    "2026Q3累计": {"revenue": 1311.0, "np_at": 134.4, "np_dt": 135.4, "ocf": 218.9, "gross_margin": 0.1747, "debt_to_assets": 0.6346, "contract_liab": 1613.0, "inventory": 755.3, "revenue_yoy": 0.2208},
+    "2026H1": {"revenue": 915.3, "np_at": 99.54, "np_dt": 97.42, "ocf": 109.2, "gross_margin": 0.1737, "debt_to_assets": 0.6241, "contract_liab": 1498.0, "inventory": 685.9, "revenue_yoy": 0.2601},
+    "2026Q1": {"revenue": 433.1, "np_at": 48.32, "np_dt": 47.67, "ocf": 81.52, "gross_margin": 0.1748, "debt_to_assets": 0.6271, "contract_liab": 1524.0, "inventory": 700.5, "revenue_yoy": 0.549}
+  },
+  "note": "期后经营核验采用2026Q3累计而非只看Q1；2026Q3收入与利润继续增长、毛利率较2025全年提高，OCF明显改善。外部接口显示精度为期后辅助证据，不混入2025年度hist。"
+}

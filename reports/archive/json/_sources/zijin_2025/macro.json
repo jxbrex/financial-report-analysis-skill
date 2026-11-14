@@ -1,0 +1,28 @@
+{
+  "gold_spot_weekly": {
+    "date_cur": "2025-12-26",
+    "cur_usd_per_oz": 4488.0,
+    "date_prev": "2024-12-27",
+    "prev_usd_per_oz": 2617.0,
+    "change": 0.7149392442,
+    "src": "东方财富宏观数据库/商务部，mx_macro_data 单日点查询，2026-11-14"
+  },
+  "lme_copper_monthly": {
+    "month_cur": "2025-12",
+    "cur_usd_per_tonne": 11800.0,
+    "month_prev": "2024-12",
+    "prev_usd_per_tonne": 8920.0,
+    "change": 0.3228699552,
+    "src": "东方财富宏观数据库/LME，mx_macro_data 单月点查询，2026-11-14",
+    "note": "2025-12原始展示1.18万，按11800记录；为月均现货结算价，不是全年均价"
+  },
+  "battery_lithium_carbonate_daily": {
+    "date_cur": "2025-12-31",
+    "cur_cny_per_tonne": 118800.0,
+    "date_prev": "2024-12-31",
+    "prev_cny_per_tonne": 73750.0,
+    "change": 0.6108474576,
+    "src": "东方财富宏观数据库/长江有色金属网，mx_macro_data 单日点查询，2026-11-14"
+  },
+  "usage_note": "以上均为期末或期末月坐标，不是年度平均价；不得代替公司分产品实际售价，也不直接用于收入三因素计算。"
+}

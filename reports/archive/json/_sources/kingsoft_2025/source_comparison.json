@@ -1,0 +1,368 @@
+[
+  {
+    "path": "income.revenue.cur",
+    "json": 59.2874,
+    "tushare": 59.2874467306,
+    "diff": 7.882039551652402e-07
+  },
+  {
+    "path": "income.revenue.prev",
+    "json": 51.2084,
+    "tushare": 51.208387988199995,
+    "diff": 2.3456704017751084e-07
+  },
+  {
+    "path": "income.cost.cur",
+    "json": 8.3313,
+    "tushare": 8.3312946433,
+    "diff": 6.429612959626069e-07
+  },
+  {
+    "path": "income.cost.prev",
+    "json": 7.6076,
+    "tushare": 7.607619178999999,
+    "diff": 2.5210252443555893e-06
+  },
+  {
+    "path": "income.np_at.cur",
+    "json": 18.3647,
+    "tushare": 18.3646872781,
+    "diff": 6.927370886628743e-07
+  },
+  {
+    "path": "income.np_at.prev",
+    "json": 16.4508,
+    "tushare": 16.4508050902,
+    "diff": 3.0941950685589364e-07
+  },
+  {
+    "path": "income.np_total.cur",
+    "json": 18.2187,
+    "tushare": 18.2186948891,
+    "diff": 2.805305225999619e-07
+  },
+  {
+    "path": "income.np_total.prev",
+    "json": 16.5528,
+    "tushare": 16.5528406488,
+    "diff": 2.455699348608408e-06
+  },
+  {
+    "path": "income.income_tax.cur",
+    "json": 1.3092,
+    "tushare": 1.309161428,
+    "diff": 2.946313508406733e-05
+  },
+  {
+    "path": "income.income_tax.prev",
+    "json": 0.9514,
+    "tushare": 0.9513866145000001,
+    "diff": 1.4069464291335945e-05
+  },
+  {
+    "path": "income.fin_exp.cur",
+    "json": 0.0049,
+    "tushare": 0.0048889074,
+    "diff": 0.0022689323180881023
+  },
+  {
+    "path": "income.fin_exp.prev",
+    "json": -0.1581,
+    "tushare": -0.1581227493,
+    "diff": 0.0001438711387243341
+  },
+  {
+    "path": "income.sell_exp.cur",
+    "json": 11.3965,
+    "tushare": 11.3964960697,
+    "diff": 3.448691576852919e-07
+  },
+  {
+    "path": "income.sell_exp.prev",
+    "json": 9.9133,
+    "tushare": 9.9133253342,
+    "diff": 2.5555703203504815e-06
+  },
+  {
+    "path": "income.admin_exp.cur",
+    "json": 4.7385,
+    "tushare": 4.73845013,
+    "diff": 1.0524538326160532e-05
+  },
+  {
+    "path": "income.admin_exp.prev",
+    "json": 4.0266,
+    "tushare": 4.0266288667,
+    "diff": 7.168949748226295e-06
+  },
+  {
+    "path": "income.rd_exp.cur",
+    "json": 20.9524,
+    "tushare": 20.952386205699998,
+    "diff": 6.583641532413187e-07
+  },
+  {
+    "path": "income.rd_exp.prev",
+    "json": 16.9556,
+    "tushare": 16.9555685545,
+    "diff": 1.8545824575787488e-06
+  },
+  {
+    "path": "income.tax_surcharge.cur",
+    "json": 0.6454,
+    "tushare": 0.6454079621,
+    "diff": 1.2336538232460032e-05
+  },
+  {
+    "path": "income.tax_surcharge.prev",
+    "json": 0.4917,
+    "tushare": 0.4917036482,
+    "diff": 7.419509725703477e-06
+  },
+  {
+    "path": "income.invest_income.cur",
+    "json": 4.6514,
+    "tushare": 4.6513829997,
+    "diff": 3.654891459342948e-06
+  },
+  {
+    "path": "income.invest_income.prev",
+    "json": 3.6993,
+    "tushare": 3.6993296888,
+    "diff": 8.025453932815424e-06
+  },
+  {
+    "path": "income.fv_change_income.cur",
+    "json": -0.1214,
+    "tushare": -0.12143706289999999,
+    "diff": 0.0003052025396111221
+  },
+  {
+    "path": "income.fv_change_income.prev",
+    "json": -0.1839,
+    "tushare": -0.1838720064,
+    "diff": 0.00015224503472866907
+  },
+  {
+    "path": "income.other_income.cur",
+    "json": 1.9162,
+    "tushare": 1.9161758997,
+    "diff": 1.2577290009574984e-05
+  },
+  {
+    "path": "income.other_income.prev",
+    "json": 1.7612,
+    "tushare": 1.7612307715,
+    "diff": 1.747158890123891e-05
+  },
+  {
+    "path": "income.op_profit.cur",
+    "json": 19.4672,
+    "tushare": 19.4672028808,
+    "diff": 1.4798222517976136e-07
+  },
+  {
+    "path": "income.op_profit.prev",
+    "json": 17.4105,
+    "tushare": 17.410490693099998,
+    "diff": 5.345570188083379e-07
+  },
+  {
+    "path": "income.non_op_income.cur",
+    "json": 0.0793,
+    "tushare": 0.0792989548,
+    "diff": 1.3180501592107519e-05
+  },
+  {
+    "path": "income.non_op_income.prev",
+    "json": 0.0392,
+    "tushare": 0.0391864974,
+    "diff": 0.0003445727711300792
+  },
+  {
+    "path": "income.minority_np.cur",
+    "json": -0.146,
+    "tushare": -0.145992389,
+    "diff": 5.213285467909364e-05
+  },
+  {
+    "path": "income.minority_np.prev",
+    "json": 0.102,
+    "tushare": 0.10203555859999999,
+    "diff": 0.00034849223631338173
+  },
+  {
+    "path": "balance.cash.cur",
+    "json": 6.94,
+    "tushare": 6.940517842999999,
+    "diff": 7.461157967071575e-05
+  },
+  {
+    "path": "balance.cash.prev",
+    "json": 8.98,
+    "tushare": 8.9793629308,
+    "diff": 7.094815132313296e-05
+  },
+  {
+    "path": "balance.ar.cur",
+    "json": 6.36,
+    "tushare": 6.3632175899000005,
+    "diff": 0.000505654545761144
+  },
+  {
+    "path": "balance.ar.prev",
+    "json": 5.05,
+    "tushare": 5.0456705992,
+    "diff": 0.0008580426951941918
+  },
+  {
+    "path": "balance.other_ar.cur",
+    "json": 0.81,
+    "tushare": 0.8137224621,
+    "diff": 0.004574609001689908
+  },
+  {
+    "path": "balance.other_ar.prev",
+    "json": 0.7,
+    "tushare": 0.6965028803,
+    "diff": 0.005020969473225587
+  },
+  {
+    "path": "balance.inventory.cur",
+    "json": 0.0052243952,
+    "tushare": 0.0052243952,
+    "diff": 0.0
+  },
+  {
+    "path": "balance.inventory.prev",
+    "json": 0.0080203662,
+    "tushare": 0.0080203662,
+    "diff": 0.0
+  },
+  {
+    "path": "balance.fixed_assets.cur",
+    "json": 4.53,
+    "tushare": 4.5321878542,
+    "diff": 0.00048273687463600804
+  },
+  {
+    "path": "balance.fixed_assets.prev",
+    "json": 2.97,
+    "tushare": 2.9665122617,
+    "diff": 0.0011757033149768096
+  },
+  {
+    "path": "balance.cip.prev",
+    "json": 1.35,
+    "tushare": 1.349594358,
+    "diff": 0.0003005658682518287
+  },
+  {
+    "path": "balance.goodwill.cur",
+    "json": 1.85,
+    "tushare": 1.8466897258000001,
+    "diff": 0.0017925448729975075
+  },
+  {
+    "path": "balance.goodwill.prev",
+    "json": 1.85,
+    "tushare": 1.8466897258000001,
+    "diff": 0.0017925448729975075
+  },
+  {
+    "path": "balance.noncur_due_1y.cur",
+    "json": 0.216608043,
+    "tushare": 0.216608043,
+    "diff": 0.0
+  },
+  {
+    "path": "balance.noncur_due_1y.prev",
+    "json": 0.9590227544,
+    "tushare": 0.9590227544,
+    "diff": 0.0
+  },
+  {
+    "path": "balance.total_assets.cur",
+    "json": 181.56,
+    "tushare": 181.55801690139998,
+    "diff": 1.0922671627871572e-05
+  },
+  {
+    "path": "balance.total_assets.prev",
+    "json": 159.13,
+    "tushare": 159.1288875623,
+    "diff": 6.990796687068153e-06
+  },
+  {
+    "path": "balance.total_liab.cur",
+    "json": 53.02,
+    "tushare": 53.023546088,
+    "diff": 6.687760931935776e-05
+  },
+  {
+    "path": "balance.total_liab.prev",
+    "json": 44.76,
+    "tushare": 44.7631912969,
+    "diff": 7.129288166324242e-05
+  },
+  {
+    "path": "balance.equity_at.cur",
+    "json": 128.53,
+    "tushare": 128.5344708134,
+    "diff": 3.478299145511677e-05
+  },
+  {
+    "path": "balance.equity_at.prev",
+    "json": 113.56,
+    "tushare": 113.55557559610001,
+    "diff": 3.896245408262603e-05
+  },
+  {
+    "path": "balance.retained_cur.cur",
+    "json": 67.25,
+    "tushare": 67.2471929546,
+    "diff": 4.174219438273836e-05
+  },
+  {
+    "path": "balance.retained_cur.prev",
+    "json": 53.01,
+    "tushare": 53.0134669905,
+    "diff": 6.539829776880707e-05
+  },
+  {
+    "path": "cashflow.ocf.cur",
+    "json": 25.015,
+    "tushare": 25.015030949499998,
+    "diff": 1.2372361265500979e-06
+  },
+  {
+    "path": "cashflow.ocf.prev",
+    "json": 21.9557,
+    "tushare": 21.9557398193,
+    "diff": 1.813616864074829e-06
+  },
+  {
+    "path": "cashflow.sales_cash.cur",
+    "json": 68.8501,
+    "tushare": 68.8501047128,
+    "diff": 6.845015016178444e-08
+  },
+  {
+    "path": "cashflow.sales_cash.prev",
+    "json": 59.4762,
+    "tushare": 59.476240377799996,
+    "diff": 6.788895824834606e-07
+  },
+  {
+    "path": "cashflow.capex.cur",
+    "json": 0.9789,
+    "tushare": 0.9788697476999999,
+    "diff": 3.090533758058311e-05
+  },
+  {
+    "path": "cashflow.capex.prev",
+    "json": 1.7499,
+    "tushare": 1.7499178207,
+    "diff": 1.0183735366935399e-05
+  }
+]

@@ -1,0 +1,38 @@
+{
+  "as_of": "2025-12-31",
+  "source": "公司2025年报股东章节",
+  "checks": [
+    {
+      "shareholder": "烟台中诚投资股份有限公司",
+      "pledged_shares": 55000000,
+      "held_shares": 330379594,
+      "pledge_ratio": 0.1665,
+      "src": "L2249",
+      "relation": "控股股东一致行动人，非控股股东本体"
+    },
+    {
+      "shareholder": "宁波市中凯信创业投资股份有限公司",
+      "pledged_shares": 70000000,
+      "held_shares": 301808357,
+      "pledge_ratio": 0.2319,
+      "src": "L2250-L2251",
+      "relation": "控股股东一致行动人，非控股股东本体"
+    },
+    {
+      "shareholder": "Prime Partner International Limited（合成国际控股有限公司）",
+      "pledged_shares": 112655045,
+      "held_shares": 140093379,
+      "pledge_ratio": 0.8042,
+      "src": "L2251-L2252",
+      "relation": "非控股股东，未列入年报披露的控股股东一致行动人"
+    }
+  ],
+  "controlling_shareholder_and_concert_parties": {
+    "members": ["烟台国丰投资控股集团有限公司", "烟台中诚投资股份有限公司", "宁波市中凯信创业投资股份有限公司"],
+    "pledged_shares": 125000000,
+    "held_shares": 1309952605,
+    "pledge_ratio": 0.0954,
+    "src": "L2248-L2250/L2286"
+  },
+  "note": "单体质押率用于核对股东质押披露；中诚投资与中凯信虽为控股股东一致行动人，但不把其单体质押率写成国丰集团质押率。合成国际质押率80.42%不直接推出控制权风险。"
+}

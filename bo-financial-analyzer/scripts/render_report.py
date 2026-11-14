@@ -11,7 +11,7 @@
 分析师填孔后 check_html 占位符门禁清零方可交付（流程语义与手写时代一致）。
 
 锚自检：每条锚必须唯一命中，否则打印断锚清单 exit 1（模板改版漂移时脚本显式报错，
-不静默错填）。review 卡与 Q4 读数已机械填充；Q4 标题和转固核对仍由分析师判断。
+不静默错填）。review 卡、S2 Q4 集中度行与 S3 Q4 读数已机械填充；Q4 标题和转固核对仍由分析师判断。
 """
 from __future__ import annotations
 
@@ -391,8 +391,15 @@ def fill_s2(r, s2):
         r.re1(r' <tr><td>\{\{A4 收入-收现闭环\}\}.*?</tr>\n <tr><td>\{\{B1 应收 roll-forward\}\}.*?</tr>',
               "\n ".join(_recon_tr(x) for x in rr), "s2.recon_rows")
     r.sub1("共核对 {{N}} 条勾稽等式", f"共核对 {s2.get('recon_total', _H)} 条勾稽等式", "s2.recon_n")
-    r.sub1("{{全部闭合 / 其余 M 条闭合}}",
-           f"{s2.get('recon_closed', _H)} 条闭合", "s2.recon_closed")
+    recon_summary = f"{s2.get('recon_closed', _H)} 条闭合"
+    if s2.get("recon_explainable"):
+        recon_summary += f" · {s2['recon_explainable']} 项可解释"
+    if s2.get("recon_unexplained"):
+        recon_summary += f" · {s2['recon_unexplained']} 项无法解释"
+    if s2.get("recon_unexecuted"):
+        names = "、".join(s2.get("recon_unexecuted_names") or [])
+        recon_summary += f" · {s2['recon_unexecuted']} 项未执行（{names}）"
+    r.sub1("{{全部闭合 / 其余 M 条闭合}}", recon_summary, "s2.recon_closed")
 
     # 四线考核表
     tk = s2.get("threshold") or {}
@@ -419,7 +426,10 @@ def fill_s2(r, s2):
         if tk.get("incentive"):
             tbody = _row_replace(tbody, "股权激励考核线", _line_row("激励线", tk["incentive"]),
                                  r, "s2.tk.inc")
-        if tk.get("q4_na"):
+        if tk.get("q4"):
+            tbody = _row_replace(tbody, "Q4 集中度", _line_row("Q4 集中度", tk["q4"]),
+                                 r, "s2.tk.q4")
+        elif tk.get("q4_na"):
             tbody = _row_replace(
                 tbody, "Q4 集中度",
                 lambda tr: (f'<tr><td>Q4 集中度</td><td>{tk.get("q4_na_label") or "—（不适用）"}</td><td>≤40%</td>'
@@ -570,13 +580,14 @@ def fill_s5(r, s5):
             verdict = '<span class="badge y">⚠️ 观察</span>'
         r.re1(r'<tr><td>\{\{项目名\}\}.*?</tr>',
               f'<tr><td>{label}</td><td>—</td><td>—</td><td>—</td>'
-              f'<td>—</td><td class="txt">{verdict}</td></tr>',
+              f'<td>—</td><td>—</td><td class="txt">{verdict}</td></tr>',
               "s5.cip_empty")
     elif s5.get("cip_rows"):
         gen = "\n ".join(
             f'<tr><td>{p["name"]}</td><td>{p.get("budget") or "—"}</td>'
-            f'<td>{p.get("invested") or "—"}</td><td>{p.get("progress") or "—"}</td>'
-            f'<td>{p.get("transferred") or "—"}</td><td class="txt">{_H}</td></tr>'
+            f'<td>{p.get("invested") or "—"}</td><td>{p.get("closing") or "—"}</td>'
+            f'<td>{p.get("progress") or "—"}</td><td>{p.get("transferred") or "—"}</td>'
+            f'<td class="txt">{_H}</td></tr>'
             for p in s5["cip_rows"])
         r.re1(r'<tr><td>\{\{项目名\}\}.*?</tr>', gen, "s5.cip_rows")
     if s5.get("cap_drop"):

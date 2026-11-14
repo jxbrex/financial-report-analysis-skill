@@ -119,8 +119,8 @@ def compute_leverage_drill(data, dupont=None):
     """有息/无息杠杆拆解 + 话语权型杠杆升档判定（v1.3，F-02）。
     有息 = st_debt+noncur_due_1y+lt_debt；无息 = payable+contract_liab（不含其他应付款，
     schema 无此字段——口径声明，不假装完整）；各自 null 按 0 计、全 null 才 None。
-    quality_upgrade：杠杆为主驱动且 ni_share>0.7 且 |ΔDFL|<0.1 → True（经验阈值，
-    随样本校准，报告只作提醒级呈现）；杠杆非主驱动 → None（不适用）。"""
+    quality_upgrade：杠杆为正向主驱动（leverage_effect>0）且 ni_share>0.7 且 |ΔDFL|<0.1 → True
+    （经验阈值，随样本校准，报告只作提醒级呈现）；杠杆非主驱动 → None（不适用）。"""
     B = lambda f, key="cur": val(data, "statements", "balance", f, key=key)
     parts = lambda fields, key: parts_sum(data, fields, key)  # 口径唯一定义处在 calc_common
 
@@ -136,7 +136,7 @@ def compute_leverage_drill(data, dupont=None):
     ni_share = None if ni1 is None or ib1 is None or not (ni1 + ib1) else ni1 / (ni1 + ib1)
     upgrade = None
     if (dupont or {}).get("driver") == "杠杆" and ni_share is not None and dfl_delta is not None:
-        upgrade = ni_share > 0.7 and abs(dfl_delta) < 0.1
+        upgrade = ((dupont or {}).get("leverage_effect") or 0) > 0 and ni_share > 0.7 and abs(dfl_delta) < 0.1
     return {"ib_cur": ib1, "ib_prev": ib0, "ni_cur": ni1, "ni_prev": ni0,
             "ib_to_equity_cur": safe_div(ib1, eq), "ni_to_equity_cur": safe_div(ni1, eq),
             "ni_share": ni_share, "dfl_delta": dfl_delta, "quality_upgrade": upgrade}

@@ -1,0 +1,40 @@
+{
+  "checks": [
+    {
+      "item": "revenue_2025",
+      "tushare_yi": 3490.79082852,
+      "report_yi": 3490.79082852,
+      "diff_yi": 0.0,
+      "match": true
+    },
+    {
+      "item": "np_at_2025",
+      "tushare_yi": 517.77327785,
+      "report_yi": 517.77327785,
+      "diff_yi": 0.0,
+      "match": true
+    },
+    {
+      "item": "ocf_2025",
+      "tushare_yi": 754.29516296,
+      "report_yi": 754.29516296,
+      "diff_yi": 0.0,
+      "match": true
+    },
+    {
+      "item": "assets_2025",
+      "tushare_yi": 5120.0514245,
+      "report_yi": 5120.0514245,
+      "diff_yi": 0.0,
+      "match": true
+    },
+    {
+      "item": "equity_at_2025",
+      "tushare_yi": 1855.41965085,
+      "report_yi": 1855.41965085,
+      "diff_yi": 0.0,
+      "match": true
+    }
+  ],
+  "src": "Tushare income/balancesheet/cashflow vs 公司2025年报主要会计数据"
+}

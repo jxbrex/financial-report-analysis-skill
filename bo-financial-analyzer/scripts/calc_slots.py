@@ -11,6 +11,7 @@ import json
 import pathlib
 import re
 import statistics
+from decimal import Decimal, ROUND_HALF_UP
 from html import escape as _htmlesc
 
 from calc_common import hist_periods, num, canonical_report_type, watch_ops
@@ -275,7 +276,8 @@ def write_fillsheet(data, path):
     abn = [(k, v) for k, v in rec.items()
            if isinstance(v, dict) and v.get("verdict") and "闭合" not in str(v.get("verdict"))]
     if abn:
-        L.append(f"- 勾稽异常行（⚠️/🔴 才进正文；✅ 闭合 {len(rec) - len(abn)} 条一行汇总）：")
+        closed = sum(1 for v in rec.values() if isinstance(v, dict) and v.get("verdict") == "闭合")
+        L.append(f"- 勾稽异常行（⚠️/🔴 才进正文；✅ 闭合 {closed} 条一行汇总）：")
         for k, v in abn:
             L.append(f"  · {k} [{v.get('verdict')}] lhs={v.get('lhs')} rhs={v.get('rhs')}：{v.get('explanation')}")
     elif rec:
@@ -347,8 +349,9 @@ def write_fillsheet(data, path):
     if cip:
         L.append("\n## S5 在建工程行（照抄；判定=进度 vs 计划工期、连续两年进度增量）\n")
         for p in cip:
-            L.append(f"- {p.get('name')}：预算 {p.get('budget')} · 累计投入 {p.get('invested_cur')} · "
-                     f"进度 {p.get('progress')} · 本期转固 {p.get('transferred')}（{p.get('note') or ''}）")
+            L.append(f"- {p.get('name')}：预算 {p.get('budget')} · 本期投入 {p.get('invested_cur')} · "
+                     f"期末余额 {p.get('closing_balance')} · 进度 {p.get('progress')} · "
+                     f"本期转固 {p.get('transferred')}（{p.get('note') or ''}）")
 
     sh = notes.get("shareholders") or {}
     if sh:
@@ -451,11 +454,14 @@ def build_sankey_slot(data):
             out_.append({"label": it["label"], "v": R2(it["value"]), "lines": ln})
         return out_
 
+    minority = sk["minority"]
+    minority = None if minority is None else float(
+        Decimal(str(minority)).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP))
     return {"pt": sk["period_type"],
             "rev": R2(sk["rev"]), "cost": R2(sk["cost"]), "gross": R2(sk["gross"]),
             "minus": _pack(minus), "plus": _pack(plus),
             "op": R2(sk["op"]), "nonop": R2(sk["nonop"]), "tax": R2(sk["tax"]),
-            "np": R2(sk["np"]), "np_at": R2(sk["np_at"]), "minority": R2(sk["minority"]),
+            "np": R2(sk["np"]), "np_at": R2(sk["np_at"]), "minority": minority,
             "ocf": R2(sk["ocf"]), "gap": R2(sk["gap"]),
             "capex": R2(sk["capex"]), "fcf": R2(sk["fcf"])}
 
@@ -552,6 +558,8 @@ def _js_slots(data):
             rest = round(rev_d - sum(v for _, v in seg), 2)
             if abs(rest) > 0.005:
                 label = "其他业务" if any(name == "其他" for name, _ in seg) else "其他"
+                if any(name == label for name, _ in seg):
+                    label = "其他调整"
                 seg.append([label, rest])
     out["SEG_BRIDGE"] = f"const SEG_BRIDGE={_jd(seg)};"
     out["seg_drop"] = not seg
@@ -812,11 +820,11 @@ def build_slots(data):
         slots["s1"]["dupont5y"] = {
             "p_start": d5.get("period_start"), "p_end": d5.get("period_end"),
             "rows": [
-                {"label": "净利率", "start": _PCT2(nm_h[0] if nm_h else None),
+                {"label": "净利率", "start": _PCT2(nm_h[-_pn] if nm_h else None),
                  "end": _PCT2(nm_h[-1] if nm_h else None), "cum": _cum(d5.get("margin_effect"))},
-                {"label": "总资产周转率", "start": _F2(at_h[0] if at_h else None),
+                {"label": "总资产周转率", "start": _F2(at_h[-_pn] if at_h else None),
                  "end": _F2(at_h[-1] if at_h else None), "cum": _cum(d5.get("turnover_effect"))},
-                {"label": "权益乘数", "start": _F2(em_h[0] if em_h else None),
+                {"label": "权益乘数", "start": _F2(em_h[-_pn] if em_h else None),
                  "end": _F2(em_h[-1] if em_h else None), "cum": _cum(d5.get("leverage_effect"))},
             ],
             "roe": {"start": _PCT2(d5.get("roe_start")), "end": _PCT2(d5.get("roe_end")),
@@ -859,24 +867,36 @@ def build_slots(data):
                    "B1": "应收 roll-forward", "B2": "存货 roll-forward", "B3": "在建工程 roll-forward",
                    "B4": "商誉 roll-forward", "C1": "CCC 现金转换周期", "C2": "DPO 双面性",
                    "D1": "母公司现金勾稽", "D2": "母公司未分配利润", "D3": "母公司其他应收款",
-                   "D4": "母公司长期股权投资", "D5": "母公司 OCF 勾稽"}
+                   "D4": "母公司投资收益/净利润", "D5": "母公司 OCF 勾稽"}
     rec = data.get("recon") or {}
     abn = [(k, v) for k, v in rec.items()
            if isinstance(v, dict) and v.get("verdict") and "闭合" not in str(v.get("verdict"))]
+    unexecuted = [(k, v) for k, v in rec.items() if isinstance(v, dict) and not v.get("verdict")]
     recon_rows = []
-    for k, v in abn:
+    for k, v in abn + unexecuted:
         lhs, rhs = v.get("lhs"), v.get("rhs")
         if isinstance(lhs, (int, float)) and isinstance(rhs, (int, float)):
             d_ = lhs - rhs
-            dev = f"{d_:+.2f} 亿 / {abs(d_) / abs(rhs) * 100:.1f}%" if rhs else f"{d_:+.2f} 亿"
+            if k in {"A7_implied_rate", "A8_invest_income"}:
+                dev = f"{d_ * 100:+.2f}pct / {abs(d_) / abs(rhs) * 100:.1f}%" if rhs else f"{d_ * 100:+.2f}pct"
+            else:
+                unit = "倍" if k in {"D1_parent_cash", "D3_parent_other_ar", "D4_parent_invest"} else "亿"
+                dev = f"{d_:+.2f} {unit} / {abs(d_) / abs(rhs) * 100:.1f}%" if rhs else f"{d_:+.2f} {unit}"
         else:
             dev = "—"
         pre = k.split("_")[0]
-        recon_rows.append({"eq": f"{pre} {_RECON_NAME.get(pre, k)}", "verdict": v.get("verdict"),
+        recon_rows.append({"eq": f"{pre} {_RECON_NAME.get(pre, k)}", "verdict": v.get("verdict") or "未执行",
                            "deviation": dev, "explain": _TXT(v.get("explanation") or "")})
     slots["s2"]["recon_rows"] = recon_rows
     slots["s2"]["recon_total"] = len(rec)
-    slots["s2"]["recon_closed"] = len(rec) - len(abn)
+    slots["s2"]["recon_closed"] = sum(1 for v in rec.values()
+                                     if isinstance(v, dict) and v.get("verdict") == "闭合")
+    slots["s2"]["recon_explainable"] = sum(1 for v in rec.values()
+                                          if isinstance(v, dict) and v.get("verdict") == "可解释")
+    slots["s2"]["recon_unexplained"] = sum(1 for v in rec.values()
+                                          if isinstance(v, dict) and v.get("verdict") == "无法解释")
+    slots["s2"]["recon_unexecuted"] = len(unexecuted)
+    slots["s2"]["recon_unexecuted_names"] = [k.split("_")[0] for k, _ in unexecuted]
     tk = der.get("threshold_check") or {}
     shell, refi, inc_ = tk.get("shell_line") or {}, tk.get("refinance_line") or {}, tk.get("incentive_line") or {}
     _line = lambda blk, target_txt: {
@@ -887,6 +907,7 @@ def build_slots(data):
                  else f"{(blk['roe'] - blk['target']) * 100:+.1f}pct"),
         "verdict": ("✅ 远离" if blk.get("hit") is False else ("🔴 贴线" if blk.get("hit") else "—"))}
     inc_actual, inc_target = num(inc_.get("actual")), num(inc_.get("target"))
+    q4_share = num((der.get("q4") or {}).get("rev_share"))
     slots["s2"]["threshold"] = {
         "shell": _line(shell, "ROE 6.5%"), "refi": _line(refi, "ROE 10%"),
         "incentive": {"read": _PCT2(inc_actual) or "—", "target": _PCT2(inc_target) or "—",
@@ -894,7 +915,11 @@ def build_slots(data):
                                if inc_actual is not None and inc_target is not None else "—"),
                       "verdict": "✅ 无贴线场景" if inc_.get("hit") is None else
                                  ("✅ 远离" if inc_.get("hit") is False else "🔴 贴线")},
-        "q4_na": rt != "年报", "q4_na_label": f"—（{rt}不适用）",
+        "q4": ({"read": f"Q4 收入占 {_PCT2(q4_share)}", "target": "≤40%",
+                "dist": f"{(q4_share - 0.4) * 100:+.1f}pct",
+                "verdict": "🟡 贴线" if q4_share > 0.4 else "✅ 远离"}
+               if rt == "年报" and q4_share is not None else None),
+        "q4_na": rt != "年报", "q4_na_label": f"—（{rt}不适用）" if rt != "年报" else None,
     }
 
     # ── S3 净利桥（归并：投资/公允+其他收益+非经 → 非经常性损益一行）──
@@ -1023,7 +1048,8 @@ def build_slots(data):
     cip = notes.get("cip_projects") or []
     slots["s5"] = {
         "cip_rows": [{"name": _TXT(p.get("name")), "budget": _TXTV(p.get("budget")),
-                      "invested": _TXTV(p.get("invested_cur")), "progress": _TXTV(p.get("progress")),
+                      "invested": _TXTV(p.get("invested_cur")),
+                      "closing": _TXTV(p.get("closing_balance")), "progress": _TXTV(p.get("progress")),
                       "transferred": _TXTV(p.get("transferred")), "note": _TXT(p.get("note"))}
                      for p in cip],
         "cip_empty": not cip,
@@ -1110,12 +1136,13 @@ def build_slots(data):
         diff_row[c] = {"txt": txt, "cls": _peer_cls(c, sv)}
     # 预期对照：仅年报比较同一目标年度；无日期或披露日后的预测不进入中位数
     target_year = str(meta.get("period") or "")[:4]
-    disclose_date = str(meta.get("disclose_date") or "")
+    _date_key = lambda value: str(value or "").replace("-", "")
+    disclose_date = _date_key(meta.get("disclose_date"))
     used_forecasts = []
     for e in (data.get("expectations") or []):
         if not isinstance(e, dict):
             continue
-        date = str(e.get("date") or "")
+        date = _date_key(e.get("date"))
         if not date or (disclose_date and date > disclose_date):
             continue
         if any(num(e.get(f"forecast_{key}_{target_year}")) is not None for key in ("rev", "np")):
@@ -1138,7 +1165,8 @@ def build_slots(data):
                             "cls": ("up" if delta > 0 else "dn" if delta < 0 else "") if delta is not None else ""})
     if expect_med:
         expect_src = (f"公开研报（{len(used_forecasts)} 家机构，最新 "
-                      f"{max(e['date'] for e in used_forecasts)}）· 目标年度 {target_year}；预测为机构观点")
+                      f"{max(used_forecasts, key=lambda e: _date_key(e.get('date')))['date']}）· "
+                      f"目标年度 {target_year}；预测为机构观点")
     else:
         expect_src = "公开研报 · 仅年报同年度可比；无预测时不计算偏离"
     slots["s7"] = {
@@ -1181,11 +1209,15 @@ def build_slots(data):
     cards = []
     for w in (data.get("watchlist") or []):
         upper_op, lower_op = watch_ops(w)
+        thresholds = []
+        if w.get("upper") is not None:
+            thresholds.append(f"{_TXT(upper_op)} {_TXT(w.get('upper'))} {_TXT(w.get('upper_meaning'))}".strip())
+        if w.get("lower") is not None:
+            thresholds.append(f"{_TXT(lower_op)} {_TXT(w.get('lower'))} {_TXT(w.get('lower_meaning'))}".strip())
+        threshold_text = " / ".join(thresholds) if thresholds else "定性观察，无数值阈值"
         cards.append({"indicator": _TXT(w.get("indicator")), "current": _TXT(w.get("current")),
                       "badge": w.get("badge"),
-                      "wb": (f"{_TXT(upper_op)} {_TXT(w.get('upper'))} {_TXT(w.get('upper_meaning'))} / "
-                             f"{_TXT(lower_op)} {_TXT(w.get('lower'))} {_TXT(w.get('lower_meaning'))}；"
-                             f"{_TXT(w.get('tripwire'))}"),
+                      "wb": f"{threshold_text}；{_TXT(w.get('tripwire'))}",
                       "srcline": _SRC(w.get("source"))})
     slots["s8"] = {"cards": cards}
 

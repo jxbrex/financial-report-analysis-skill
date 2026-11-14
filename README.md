@@ -2,8 +2,8 @@
 
 > 上市公司年报 / 半年报 / 季报 / 招股说明书分析技能（Agent Skill）——输入一份定期报告或招股说明书，产出一份单文件自包含 HTML 分析报告。
 
-[![版本](https://img.shields.io/badge/version-0.1.7-blue)](https://github.com/jxbrex/financial-report-analysis-skill/releases/latest)
-[![回归](https://img.shields.io/badge/%E5%9B%9E%E5%BD%92-402%2F402%20%E7%BB%BF-brightgreen)](bo-financial-analyzer/tests/run_regression.py)
+[![版本](https://img.shields.io/badge/version-0.1.8-blue)](https://github.com/jxbrex/financial-report-analysis-skill/releases/latest)
+[![回归](https://img.shields.io/badge/%E5%9B%9E%E5%BD%92-437%2F437%20%E7%BB%BF-brightgreen)](bo-financial-analyzer/tests/run_regression.py)
 [![CI](https://github.com/jxbrex/financial-report-analysis-skill/actions/workflows/regression.yml/badge.svg)](https://github.com/jxbrex/financial-report-analysis-skill/actions/workflows/regression.yml)
 
 ---
@@ -50,7 +50,7 @@
 | `scripts/check_html.py` | Phase 8，交付前 | 占位符残留、裸数字启发式、数据来源标注、模板硬规则、WCAG 小字对比度（text-contrast）、SVG 可访问名称（svg-a11y）、必备要素、锚点完整性、章节形态（s1 杜邦双卡/s2 瘦身/s8 阈值）、数据缺口声明集中落点（gap-declaration）、桑基数据槽比对（sankey-slot）、**T8 数字回验**（`--json`：HTML↔data.json 笔误检测 + data.json↔原文行号回核） | exit 非 0 禁止交付 |
 | `scripts/check_render.py` | Phase 8，交付前 | headless Chrome/Edge 真渲染测量：SVG 文本重叠 / HTML 溢出 .sheet / 横向裁剪 / 关键 SVG 非空（empty-svg）/ SVG 文本出视口（svgclip）；`--png` 按章分片截图供视觉验收 | 发现问题 exit 1 |
 | `scripts/gate.py` | 单入口 | 上三条一条命令串完（`--png`/`--verbose`/`--min-recon` 透传） | 统一退出码 |
-| `tests/run_regression.py` | 任何改动后 | 金标准五例（茅台干净样本零误报 / 康得新造假样本须命中 / 万科连亏地产样本扣非双版与双驱动真实触发 / 万华周期股样本双驱动第二样本与白描分位锚点 / 清越新准则造假样本处罚交叉验证）+ 赢合 render 重放金标准（fillsheet 逐字锁）+ check_html/T8/渲染冒烟 + md_clean 双合成样本 + `--fill` 幂等（字符串叶精确比对）+ 构造用例，共 402 条断言 | 不绿不许提交 |
+| `tests/run_regression.py` | 任何改动后 | 金标准五例（茅台干净样本零误报 / 康得新造假样本须命中 / 万科连亏地产样本扣非双版与双驱动真实触发 / 万华周期股样本双驱动第二样本与白描分位锚点 / 清越新准则造假样本处罚交叉验证）+ 赢合 render 重放金标准（fillsheet 逐字锁）+ check_html/T8/渲染冒烟 + md_clean 双合成样本 + `--fill` 幂等（字符串叶精确比对）+ 构造用例，共 437 条断言 | 不绿不许提交 |
 
 ## 三、目录结构
 
@@ -88,7 +88,7 @@ Financial Report Analysis/          本仓库（技能唯一真源）
 │   │   ├── check_html_t8.py        T8 数字回验整族（①级笔误检测 + hist_pool 豁免 + ②级行号回核）
 │   │   ├── check_render.py         渲染测量门禁（headless Chrome/Edge；empty-svg 非空 + svgclip 出视口检测）
 │   │   ├── gate.py                 三道门禁单入口
-│   │   ├── md_clean.py             财报 md 确定性清洗（拼碎行/删页眉页脚 + 章节索引）
+│   │   ├── md_clean.py             财报 md 确定性清洗（拼碎行/删页眉页脚 + 章节索引 + 图片型主表缺失提示）
 │   │   └── ts_fetch.py             tushare HTTP 取数（双源核对通道，token 读环境变量）
 │   ├── tests/
 │   │   ├── moutai_2025.json        干净样本金标准（应零误报）
@@ -97,11 +97,14 @@ Financial Report Analysis/          本仓库（技能唯一真源）
 │   │   ├── wanhua_2026h1.json      周期股样本（双驱动第二样本/ROIC·SGR 首验/白描分位锚点）
 │   │   ├── qingyue_2022.json       新准则造假样本（处罚×收入KAM×少计减值；外部硬证据交叉验证）
 │   │   ├── yinghe_2026h1.json      render 重放金标准（fill→render 锚定与断言结构锚点）
+│   │   ├── breo_2025_b2.json       B2 完整存货流真实专用样本
+│   │   ├── yinghe_2025_leverage.json  话语权型杠杆真实专用样本
+│   │   ├── midea_2025_leverage_negative.json  负向杠杆不得升档真实样本
 │   │   ├── yinghe_2026h1.fillsheet.golden.md  赢合 fillsheet 金标准（render 重放逐字锁）
 │   │   ├── md_clean_synth.md       md_clean 合成金标准（自包含，覆盖四类历史病理）
 │   │   ├── md_clean_synth2.md      第二合成金标准（v0.1.5：表题行/分隔行污染两形态）
 │   │   ├── t8_demo.html            T8 数字回验验收样例（改错版由回归运行时改数生成）
-│   │   └── run_regression.py       唯一回归入口（402 断言：五金标准 + render 重放 + 全部门禁冒烟 + 构造用例）
+│   │   └── run_regression.py       唯一回归入口（437 断言：五金标准 + render 重放 + 全部门禁冒烟 + 构造用例）
 ├── reports/                        产出目录。顶层只放成品 HTML（每公司最新版；PDF/md 不入库，json 入库）
 │   └── archive/                    原始报告（PDF/md，不入库）+ json 底稿（入库）
 ├── .github/workflows/              CI：push 自动跑金标准回归
@@ -136,7 +139,7 @@ Financial Report Analysis/          本仓库（技能唯一真源）
 
 ```bash
 # 1. 确认环境（自包含，clone 后即可跑）
-python bo-financial-analyzer/tests/run_regression.py   # 应 402/402 通过
+python bo-financial-analyzer/tests/run_regression.py   # 应 437/437 通过
 
 # 2. 部署到本机（如需）
 cmd //c deploy.cmd
@@ -173,6 +176,7 @@ cmd //c deploy.cmd
 | 0.1.5 | 2026-10-22 | ponytail-audit 全技能审计修复 19 条（md_clean 表题误并 / 跨期错配 / T8① 全角减号失明等）；回归 209→252；md_clean 第二合成金标准 |
 | 0.1.6 | 2026-11-01 | 技能更名 Bo-FinancialAnalyzer：源目录 / 报告品牌 / CI / 部署路径同步，回归 252→257（含 render 成品品牌断言） |
 | 0.1.7 | 2026-11-12 | 通用季报 Q1/Q3 标签与 Altman 年化；auto 主市场前缀识别、A 股季报下限校准为 4；WCAG 小字对比度与 text-contrast 门禁；SVG 可访问名称、ncrline/stackH/npchart 标签避让、空分部桥降级、watchlist 单次转义、旧来源定位归一与 md_clean 标题索引修复；招股书期间/专属专章/T8期后单位与视觉裁剪首验（南方乳业）；清越新准则造假金标准与 A2 权益扣减口径；回归 257→402 |
+| 0.1.8 | 2026-11-14 | 八类商业模式与 A 股/H 股/北交所真实样本扩充；独立复核闭环；未执行勾稽可见、利率差 pct、在建投入/余额双字段；图片型主表缺失提示与 fillsheet 闭合计数修复；回归 402→437 |
 
 ## 八、免责声明
 

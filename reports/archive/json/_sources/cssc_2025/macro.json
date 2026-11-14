@@ -1,0 +1,13 @@
+{
+  "query_date": "2026-11-13",
+  "source": "东方财富宏观数据库",
+  "series": {
+    "usd_cny_mid_year_end": {"2025": 7.0288, "2024": 7.1884, "unit": "人民币元/美元", "original_source": "中国人民银行", "note": "美元中间价下降2.22%，即人民币同比升值"},
+    "plate_20mm_average_year_end": {"2025": 3409, "2024": 3599, "unit": "元/吨", "original_source": "宏观库原列示来源", "note": "同比-5.28%；与年报行业协会3751元/吨口径不同，不混用"},
+    "new_ship_price_oil_dec": {"2025": 213, "2024": 223, "unit": "点", "original_source": "航运在线", "note": "同比-4.48%"},
+    "new_ship_price_bulk_dec": {"2025": 168, "2024": 174, "unit": "点", "original_source": "航运在线", "note": "同比-3.45%"},
+    "new_ship_price_container_dec": {"2025": 115, "2024": 119, "unit": "点", "original_source": "航运在线", "note": "同比-3.36%"}
+  },
+  "annual_report_reference": {"plate_20mm_2025_year_end": 3751, "yoy_pct": -3.89, "src": "中国船舶2025年报L449-L453，数据来源为中国船舶工业行业协会及中国船舶集团经济研究中心"},
+  "interpretation": "钢价下降支持成本改善；人民币汇率升值对外销收入折算与汇兑有压力；分船型新船价格指数仍处高位但同比回落，不能只写船价单边上涨。"
+}

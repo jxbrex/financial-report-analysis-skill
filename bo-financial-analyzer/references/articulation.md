@@ -253,12 +253,14 @@ updated: 2026-09-10
 
 ### B3 在建工程 roll-forward
 - **公式**：期初 + 本期投入 − 转固 − 减值 ≈ 期末
-- **数据位置**：资产负债表在建工程两期 + 在建工程附注**项目进度表**（项目名/预算/累计投入/
-  工程进度%/本年转入固定资产额/减值准备）+ 现金流量表 capex；data.json:
-  `statements.balance.cip`、`notes.cip_projects`（`invested_cur` / `progress` / `transferred`）、
+- **数据位置**：资产负债表在建工程两期 + 在建工程附注**项目进度表**（项目名/预算/本期增加/
+  期末余额/工程进度%/本年转入固定资产额/减值准备）+ 现金流量表 capex；data.json:
+  `statements.balance.cip`、`notes.cip_projects`（`invested_cur` / `closing_balance` / `progress` / `transferred`）、
   `statements.cashflow.capex`、`recon.B3_cip_roll`
 - **lhs / rhs**：`lhs = cip.prev + Σ notes.cip_projects[*].invested_cur
-  − Σ notes.cip_projects[*].transferred − 本期减值`；`rhs = cip.cur`
+  − Σ notes.cip_projects[*].transferred − 本期减值`；`rhs = cip.cur`。
+  `invested_cur` 只填本期增加金额，`closing_balance` 只填期末余额；工程累计投入占预算比例
+  不是本期增加金额，不得换算后代入。未披露本期增加时 `invested_cur=null`，B3 降级，禁止用期末余额替代。
   **交叉验证**：Σ`invested_cur` 应 ≤ `capex.cur`（capex 还含无形资产/长期待摊/直接购入固定资产），
   Σ`invested_cur` 明显大于 capex = 投入未实际付现，查应付工程款或资金流向
 - **阈值**：偏差率 > **5%** 立案（calc.py `B3_cip_roll` closure 0.05）
@@ -347,6 +349,7 @@ updated: 2026-09-10
   → WARN，**必须确认 `signals` 中有对应条目**；`dev > 阈值` 且 `verdict = 可解释` → OK
 - **level 型（A7/A8）**：`lhs` = 计算值（隐含利率/隐含收益率，小数），`rhs` = 基准阈值。
   `lhs > rhs` 却判「闭合」→ FAIL；`lhs ≤ rhs` 却判「可解释/无法解释」→ FAIL。
+  报告中的偏差额按 **pct（百分点）** 展示，不得误写为亿元；D1/D3/D4 的比率差用「倍」，金额型仍用「亿」。
   **rhs 由分析师按公司融资结构与金融资产构成填，取值依据写进 `explanation`**
 - **缺数处理**：`lhs`/`rhs` 任一为 `null` 时，填了 `verdict` 会 FAIL（无算据的判定不成立），不填则 SKIP
   ——**附注确实未披露就整条留空，禁止用 0 或估算值占位后判「闭合」**

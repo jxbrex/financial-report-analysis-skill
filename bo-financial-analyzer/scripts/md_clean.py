@@ -251,6 +251,29 @@ def build_index(lines):
     return {"sections": sections, "blocks": blocks}
 
 
+def statement_completeness_warnings(lines):
+    notes_start = next((i for i, line in enumerate(lines)
+                        if re.match(r"^[一二三四五六七八九十]+、\s*(?:公司)?基本情况", line.strip())), None)
+    if notes_start is None:
+        return []
+    before = [line.strip() for line in lines[:notes_start]]
+    required = ("合并资产负债表", "合并利润表", "合并现金流量表")
+    if not all(key in before for key in required):
+        return []
+    normalized = [re.sub(r"\s+", "", line) for line in before]
+    groups = (
+        ("流动资产合计", ("流动资产合计", "流动资产总计", "流動資產合計", "流動資產總計")),
+        ("非流动资产合计", ("非流动资产合计", "非流动资产总计", "非流動資產合計", "非流動資產總計")),
+        ("资产总计", ("资产总计", "资产合计", "資產總計", "資產合計")),
+    )
+    missing = [label for label, terms in groups
+               if not any(any(term in line for term in terms) for line in normalized)]
+    if not missing:
+        return []
+    return ["⚠️ 主表文本完整性提示：目录含合并三表，但附注前未检出「" + "、".join(missing)
+            + "」；可能是图片页或主表文本缺失，请渲染 PDF 原页人工核对（不阻断清洗）"]
+
+
 def main():
     ap = argparse.ArgumentParser(description="财报 md 一次性确定性清洗 + 章节索引")
     ap.add_argument("md_path")
@@ -299,6 +322,9 @@ def main():
     clean_path = out_dir / f"{src.stem}.clean.md"
     index_path = out_dir / f"{src.stem}.index.json"
     idx = build_index(final)
+    statement_warnings = statement_completeness_warnings(final)
+    if statement_warnings:
+        idx["statement_warnings"] = statement_warnings
     clean_path.write_text("\n".join(final) + "\n", encoding="utf-8", newline="\n")
     index_path.write_text(json.dumps(idx, ensure_ascii=False, indent=1),
                           encoding="utf-8", newline="\n")  # 行尾 LF（Windows 默认 CRLF，与 render_report.py 同口径）
@@ -307,6 +333,8 @@ def main():
     print(f"   删重复分隔行 {deleted['sep']} · 页眉页脚 {deleted['furn']} · 拼回碎行 {deleted['merged']}")
     print(f"   索引：{len(idx['sections'])} 节 / {len(idx['blocks'])} 关键块")
     print(f"   产物：{clean_path.name} + {index_path.name}（source_md 应指向 clean 副本）")
+    for warning in statement_warnings:
+        print(f"   {warning}")
     if unmerged:
         print(f"   ⚠️ 未合并清单 {len(unmerged)} 条（人工/子代理知悉，不影响不变量）：")
         for ln, s in unmerged[:10]:

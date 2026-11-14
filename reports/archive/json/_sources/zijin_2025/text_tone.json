@@ -1,0 +1,16 @@
+{
+  "scope": "2025 clean L1402-L2391 vs 2024 clean L1247-L2187，MD&A中文主体",
+  "tone_2024": {"strong": 18, "stable": 7, "weak": 1, "pressure": 8, "polarity_ratio": 2.78, "dominant": "强(+2)"},
+  "tone_2025": {"strong": 15, "stable": 7, "weak": 0, "pressure": 6, "polarity_ratio": 3.67, "dominant": "强(+2)"},
+  "migration": "两期均为强(+2)主导，无档位迁移；极性比2.78→3.67，上行",
+  "disappeared": ["快速增长", "巩固", "基本持平", "不及预期", "下滑"],
+  "added": ["稳健增长", "稳步提升", "下行压力", "回落", "严峻"],
+  "shared_high_frequency": {"突破": [6, 7]},
+  "guidance_fulfillment": {
+    "achieved": ["矿产金85→90吨", "矿产钼1→1.15万吨"],
+    "near": ["矿产银450→439吨"],
+    "missed": ["矿产铜115→109万吨", "锌（铅）44→40万吨", "当量碳酸锂4→2.55万吨"],
+    "note": "2项达成、1项接近、3项未达；不以金钼超额抵消铜锌锂落差"
+  },
+  "src": "子代理按text-mining四档词表机械计数；主会话复核产量指引与2024/2025 clean md"
+}

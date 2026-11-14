@@ -1,0 +1,181 @@
+{
+  "statements": {
+    "income": {
+      "cost": {
+        "cur": 2522.88843039,
+        "prev": 2417.76168937,
+        "level": "disc",
+        "src": "L1692/L9845；PDF第116页",
+        "hist": [
+          1903.51121555,
+          2277.84282577,
+          2470.24066519,
+          2417.76168937,
+          2522.88843039
+        ]
+      },
+      "tax_surcharge": {
+        "cur": 79.14816911,
+        "prev": 58.18762976,
+        "level": "disc",
+        "src": "L1693；PDF第116页"
+      },
+      "sell_exp": {
+        "cur": 8.49939455,
+        "prev": 7.37709965,
+        "level": "disc",
+        "src": "L1694；PDF第116页"
+      },
+      "admin_exp": {
+        "cur": 111.59456237,
+        "prev": 77.28809892,
+        "level": "disc",
+        "src": "L1695；PDF第116页"
+      },
+      "fin_exp": {
+        "cur": 20.8303128,
+        "prev": 20.29304105,
+        "level": "disc",
+        "src": "L10147；PDF第116页"
+      },
+      "interest_exp": {
+        "cur": 39.32640491,
+        "prev": 45.48705755,
+        "level": "disc",
+        "src": "PDF第116页；财务费用附注L10137-L10147"
+      },
+      "interest_inc": {
+        "cur": 26.16011605,
+        "prev": 25.75832002,
+        "level": "disc",
+        "src": "PDF第116页；含未实现融资收益"
+      },
+      "impair_loss": {
+        "cur": 4.27228829,
+        "prev": 7.52655273,
+        "level": "disc",
+        "src": "L10269/L10298；损失正计"
+      },
+      "invest_income": {
+        "cur": 59.77156089,
+        "prev": 40.20138083,
+        "level": "disc",
+        "src": "L10189；PDF第116页"
+      },
+      "fv_change_income": {
+        "cur": 29.44467665,
+        "prev": 9.48447567,
+        "level": "disc",
+        "src": "L10231；PDF第116页"
+      },
+      "non_op_income": {
+        "cur": 2.07046147,
+        "prev": 1.41067113,
+        "level": "disc",
+        "src": "L10326"
+      },
+      "other_biz_income": {
+        "cur": 23.05470945,
+        "prev": 20.2805292,
+        "level": "disc",
+        "src": "L9842 其他业务收入"
+      },
+      "non_op_net": {
+        "cur": -13.57612381,
+        "prev": -7.48920029,
+        "level": "disc",
+        "src": "L10326/L10348"
+      },
+      "np_total": {
+        "cur": 638.22189587,
+        "prev": 393.92864181,
+        "level": "disc",
+        "src": "L496/L10598；PDF第116页"
+      },
+      "minority_np": {
+        "cur": 120.44861802,
+        "prev": 73.42261744,
+        "level": "disc",
+        "src": "PDF第116页"
+      },
+      "income_tax": {
+        "cur": 169.30333554,
+        "prev": 86.84860973,
+        "level": "disc",
+        "src": "L10358"
+      }
+    },
+    "balance": {
+      "restricted_cash": {
+        "cur": 17.13559229,
+        "prev": 7.52064412,
+        "level": "disc",
+        "src": "L5856-L5866 货币资金附注注1",
+        "note": "2025=闭矿生态复原准备金4.40477664+法定存款准备金11.08420290+其他保证金1.36200800+诉讼冻结0.28460475；2024=3.45899833+0.44589645+3.36425426+0.25149508。可用资金与在途资金不计入受限"
+      },
+      "ar_notes": {
+        "cur": 22.82419297,
+        "prev": 16.82816998,
+        "level": "disc",
+        "src": "PDF第113页：应收票据+应收款项融资"
+      },
+      "payable": {
+        "cur": 275.16722886,
+        "prev": 208.27646603,
+        "level": "disc",
+        "src": "PDF第114页：应付票据+应付账款"
+      },
+      "fixed_assets": {
+        "cur": 1170.41644314,
+        "prev": 923.07458161,
+        "level": "disc",
+        "src": "PDF第113页"
+      },
+      "fin_assets": {
+        "cur": 639.61265918,
+        "prev": 490.8285935,
+        "level": "disc",
+        "src": "PDF第113页：交易性金融资产+长期股权投资+其他非流动金融资产"
+      },
+      "payable_construction": {
+        "cur": 114.60571761,
+        "prev": 79.40117012,
+        "level": "disc",
+        "src": "L8838-L8839 其他应付款附注工程及设备款",
+        "note": "其他应付款项下单列工程及设备款，非应付账款；本期增加35.20454749亿（+44.34%）"
+      },
+      "total_cur_assets": {
+        "cur": 1482.03580245,
+        "prev": 989.39034515,
+        "level": "disc",
+        "src": "PDF第113页"
+      },
+      "total_cur_liab": {
+        "cur": 1294.80423573,
+        "prev": 997.8431894,
+        "level": "disc",
+        "src": "PDF第114页"
+      },
+      "dividend_paid": {
+        "cur": 132.7076319,
+        "prev": 79.22986682,
+        "level": "disc",
+        "src": "PDF第118/119页：宣告并权益扣减口径，SGR回退用"
+      }
+    },
+    "cashflow": {
+      "wage_cash": {
+        "cur": 144.32577325,
+        "prev": 119.28970526,
+        "level": "disc",
+        "src": "PDF第120页"
+      },
+      "interest_paid": {
+        "cur": null,
+        "prev": null,
+        "level": "disc",
+        "src": "PDF第121页仅列股利利润或偿付利息合计，未单列实际付息"
+      }
+    }
+  }
+}

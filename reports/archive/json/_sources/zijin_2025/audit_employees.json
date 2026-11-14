@@ -1,0 +1,26 @@
+{
+  "audit": {
+    "opinion": "标准无保留",
+    "auditor_cur": "德勤华永会计师事务所（特殊普通合伙）",
+    "auditor_prev": "安永华明会计师事务所（特殊普通合伙）",
+    "auditor_changed": true,
+    "fee_cur_yi": 0.0998,
+    "fee_prev_yi": 0.1135,
+    "change_reason": "安永华明连续多年提供审计服务，根据国有企业、上市公司选聘会计师事务所管理办法等要求，经2024年年度股东会审议改聘德勤华永。",
+    "kam": [
+      {
+        "topic": "固定资产、在建工程、无形资产及商誉减值",
+        "mapped_accounts": ["fixed_assets", "cip", "intangible_assets", "goodwill"],
+        "key_assumptions": ["矿山储量", "排产计划及销售数量", "销售价格", "运营成本", "折现率"],
+        "src": "L4280-L4317"
+      }
+    ],
+    "src": "L40；L3472-L3484"
+  },
+  "employees": {
+    "headcount_cur": 66708,
+    "headcount_prev": 55690,
+    "growth": 0.1978447665,
+    "src": "2025 clean L3020-L3022；2024 clean L2800-L2802"
+  }
+}

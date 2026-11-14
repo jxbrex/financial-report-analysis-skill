@@ -1,0 +1,12 @@
+{
+  "unit": "亿元",
+  "items": [
+    {"field": "营业收入", "annual_report": 4237.01834, "tushare": 4237.01834, "match": true, "src": "2025年报L247-L250 / Tushare income 20251231"},
+    {"field": "归母净利润", "annual_report": 722.01282, "tushare": 722.01282, "match": true, "src": "2025年报L250 / Tushare income 20251231"},
+    {"field": "扣非归母净利润", "annual_report": 645.07864, "tushare_fina_growth": 43.37, "match": true, "src": "2025年报L253；Tushare fina_indicator dt_netprofit_yoy=43.37%与年报一致"},
+    {"field": "经营现金流净额", "annual_report": 1332.19982, "tushare": 1332.19982, "match": true, "src": "2025年报L254 / Tushare cashflow 20251231"},
+    {"field": "总资产", "annual_report": 9748.27544, "tushare": 9748.27544, "match": true, "src": "2025年报L259 / Tushare balancesheet 20251231"},
+    {"field": "归母净资产", "annual_report": 3371.07747, "tushare": 3371.07747, "match": true, "src": "2025年报L260 / Tushare balancesheet 20251231"}
+  ],
+  "note": "原文千元已换算亿元；主数双源一致，以原文为权威锚点。"
+}

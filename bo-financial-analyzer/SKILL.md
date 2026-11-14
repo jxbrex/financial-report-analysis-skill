@@ -8,7 +8,7 @@ description: >
 metadata:
   clawdbot:
     emoji: "📑"
-    version: "0.1.7"
+    version: "0.1.8"
     requires:
       anyBins: ["python"]
     os: ["win32", "darwin", "linux"]
@@ -83,6 +83,8 @@ metadata:
    原始 md 仅作溯源快照保留）与 `{stem}.index.json`（章节名→clean md 行区间 + 三表/MD&A/
    审计/附注关键块位置——**后续所有 Read 按索引精确切片，禁止无索引盲读全 md**）。
    脚本内置双不变量（数字 token 不丢 / 中文行不丢），违反即 exit 1 禁止产出。
+   若目录含合并三表但附注前主表资产行缺失，`index.json` 增记 `statement_warnings`，
+   提示渲染 PDF 原页人工核对（不阻断清洗），提取代理须先处理该警告再使用 clean md。
    既有报告的 json 仍指原始 md（快照不回改，两文件共存）。
 2.5 **并行派发窗（v0.0.13 起；窗口最慢项历经两轮拆分定型）**：md 转换完成后
    **一次性并行派 7 个子代理**——它们只依赖 md、不依赖 data.json，可与主线 P2~P4 全程并行：
@@ -220,8 +222,8 @@ Roll-forward（应收/存货/在建工程/商誉）+ C 组周期联动（CCC/DPO
   🔴无法解释），结果写入 `recon` 块（字段见 extraction-schema.md 第四节）；
   偏差 ≠ 造假：先查手册「常见合理解释」排除后再定级，**阈值内一律判「闭合」**
   （阈值内判可解释 = 过度立案，calc FAIL）
-- **进报告的只有异常（P-5）**：⚠️/🔴 进 S2 勾稽异常清单，✅ 闭合项压为表下一行汇总；
-  🔴 条目必须同步生成 signals 条目，作为 Phase 3 排雷的输入
+- **异常与未执行项都须可见（P-5）**：⚠️/🔴 进 S2 勾稽清单；空 verdict 的未执行项也单列，
+  不计入闭合数；✅ 闭合项压为表下一行汇总。🔴 条目必须同步生成 signals 条目，作为 Phase 3 排雷的输入
 
 ### Phase 3：排雷扫描（双输入：信号库 + 勾稽异常清单）
 
@@ -361,7 +363,9 @@ Roll-forward（应收/存货/在建工程/商誉）+ C 组周期联动（CCC/DPO
    但数字不得改（T8① 回验）。**分两段填孔（v0.0.18 笔误前移）：先填 s0~s3 → 立即跑
    `check_html.py --json`（T8① 数字回验）→ 清零后再填 s4~s8 → 走第 4 条全量门禁**；
    孔未清零（占位符 FAIL）不交付——语义与手写时代一致。
-   年报专属槽位（Q4 卡/review 回看卡）render 一期不填，保留模板原样孔手工处理（二期）。
+   年报专属机械面已覆盖：S2 Q4 集中度行、S3 Q4 四项读数与转固待核提示、review 回看卡、
+   预期对照、大动清单及高管增减持均由脚本填充。年报剩余人工项为 Q4 卡结论标题、
+   机构评级变动措辞及上述通用判断孔；缺数保持空孔，非年报仍按不适用路径裁剪。
    模型不手写 CSS，不改版式（S1~S7 版面规格唯一出处=模板注释）。
    **读法层（v0.0.7 硬规则）**：figtitle 一律
    「结论式」——标题即判断，方法说明/口径注记挪 srcline，不占标题；复杂表
@@ -487,5 +491,6 @@ Roll-forward（应收/存货/在建工程/商誉）+ C 组周期联动（CCC/DPO
 | 0.1.5 | 2026-10-22 | ponytail-audit 全技能审计修复轮（19 条）：md_clean 表题/分隔行误并、cash_ts 与周期证据 filter-then-zip 跨期错配、T8① 全角减号 − 与 pct 后缀失明、三处合法形态崩管道（dupont_dt 裸数字/效应比 None/桥 delta None）、sum_bridge 非 dict 静默、cur=null 脱钩盲区、render 转义缺口、_jd 大小写、sect 右界静默、recon 矛盾双行、桑基 cum_prev 提醒级 WARN、turnover_drill skip_none、ratio-hist 具名 WARN、四象限聚合 None 当 0、gate 吞 stderr/前导空格、ts_fetch 截断落盘、dupont-stack/sankey-slot 形态与无槽感知、四处测试真空补口（T8② 双态/gate 红测/spill·clipped·pageclip 阳性/分位 _win_n 红测）；回归 209→252 |
 | 0.1.6 | 2026-11-01 | 技能更名为 Bo-FinancialAnalyzer；源目录、报告品牌、CI 与部署路径同步；bo-equity-researcher 引用更新 |
 | 0.1.7 | 2026-11-12 | 通用季报类型归一化（Q1/Q3 标签 + Altman 年化）；auto 主市场前缀识别与 A 股季报下限三例校准；WCAG 小字对比度修复与 text-contrast 机检；SVG 可访问名称、ncrline/stackH/npchart 标签避让、空分部桥降级、watchlist 单次转义、旧来源定位归一与 md_clean 标题索引修复；招股书期间/专属专章/T8期后单位与视觉裁剪首验（南方乳业）；回归 257→380 |
+| 0.1.8 | 2026-11-14 | 八类商业模式与 A 股/H 股/北交所真实样本扩充；独立复核闭环；未执行勾稽可见、利率差 pct、在建投入/余额双字段；图片型主表缺失提示与 fillsheet 闭合计数修复；回归 402→437 |
 
 逐版本详情以 handoff/supersede/ 与 git tag 为唯一真源（AGENTS.md 定案）。

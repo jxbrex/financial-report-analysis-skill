@@ -1,0 +1,142 @@
+{
+  "statements": {
+    "income": {
+      "by_segment": [
+        {
+          "name": "矿产品",
+          "basis": "product",
+          "rev_cur": 1099.78,
+          "rev_prev": 740.89,
+          "cost_cur": 430.02,
+          "cost_prev": 327.86,
+          "vol_cur": null,
+          "vol_prev": null,
+          "vol_unit": null,
+          "price_cur": null,
+          "price_prev": null,
+          "price_unit": null,
+          "intercompany_eliminated": false,
+          "src": "L9872/L9927/L9892/L9947",
+          "note": "附注54对外收入/成本净额口径，已消除内部交易；与MD&A抵消前分产品表不直接互验"
+        },
+        {
+          "name": "冶炼产品",
+          "basis": "product",
+          "rev_cur": 1658.59,
+          "rev_prev": 1811.42,
+          "cost_cur": 1452.05,
+          "cost_prev": 1659.56,
+          "vol_cur": null,
+          "vol_prev": null,
+          "vol_unit": null,
+          "price_cur": null,
+          "price_prev": null,
+          "price_unit": null,
+          "intercompany_eliminated": false,
+          "src": "L9872/L9927/L9892/L9947",
+          "note": "附注54对外收入/成本净额口径，已消除内部交易；与MD&A抵消前分产品表不直接互验"
+        },
+        {
+          "name": "贸易",
+          "basis": "product",
+          "rev_cur": 292.13,
+          "rev_prev": 293.86,
+          "cost_cur": 286.02,
+          "cost_prev": 290.66,
+          "vol_cur": null,
+          "vol_prev": null,
+          "vol_unit": null,
+          "price_cur": null,
+          "price_prev": null,
+          "price_unit": null,
+          "intercompany_eliminated": false,
+          "src": "L9872/L9927/L9892/L9947",
+          "note": "附注54对外收入/成本净额口径，已消除内部交易；与MD&A抵消前分产品表不直接互验"
+        },
+        {
+          "name": "其他",
+          "basis": "product",
+          "rev_cur": 440.3,
+          "rev_prev": 190.22,
+          "cost_cur": 354.79,
+          "cost_prev": 139.69,
+          "vol_cur": null,
+          "vol_prev": null,
+          "vol_unit": null,
+          "price_cur": null,
+          "price_prev": null,
+          "price_unit": null,
+          "intercompany_eliminated": false,
+          "src": "L9872/L9927/L9892/L9947",
+          "note": "附注54对外收入/成本净额口径，已消除内部交易；与MD&A抵消前分产品表不直接互验"
+        }
+      ]
+    }
+  },
+  "derived": {
+    "rev_factors": {
+      "volume": -268.1049415345484,
+      "price": 681.5369268100002,
+      "mix": 40.987774254548626,
+      "src": "L1730-L1747 分产品量价表；L1786-L1801 分产品收入成本表",
+      "note": "按金属+业务环节分组求基期加权均价；量=ΣΔq×组P0，价=Σq1Δp，结构=ΣΔq(p0−组P0)；贸易/其他/内部抵销因无量价单列结构及口径效应40.55亿，未藏入价格效应",
+      "components": [
+        {
+          "group": "矿山金",
+          "volume": 80.05043445549228,
+          "price": 213.09542879999998,
+          "mix": 0.6818088445077214
+        },
+        {
+          "group": "矿山铜",
+          "volume": 35.42830059309707,
+          "price": 61.444708410000004,
+          "mix": -0.24524087309707454
+        },
+        {
+          "group": "矿山锌",
+          "volume": -5.069145438925174,
+          "price": 0.2749266,
+          "mix": -0.00011510107482603642
+        },
+        {
+          "group": "矿山银",
+          "volume": 0.28950217496375064,
+          "price": 9.207435599999998,
+          "mix": 6.442503624939832e-05
+        },
+        {
+          "group": "铁精矿",
+          "volume": 3.327760252365931,
+          "price": -0.37859,
+          "mix": -3.025236593130614e-05
+        },
+        {
+          "group": "冶炼金",
+          "volume": -358.89638853346884,
+          "price": 362.1074900000001,
+          "mix": 0.0010719334688893513
+        },
+        {
+          "group": "冶炼铜",
+          "volume": -31.556029549485725,
+          "price": 37.63275132,
+          "mix": 0.00018858948572696653
+        },
+        {
+          "group": "冶炼锌",
+          "volume": 8.320624511412309,
+          "price": -1.84722392,
+          "mix": 2.668858769155573e-05
+        },
+        {
+          "group": "贸易/其他/内部抵销",
+          "volume": 0.0,
+          "price": 0.0,
+          "mix": 40.55000000000018
+        }
+      ],
+      "residual_mix": 40.55000000000018
+    }
+  }
+}
